@@ -148,7 +148,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
         )}
         
         {apiError && (
-          <Alert variant="warning" className="mb-4">
+          <Alert variant="destructive" className="mb-4">
             <InfoIcon className="h-4 w-4" />
             <AlertTitle>Analysis Incomplete</AlertTitle>
             <AlertDescription>{apiError}</AlertDescription>

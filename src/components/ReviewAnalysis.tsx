@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Review } from "@/types/reviews";
@@ -45,11 +44,22 @@ interface ReviewAnalysisProps {
   reviews: Review[];
 }
 
-// Colors for pie chart
+// Enhanced colors for pie chart with better contrast
 const COLORS = [
-  '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A28EFF', 
-  '#FF6B6B', '#4BC0C0', '#9966CC', '#FF9933', '#99CC33', 
-  '#CC6699', '#666699', '#999966', '#66CCCC'
+  '#6E59A5', // Dark Purple
+  '#9b87f5', // Primary Purple
+  '#0EA5E9', // Ocean Blue
+  '#10B981', // Green
+  '#F97316', // Bright Orange
+  '#D946EF', // Magenta Pink
+  '#8B5CF6', // Vivid Purple
+  '#0088FE', // Bright Blue
+  '#33C3F0', // Sky Blue
+  '#D3E4FD', // Soft Blue
+  '#FFDEE2', // Soft Pink
+  '#FEC6A1', // Soft Orange
+  '#FEF7CD', // Soft Yellow
+  '#F2FCE2'  // Soft Green
 ];
 
 // Function to group languages with less than 1% into "Other"
@@ -80,7 +90,7 @@ const groupMinorLanguages = (languageData: { name: string; value: number }[], to
   return languageData;
 };
 
-// Custom active shape for pie chart with label
+// Custom active shape for pie chart with label - improved for readability
 const renderActiveShape = (props: any) => {
   const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, percent, name, value } = props;
   const sin = Math.sin(-midAngle * Math.PI / 180);
@@ -113,31 +123,46 @@ const renderActiveShape = (props: any) => {
         outerRadius={outerRadius + 10}
         fill={fill}
       />
-      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" strokeWidth={2} />
       <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333" className="dark:text-white">
+      <text 
+        x={ex + (cos >= 0 ? 1 : -1) * 12} 
+        y={ey} 
+        textAnchor={textAnchor} 
+        fill="#333" 
+        className="dark:text-white font-medium"
+        style={{ fontSize: '12px' }}
+      >
         {name}
       </text>
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999" className="dark:text-gray-300">
+      <text 
+        x={ex + (cos >= 0 ? 1 : -1) * 12} 
+        y={ey} 
+        dy={18} 
+        textAnchor={textAnchor} 
+        fill="#666" 
+        className="dark:text-gray-300"
+        style={{ fontSize: '12px' }}
+      >
         {`${value} (${(percent * 100).toFixed(1)}%)`}
       </text>
     </g>
   );
 };
 
-// Custom tooltip for the pie chart
+// Enhanced tooltip for the pie chart
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white p-3 rounded shadow border text-sm text-gray-800">
-        <p className="font-bold">{data.name}</p>
-        <p>{`Reviews: ${data.value}`}</p>
-        <p>{`Percentage: ${(data.value / data._total * 100).toFixed(1)}%`}</p>
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 text-sm">
+        <p className="font-semibold text-gray-900 dark:text-white mb-1">{data.name}</p>
+        <p className="text-gray-800 dark:text-gray-200">{`Reviews: ${data.value}`}</p>
+        <p className="text-gray-800 dark:text-gray-200">{`Percentage: ${(data.value / data._total * 100).toFixed(1)}%`}</p>
         {data.name === 'Other' && data.tooltip && (
-          <div className="mt-2 border-t pt-2">
-            <p className="font-bold text-xs">Includes:</p>
-            <p className="text-xs">{data.tooltip}</p>
+          <div className="mt-2 border-t pt-2 border-gray-200 dark:border-gray-700">
+            <p className="font-semibold text-xs text-gray-900 dark:text-white">Includes:</p>
+            <p className="text-xs text-gray-800 dark:text-gray-200">{data.tooltip}</p>
           </div>
         )}
       </div>
@@ -418,12 +443,12 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
               </div>
             </div>
             
-            {/* Review Languages - Pie Chart */}
+            {/* Review Languages - Enhanced Pie Chart */}
             <div>
               <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
                 Review Languages
               </h3>
-              <div className="h-72">
+              <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -432,20 +457,48 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
                       data={languageDataWithTotal}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
+                      innerRadius={65}
+                      outerRadius={90}
+                      paddingAngle={2}
                       dataKey="value"
                       onMouseEnter={(_, index) => setActivePieIndex(index)}
                       className="text-black dark:text-white"
+                      stroke="#ffffff"
+                      strokeWidth={2}
                     >
                       {languageDataWithTotal.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[index % COLORS.length]} 
+                          style={{ filter: 'drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.2))' }}
+                        />
                       ))}
                     </Pie>
                     <Tooltip content={<CustomPieTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
+              {languageDataWithTotal.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-3 mt-2">
+                  {languageDataWithTotal.slice(0, 5).map((entry, index) => (
+                    <div 
+                      key={`legend-${index}`} 
+                      className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300"
+                    >
+                      <div 
+                        className="w-3 h-3 rounded-sm" 
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      <span>{entry.name}</span>
+                    </div>
+                  ))}
+                  {languageDataWithTotal.length > 5 && (
+                    <div className="text-xs text-gray-700 dark:text-gray-300">
+                      + {languageDataWithTotal.length - 5} more
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

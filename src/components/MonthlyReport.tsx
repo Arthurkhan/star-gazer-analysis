@@ -45,6 +45,14 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   }[]>([]);
 
   // Selected month reviews
+  const [selectedMonthData, setSelectedMonthData] = useState<{
+    name: string;
+    totalReviews: number;
+    averageRating: number;
+    ratingDistribution: { name: string; value: number }[];
+  } | null>(null);
+  
+  // Selected reviews (for the date range)
   const [selectedReviews, setSelectedReviews] = useState<Review[]>([]);
 
   // Colors for the charts
@@ -96,10 +104,21 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     // Set the most recent month as selected by default
     if (monthlySummary.length > 0 && !selectedMonth) {
       setSelectedMonth(monthlySummary[0].name);
+      setSelectedMonthData(monthlySummary[0]);
     }
   }, [reviews, selectedMonth]);
 
-  // Prepare time period data based on date range and view mode
+  // Update selected month data when selectedMonth changes
+  useEffect(() => {
+    if (selectedMonth) {
+      const monthData = monthlyData.find(month => month.name === selectedMonth);
+      if (monthData) {
+        setSelectedMonthData(monthData);
+      }
+    }
+  }, [selectedMonth, monthlyData]);
+
+  // Prepare date range filtered data for all visualizations
   useEffect(() => {
     if (!reviews.length) return;
 
@@ -109,9 +128,10 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
       return isWithinInterval(reviewDate, { start: dateRange.from, end: dateRange.to });
     });
 
-    // Set the selected reviews for display at the bottom
+    // Set the selected reviews for the table at the bottom
     setSelectedReviews(filteredReviews);
 
+    // Generate time-based data (daily or weekly)
     if (viewMode === "daily") {
       // Generate all days in the range
       const allDays = eachDayOfInterval({
@@ -173,9 +193,6 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
       setTimeReviewsData(weeklyCounts);
     }
   }, [reviews, dateRange, viewMode]);
-
-  // Selected month data
-  const selectedMonthData = monthlyData.find(month => month.name === selectedMonth);
 
   return (
     <div className="space-y-6">

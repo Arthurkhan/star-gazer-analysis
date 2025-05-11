@@ -43,6 +43,11 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
   // Monthly review data
   const monthlyReviews = groupReviewsByMonth(reviews);
   
+  // Find the maximum cumulative count for Y-axis scaling
+  const maxCumulativeCount = monthlyReviews.length > 0 
+    ? Math.max(...monthlyReviews.map(item => item.cumulativeCount || 0)) + 10
+    : 10;
+  
   // Mock word cloud data - most frequent words with counts
   const commonTerms = [
     { text: "service", count: Math.floor(Math.random() * 15) + 15 },
@@ -93,14 +98,12 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="month" />
-                  <YAxis allowDecimals={false} />
+                  <YAxis 
+                    allowDecimals={false} 
+                    domain={[0, maxCumulativeCount]}
+                  />
                   <Tooltip 
-                    formatter={(value, name) => {
-                      if (name === "Cumulative") {
-                        return [`${value} total reviews`, "Total Reviews"];
-                      }
-                      return [`${value} new reviews`, "New Reviews"];
-                    }}
+                    formatter={(value) => [`${value} total reviews`, "Total Reviews"]}
                     contentStyle={{
                       backgroundColor: "rgba(255, 255, 255, 0.9)",
                       borderRadius: "6px",
@@ -109,14 +112,6 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
                     }}
                   />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="count" 
-                    stroke="#64748b"
-                    strokeDasharray="3 3"
-                    dot={{ r: 3 }}
-                    name="Monthly"
-                  />
                   <Line 
                     type="monotone" 
                     dataKey="cumulativeCount" 

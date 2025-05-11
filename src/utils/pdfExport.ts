@@ -1,8 +1,15 @@
-
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Review } from '@/types/reviews';
 import { formatDistanceToNow } from 'date-fns';
+import { 
+  calculateAverageRating, 
+  countReviewsByRating,
+  groupReviewsByMonth,
+  analyzeReviewSentiment, 
+  countReviewsByLanguage, 
+  extractStaffMentions
+} from '@/utils/dataUtils';
 
 // Function to calculate average rating from reviews
 const calculateAverageRating = (reviews: Review[]): number => {
@@ -81,13 +88,13 @@ const generateInsights = (reviews: Review[]): string => {
   `;
 };
 
-// Define a type for the return value of autoTable
-interface AutoTableResult {
+// Define a type for the return value of autoTable that includes finalY
+interface AutoTableOutput {
   finalY?: number;
-  // Add other properties as needed
+  [key: string]: any;
 }
 
-// Main export function
+// Main export function - simplified to match app layout
 export const exportToPDF = (reviews: Review[], businessName: string = "All Businesses"): void => {
   // Create a new PDF document
   const doc = new jsPDF();
@@ -95,7 +102,7 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
   
   // Add title
   doc.setFontSize(20);
-  doc.text('Google Maps Review Analysis Report', pageWidth / 2, 20, { align: 'center' });
+  doc.text('Google Maps Review Analyzer', pageWidth / 2, 20, { align: 'center' });
   
   // Add business name
   doc.setFontSize(16);
@@ -108,89 +115,140 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
   doc.text(`Generated on: ${today}`, pageWidth / 2, 40, { align: 'center' });
   doc.setTextColor(0);
   
-  // Add overview section
-  doc.setFontSize(16);
-  doc.text('Overview', 14, 55);
-  
-  // Add overview data
-  doc.setFontSize(12);
-  const avgRating = calculateAverageRating(reviews);
-  const totalReviews = reviews.length;
-  
   // Keep track of the last Y position
-  let currentY = 60;
+  let currentY = 50;
   
-  // Add overview table
-  const result = autoTable(doc, {
+  // ----- OVERVIEW SECTION -----
+  doc.setFontSize(16);
+  doc.text('Overview', 14, currentY);
+  currentY += 10;
+  
+  const totalReviews = reviews.length;
+  const averageRating = calculateAverageRating(reviews);
+  const reviewsByRating = countReviewsByRating(reviews);
+  
+  // Create a grid for the overview cards
+  const cardWidth = (pageWidth - 30) / 3;
+  
+  // Total Reviews Card
+  doc.setFillColor(248, 250, 252); // Light background for card
+  doc.roundedRect(14, currentY, cardWidth - 4, 40, 3, 3, 'F');
+  doc.setFontSize(12);
+  doc.setTextColor(0);
+  doc.text('Total Reviews', 20, currentY + 10);
+  doc.setFontSize(20);
+  doc.text(totalReviews.toString(), 20, currentY + 25);
+  
+  // Average Rating Card
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(14 + cardWidth, currentY, cardWidth - 4, 40, 3, 3, 'F');
+  doc.setFontSize(12);
+  doc.text('Average Rating', 20 + cardWidth, currentY + 10);
+  doc.setFontSize(20);
+  doc.text(averageRating.toFixed(1), 20 + cardWidth, currentY + 25);
+  
+  // Rating Distribution Card (simplified)
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(14 + cardWidth * 2, currentY, cardWidth - 4, 40, 3, 3, 'F');
+  doc.setFontSize(12);
+  doc.text('Rating Distribution', 20 + cardWidth * 2, currentY + 10);
+  
+  // Move below the cards
+  currentY += 50;
+  
+  // ----- REVIEWS CHART -----
+  doc.setFontSize(16);
+  doc.text('Reviews Timeline', 14, currentY);
+  currentY += 10;
+  
+  // Create a simplified chart representation
+  const monthlyData = groupReviewsByMonth(reviews);
+  const chartData = [];
+  
+  for (const item of monthlyData) {
+    chartData.push([item.month, item.count.toString()]);
+  }
+  
+  const chartResult = autoTable(doc, {
     startY: currentY,
-    head: [['Metric', 'Value']],
-    body: [
-      ['Total Reviews', totalReviews.toString()],
-      ['Average Rating', avgRating.toString()],
-      ['Business Name', businessName]
-    ],
+    head: [['Month', 'Reviews']],
+    body: chartData,
     theme: 'grid',
-    headStyles: { fillColor: [66, 135, 245] }
-  }) as AutoTableResult;
+    headStyles: { fillColor: [66, 135, 245] },
+    margin: { left: 14, right: 14 }
+  }) as unknown as AutoTableOutput;
   
   // Update the current Y position
-  currentY = (result?.finalY || currentY) + 15;
+  currentY = (chartResult?.finalY || currentY) + 20;
   
-  // Add insights section
+  // ----- REVIEW ANALYSIS -----
   doc.setFontSize(16);
-  doc.text('Key Insights', 14, currentY);
+  doc.text('Review Analysis', 14, currentY);
+  currentY += 10;
   
-  // Add insights content
-  doc.setFontSize(10);
-  const insights = generateInsights(reviews);
-  const insightLines = doc.splitTextToSize(insights, pageWidth - 30);
-  doc.text(insightLines, 14, currentY + 10);
+  // Sentiment Analysis
+  const sentimentData = analyzeReviewSentiment(reviews);
+  const sentimentRows = sentimentData.map(item => [item.name, item.value.toString()]);
   
-  // Update the current Y position (approximate height based on text lines)
-  currentY = currentY + 10 + (insightLines.length * 5);
-  
-  // Add rating distribution chart (simplified as a table)
-  doc.setFontSize(16);
-  doc.text('Rating Distribution', 14, currentY + 10);
-  
-  const ratingCounts = countRatingsByStars(reviews);
-  
-  const ratingData: any[] = [];
-  Object.entries(ratingCounts).forEach(([rating, count]) => {
-    const percentage = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
-    ratingData.push([`${rating} Star Reviews`, count, `${percentage}%`]);
-  });
-  
-  // Add rating distribution table
-  const ratingResult = autoTable(doc, {
-    startY: currentY + 15,
-    head: [['Rating', 'Count', 'Percentage']],
-    body: ratingData,
+  const sentimentResult = autoTable(doc, {
+    startY: currentY,
+    head: [['Sentiment', 'Count']],
+    body: sentimentRows,
     theme: 'grid',
-    headStyles: { fillColor: [66, 135, 245] }
-  }) as AutoTableResult;
+    headStyles: { fillColor: [66, 135, 245] },
+    margin: { left: 14, right: 14 }
+  }) as unknown as AutoTableOutput;
   
   // Update the current Y position
-  currentY = (ratingResult?.finalY || currentY) + 15;
+  currentY = (sentimentResult?.finalY || currentY) + 15;
   
-  // Add monthly trend data
-  doc.setFontSize(16);
-  doc.text('Monthly Review Trends', 14, currentY);
+  // Top Languages
+  doc.setFontSize(14);
+  doc.text('Review Languages', 14, currentY);
+  currentY += 10;
   
-  const monthlyData = getReviewsOverTime(reviews);
-  const monthlyRows = monthlyData.map(item => [item.month, item.count.toString()]);
+  const languageData = countReviewsByLanguage(reviews);
+  const languageRows = languageData.map(item => [item.name, item.value.toString()]);
   
-  // Add monthly trends table
-  autoTable(doc, {
-    startY: currentY + 10,
-    head: [['Month', 'Number of Reviews']],
-    body: monthlyRows,
+  const languageResult = autoTable(doc, {
+    startY: currentY,
+    head: [['Language', 'Count']],
+    body: languageRows,
     theme: 'grid',
-    headStyles: { fillColor: [66, 135, 245] }
-  });
+    headStyles: { fillColor: [66, 135, 245] },
+    margin: { left: 14, right: 14 }
+  }) as unknown as AutoTableOutput;
+  
+  // Update the current Y position
+  currentY = (languageResult?.finalY || currentY) + 15;
+  
+  // Staff Mentions
+  doc.setFontSize(14);
+  doc.text('Staff Mentioned', 14, currentY);
+  currentY += 10;
+  
+  const staffMentions = extractStaffMentions(reviews);
+  const staffRows = staffMentions.map(item => [item.name, item.count.toString(), item.sentiment]);
+  
+  if (staffRows.length > 0) {
+    const staffResult = autoTable(doc, {
+      startY: currentY,
+      head: [['Name', 'Mentions', 'Sentiment']],
+      body: staffRows,
+      theme: 'grid',
+      headStyles: { fillColor: [66, 135, 245] },
+      margin: { left: 14, right: 14 }
+    }) as unknown as AutoTableOutput;
+    
+    currentY = (staffResult?.finalY || currentY) + 15;
+  } else {
+    doc.setFontSize(12);
+    doc.text("No staff mentions found", 14, currentY + 10);
+    currentY += 20;
+  }
   
   // Add footer
-  const pageCount = doc.getNumberOfPages();
+  const pageCount = (doc as any).getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(10);
@@ -204,5 +262,5 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
   }
   
   // Save the PDF
-  doc.save(`${businessName.replace(/\s+/g, '_')}_Review_Analysis_${today.replace(/\//g, '-')}.pdf`);
+  doc.save(`${businessName.replace(/\s+/g, '_')}_Dashboard_${today.replace(/\//g, '-')}.pdf`);
 };

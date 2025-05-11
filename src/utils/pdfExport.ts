@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Review } from '@/types/reviews';
@@ -90,15 +89,19 @@ interface AutoTableOutput {
   [key: string]: any;
 }
 
-// Main export function - simplified to match app layout
-export const exportToPDF = async (reviews: Review[], businessName: string = "All Businesses"): Promise<void> => {
+// Main export function - now with AI report option
+export const exportToPDF = async (
+  reviews: Review[], 
+  businessName: string = "All Businesses", 
+  isAIReport: boolean = false
+): Promise<void> => {
   // Create a new PDF document
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Add title
+  // Add title with appropriate type
   doc.setFontSize(20);
-  doc.text('Google Maps Review Analyzer', pageWidth / 2, 20, { align: 'center' });
+  doc.text(`Google Maps Review ${isAIReport ? 'AI Report' : 'Analysis'}`, pageWidth / 2, 20, { align: 'center' });
   
   // Add business name
   doc.setFontSize(16);
@@ -114,22 +117,37 @@ export const exportToPDF = async (reviews: Review[], businessName: string = "All
   // Keep track of the last Y position
   let currentY = 50;
   
-  // Try to get the AI-generated overall analysis
-  try {
-    const overallAnalysis = await getOverallAnalysis(reviews);
-    if (overallAnalysis) {
-      doc.setFontSize(12);
-      doc.text('AI-Generated Analysis:', 14, currentY);
-      currentY += 10;
+  // For AI reports, prioritize getting the AI-generated overall analysis
+  if (isAIReport) {
+    try {
+      const overallAnalysis = await getOverallAnalysis(reviews);
+      if (overallAnalysis) {
+        doc.setFontSize(14);
+        doc.setTextColor(0, 102, 204);
+        doc.text('AI-Generated Analysis:', 14, currentY);
+        currentY += 10;
+        doc.setTextColor(0);
+        
+        // Split the analysis into lines that fit the page width
+        const textLines = doc.splitTextToSize(overallAnalysis, pageWidth - 28);
+        doc.setFontSize(12);
+        doc.text(textLines, 14, currentY);
+        currentY += textLines.length * 7 + 15;
+        
+        // Add a separator
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, currentY - 10, pageWidth - 14, currentY - 10);
+      }
+    } catch (error) {
+      console.error("Error getting AI analysis for PDF:", error);
+      // Continue without AI analysis
       
-      // Split the analysis into lines that fit the page width
-      const textLines = doc.splitTextToSize(overallAnalysis, pageWidth - 28);
-      doc.text(textLines, 14, currentY);
-      currentY += textLines.length * 7 + 10;
+      doc.setFontSize(12);
+      doc.setTextColor(255, 0, 0);
+      doc.text('AI analysis could not be generated. Showing standard report instead.', 14, currentY);
+      currentY += 10;
+      doc.setTextColor(0);
     }
-  } catch (error) {
-    console.error("Error getting AI analysis for PDF:", error);
-    // Continue without AI analysis
   }
   
   // ----- OVERVIEW SECTION -----
@@ -238,21 +256,26 @@ export const exportToPDF = async (reviews: Review[], businessName: string = "All
   
   // Staff Mentions
   doc.setFontSize(14);
-  doc.text('Staff Mentioned', 14, currentY);
+  doc.text('Staff Mentioned in Reviews', 14, currentY);
   currentY += 10;
   
   const staffMentions = extractStaffMentions_sync(reviews);
-  const staffRows = staffMentions.map(item => [item.name, item.count.toString(), item.sentiment]);
+  const staffRows = staffMentions.map(item => [
+    item.name, 
+    item.count.toString(), 
+    item.sentiment,
+    item.examples ? item.examples.join(", ").substring(0, 120) + (item.examples.join(", ").length > 120 ? "..." : "") : ""
+  ]);
   
   if (staffRows.length > 0) {
     const staffResult = autoTable(doc, {
       startY: currentY,
-      head: [['Name', 'Mentions', 'Sentiment']],
+      head: [['Name', 'Mentions', 'Sentiment', 'Example Contexts']],
       body: staffRows,
       theme: 'grid',
       headStyles: { fillColor: [66, 135, 245] },
       margin: { left: 14, right: 14 }
-    }) as unknown as AutoTableOutput;
+    }) as unknown as { finalY?: number };
     
     currentY = (staffResult?.finalY || currentY) + 15;
   } else {
@@ -297,13 +320,14 @@ export const exportToPDF = async (reviews: Review[], businessName: string = "All
     doc.setFontSize(10);
     doc.setTextColor(150);
     doc.text(
-      `Google Maps Review Analyzer - Page ${i} of ${pageCount}`,
+      `Google Maps Review ${isAIReport ? 'AI Report' : 'Analysis'} - Page ${i} of ${pageCount}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 10,
       { align: 'center' }
     );
   }
   
-  // Save the PDF
-  doc.save(`${businessName.replace(/\s+/g, '_')}_Dashboard_${today.replace(/\//g, '-')}.pdf`);
+  // Save the PDF with appropriate filename
+  const reportType = isAIReport ? 'AI_Report' : 'Dashboard';
+  doc.save(`${businessName.replace(/\s+/g, '_')}_${reportType}_${today.replace(/\//g, '-')}.pdf`);
 };

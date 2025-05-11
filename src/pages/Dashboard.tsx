@@ -13,7 +13,7 @@ import { Review, BusinessData } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 import { exportToPDF } from "@/utils/pdfExport";
 import { Button } from "@/components/ui/button";
-import { FileIcon, PencilIcon } from "lucide-react";
+import { FileIcon, PencilIcon, BrainIcon } from "lucide-react";
 
 // Define allowed table names explicitly to match Supabase structure
 type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
@@ -23,6 +23,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [aiReportLoading, setAiReportLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all-reviews");
   const [availableTables, setAvailableTables] = useState<string[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<string>(
@@ -279,6 +280,30 @@ const Dashboard = () => {
     }
   };
 
+  const handleAIReport = async () => {
+    setAiReportLoading(true);
+    try {
+      const filteredReviews = getFilteredReviews();
+      const businessName = selectedBusiness === "all" ? "All Businesses" : selectedBusiness;
+      
+      await exportToPDF(filteredReviews, businessName, true);
+      
+      toast({
+        title: "AI Report Generated",
+        description: "Your AI-enhanced report has been successfully generated and downloaded.",
+      });
+    } catch (error) {
+      console.error("Error generating AI report:", error);
+      toast({
+        title: "AI Report Generation Failed",
+        description: "An error occurred while generating the AI report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAiReportLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="flex justify-between items-center mb-4">
@@ -288,24 +313,45 @@ const Dashboard = () => {
           businessData={businessData}
         />
         
-        <Button 
-          onClick={handleExportPDF} 
-          disabled={pdfLoading || loading} 
-          variant="outline"
-          className="gap-2"
-        >
-          {pdfLoading ? (
-            <>
-              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              Generating PDF...
-            </>
-          ) : (
-            <>
-              <FileIcon className="h-4 w-4" />
-              Export to PDF
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleExportPDF} 
+            disabled={pdfLoading || loading || aiReportLoading} 
+            variant="outline"
+            className="gap-2"
+          >
+            {pdfLoading ? (
+              <>
+                <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Generating PDF...
+              </>
+            ) : (
+              <>
+                <FileIcon className="h-4 w-4" />
+                Export PDF
+              </>
+            )}
+          </Button>
+          
+          <Button 
+            onClick={handleAIReport} 
+            disabled={aiReportLoading || loading || pdfLoading} 
+            variant="outline"
+            className="gap-2"
+          >
+            {aiReportLoading ? (
+              <>
+                <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Generating AI Report...
+              </>
+            ) : (
+              <>
+                <BrainIcon className="h-4 w-4" />
+                AI Report
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       
       {loading ? (

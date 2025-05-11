@@ -13,6 +13,10 @@ import {
   ResponsiveContainer, 
   Legend, 
   Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  Sector
 } from "recharts";
 import { 
   analyzeReviewSentiment_sync,
@@ -41,6 +45,105 @@ interface ReviewAnalysisProps {
   reviews: Review[];
 }
 
+// Colors for pie chart
+const COLORS = [
+  '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A28EFF', 
+  '#FF6B6B', '#4BC0C0', '#9966CC', '#FF9933', '#99CC33', 
+  '#CC6699', '#666699', '#999966', '#66CCCC'
+];
+
+// Function to group languages with less than 1% into "Other"
+const groupMinorLanguages = (languageData: { name: string; value: number }[], totalReviews: number) => {
+  const threshold = totalReviews * 0.01; // 1% threshold
+  
+  const majorLanguages = languageData.filter(lang => lang.value >= threshold);
+  const minorLanguages = languageData.filter(lang => lang.value < threshold);
+  
+  // Only create an "Other" category if there are minor languages
+  if (minorLanguages.length > 0) {
+    const otherValue = minorLanguages.reduce((sum, lang) => sum + lang.value, 0);
+    
+    // Create a list of minor language names for the tooltip
+    const otherLanguageNames = minorLanguages.map(lang => `${lang.name} (${lang.value})`).join(', ');
+    
+    return [
+      ...majorLanguages,
+      { 
+        name: 'Other', 
+        value: otherValue,
+        languages: minorLanguages,
+        tooltip: otherLanguageNames
+      }
+    ];
+  }
+  
+  return languageData;
+};
+
+// Custom active shape for pie chart with label
+const renderActiveShape = (props: any) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, percent, name, value } = props;
+  const sin = Math.sin(-midAngle * Math.PI / 180);
+  const cos = Math.cos(-midAngle * Math.PI / 180);
+  const sx = cx + (outerRadius + 10) * cos;
+  const sy = cy + (outerRadius + 10) * sin;
+  const mx = cx + (outerRadius + 30) * cos;
+  const my = cy + (outerRadius + 30) * sin;
+  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+  const ey = my;
+  const textAnchor = cos >= 0 ? 'start' : 'end';
+
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+      <Sector
+        cx={cx}
+        cy={cy}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        innerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 10}
+        fill={fill}
+      />
+      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+      <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333">{name}</text>
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999">
+        {`${value} (${(percent * 100).toFixed(1)}%)`}
+      </text>
+    </g>
+  );
+};
+
+// Custom tooltip for the pie chart
+const CustomPieTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white p-3 rounded shadow border text-sm">
+        <p className="font-bold">{data.name}</p>
+        <p className="text-gray-600">{`Reviews: ${data.value}`}</p>
+        <p className="text-gray-600">{`Percentage: ${(data.value / data._total * 100).toFixed(1)}%`}</p>
+        {data.name === 'Other' && data.tooltip && (
+          <div className="mt-2 border-t pt-2">
+            <p className="font-bold text-xs">Includes:</p>
+            <p className="text-xs text-gray-600">{data.tooltip}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+  return null;
+};
+
 const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
   // States for async data
   const [sentimentData, setSentimentData] = useState(analyzeReviewSentiment_sync(reviews));
@@ -50,6 +153,9 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   
+  // State for pie chart active segment
+  const [activePieIndex, setActivePieIndex] = useState(0);
+  
   // Monthly review data (synchronous)
   const monthlyReviews = groupReviewsByMonth(reviews);
   
@@ -58,8 +164,16 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
     ? Math.max(...monthlyReviews.map(item => item.cumulativeCount || 0)) + 10
     : 10;
   
-  // Language distribution (synchronous)
-  const languageData = countReviewsByLanguage(reviews);
+  // Language distribution with grouping for small percentages
+  const totalReviews = reviews.length;
+  const rawLanguageData = countReviewsByLanguage(reviews);
+  const languageData = groupMinorLanguages(rawLanguageData, totalReviews);
+  
+  // Add total count to each language data item for percentage calculation in tooltip
+  const languageDataWithTotal = languageData.map(item => ({
+    ...item,
+    _total: totalReviews
+  }));
   
   // Colors for sentiment categories
   const SENTIMENT_COLORS = {
@@ -67,9 +181,6 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
     "Neutral": "#6B7280", 
     "Negative": "#EF4444"
   };
-  
-  // Total reviews count for percentage calculations
-  const totalReviews = reviews.length;
 
   // Load AI analysis when reviews change
   useEffect(() => {
@@ -305,20 +416,32 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
               </div>
             </div>
             
-            {/* Review Languages - More Compact */}
+            {/* Review Languages - Pie Chart */}
             <div>
-              <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white">
+              <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
                 Review Languages
               </h3>
-              <div className="flex flex-wrap gap-2">
-                {languageData.map((item, index) => {
-                  const percentage = (item.value / reviews.length * 100).toFixed(1);
-                  return (
-                    <Badge key={index} variant="outline" className="px-2 py-1">
-                      {item.name}: {item.value} ({percentage}%)
-                    </Badge>
-                  );
-                })}
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      activeIndex={activePieIndex}
+                      activeShape={renderActiveShape}
+                      data={languageDataWithTotal}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      dataKey="value"
+                      onMouseEnter={(_, index) => setActivePieIndex(index)}
+                    >
+                      {languageDataWithTotal.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomPieTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>

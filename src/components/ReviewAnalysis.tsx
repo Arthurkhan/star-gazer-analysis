@@ -90,7 +90,7 @@ const groupMinorLanguages = (languageData: { name: string; value: number }[], to
   return languageData;
 };
 
-// Custom active shape for pie chart with label - improved for readability
+// Custom active shape for pie chart with label - improved for readability and dark mode
 const renderActiveShape = (props: any) => {
   const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, percent, name, value } = props;
   const sin = Math.sin(-midAngle * Math.PI / 180);
@@ -130,7 +130,7 @@ const renderActiveShape = (props: any) => {
         y={ey} 
         textAnchor={textAnchor} 
         fill="#333" 
-        className="dark:text-white font-medium"
+        className="dark:fill-white font-medium"
         style={{ fontSize: '12px' }}
       >
         {name}
@@ -141,7 +141,7 @@ const renderActiveShape = (props: any) => {
         dy={18} 
         textAnchor={textAnchor} 
         fill="#666" 
-        className="dark:text-gray-300"
+        className="dark:fill-gray-300"
         style={{ fontSize: '12px' }}
       >
         {`${value} (${(percent * 100).toFixed(1)}%)`}
@@ -150,7 +150,7 @@ const renderActiveShape = (props: any) => {
   );
 };
 
-// Enhanced tooltip for the pie chart
+// Enhanced tooltip for the pie chart with improved dark mode text
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -462,7 +462,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
                       paddingAngle={2}
                       dataKey="value"
                       onMouseEnter={(_, index) => setActivePieIndex(index)}
-                      className="text-black dark:text-white"
+                      className="dark:fill-white"
                       stroke="#ffffff"
                       strokeWidth={2}
                     >

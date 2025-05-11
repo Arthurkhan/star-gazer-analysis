@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Review } from "@/types/reviews";
 import { 
@@ -14,10 +15,15 @@ import {
   Tooltip,
 } from "recharts";
 import { 
-  analyzeReviewSentiment, 
+  analyzeReviewSentiment_sync,
   countReviewsByLanguage, 
+  extractStaffMentions_sync,
+  extractCommonTerms_sync,
+  groupReviewsByMonth,
+  analyzeReviewSentiment,
   extractStaffMentions,
-  groupReviewsByMonth
+  extractCommonTerms,
+  getOverallAnalysis
 } from "@/utils/dataUtils";
 import {
   Table,
@@ -28,19 +34,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon, Loader2Icon } from "lucide-react";
 
 interface ReviewAnalysisProps {
   reviews: Review[];
 }
 
 const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
-  // Analyze sentiment
-  const sentimentData = analyzeReviewSentiment(reviews);
+  // States for async data
+  const [sentimentData, setSentimentData] = useState(analyzeReviewSentiment_sync(reviews));
+  const [staffMentions, setStaffMentions] = useState(extractStaffMentions_sync(reviews));
+  const [commonTerms, setCommonTerms] = useState(extractCommonTerms_sync(reviews));
+  const [overallAnalysis, setOverallAnalysis] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   
-  // Language distribution
-  const languageData = countReviewsByLanguage(reviews);
-  
-  // Monthly review data
+  // Monthly review data (synchronous)
   const monthlyReviews = groupReviewsByMonth(reviews);
   
   // Find the maximum cumulative count for Y-axis scaling
@@ -48,22 +58,8 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
     ? Math.max(...monthlyReviews.map(item => item.cumulativeCount || 0)) + 10
     : 10;
   
-  // Mock word cloud data - most frequent words with counts
-  const commonTerms = [
-    { text: "service", count: Math.floor(Math.random() * 15) + 15 },
-    { text: "food", count: Math.floor(Math.random() * 15) + 10 },
-    { text: "atmosphere", count: Math.floor(Math.random() * 10) + 10 },
-    { text: "staff", count: Math.floor(Math.random() * 10) + 8 },
-    { text: "price", count: Math.floor(Math.random() * 8) + 5 },
-    { text: "quality", count: Math.floor(Math.random() * 8) + 5 },
-    { text: "experience", count: Math.floor(Math.random() * 7) + 5 },
-    { text: "recommend", count: Math.floor(Math.random() * 6) + 4 },
-    { text: "ambiance", count: Math.floor(Math.random() * 6) + 3 },
-    { text: "excellent", count: Math.floor(Math.random() * 5) + 3 },
-  ].sort((a, b) => b.count - a.count);
-  
-  // Staff mentions
-  const staffMentions = extractStaffMentions(reviews);
+  // Language distribution (synchronous)
+  const languageData = countReviewsByLanguage(reviews);
   
   // Colors for sentiment categories
   const SENTIMENT_COLORS = {
@@ -75,6 +71,66 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
   // Total reviews count for percentage calculations
   const totalReviews = reviews.length;
 
+  // Load AI analysis when reviews change
+  useEffect(() => {
+    let isMounted = true;
+    
+    // Reset loading state
+    setLoading(true);
+    setApiError(null);
+    
+    // Start with synchronous data for immediate UI display
+    setSentimentData(analyzeReviewSentiment_sync(reviews));
+    setStaffMentions(extractStaffMentions_sync(reviews));
+    setCommonTerms(extractCommonTerms_sync(reviews));
+    
+    // Fetch AI-enhanced data
+    const fetchAIAnalysis = async () => {
+      try {
+        // Run all analysis in parallel
+        const [
+          sentimentResults, 
+          staffResults, 
+          termsResults,
+          analysisResult
+        ] = await Promise.all([
+          analyzeReviewSentiment(reviews),
+          extractStaffMentions(reviews),
+          extractCommonTerms(reviews),
+          getOverallAnalysis(reviews)
+        ]);
+        
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setSentimentData(sentimentResults);
+          setStaffMentions(staffResults);
+          setCommonTerms(termsResults);
+          setOverallAnalysis(analysisResult);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching AI analysis:", error);
+        if (isMounted) {
+          setApiError(
+            "Could not retrieve AI-enhanced analysis. Using basic analysis instead."
+          );
+          setLoading(false);
+        }
+      }
+    };
+    
+    if (reviews.length > 0) {
+      fetchAIAnalysis();
+    } else {
+      setLoading(false);
+    }
+    
+    // Cleanup function to prevent setting state after unmount
+    return () => {
+      isMounted = false;
+    };
+  }, [reviews]);
+
   return (
     <Card className="shadow-md dark:bg-gray-800 border-0">
       <CardHeader>
@@ -84,6 +140,29 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {loading && (
+          <div className="flex items-center justify-center p-4 mb-4">
+            <Loader2Icon className="h-6 w-6 animate-spin mr-2" />
+            <span>Analyzing reviews with AI...</span>
+          </div>
+        )}
+        
+        {apiError && (
+          <Alert variant="warning" className="mb-4">
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle>Analysis Incomplete</AlertTitle>
+            <AlertDescription>{apiError}</AlertDescription>
+          </Alert>
+        )}
+        
+        {overallAnalysis && (
+          <Alert className="mb-4 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle>AI Analysis</AlertTitle>
+            <AlertDescription>{overallAnalysis}</AlertDescription>
+          </Alert>
+        )}
+        
         <div className="grid grid-cols-1 gap-6">
           {/* Monthly Reviews Line Graph */}
           <div>
@@ -128,7 +207,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
           {/* Sentiment Breakdown - Text only, no graphic */}
           <div>
             <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
-              Sentiment Breakdown
+              Sentiment Breakdown {loading && <span className="text-sm font-normal text-gray-500">(AI-enhanced)</span>}
             </h3>
             <div className="grid grid-cols-3 gap-4">
               {sentimentData.map((entry) => {
@@ -153,7 +232,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
           {/* Common Terms Table */}
           <div>
             <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
-              Common Terms
+              Common Terms {loading && <span className="text-sm font-normal text-gray-500">(AI-enhanced)</span>}
             </h3>
             <div className="overflow-auto">
               <Table>
@@ -184,7 +263,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
             {/* Staff Mentions - Compact */}
             <div>
               <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
-                Staff Mentioned
+                Staff Mentioned {loading && <span className="text-sm font-normal text-gray-500">(AI-enhanced)</span>}
               </h3>
               <div className="overflow-auto">
                 <Table>
@@ -196,23 +275,31 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {staffMentions.map((staff, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{staff.name}</TableCell>
-                        <TableCell>{staff.count}</TableCell>
-                        <TableCell>
-                          <Badge className={
-                            staff.sentiment === "positive" 
-                              ? "bg-green-100 text-green-800 hover:bg-green-100" 
-                              : staff.sentiment === "negative"
-                              ? "bg-red-100 text-red-800 hover:bg-red-100"
-                              : "bg-gray-100 text-gray-800 hover:bg-gray-100"
-                          }>
-                            {staff.sentiment}
-                          </Badge>
+                    {staffMentions.length > 0 ? (
+                      staffMentions.map((staff, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{staff.name}</TableCell>
+                          <TableCell>{staff.count}</TableCell>
+                          <TableCell>
+                            <Badge className={
+                              staff.sentiment === "positive" 
+                                ? "bg-green-100 text-green-800 hover:bg-green-100" 
+                                : staff.sentiment === "negative"
+                                ? "bg-red-100 text-red-800 hover:bg-red-100"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                            }>
+                              {staff.sentiment}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-gray-500">
+                          No staff mentions found
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>

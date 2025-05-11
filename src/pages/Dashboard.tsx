@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -12,6 +11,9 @@ import KeyInsights from "@/components/KeyInsights";
 import MonthlyReport from "@/components/MonthlyReport";
 import { Review, BusinessData } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToPDF } from "@/utils/pdfExport";
+import { Button } from "@/components/ui/button";
+import { FileIcon, PencilIcon } from "lucide-react";
 
 // Define allowed table names explicitly to match Supabase structure
 type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
@@ -20,6 +22,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all-reviews");
   const [availableTables, setAvailableTables] = useState<string[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<string>(
@@ -69,29 +72,11 @@ const Dashboard = () => {
           businesses,
         };
       });
-      
-      // Prepare data for PDF export
-      const exportEvent = new CustomEvent('prepare-export-data', {
-        detail: {
-          reviews: filteredData,
-          businessName: selectedBusiness
-        }
-      });
-      window.dispatchEvent(exportEvent);
     } else {
       setBusinessData((prev) => ({
         ...prev,
         allBusinesses: { ...prev.allBusinesses, count: reviewData.length },
       }));
-      
-      // Prepare data for PDF export (all reviews)
-      const exportEvent = new CustomEvent('prepare-export-data', {
-        detail: {
-          reviews: reviewData,
-          businessName: "All Businesses"
-        }
-      });
-      window.dispatchEvent(exportEvent);
     }
   }, [selectedBusiness, reviewData]);
 
@@ -270,13 +255,58 @@ const Dashboard = () => {
     return reviewData.filter((review) => review.title === selectedBusiness);
   };
 
+  const handleExportPDF = async () => {
+    setPdfLoading(true);
+    try {
+      const filteredReviews = getFilteredReviews();
+      const businessName = selectedBusiness === "all" ? "All Businesses" : selectedBusiness;
+      
+      await exportToPDF(filteredReviews, businessName);
+      
+      toast({
+        title: "PDF Generated",
+        description: "Your PDF has been successfully generated and downloaded.",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "An error occurred while generating the PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   return (
     <DashboardLayout>
-      <BusinessSelector
-        selectedBusiness={selectedBusiness}
-        onBusinessChange={handleBusinessChange}
-        businessData={businessData}
-      />
+      <div className="flex justify-between items-center mb-4">
+        <BusinessSelector
+          selectedBusiness={selectedBusiness}
+          onBusinessChange={handleBusinessChange}
+          businessData={businessData}
+        />
+        
+        <Button 
+          onClick={handleExportPDF} 
+          disabled={pdfLoading || loading} 
+          variant="outline"
+          className="gap-2"
+        >
+          {pdfLoading ? (
+            <>
+              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              Generating PDF...
+            </>
+          ) : (
+            <>
+              <FileIcon className="h-4 w-4" />
+              Export to PDF
+            </>
+          )}
+        </Button>
+      </div>
       
       {loading ? (
         <div className="flex items-center justify-center h-[calc(100vh-200px)]">

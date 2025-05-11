@@ -8,6 +8,7 @@ import {
   TrendPoint,
   StaffMention
 } from "@/types/reviews";
+import { getAnalysis } from "@/utils/openaiAnalysis";
 
 // Calculate average rating from reviews
 export const calculateAverageRating = (reviews: Review[]): number => {
@@ -130,8 +131,32 @@ export const calculateMonthlyComparison = (reviews: Review[]): {
   };
 };
 
-// Analyze sentiment based on star ratings
-export const analyzeReviewSentiment = (reviews: Review[]): SentimentData[] => {
+// Analyze sentiment based on star ratings with OpenAI enhancement
+export const analyzeReviewSentiment = async (reviews: Review[]): Promise<SentimentData[]> => {
+  try {
+    // Try to get OpenAI analysis first
+    const analysis = await getAnalysis(reviews);
+    if (analysis && analysis.sentimentAnalysis && analysis.sentimentAnalysis.length > 0) {
+      return analysis.sentimentAnalysis;
+    }
+  } catch (error) {
+    console.error("Error getting OpenAI sentiment analysis, falling back to basic analysis:", error);
+  }
+  
+  // Fallback to basic rating-based sentiment analysis
+  const positive = reviews.filter(r => r.star >= 4).length;
+  const neutral = reviews.filter(r => r.star === 3).length;
+  const negative = reviews.filter(r => r.star <= 2).length;
+  
+  return [
+    { name: "Positive", value: positive },
+    { name: "Neutral", value: neutral },
+    { name: "Negative", value: negative },
+  ];
+};
+
+// For backward compatibility with synchronous code
+export const analyzeReviewSentiment_sync = (reviews: Review[]): SentimentData[] => {
   const positive = reviews.filter(r => r.star >= 4).length;
   const neutral = reviews.filter(r => r.star === 3).length;
   const negative = reviews.filter(r => r.star <= 2).length;
@@ -158,12 +183,19 @@ export const countReviewsByLanguage = (reviews: Review[]): LanguageData[] => {
     .sort((a, b) => b.value - a.value);
 };
 
-// Extract staff mentions from reviews
-export const extractStaffMentions = (reviews: Review[]): StaffMention[] => {
-  // This is a mock implementation
-  // In a real app, we would use NLP to extract staff names
-  // For now, we'll return mock data based on the number of reviews
+// Extract staff mentions from reviews using OpenAI
+export const extractStaffMentions = async (reviews: Review[]): Promise<StaffMention[]> => {
+  try {
+    // Try to get OpenAI analysis first
+    const analysis = await getAnalysis(reviews);
+    if (analysis && analysis.staffMentions && analysis.staffMentions.length > 0) {
+      return analysis.staffMentions;
+    }
+  } catch (error) {
+    console.error("Error getting OpenAI staff mentions, falling back to basic analysis:", error);
+  }
   
+  // Fallback to mock data if OpenAI analysis fails
   const staffNames = [
     "John", "Maria", "David", "Sophie", "Michael", 
     "Emma", "Robert", "Alice", "Thomas", "Olivia"
@@ -189,6 +221,95 @@ export const extractStaffMentions = (reviews: Review[]): StaffMention[] => {
   }
   
   return staffMentions.sort((a, b) => b.count - a.count);
+};
+
+// For backward compatibility with synchronous code
+export const extractStaffMentions_sync = (reviews: Review[]): StaffMention[] => {
+  const staffNames = [
+    "John", "Maria", "David", "Sophie", "Michael", 
+    "Emma", "Robert", "Alice", "Thomas", "Olivia"
+  ];
+  
+  const sentiments = ["positive", "negative", "neutral"] as const;
+  
+  // Generate mock staff mentions based on the number of reviews
+  const numStaffToShow = Math.min(5, Math.ceil(reviews.length / 100));
+  
+  const staffMentions: StaffMention[] = [];
+  
+  for (let i = 0; i < numStaffToShow; i++) {
+    const name = staffNames[i % staffNames.length];
+    const count = Math.floor(Math.random() * 15) + 1;
+    const sentiment = sentiments[Math.floor(Math.random() * 3)];
+    
+    staffMentions.push({
+      name,
+      count,
+      sentiment
+    });
+  }
+  
+  return staffMentions.sort((a, b) => b.count - a.count);
+};
+
+// Extract common terms from reviews using OpenAI
+export const extractCommonTerms = async (reviews: Review[]): Promise<{text: string, count: number}[]> => {
+  try {
+    // Try to get OpenAI analysis first
+    const analysis = await getAnalysis(reviews);
+    if (analysis && analysis.commonTerms && analysis.commonTerms.length > 0) {
+      return analysis.commonTerms;
+    }
+  } catch (error) {
+    console.error("Error getting OpenAI common terms, falling back to basic analysis:", error);
+  }
+  
+  // Fallback to mock data for common terms
+  return [
+    { text: "service", count: Math.floor(Math.random() * 15) + 15 },
+    { text: "food", count: Math.floor(Math.random() * 15) + 10 },
+    { text: "atmosphere", count: Math.floor(Math.random() * 10) + 10 },
+    { text: "staff", count: Math.floor(Math.random() * 10) + 8 },
+    { text: "price", count: Math.floor(Math.random() * 8) + 5 },
+    { text: "quality", count: Math.floor(Math.random() * 8) + 5 },
+    { text: "experience", count: Math.floor(Math.random() * 7) + 5 },
+    { text: "recommend", count: Math.floor(Math.random() * 6) + 4 },
+    { text: "ambiance", count: Math.floor(Math.random() * 6) + 3 },
+    { text: "excellent", count: Math.floor(Math.random() * 5) + 3 },
+  ].sort((a, b) => b.count - a.count);
+};
+
+// For backward compatibility with synchronous code
+export const extractCommonTerms_sync = (reviews: Review[]): {text: string, count: number}[] => {
+  return [
+    { text: "service", count: Math.floor(Math.random() * 15) + 15 },
+    { text: "food", count: Math.floor(Math.random() * 15) + 10 },
+    { text: "atmosphere", count: Math.floor(Math.random() * 10) + 10 },
+    { text: "staff", count: Math.floor(Math.random() * 10) + 8 },
+    { text: "price", count: Math.floor(Math.random() * 8) + 5 },
+    { text: "quality", count: Math.floor(Math.random() * 8) + 5 },
+    { text: "experience", count: Math.floor(Math.random() * 7) + 5 },
+    { text: "recommend", count: Math.floor(Math.random() * 6) + 4 },
+    { text: "ambiance", count: Math.floor(Math.random() * 6) + 3 },
+    { text: "excellent", count: Math.floor(Math.random() * 5) + 3 },
+  ].sort((a, b) => b.count - a.count);
+};
+
+// Get overall analysis from OpenAI
+export const getOverallAnalysis = async (reviews: Review[]): Promise<string> => {
+  try {
+    // Try to get OpenAI analysis first
+    const analysis = await getAnalysis(reviews);
+    if (analysis && analysis.overallAnalysis) {
+      return analysis.overallAnalysis;
+    }
+  } catch (error) {
+    console.error("Error getting OpenAI overall analysis, falling back to basic analysis:", error);
+  }
+  
+  // Fallback to basic analysis
+  const avgRating = calculateAverageRating(reviews);
+  return `Based on ${reviews.length} reviews with an average rating of ${avgRating.toFixed(1)}, the business is ${avgRating >= 4 ? 'performing well' : avgRating >= 3 ? 'performing adequately' : 'underperforming'}.`;
 };
 
 // Analyze reviews for insights

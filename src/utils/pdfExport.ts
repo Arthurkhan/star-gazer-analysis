@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Review } from '@/types/reviews';
@@ -6,9 +7,11 @@ import {
   calculateAverageRating, 
   countReviewsByRating,
   groupReviewsByMonth,
-  analyzeReviewSentiment, 
+  analyzeReviewSentiment_sync, 
   countReviewsByLanguage, 
-  extractStaffMentions
+  extractStaffMentions_sync,
+  extractCommonTerms_sync,
+  getOverallAnalysis
 } from '@/utils/dataUtils';
 
 // Function to count ratings by star count
@@ -88,7 +91,7 @@ interface AutoTableOutput {
 }
 
 // Main export function - simplified to match app layout
-export const exportToPDF = (reviews: Review[], businessName: string = "All Businesses"): void => {
+export const exportToPDF = async (reviews: Review[], businessName: string = "All Businesses"): Promise<void> => {
   // Create a new PDF document
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -110,6 +113,24 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
   
   // Keep track of the last Y position
   let currentY = 50;
+  
+  // Try to get the AI-generated overall analysis
+  try {
+    const overallAnalysis = await getOverallAnalysis(reviews);
+    if (overallAnalysis) {
+      doc.setFontSize(12);
+      doc.text('AI-Generated Analysis:', 14, currentY);
+      currentY += 10;
+      
+      // Split the analysis into lines that fit the page width
+      const textLines = doc.splitTextToSize(overallAnalysis, pageWidth - 28);
+      doc.text(textLines, 14, currentY);
+      currentY += textLines.length * 7 + 10;
+    }
+  } catch (error) {
+    console.error("Error getting AI analysis for PDF:", error);
+    // Continue without AI analysis
+  }
   
   // ----- OVERVIEW SECTION -----
   doc.setFontSize(16);
@@ -180,7 +201,7 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
   currentY += 10;
   
   // Sentiment Analysis
-  const sentimentData = analyzeReviewSentiment(reviews);
+  const sentimentData = analyzeReviewSentiment_sync(reviews);
   const sentimentRows = sentimentData.map(item => [item.name, item.value.toString()]);
   
   const sentimentResult = autoTable(doc, {
@@ -220,7 +241,7 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
   doc.text('Staff Mentioned', 14, currentY);
   currentY += 10;
   
-  const staffMentions = extractStaffMentions(reviews);
+  const staffMentions = extractStaffMentions_sync(reviews);
   const staffRows = staffMentions.map(item => [item.name, item.count.toString(), item.sentiment]);
   
   if (staffRows.length > 0) {
@@ -237,6 +258,35 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
   } else {
     doc.setFontSize(12);
     doc.text("No staff mentions found", 14, currentY + 10);
+    currentY += 20;
+  }
+  
+  // Common Terms
+  doc.setFontSize(14);
+  doc.text('Common Terms', 14, currentY);
+  currentY += 10;
+  
+  const commonTerms = extractCommonTerms_sync(reviews);
+  const termRows = commonTerms.slice(0, 10).map(item => [
+    item.text, 
+    item.count.toString(), 
+    `${((item.count / reviews.length) * 100).toFixed(1)}%`
+  ]);
+  
+  if (termRows.length > 0) {
+    const termsResult = autoTable(doc, {
+      startY: currentY,
+      head: [['Term', 'Count', '% of Reviews']],
+      body: termRows,
+      theme: 'grid',
+      headStyles: { fillColor: [66, 135, 245] },
+      margin: { left: 14, right: 14 }
+    }) as unknown as AutoTableOutput;
+    
+    currentY = (termsResult?.finalY || currentY) + 15;
+  } else {
+    doc.setFontSize(12);
+    doc.text("No common terms found", 14, currentY + 10);
     currentY += 20;
   }
   

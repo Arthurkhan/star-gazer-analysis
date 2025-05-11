@@ -11,13 +11,6 @@ import {
   extractStaffMentions
 } from '@/utils/dataUtils';
 
-// Function to calculate average rating from reviews
-const calculateAverageRating = (reviews: Review[]): number => {
-  if (reviews.length === 0) return 0;
-  const sum = reviews.reduce((acc, review) => acc + review.star, 0);
-  return parseFloat((sum / reviews.length).toFixed(1));
-};
-
 // Function to count ratings by star count
 const countRatingsByStars = (reviews: Review[]): Record<number, number> => {
   const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -248,7 +241,7 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
   }
   
   // Add footer
-  const pageCount = (doc as any).getNumberOfPages();
+  const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(10);

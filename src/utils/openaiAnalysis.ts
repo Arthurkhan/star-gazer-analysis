@@ -1,7 +1,7 @@
 
 import { Review } from "@/types/reviews";
 
-// Function to analyze reviews using OpenAI
+// Function to analyze reviews using various AI providers
 export const analyzeReviewsWithOpenAI = async (
   reviews: Review[]
 ): Promise<{
@@ -11,16 +11,18 @@ export const analyzeReviewsWithOpenAI = async (
   overallAnalysis: string;
 }> => {
   try {
-    // Check if we have a valid API key
-    const apiKey = getOpenAIApiKey();
+    // Get the AI provider and API key
+    const provider = localStorage.getItem("AI_PROVIDER") || "openai";
+    const apiKey = getApiKey(provider);
+    
     if (!apiKey) {
-      console.error("No OpenAI API key found. Please set the OPENAI_API_KEY environment variable or use the setup button.");
-      throw new Error("OpenAI API key not found");
+      console.error(`No API key found for ${provider}. Please set up your API key in the settings.`);
+      throw new Error(`API key not found for ${provider}`);
     }
 
-    // Get the selected model (default to gpt-4o-mini if not set)
-    const model = localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini";
-    console.log(`Using OpenAI model: ${model}`);
+    // Get the selected model based on provider
+    const model = getSelectedModel(provider);
+    console.log(`Using ${provider} model: ${model}`);
 
     // Prepare all reviews for API, but we'll process them in chunks
     const reviewTexts = reviews.map(review => ({
@@ -29,7 +31,7 @@ export const analyzeReviewsWithOpenAI = async (
       date: review.publishedAtDate
     }));
 
-    console.log(`Processing ${reviewTexts.length} reviews with OpenAI...`);
+    console.log(`Processing ${reviewTexts.length} reviews with ${provider}...`);
     
     // Process reviews in chunks to avoid token limits
     const CHUNK_SIZE = 100;
@@ -43,11 +45,16 @@ export const analyzeReviewsWithOpenAI = async (
     // If there are multiple chunks, we'll analyze each one and then combine results
     if (chunks.length > 1) {
       console.log("Multiple chunks detected - analyzing in sequence");
-      // For multiple chunks, run a separate analysis for sentiment & terms
-      // But for staff mentions, we need to analyze each chunk and then aggregate
       
       // Analyze the first chunk with the complete analysis
-      const firstChunkResults = await analyzeReviewChunk(chunks[0], apiKey, model, reviews.length, true);
+      const firstChunkResults = await analyzeReviewChunk(
+        chunks[0], 
+        provider,
+        apiKey, 
+        model, 
+        reviews.length, 
+        true
+      );
       
       let combinedResults = { ...firstChunkResults };
       
@@ -58,7 +65,14 @@ export const analyzeReviewsWithOpenAI = async (
         // Process remaining chunks
         for (let i = 1; i < chunks.length; i++) {
           console.log(`Processing chunk ${i+1}/${chunks.length}...`);
-          const chunkResults = await analyzeReviewChunk(chunks[i], apiKey, model, reviews.length, false);
+          const chunkResults = await analyzeReviewChunk(
+            chunks[i], 
+            provider,
+            apiKey, 
+            model, 
+            reviews.length, 
+            false
+          );
           
           // Merge staff mentions
           if (chunkResults.staffMentions && chunkResults.staffMentions.length > 0) {
@@ -114,12 +128,19 @@ export const analyzeReviewsWithOpenAI = async (
     } else {
       // Just one chunk, process normally
       console.log("Single chunk processing");
-      return await analyzeReviewChunk(chunks[0], apiKey, model, reviews.length, true);
+      return await analyzeReviewChunk(
+        chunks[0], 
+        provider,
+        apiKey, 
+        model, 
+        reviews.length, 
+        true
+      );
     }
   } catch (error) {
-    console.error("OpenAI analysis failed:", error);
+    console.error("AI analysis failed:", error);
     
-    // Fallback to basic analysis if OpenAI fails
+    // Fallback to basic analysis if AI fails
     return {
       sentimentAnalysis: [
         { name: "Positive", value: reviews.filter(r => r.star >= 4).length },
@@ -133,9 +154,38 @@ export const analyzeReviewsWithOpenAI = async (
   }
 };
 
+// Helper function to get API key based on provider
+function getApiKey(provider: string): string {
+  switch (provider) {
+    case "openai":
+      return localStorage.getItem("OPENAI_API_KEY") || "";
+    case "anthropic":
+      return localStorage.getItem("ANTHROPIC_API_KEY") || "";
+    case "gemini":
+      return localStorage.getItem("GEMINI_API_KEY") || "";
+    default:
+      return "";
+  }
+}
+
+// Helper function to get selected model based on provider
+function getSelectedModel(provider: string): string {
+  switch (provider) {
+    case "openai":
+      return localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini";
+    case "anthropic":
+      return localStorage.getItem("ANTHROPIC_MODEL") || "claude-3-haiku-20240307";
+    case "gemini":
+      return localStorage.getItem("GEMINI_MODEL") || "gemini-1.5-flash";
+    default:
+      return "";
+  }
+}
+
 // Helper function to analyze a single chunk of reviews
 async function analyzeReviewChunk(
   reviewChunk: any[], 
+  provider: string,
   apiKey: string, 
   model: string, 
   totalReviewCount: number,
@@ -144,7 +194,7 @@ async function analyzeReviewChunk(
   // Get custom prompt if available, otherwise use default
   let promptTemplate = localStorage.getItem("OPENAI_CUSTOM_PROMPT");
   
-  // Create the prompt for OpenAI with the review data
+  // Create the prompt for AI with the review data
   const reviewsJSON = JSON.stringify(reviewChunk);
   
   let prompt;
@@ -218,9 +268,65 @@ async function analyzeReviewChunk(
     ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name and analyzing sentiment about them. Respond only with the requested JSON format."
     : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name. Respond only with the requested JSON format.";
 
-  // Call OpenAI API
-  console.log("Calling OpenAI API with authorization...");
-  console.log("Using model:", model);
+  // Call the appropriate AI API based on provider
+  let data;
+  switch (provider) {
+    case "openai":
+      data = await callOpenAI(apiKey, model, systemMessage, prompt);
+      break;
+    case "anthropic":
+      data = await callAnthropic(apiKey, model, systemMessage, prompt);
+      break;
+    case "gemini":
+      data = await callGemini(apiKey, model, systemMessage, prompt);
+      break;
+    default:
+      throw new Error("Unsupported AI provider");
+  }
+
+  console.log("AI Analysis Results:", data);
+
+  let analysis;
+  try {
+    // For different providers, parse the response accordingly
+    if (provider === "anthropic") {
+      analysis = JSON.parse(data.content[0].text);
+    } else if (provider === "gemini") {
+      analysis = JSON.parse(data.candidates[0].content.parts[0].text);
+    } else { // OpenAI
+      analysis = JSON.parse(data.choices[0].message.content);
+    }
+    
+    console.log("Parsed AI Analysis Results:", analysis);
+  } catch (parseError) {
+    console.error(`Failed to parse ${provider} response as JSON:`, parseError);
+    console.log("Raw content that couldn't be parsed:", JSON.stringify(data));
+    throw new Error(`Failed to parse ${provider} response`);
+  }
+
+  // If this is a partial analysis, return a complete structure 
+  // with empty arrays for the parts not analyzed
+  if (!fullAnalysis) {
+    return {
+      sentimentAnalysis: [],
+      staffMentions: analysis.staffMentions || [],
+      commonTerms: [],
+      overallAnalysis: "",
+    };
+  }
+
+  // Return the analysis in the expected format
+  return {
+    sentimentAnalysis: analysis.sentimentAnalysis || [],
+    staffMentions: analysis.staffMentions || [],
+    commonTerms: analysis.commonTerms || [],
+    overallAnalysis: analysis.overallAnalysis || "",
+  };
+}
+
+// Call OpenAI API
+async function callOpenAI(apiKey: string, model: string, systemMessage: string, prompt: string) {
+  console.log("Calling OpenAI API...");
   
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -244,66 +350,81 @@ async function analyzeReviewChunk(
     }),
   });
 
-  console.log("OpenAI API Response Status:", response.status);
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error(`OpenAI API call failed with status: ${response.status}`, errorData);
+    throw new Error(`OpenAI API call failed with status: ${response.status}. Details: ${errorData}`);
+  }
+
+  return await response.json();
+}
+
+// Call Anthropic API
+async function callAnthropic(apiKey: string, model: string, systemMessage: string, prompt: string) {
+  console.log("Calling Anthropic API...");
+  
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01"
+    },
+    body: JSON.stringify({
+      model: model,
+      system: systemMessage,
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      max_tokens: 4000,
+      temperature: 0.2,
+    }),
+  });
 
   if (!response.ok) {
     const errorData = await response.text();
-    console.error(`API call failed with status: ${response.status}`, errorData);
-    throw new Error(`API call failed with status: ${response.status}. Details: ${errorData}`);
+    console.error(`Anthropic API call failed with status: ${response.status}`, errorData);
+    throw new Error(`Anthropic API call failed with status: ${response.status}. Details: ${errorData}`);
   }
 
-  const data = await response.json();
-  console.log("OpenAI Raw Response:", data);
-
-  if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
-    console.error("Unexpected response format from OpenAI:", data);
-    throw new Error("Invalid response format from OpenAI");
-  }
-
-  let analysis;
-  try {
-    analysis = JSON.parse(data.choices[0].message.content);
-    console.log("Parsed OpenAI Analysis Results:", analysis);
-  } catch (parseError) {
-    console.error("Failed to parse OpenAI response as JSON:", parseError);
-    console.log("Raw content that couldn't be parsed:", data.choices[0].message.content);
-    throw new Error("Failed to parse OpenAI response");
-  }
-
-  // If this is a partial analysis, return a complete structure 
-  // with empty arrays for the parts not analyzed
-  if (!fullAnalysis) {
-    return {
-      sentimentAnalysis: [],
-      staffMentions: analysis.staffMentions || [],
-      commonTerms: [],
-      overallAnalysis: "",
-    };
-  }
-
-  // Return the analysis in the expected format
-  return {
-    sentimentAnalysis: analysis.sentimentAnalysis || [],
-    staffMentions: analysis.staffMentions || [],
-    commonTerms: analysis.commonTerms || [],
-    overallAnalysis: analysis.overallAnalysis || "",
-  };
+  return await response.json();
 }
 
-// Helper function to get API key
-function getOpenAIApiKey(): string {
-  // In browser environments, process.env is not available
-  // First try to get from localStorage
-  const key = localStorage.getItem("OPENAI_API_KEY") || "";
+// Call Gemini API
+async function callGemini(apiKey: string, model: string, systemMessage: string, prompt: string) {
+  console.log("Calling Gemini API...");
   
-  if (!key) {
-    console.warn("OpenAI API key not found in localStorage");
-    // Could add alternative ways to get the key here if needed
-  } else {
-    console.log("OpenAI API key found (masked):", key.substring(0, 3) + "..." + key.substring(key.length - 3));
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: `${systemMessage}\n\n${prompt}` }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 4000,
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error(`Gemini API call failed with status: ${response.status}`, errorData);
+    throw new Error(`Gemini API call failed with status: ${response.status}. Details: ${errorData}`);
   }
-  
-  return key;
+
+  return await response.json();
 }
 
 // Cache for analysis results to avoid repeated API calls
@@ -314,7 +435,8 @@ export const getAnalysis = async (reviews: Review[]): Promise<any> => {
   // Create a cache key based on the number of reviews, a few review IDs, and a timestamp
   // This will be cleared whenever the refresh button is clicked
   const cacheTimestamp = localStorage.getItem("analysis_cache_key") || Date.now().toString();
-  const cacheKey = `${reviews.length}_${reviews.slice(0, 3).map(r => r.publishedAtDate).join('_')}_${cacheTimestamp}`;
+  const provider = localStorage.getItem("AI_PROVIDER") || "openai";
+  const cacheKey = `${provider}_${reviews.length}_${reviews.slice(0, 3).map(r => r.publishedAtDate).join('_')}_${cacheTimestamp}`;
   
   if (analysisCache.has(cacheKey)) {
     console.log("Using cached analysis result");

@@ -218,6 +218,22 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
     setRefreshKey(prev => prev + 1); // Increment refresh key to trigger useEffect
   };
 
+  // Display the current AI provider and model
+  const aiProvider = localStorage.getItem("AI_PROVIDER") || "openai";
+  let aiModel = "";
+  
+  switch (aiProvider) {
+    case "openai":
+      aiModel = localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini";
+      break;
+    case "anthropic":
+      aiModel = localStorage.getItem("ANTHROPIC_MODEL") || "claude-3-haiku-20240307";
+      break;
+    case "gemini":
+      aiModel = localStorage.getItem("GEMINI_MODEL") || "gemini-1.5-flash";
+      break;
+  }
+
   // Load AI analysis when reviews change or refresh is triggered
   useEffect(() => {
     let isMounted = true;
@@ -310,7 +326,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
         {loading && (
           <div className="flex items-center justify-center p-4 mb-4">
             <Loader2Icon className="h-6 w-6 animate-spin mr-2" />
-            <span>Analyzing reviews with AI...</span>
+            <span>Analyzing reviews with {aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel}...</span>
           </div>
         )}
         
@@ -325,7 +341,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
         {overallAnalysis && (
           <Alert className="mb-4 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
             <InfoIcon className="h-4 w-4" />
-            <AlertTitle>AI Analysis</AlertTitle>
+            <AlertTitle>AI Analysis ({aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel})</AlertTitle>
             <AlertDescription>{overallAnalysis}</AlertDescription>
           </Alert>
         )}

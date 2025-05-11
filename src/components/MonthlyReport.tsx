@@ -5,8 +5,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO, startOfWeek, endOfWeek, addWeeks, eachWeekOfInterval } from "date-fns";
-import { CalendarRange, List, BarChart2 } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO, 
+         startOfWeek, endOfWeek, addWeeks, eachWeekOfInterval, differenceInDays } from "date-fns";
+import { CalendarRange, List, BarChart2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { countReviewsByRating, calculateAverageRating } from "@/utils/dataUtils";
 import { Review } from "@/types/reviews";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   // Time period reviews data
   const [timeReviewsData, setTimeReviewsData] = useState<{
     date: string;
+    day: string;
     count: number;
   }[]>([]);
   
@@ -43,7 +45,19 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   const [summaryData, setSummaryData] = useState({
     totalReviews: 0,
     averageRating: 0,
-    ratingDistribution: [] as { name: string; value: number }[]
+    ratingDistribution: [] as { name: string; value: number }[],
+    comparison: {
+      previousPeriod: {
+        change: 0,
+        percentage: 0,
+        totalReviews: 0,
+      },
+      previousYear: {
+        change: 0,
+        percentage: 0,
+        totalReviews: 0,
+      }
+    }
   });
 
   // Colors for the charts
@@ -71,10 +85,66 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
       value: ratingCounts[star] || 0
     }));
     
+    // Calculate previous period comparison
+    const daysDifference = differenceInDays(dateRange.to, dateRange.from) + 1;
+    const previousPeriodFrom = new Date(dateRange.from);
+    previousPeriodFrom.setDate(previousPeriodFrom.getDate() - daysDifference);
+    const previousPeriodTo = new Date(dateRange.from);
+    previousPeriodTo.setDate(previousPeriodTo.getDate() - 1);
+    
+    const previousPeriodReviews = reviews.filter(review => {
+      const reviewDate = parseISO(review.publishedAtDate);
+      return isWithinInterval(reviewDate, { 
+        start: previousPeriodFrom, 
+        end: previousPeriodTo 
+      });
+    });
+    
+    // Calculate previous year comparison (same date range, but one year ago)
+    const previousYearFrom = new Date(dateRange.from);
+    previousYearFrom.setFullYear(previousYearFrom.getFullYear() - 1);
+    const previousYearTo = new Date(dateRange.to);
+    previousYearTo.setFullYear(previousYearTo.getFullYear() - 1);
+    
+    const previousYearReviews = reviews.filter(review => {
+      const reviewDate = parseISO(review.publishedAtDate);
+      return isWithinInterval(reviewDate, { 
+        start: previousYearFrom, 
+        end: previousYearTo 
+      });
+    });
+    
+    // Calculate changes
+    const previousPeriodCount = previousPeriodReviews.length;
+    const previousYearCount = previousYearReviews.length;
+    
+    const previousPeriodChange = totalReviews - previousPeriodCount;
+    const previousYearChange = totalReviews - previousYearCount;
+    
+    const previousPeriodPercentage = previousPeriodCount === 0 
+      ? (totalReviews > 0 ? 100 : 0) 
+      : (previousPeriodChange / previousPeriodCount) * 100;
+      
+    const previousYearPercentage = previousYearCount === 0 
+      ? (totalReviews > 0 ? 100 : 0) 
+      : (previousYearChange / previousYearCount) * 100;
+    
     setSummaryData({
       totalReviews,
       averageRating,
-      ratingDistribution
+      ratingDistribution,
+      comparison: {
+        previousPeriod: {
+          change: previousPeriodChange,
+          percentage: previousPeriodPercentage,
+          totalReviews: previousPeriodCount
+        },
+        previousYear: {
+          change: previousYearChange,
+          percentage: previousYearPercentage,
+          totalReviews: previousYearCount
+        }
+      }
     });
 
     // Generate time-based data (daily or weekly)
@@ -88,6 +158,7 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
       // Initialize counts for each day
       const dailyCounts = allDays.map(day => ({
         date: format(day, 'MMM dd'),
+        day: format(day, 'EEEE'), // Add day of week
         count: 0
       }));
 
@@ -118,6 +189,7 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
         const weekEnd = endOfWeek(weekStart);
         return {
           date: `${format(weekStart, 'MMM dd')} - ${format(weekEnd, 'MMM dd')}`,
+          day: `${format(weekStart, 'EEEE')} - ${format(weekEnd, 'EEEE')}`, // Add day of week
           count: 0
         };
       });
@@ -177,6 +249,94 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
         </div>
       </div>
 
+      {/* Summary Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Summary</CardTitle>
+            <CardDescription>Selected date range</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Reviews</p>
+                <p className="text-2xl font-bold">{summaryData.totalReviews}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center text-sm">
+                    <span className="inline-flex items-center mr-1">
+                      {summaryData.comparison.previousPeriod.change > 0 ? (
+                        <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                      ) : summaryData.comparison.previousPeriod.change < 0 ? (
+                        <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+                      ) : (
+                        <Minus className="h-3 w-3 text-gray-500 mr-1" />
+                      )}
+                      {summaryData.comparison.previousPeriod.change > 0 ? '+' : ''}
+                      {summaryData.comparison.previousPeriod.change}
+                    </span>
+                    <span className="text-muted-foreground text-xs">vs previous period</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center text-sm">
+                    <span className="inline-flex items-center mr-1">
+                      {summaryData.comparison.previousYear.change > 0 ? (
+                        <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                      ) : summaryData.comparison.previousYear.change < 0 ? (
+                        <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+                      ) : (
+                        <Minus className="h-3 w-3 text-gray-500 mr-1" />
+                      )}
+                      {summaryData.comparison.previousYear.change > 0 ? '+' : ''}
+                      {summaryData.comparison.previousYear.change}
+                    </span>
+                    <span className="text-muted-foreground text-xs">vs same period last year</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
+                <p className="text-2xl font-bold">
+                  {summaryData.averageRating.toFixed(1)}
+                  <span className="text-yellow-500 ml-1">★</span>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-lg">Rating Distribution</CardTitle>
+            <CardDescription>Breakdown by star rating</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={summaryData.ratingDistribution}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value) => [`${value} reviews`, 'Count']}
+                    contentStyle={{ borderRadius: '6px' }}
+                  />
+                  <Legend />
+                  <Bar dataKey="value" name="Count">
+                    {summaryData.ratingDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -207,16 +367,29 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                 data={timeReviewsData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis 
-                  dataKey="date" 
+                  dataKey={(data) => `${data.date} (${data.day.substring(0, 3)})`} 
                   angle={-45} 
                   textAnchor="end" 
                   height={70} 
                   tick={{ fontSize: 12 }}
                 />
                 <YAxis />
-                <Tooltip />
+                <Tooltip 
+                  formatter={(value, name, props) => {
+                    return [`${value} reviews`, 'Reviews'];
+                  }}
+                  labelFormatter={(label) => {
+                    // Check if the label contains the day part
+                    if (typeof label === 'string' && label.includes('(')) {
+                      // Extract just the date part before the day
+                      return label;
+                    }
+                    return label;
+                  }}
+                  contentStyle={{ borderRadius: '6px' }}
+                />
                 <Bar 
                   dataKey="count" 
                   fill="#6366F1" 
@@ -228,58 +401,6 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
           </div>
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Summary</CardTitle>
-            <CardDescription>Selected date range</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Reviews</p>
-                <p className="text-2xl font-bold">{summaryData.totalReviews}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
-                <p className="text-2xl font-bold">
-                  {summaryData.averageRating.toFixed(1)}
-                  <span className="text-yellow-500 ml-1">★</span>
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg">Rating Distribution</CardTitle>
-            <CardDescription>Breakdown by star rating</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={summaryData.ratingDistribution}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="value" name="Count">
-                    {summaryData.ratingDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Reviews list section */}
       <Card>
@@ -298,6 +419,7 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
+                    <TableHead>Day</TableHead>
                     <TableHead>Reviewer</TableHead>
                     <TableHead>Rating</TableHead>
                     <TableHead>Review</TableHead>
@@ -308,6 +430,9 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                     <TableRow key={index}>
                       <TableCell className="whitespace-nowrap">
                         {format(parseISO(review.publishedAtDate), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {format(parseISO(review.publishedAtDate), "EEEE")}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{review.name}</TableCell>
                       <TableCell>

@@ -17,11 +17,11 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-md font-medium">Reviews Timeline</CardTitle>
         <ToggleGroup type="single" value={chartType} onValueChange={(value) => value && setChartType(value as "line" | "bar")}>
-          <ToggleGroupItem value="line">Line Chart</ToggleGroupItem>
-          <ToggleGroupItem value="bar">Bar Chart</ToggleGroupItem>
+          <ToggleGroupItem value="line" size="sm" className="text-xs px-3">Line</ToggleGroupItem>
+          <ToggleGroupItem value="bar" size="sm" className="text-xs px-3">Bar</ToggleGroupItem>
         </ToggleGroup>
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent className="pt-2">
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             {chartType === "line" ? (
@@ -34,25 +34,29 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                   bottom: 60,
                 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis 
                   dataKey="month" 
                   angle={-60} 
                   textAnchor="end" 
                   height={80}
+                  tick={{ fontSize: 12 }}
                 />
-                <YAxis />
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip 
                   formatter={(value) => [`${value} reviews`, 'Count']}
                   labelFormatter={(label) => `${label}`}
+                  contentStyle={{ borderRadius: '6px' }}
                 />
-                <Legend />
+                <Legend verticalAlign="top" height={36} />
                 <Line
                   type="monotone"
                   dataKey="count"
                   name="Reviews"
                   stroke="#8884d8"
-                  activeDot={{ r: 8 }}
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 6 }}
                 />
               </LineChart>
             ) : (
@@ -65,23 +69,26 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                   bottom: 60,
                 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis 
                   dataKey="month" 
                   angle={-60} 
                   textAnchor="end" 
                   height={80}
+                  tick={{ fontSize: 12 }}
                 />
-                <YAxis />
+                <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip 
                   formatter={(value) => [`${value} reviews`, 'Count']}
                   labelFormatter={(label) => `${label}`}
+                  contentStyle={{ borderRadius: '6px' }}
                 />
-                <Legend />
+                <Legend verticalAlign="top" height={36} />
                 <Bar 
                   dataKey="count" 
                   name="Reviews" 
                   fill="#8884d8" 
+                  radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             )}

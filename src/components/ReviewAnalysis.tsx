@@ -115,8 +115,10 @@ const renderActiveShape = (props: any) => {
       />
       <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
       <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333">{name}</text>
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999">
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333" className="dark:text-white">
+        {name}
+      </text>
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999" className="dark:text-gray-300">
         {`${value} (${(percent * 100).toFixed(1)}%)`}
       </text>
     </g>
@@ -128,14 +130,14 @@ const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white p-3 rounded shadow border text-sm">
+      <div className="bg-white p-3 rounded shadow border text-sm text-gray-800">
         <p className="font-bold">{data.name}</p>
-        <p className="text-gray-600">{`Reviews: ${data.value}`}</p>
-        <p className="text-gray-600">{`Percentage: ${(data.value / data._total * 100).toFixed(1)}%`}</p>
+        <p>{`Reviews: ${data.value}`}</p>
+        <p>{`Percentage: ${(data.value / data._total * 100).toFixed(1)}%`}</p>
         {data.name === 'Other' && data.tooltip && (
           <div className="mt-2 border-t pt-2">
             <p className="font-bold text-xs">Includes:</p>
-            <p className="text-xs text-gray-600">{data.tooltip}</p>
+            <p className="text-xs">{data.tooltip}</p>
           </div>
         )}
       </div>
@@ -434,6 +436,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
                       outerRadius={80}
                       dataKey="value"
                       onMouseEnter={(_, index) => setActivePieIndex(index)}
+                      className="text-black dark:text-white"
                     >
                       {languageDataWithTotal.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

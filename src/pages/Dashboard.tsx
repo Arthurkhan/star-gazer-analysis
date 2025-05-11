@@ -254,7 +254,7 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 w-full">
         <BusinessSelector
           selectedBusiness={selectedBusiness}
           onBusinessChange={handleBusinessChange}
@@ -283,7 +283,7 @@ const Dashboard = () => {
           
           <TabsContent value="all-reviews" className="mt-0">
             <OverviewSection reviews={getFilteredReviews()} />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 gap-6 mb-6">
               <ReviewAnalysis reviews={getFilteredReviews()} />
               <KeyInsights reviews={getFilteredReviews()} />
             </div>

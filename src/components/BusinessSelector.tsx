@@ -30,7 +30,7 @@ const BusinessSelector = ({
   ];
 
   return (
-    <Card className="mb-6 border-0 shadow-md dark:bg-gray-800">
+    <Card className="mb-6 border-0 shadow-md dark:bg-gray-800 w-full">
       <CardContent className="p-4 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="mb-4 md:mb-0">

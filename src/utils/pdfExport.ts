@@ -1,5 +1,5 @@
 
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Review } from '@/types/reviews';
 import { formatDistanceToNow } from 'date-fns';

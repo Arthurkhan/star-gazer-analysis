@@ -5,7 +5,8 @@ import {
   MonthlyReviewData,
   InsightsData,
   ThemeData,
-  TrendPoint
+  TrendPoint,
+  StaffMention
 } from "@/types/reviews";
 
 // Calculate average rating from reviews
@@ -27,10 +28,10 @@ export const countReviewsByRating = (
   }, {} as Record<number, number>);
 };
 
-// Group reviews by month
+// Group reviews by month, calculate count and month-over-month comparison
 export const groupReviewsByMonth = (reviews: Review[]): MonthlyReviewData[] => {
   // Create a map for months
-  const monthMap = new Map<string, { count: number; totalRating: number }>();
+  const monthMap = new Map<string, { count: number }>();
   
   // Sort reviews by date
   const sortedReviews = [...reviews].sort(
@@ -42,26 +43,74 @@ export const groupReviewsByMonth = (reviews: Review[]): MonthlyReviewData[] => {
     const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     
     if (!monthMap.has(monthYear)) {
-      monthMap.set(monthYear, { count: 0, totalRating: 0 });
+      monthMap.set(monthYear, { count: 0 });
     }
     
     const current = monthMap.get(monthYear)!;
     current.count += 1;
-    current.totalRating += review.star;
   });
   
-  // Convert map to array and calculate average ratings
+  // Convert map to array
   const result: MonthlyReviewData[] = [];
   
   monthMap.forEach((value, key) => {
     result.push({
       month: key,
       count: value.count,
-      avgRating: value.totalRating / value.count,
     });
   });
   
   return result;
+};
+
+// Calculate monthly comparison data
+export const calculateMonthlyComparison = (reviews: Review[]): { 
+  vsLastMonth: number; 
+  vsLastYear: number;
+  currentMonthCount: number;
+  previousMonthCount: number;
+  previousYearSameMonthCount: number;
+} => {
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  
+  // Current month
+  const currentMonthReviews = reviews.filter(review => {
+    const reviewDate = new Date(review.publishedAtDate);
+    return reviewDate.getMonth() === currentMonth && reviewDate.getFullYear() === currentYear;
+  });
+  
+  // Previous month
+  const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const previousMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+  
+  const previousMonthReviews = reviews.filter(review => {
+    const reviewDate = new Date(review.publishedAtDate);
+    return reviewDate.getMonth() === previousMonth && reviewDate.getFullYear() === previousMonthYear;
+  });
+  
+  // Same month last year
+  const previousYearSameMonthReviews = reviews.filter(review => {
+    const reviewDate = new Date(review.publishedAtDate);
+    return reviewDate.getMonth() === currentMonth && reviewDate.getFullYear() === currentYear - 1;
+  });
+  
+  const currentMonthCount = currentMonthReviews.length;
+  const previousMonthCount = previousMonthReviews.length;
+  const previousYearSameMonthCount = previousYearSameMonthReviews.length;
+  
+  // Calculate differences
+  const vsLastMonth = currentMonthCount - previousMonthCount;
+  const vsLastYear = currentMonthCount - previousYearSameMonthCount;
+  
+  return {
+    vsLastMonth,
+    vsLastYear,
+    currentMonthCount,
+    previousMonthCount,
+    previousYearSameMonthCount
+  };
 };
 
 // Analyze sentiment based on star ratings
@@ -90,6 +139,39 @@ export const countReviewsByLanguage = (reviews: Review[]): LanguageData[] => {
   return Object.entries(languageCounts)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
+};
+
+// Extract staff mentions from reviews
+export const extractStaffMentions = (reviews: Review[]): StaffMention[] => {
+  // This is a mock implementation
+  // In a real app, we would use NLP to extract staff names
+  // For now, we'll return mock data based on the number of reviews
+  
+  const staffNames = [
+    "John", "Maria", "David", "Sophie", "Michael", 
+    "Emma", "Robert", "Alice", "Thomas", "Olivia"
+  ];
+  
+  const sentiments = ["positive", "negative", "neutral"] as const;
+  
+  // Generate mock staff mentions based on the number of reviews
+  const numStaffToShow = Math.min(5, Math.ceil(reviews.length / 100));
+  
+  const staffMentions: StaffMention[] = [];
+  
+  for (let i = 0; i < numStaffToShow; i++) {
+    const name = staffNames[i % staffNames.length];
+    const count = Math.floor(Math.random() * 15) + 1;
+    const sentiment = sentiments[Math.floor(Math.random() * 3)];
+    
+    staffMentions.push({
+      name,
+      count,
+      sentiment
+    });
+  }
+  
+  return staffMentions.sort((a, b) => b.count - a.count);
 };
 
 // Analyze reviews for insights

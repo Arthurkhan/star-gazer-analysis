@@ -14,7 +14,12 @@ import {
   Legend 
 } from "recharts";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import { calculateAverageRating, countReviewsByRating, groupReviewsByMonth } from "@/utils/dataUtils";
+import { 
+  calculateAverageRating, 
+  countReviewsByRating, 
+  groupReviewsByMonth,
+  calculateMonthlyComparison 
+} from "@/utils/dataUtils";
 
 interface OverviewSectionProps {
   reviews: Review[];
@@ -24,6 +29,7 @@ const OverviewSection = ({ reviews }: OverviewSectionProps) => {
   const averageRating = calculateAverageRating(reviews);
   const ratingDistribution = countReviewsByRating(reviews);
   const monthlyReviews = groupReviewsByMonth(reviews);
+  const monthlyComparison = calculateMonthlyComparison(reviews);
   
   // Calculate response rate
   const responseRate = reviews.length > 0
@@ -76,6 +82,30 @@ const OverviewSection = ({ reviews }: OverviewSectionProps) => {
           <CardContent>
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
               {reviews.length}
+            </div>
+            <div className="mt-2 flex flex-col text-sm">
+              <div className="flex items-center">
+                <span className="text-gray-600 dark:text-gray-400 mr-1">vs Last Month:</span>
+                <span className={monthlyComparison.vsLastMonth > 0 ? 'text-green-600' : monthlyComparison.vsLastMonth < 0 ? 'text-red-600' : 'text-gray-600'}>
+                  {monthlyComparison.vsLastMonth > 0 ? '+' : ''}{monthlyComparison.vsLastMonth}
+                </span>
+                {monthlyComparison.vsLastMonth > 0 ? (
+                  <ArrowUp className="h-3 w-3 text-green-600 ml-1" />
+                ) : monthlyComparison.vsLastMonth < 0 ? (
+                  <ArrowDown className="h-3 w-3 text-red-600 ml-1" />
+                ) : null}
+              </div>
+              <div className="flex items-center">
+                <span className="text-gray-600 dark:text-gray-400 mr-1">vs Last Year:</span>
+                <span className={monthlyComparison.vsLastYear > 0 ? 'text-green-600' : monthlyComparison.vsLastYear < 0 ? 'text-red-600' : 'text-gray-600'}>
+                  {monthlyComparison.vsLastYear > 0 ? '+' : ''}{monthlyComparison.vsLastYear}
+                </span>
+                {monthlyComparison.vsLastYear > 0 ? (
+                  <ArrowUp className="h-3 w-3 text-green-600 ml-1" />
+                ) : monthlyComparison.vsLastYear < 0 ? (
+                  <ArrowDown className="h-3 w-3 text-red-600 ml-1" />
+                ) : null}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -205,13 +235,7 @@ const OverviewSection = ({ reviews }: OverviewSectionProps) => {
                     stroke="#3b82f6" 
                     fill="#3b82f6" 
                     fillOpacity={0.2} 
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="avgRating" 
-                    stroke="#10B981" 
-                    fill="#10B981" 
-                    fillOpacity={0.2} 
+                    name="Reviews"
                   />
                 </AreaChart>
               </ResponsiveContainer>

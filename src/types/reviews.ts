@@ -34,7 +34,6 @@ export interface LanguageData {
 export interface MonthlyReviewData {
   month: string;
   count: number;
-  avgRating: number;
 }
 
 export interface ThemeData {
@@ -46,6 +45,12 @@ export interface ThemeData {
 export interface TrendPoint {
   period: string;
   value: number;
+}
+
+export interface StaffMention {
+  name: string;
+  count: number;
+  sentiment: "positive" | "negative" | "neutral";
 }
 
 export interface InsightsData {

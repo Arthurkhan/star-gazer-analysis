@@ -7,7 +7,11 @@ import {
   Cell, 
   ResponsiveContainer, 
   Legend, 
-  Tooltip 
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis
 } from "recharts";
 import { 
   analyzeReviewSentiment, 
@@ -22,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface ReviewAnalysisProps {
   reviews: Review[];
@@ -52,13 +57,14 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
   const staffMentions = extractStaffMentions(reviews);
   
   // Colors for sentiment pie chart
-  const SENTIMENT_COLORS = ["#10B981", "#6B7280", "#EF4444"];
+  const SENTIMENT_COLORS = {
+    "Positive": "#10B981", 
+    "Neutral": "#6B7280", 
+    "Negative": "#EF4444"
+  };
   
-  // Colors for language pie chart
-  const LANGUAGE_COLORS = [
-    "#3b82f6", "#8b5cf6", "#ec4899", "#f97316", 
-    "#10B981", "#84cc16", "#eab308", "#14b8a6"
-  ];
+  // Total reviews count for percentage calculations
+  const totalReviews = reviews.length;
 
   return (
     <Card className="shadow-md dark:bg-gray-800 border-0">
@@ -70,43 +76,69 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Sentiment Breakdown */}
+          {/* Sentiment Breakdown - Enhanced visualization */}
           <div>
             <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
               Sentiment Breakdown
             </h3>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
+            <div className="h-64 flex flex-col md:flex-row items-center justify-between">
+              <div className="w-full md:w-2/3 h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
                     data={sentimentData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    nameKey="name"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
-                    {sentimentData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={SENTIMENT_COLORS[index % SENTIMENT_COLORS.length]} 
+                    <XAxis type="number" />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      scale="band" 
+                      width={80}
+                    />
+                    <Tooltip 
+                      formatter={(value, name, props) => {
+                        return [`${value} reviews (${((Number(value) / totalReviews) * 100).toFixed(1)}%)`, props.payload.name];
+                      }}
+                      contentStyle={{
+                        backgroundColor: "rgba(255, 255, 255, 0.9)",
+                        borderRadius: "6px",
+                        border: "none",
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                      }}
+                    />
+                    <Bar 
+                      dataKey="value" 
+                      name="Reviews"
+                      radius={[0, 4, 4, 0]}
+                    >
+                      {sentimentData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={SENTIMENT_COLORS[entry.name as keyof typeof SENTIMENT_COLORS] || "#8884d8"} 
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-row md:flex-col justify-center md:w-1/3 mt-4 md:mt-0 gap-3">
+                {sentimentData.map((entry) => {
+                  const percentage = ((entry.value / totalReviews) * 100).toFixed(1);
+                  return (
+                    <div key={entry.name} className="flex items-center gap-2">
+                      <div 
+                        className="w-4 h-4 rounded-sm" 
+                        style={{ backgroundColor: SENTIMENT_COLORS[entry.name as keyof typeof SENTIMENT_COLORS] }}
                       />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => [`${value} reviews`, "Count"]}
-                    contentStyle={{
-                      backgroundColor: "rgba(255, 255, 255, 0.9)",
-                      borderRadius: "6px",
-                      border: "none",
-                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+                      <div className="text-sm">
+                        <span className="font-medium">{entry.name}:</span> {entry.value} 
+                        <span className="text-gray-500 ml-1">({percentage}%)</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
           
@@ -192,15 +224,15 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
                       <TableCell className="font-medium">{staff.name}</TableCell>
                       <TableCell>{staff.count}</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
+                        <Badge className={
                           staff.sentiment === "positive" 
-                            ? "bg-green-100 text-green-800" 
+                            ? "bg-green-100 text-green-800 hover:bg-green-100" 
                             : staff.sentiment === "negative"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}>
+                            ? "bg-red-100 text-red-800 hover:bg-red-100"
+                            : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                        }>
                           {staff.sentiment}
-                        </span>
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))}

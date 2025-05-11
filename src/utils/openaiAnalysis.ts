@@ -9,7 +9,7 @@ export const analyzeReviewsWithOpenAI = async (
   staffMentions: { name: string; count: number; sentiment: "positive" | "negative" | "neutral" }[];
   commonTerms: { text: string; count: number }[];
   overallAnalysis: string;
-}> {
+}> => {
   try {
     // Prepare review data for API
     const reviewTexts = reviews.map(review => ({
@@ -108,7 +108,7 @@ function getOpenAIApiKey(): string {
 const analysisCache = new Map<string, any>();
 
 // Function to get or create analysis
-export const getAnalysis = async (reviews: Review[]): Promise<any> {
+export const getAnalysis = async (reviews: Review[]): Promise<any> => {
   // Create a cache key based on the number of reviews and their IDs
   const cacheKey = `${reviews.length}_${reviews.slice(0, 5).map(r => r.publishedAtDate).join('_')}`;
   

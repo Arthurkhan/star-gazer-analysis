@@ -1,19 +1,20 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO, 
          startOfWeek, endOfWeek, addWeeks, eachWeekOfInterval, differenceInDays,
-         subMonths, startOfDay, endOfDay, startOfYear, endOfYear } from "date-fns";
-import { CalendarRange, List, BarChart2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+         subMonths, startOfDay, endOfDay, startOfYear, endOfYear, parse, isValid } from "date-fns";
+import { CalendarRange, List, BarChart2, TrendingUp, TrendingDown, Minus, Calendar as CalendarIcon } from "lucide-react";
 import { countReviewsByRating, calculateAverageRating } from "@/utils/dataUtils";
 import { Review } from "@/types/reviews";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ReviewsTable from "@/components/ReviewsTable";
 
 interface MonthlyReportProps {
@@ -35,6 +36,11 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
 
   // Track which date we're currently selecting (start or end)
   const [selectingDate, setSelectingDate] = useState<'from' | 'to'>('from');
+  
+  // For manual date inputs
+  const [fromDateInput, setFromDateInput] = useState(format(dateRange.from, "yyyy-MM-dd"));
+  const [toDateInput, setToDateInput] = useState(dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : "");
+  const [dateInputError, setDateInputError] = useState("");
   
   // Time period reviews data
   const [timeReviewsData, setTimeReviewsData] = useState<{
@@ -100,13 +106,21 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     }
   ];
 
+  // Update input fields when dateRange changes
+  useEffect(() => {
+    setFromDateInput(format(dateRange.from, "yyyy-MM-dd"));
+    if (dateRange.to) {
+      setToDateInput(format(dateRange.to, "yyyy-MM-dd"));
+    }
+  }, [dateRange]);
+
   // Apply preset date range
   const applyDateRangePreset = (presetIndex: number) => {
     const newRange = dateRangePresets[presetIndex].range();
     setDateRange(newRange);
   };
 
-  // Handle date selection
+  // Handle date selection in calendar
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return;
 
@@ -131,6 +145,42 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
       }
       // Toggle to selecting the 'from' date
       setSelectingDate('from');
+    }
+  };
+
+  // Handle manual date input submission
+  const handleManualDateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setDateInputError("");
+    
+    try {
+      // Parse the input dates
+      const fromDate = parse(fromDateInput, "yyyy-MM-dd", new Date());
+      const toDate = toDateInput ? parse(toDateInput, "yyyy-MM-dd", new Date()) : undefined;
+      
+      // Validate the dates
+      if (!isValid(fromDate)) {
+        setDateInputError("Invalid start date format");
+        return;
+      }
+      
+      if (toDateInput && !isValid(toDate)) {
+        setDateInputError("Invalid end date format");
+        return;
+      }
+      
+      if (toDate && fromDate > toDate) {
+        setDateInputError("Start date cannot be after end date");
+        return;
+      }
+      
+      // Set the new date range
+      setDateRange({
+        from: fromDate,
+        to: toDate
+      });
+    } catch (error) {
+      setDateInputError("Error parsing dates. Please use YYYY-MM-DD format.");
     }
   };
 
@@ -286,6 +336,19 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     }
   }, [reviews, dateRange, viewMode]);
 
+  // Helper function to create date modifier to highlight the range
+  const createDateModifier = (dateRange: { from: Date; to: Date | undefined }) => {
+    return (date: Date) => {
+      if (!dateRange.to) {
+        return date.getTime() === dateRange.from.getTime();
+      }
+      return isWithinInterval(date, { start: dateRange.from, end: dateRange.to });
+    };
+  };
+
+  // Create a date modifier for the selected range
+  const isDateInRange = createDateModifier(dateRange);
+
   return (
     <div className="space-y-6">
       {/* Date range selector at the top of the page */}
@@ -325,6 +388,36 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                   Currently selecting: {selectingDate === 'from' ? 'Start date' : 'End date'}
                 </p>
               </div>
+              <div className="flex justify-between p-2 border-b">
+                <form onSubmit={handleManualDateSubmit} className="flex flex-col space-y-2 w-full">
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground mb-1">Start date</p>
+                      <Input 
+                        type="date" 
+                        value={fromDateInput} 
+                        onChange={(e) => setFromDateInput(e.target.value)}
+                        placeholder="YYYY-MM-DD"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground mb-1">End date</p>
+                      <Input 
+                        type="date" 
+                        value={toDateInput} 
+                        onChange={(e) => setToDateInput(e.target.value)}
+                        placeholder="YYYY-MM-DD"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <Button type="submit" size="sm" className="h-8">Apply</Button>
+                  </div>
+                  {dateInputError && (
+                    <p className="text-xs text-red-500">{dateInputError}</p>
+                  )}
+                </form>
+              </div>
               <Calendar
                 mode="single"
                 defaultMonth={dateRange.from}
@@ -332,6 +425,10 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                 onSelect={handleDateSelect}
                 numberOfMonths={2}
                 className={cn("p-3 pointer-events-auto")}
+                modifiers={{ range: isDateInRange }}
+                modifiersStyles={{
+                  range: { backgroundColor: "hsl(var(--primary) / 0.1)" }
+                }}
                 footer={
                   <p className="pt-2 text-xs text-center text-muted-foreground">
                     {dateRange.from && format(dateRange.from, "MMM d, yyyy")} - {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "Select end date"}

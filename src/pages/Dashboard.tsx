@@ -11,6 +11,9 @@ import KeyInsights from "@/components/KeyInsights";
 import { Review, BusinessData } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 
+// Define allowed table names explicitly to match Supabase structure
+type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -73,44 +76,16 @@ const Dashboard = () => {
 
   const fetchAvailableTables = async () => {
     try {
-      // Fetch list of tables from Supabase
-      const { data, error } = await supabase
-        .from('pg_catalog.pg_tables')
-        .select('tablename')
-        .eq('schemaname', 'public');
-
-      if (error) {
-        console.error("Error fetching tables:", error);
-        toast({
-          title: "Error fetching available tables",
-          description: error.message,
-          variant: "destructive",
-        });
-        
-        // Fallback to the tables we know exist
-        setAvailableTables([
-          "L'Envol Art Space",
-          "The Little Prince Cafe", 
-          "Vol de Nuit, The Hidden Bar"
-        ]);
-        return;
-      }
-
-      if (data && data.length > 0) {
-        // Extract table names and filter out system tables if needed
-        const tableNames = data.map(table => table.tablename).filter(
-          name => !name.startsWith('_')
-        );
-        console.log("Available tables:", tableNames);
-        setAvailableTables(tableNames);
-      } else {
-        console.warn("No tables found in the database");
-        toast({
-          title: "No tables found",
-          description: "Your Supabase project doesn't have any tables yet.",
-          variant: "destructive",
-        });
-      }
+      // We'll use the predefined tables instead of querying for them
+      // since the pg_catalog.pg_tables query is causing TypeScript errors
+      const knownTables: TableName[] = [
+        "L'Envol Art Space",
+        "The Little Prince Cafe", 
+        "Vol de Nuit, The Hidden Bar"
+      ];
+      
+      console.log("Using known tables:", knownTables);
+      setAvailableTables(knownTables);
     } catch (error) {
       console.error("Failed to fetch tables:", error);
       toast({
@@ -120,11 +95,12 @@ const Dashboard = () => {
       });
       
       // Fallback to the tables we know exist
-      setAvailableTables([
+      const knownTables: TableName[] = [
         "L'Envol Art Space",
         "The Little Prince Cafe", 
         "Vol de Nuit, The Hidden Bar"
-      ]);
+      ];
+      setAvailableTables(knownTables);
     }
   };
 
@@ -137,25 +113,27 @@ const Dashboard = () => {
       let allReviews: Review[] = [];
       console.log("Fetching data from tables:", tables);
       
-      for (const table of tables) {
-        console.log(`Fetching data from table: ${table}`);
+      for (const tableName of tables) {
+        console.log(`Fetching data from table: ${tableName}`);
         
         try {
+          // Use type casting to handle the TypeScript error with table names
           const { data, error } = await supabase
-            .from(table)
-            .select('*');
+            .from(tableName as TableName)
+            .select('*')
+            .limit(5000); // Increased limit to 5000 reviews per table
             
           if (error) {
-            console.error(`Error fetching from ${table}:`, error);
+            console.error(`Error fetching from ${tableName}:`, error);
             continue; // Skip this table but continue with others
           }
           
           if (data) {
-            console.log(`Retrieved ${data.length} rows from ${table}`);
+            console.log(`Retrieved ${data.length} rows from ${tableName}`);
             // Map the data to our Review type, handling possible column name variations
             const reviews = data.map((item: any) => ({
               name: item.name,
-              title: item.title || table, // Use table name if title is missing
+              title: item.title || tableName, // Use table name if title is missing
               star: item.stars || item.star, // Handle both column names
               originalLanguage: item.originalLanguage,
               text: item.text,
@@ -168,7 +146,7 @@ const Dashboard = () => {
             allReviews = [...allReviews, ...reviews];
           }
         } catch (tableError) {
-          console.error(`Failed to query table ${table}:`, tableError);
+          console.error(`Failed to query table ${tableName}:`, tableError);
           // Continue with the next table
         }
       }

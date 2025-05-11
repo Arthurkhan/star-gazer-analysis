@@ -83,7 +83,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
           {/* Monthly Reviews Line Graph */}
           <div>
             <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
-              Review Volume by Month
+              Cumulative Reviews by Month
             </h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -95,7 +95,12 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
                   <XAxis dataKey="month" />
                   <YAxis allowDecimals={false} />
                   <Tooltip 
-                    formatter={(value) => [`${value} reviews`, "Reviews"]}
+                    formatter={(value, name) => {
+                      if (name === "Cumulative") {
+                        return [`${value} total reviews`, "Total Reviews"];
+                      }
+                      return [`${value} new reviews`, "New Reviews"];
+                    }}
                     contentStyle={{
                       backgroundColor: "rgba(255, 255, 255, 0.9)",
                       borderRadius: "6px",
@@ -107,9 +112,18 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
                   <Line 
                     type="monotone" 
                     dataKey="count" 
+                    stroke="#64748b"
+                    strokeDasharray="3 3"
+                    dot={{ r: 3 }}
+                    name="Monthly"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="cumulativeCount" 
                     stroke="#3b82f6" 
                     activeDot={{ r: 8 }} 
-                    name="Reviews"
+                    name="Cumulative"
+                    strokeWidth={2}
                   />
                 </LineChart>
               </ResponsiveContainer>

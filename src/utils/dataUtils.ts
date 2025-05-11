@@ -67,7 +67,17 @@ export const groupReviewsByMonth = (reviews: Review[]): MonthlyReviewData[] => {
     return dateA.getTime() - dateB.getTime();
   });
   
-  return result;
+  // Calculate cumulative count
+  let cumulativeCount = 0;
+  const cumulativeResult = result.map(item => {
+    cumulativeCount += item.count;
+    return {
+      ...item,
+      cumulativeCount
+    };
+  });
+  
+  return cumulativeResult;
 };
 
 // Calculate monthly comparison data

@@ -11,29 +11,31 @@ import KeyInsights from "@/components/KeyInsights";
 import { Review, BusinessData } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define valid table names type to match Supabase schema
-type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [availableTables, setAvailableTables] = useState<string[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<string>(
     localStorage.getItem("selectedBusiness") || "all"
   );
   const [reviewData, setReviewData] = useState<Review[]>([]);
   const [businessData, setBusinessData] = useState<BusinessData>({
     allBusinesses: { name: "All Businesses", count: 0 },
-    businesses: {
-      "L'Envol Art Space": { name: "L'Envol Art Space", count: 0 },
-      "The Little Prince Cafe": { name: "The Little Prince Cafe", count: 0 },
-      "Vol de Nuit, The Hidden Bar": { name: "Vol de Nuit, The Hidden Bar", count: 0 },
-    },
+    businesses: {},
   });
 
+  // Fetch available tables first
   useEffect(() => {
-    fetchData();
+    fetchAvailableTables();
   }, []);
+
+  // Then fetch data once we have tables
+  useEffect(() => {
+    if (availableTables.length > 0) {
+      fetchData();
+    }
+  }, [availableTables]);
 
   useEffect(() => {
     // Save selected business to localStorage
@@ -44,17 +46,23 @@ const Dashboard = () => {
       const filteredData = reviewData.filter(
         (review) => review.title === selectedBusiness
       );
-      setBusinessData((prev) => ({
-        ...prev,
-        allBusinesses: { ...prev.allBusinesses, count: reviewData.length },
-        businesses: {
-          ...prev.businesses,
-          [selectedBusiness]: {
-            ...prev.businesses[selectedBusiness],
+      
+      setBusinessData((prev) => {
+        const businesses = { ...prev.businesses };
+        
+        if (businesses[selectedBusiness]) {
+          businesses[selectedBusiness] = {
+            ...businesses[selectedBusiness],
             count: filteredData.length,
-          },
-        },
-      }));
+          };
+        }
+        
+        return {
+          ...prev,
+          allBusinesses: { ...prev.allBusinesses, count: reviewData.length },
+          businesses,
+        };
+      });
     } else {
       setBusinessData((prev) => ({
         ...prev,
@@ -63,46 +71,105 @@ const Dashboard = () => {
     }
   }, [selectedBusiness, reviewData]);
 
+  const fetchAvailableTables = async () => {
+    try {
+      // Fetch list of tables from Supabase
+      const { data, error } = await supabase
+        .from('pg_catalog.pg_tables')
+        .select('tablename')
+        .eq('schemaname', 'public');
+
+      if (error) {
+        console.error("Error fetching tables:", error);
+        toast({
+          title: "Error fetching available tables",
+          description: error.message,
+          variant: "destructive",
+        });
+        
+        // Fallback to the tables we know exist
+        setAvailableTables([
+          "L'Envol Art Space",
+          "The Little Prince Cafe", 
+          "Vol de Nuit, The Hidden Bar"
+        ]);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        // Extract table names and filter out system tables if needed
+        const tableNames = data.map(table => table.tablename).filter(
+          name => !name.startsWith('_')
+        );
+        console.log("Available tables:", tableNames);
+        setAvailableTables(tableNames);
+      } else {
+        console.warn("No tables found in the database");
+        toast({
+          title: "No tables found",
+          description: "Your Supabase project doesn't have any tables yet.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch tables:", error);
+      toast({
+        title: "Error fetching tables",
+        description: "Could not retrieve the list of tables from Supabase.",
+        variant: "destructive",
+      });
+      
+      // Fallback to the tables we know exist
+      setAvailableTables([
+        "L'Envol Art Space",
+        "The Little Prince Cafe", 
+        "Vol de Nuit, The Hidden Bar"
+      ]);
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Define the tables to fetch from
-      const tables: TableName[] = [
-        "L'Envol Art Space",
-        "The Little Prince Cafe",
-        "Vol de Nuit, The Hidden Bar"
-      ];
+      // Use the tables we've fetched dynamically
+      const tables = availableTables;
       
       let allReviews: Review[] = [];
       console.log("Fetching data from tables:", tables);
       
       for (const table of tables) {
         console.log(`Fetching data from table: ${table}`);
-        const { data, error } = await supabase
-          .from(table)
-          .select('*');
-          
-        if (error) {
-          console.error(`Error fetching from ${table}:`, error);
-          throw error;
-        }
         
-        if (data) {
-          console.log(`Retrieved ${data.length} rows from ${table}`);
-          // Map the data to our Review type
-          const reviews = data.map((item: any) => ({
-            name: item.name,
-            title: item.title || table, // Use table name if title is missing
-            star: item.stars || item.star, // Handle both column names
-            originalLanguage: item.originalLanguage,
-            text: item.text,
-            translatedText: item.textTranslated || item.translatedText, // Handle both column names
-            responseFromOwnerText: item.responseFromOwnerText,
-            publishedAtDate: item.publishedAtDate,
-            reviewUrl: item.reviewUrl
-          }));
+        try {
+          const { data, error } = await supabase
+            .from(table)
+            .select('*');
+            
+          if (error) {
+            console.error(`Error fetching from ${table}:`, error);
+            continue; // Skip this table but continue with others
+          }
           
-          allReviews = [...allReviews, ...reviews];
+          if (data) {
+            console.log(`Retrieved ${data.length} rows from ${table}`);
+            // Map the data to our Review type, handling possible column name variations
+            const reviews = data.map((item: any) => ({
+              name: item.name,
+              title: item.title || table, // Use table name if title is missing
+              star: item.stars || item.star, // Handle both column names
+              originalLanguage: item.originalLanguage,
+              text: item.text,
+              translatedText: item.textTranslated || item.translatedText, // Handle both column names
+              responseFromOwnerText: item.responseFromOwnerText,
+              publishedAtDate: item.publishedAtDate,
+              reviewUrl: item.reviewUrl
+            }));
+            
+            allReviews = [...allReviews, ...reviews];
+          }
+        } catch (tableError) {
+          console.error(`Failed to query table ${table}:`, tableError);
+          // Continue with the next table
         }
       }
       
@@ -121,22 +188,19 @@ const Dashboard = () => {
       
       console.log("Business counts:", businessCounts);
       
+      // Build a dynamic businessData object based on what we actually found
+      const businessesObj: Record<string, { name: string; count: number }> = {};
+      
+      Object.keys(businessCounts).forEach(business => {
+        businessesObj[business] = {
+          name: business,
+          count: businessCounts[business] || 0
+        };
+      });
+      
       setBusinessData({
         allBusinesses: { name: "All Businesses", count: allReviews.length },
-        businesses: {
-          "L'Envol Art Space": { 
-            name: "L'Envol Art Space", 
-            count: businessCounts["L'Envol Art Space"] || 0 
-          },
-          "The Little Prince Cafe": { 
-            name: "The Little Prince Cafe", 
-            count: businessCounts["The Little Prince Cafe"] || 0 
-          },
-          "Vol de Nuit, The Hidden Bar": { 
-            name: "Vol de Nuit, The Hidden Bar", 
-            count: businessCounts["Vol de Nuit, The Hidden Bar"] || 0 
-          },
-        },
+        businesses: businessesObj,
       });
       
     } catch (error) {

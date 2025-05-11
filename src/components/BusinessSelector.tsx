@@ -20,11 +20,13 @@ const BusinessSelector = ({
   onBusinessChange,
   businessData,
 }: BusinessSelectorProps) => {
-  const businesses = [
+  // Generate business options dynamically from the businessData
+  const businessOptions = [
     { id: "all", name: "All Businesses" },
-    { id: "L'Envol Art Space", name: "L'Envol Art Space" },
-    { id: "The Little Prince Cafe", name: "The Little Prince Cafe" },
-    { id: "Vol de Nuit, The Hidden Bar", name: "Vol de Nuit, The Hidden Bar" },
+    ...Object.entries(businessData.businesses).map(([id, data]) => ({
+      id,
+      name: data.name,
+    })),
   ];
 
   return (
@@ -52,7 +54,7 @@ const BusinessSelector = ({
                 <SelectValue placeholder="Select business" />
               </SelectTrigger>
               <SelectContent>
-                {businesses.map((business) => (
+                {businessOptions.map((business) => (
                   <SelectItem key={business.id} value={business.id}>
                     {business.name}
                   </SelectItem>

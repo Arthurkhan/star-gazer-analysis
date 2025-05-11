@@ -32,7 +32,7 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   });
   
   // Selection mode for the calendar (whether we're choosing start or end date)
-  const [selectingMode, setSelectingMode] = useState<"start" | "end">("start");
+  const [selectingDate, setSelectingDate] = useState<"from" | "to">("from");
   
   // Time period reviews data
   const [timeReviewsData, setTimeReviewsData] = useState<{
@@ -108,27 +108,26 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return;
     
-    if (selectingMode === "start") {
-      // If selecting start date, set it and switch to end date selection
-      setDateRange(prev => {
-        // If the selected date is after the current end date, adjust the end date as well
-        if (prev.to && date > prev.to) {
-          return { from: date, to: undefined };
-        }
-        return { ...prev, from: date };
-      });
-      setSelectingMode("end");
+    if (selectingDate === "from") {
+      // If we're selecting the start date
+      setDateRange(prev => ({
+        from: date,
+        to: prev.to && date > prev.to ? undefined : prev.to
+      }));
+      setSelectingDate("to");
     } else {
-      // If selecting end date, set it and switch back to start date selection
-      setDateRange(prev => {
-        // If the selected date is before the current start date, adjust accordingly
-        if (date < prev.from) {
-          return { from: date, to: prev.from };
-        }
-        return { ...prev, to: date };
-      });
-      setSelectingMode("start");
+      // If we're selecting the end date
+      setDateRange(prev => ({
+        from: prev.from,
+        to: date
+      }));
+      setSelectingDate("from");
     }
+  };
+
+  // Toggle between selecting start date and end date
+  const toggleSelectingDate = (mode: "from" | "to") => {
+    setSelectingDate(mode);
   };
 
   // Colors for the charts
@@ -319,20 +318,19 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                   ))}
                 </div>
                 <p className="text-xs text-center text-muted-foreground mb-1">
-                  {selectingMode === "start" ? "Select start date" : "Select end date"}
+                  {selectingDate === "from" ? "Select start date" : "Select end date"}
                 </p>
               </div>
               <Calendar
                 mode="single"
                 defaultMonth={dateRange.from}
-                selected={selectingMode === "start" ? dateRange.from : dateRange.to}
+                selected={selectingDate === "from" ? dateRange.from : dateRange.to}
                 onSelect={handleDateSelect}
                 initialFocus
                 numberOfMonths={2}
                 className={cn("p-3 pointer-events-auto")}
                 disabled={(date) => {
-                  // Only disable dates if we're selecting end date (to prevent selecting before start)
-                  if (selectingMode === "end") {
+                  if (selectingDate === "to" && dateRange.from) {
                     return date < dateRange.from;
                   }
                   return false;
@@ -343,16 +341,16 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => setSelectingMode("start")}
-                        className={selectingMode === "start" ? "bg-primary text-primary-foreground" : ""}
+                        onClick={() => toggleSelectingDate("from")}
+                        className={selectingDate === "from" ? "bg-primary text-primary-foreground" : ""}
                       >
                         Start Date
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => setSelectingMode("end")}
-                        className={selectingMode === "end" ? "bg-primary text-primary-foreground" : ""}
+                        onClick={() => toggleSelectingDate("to")}
+                        className={selectingDate === "to" ? "bg-primary text-primary-foreground" : ""}
                         disabled={!dateRange.from}
                       >
                         End Date
@@ -457,6 +455,7 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
         </Card>
       </div>
 
+      {/* Review Timeline Chart */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">

@@ -11,7 +11,14 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -49,24 +56,31 @@ const App = () => {
   
   // Wait until we've checked auth before rendering
   if (isAuthenticated === null) {
-    return <div className="h-screen w-screen flex items-center justify-center">
-      <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-    </div>;
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+          <p className="text-gray-500 dark:text-gray-400 animate-pulse">Loading application...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/auth" />} />
-            <Route path="/auth" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Auth />} />
-            <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 antialiased text-gray-900 dark:text-gray-100">
+          <Toaster />
+          <Sonner position="top-right" closeButton expand={false} />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/auth" />} />
+              <Route path="/auth" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Auth />} />
+              <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </div>
       </TooltipProvider>
     </QueryClientProvider>
   );

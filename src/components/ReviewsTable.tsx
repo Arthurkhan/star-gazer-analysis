@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,9 +23,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Review } from "@/types/reviews";
 import { formatDistanceToNow } from "date-fns";
-import { Search } from "lucide-react";
+import { Search, Eye } from "lucide-react";
 
 interface ReviewsTableProps {
   reviews: Review[];
@@ -41,6 +48,8 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
   const [sortOrder, setSortOrder] = useState("desc");
   const [filteredReviews, setFilteredReviews] = useState<Review[]>(reviews);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const reviewsPerPage = 10;
   
   // Apply filters and sorting when dependencies change
@@ -149,6 +158,12 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
       setSortBy(column);
       setSortOrder("desc"); // Default to descending when changing columns
     }
+  };
+  
+  // Open dialog with full review
+  const openReviewDialog = (review: Review) => {
+    setSelectedReview(review);
+    setIsDialogOpen(true);
   };
   
   return (
@@ -269,6 +284,14 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                             Response: {review.responseFromOwnerText}
                           </div>
                         )}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="mt-1 flex items-center gap-1 text-xs"
+                          onClick={() => openReviewDialog(review)}
+                        >
+                          <Eye className="h-3 w-3" /> View Full Review
+                        </Button>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatDate(review.publishedAtDate)}
@@ -337,6 +360,48 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
           )}
         </div>
       </CardContent>
+      
+      {/* Full Review Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-star">
+                {selectedReview && "★".repeat(selectedReview.star)}
+                {selectedReview && "☆".repeat(5 - (selectedReview?.star || 0))}
+              </span>
+              {selectedReview?.name}'s Review
+            </DialogTitle>
+            <DialogDescription>
+              {selectedReview?.title} - {selectedReview && formatDate(selectedReview.publishedAtDate)}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h3 className="font-medium">Review Text:</h3>
+              <p className="text-sm whitespace-pre-line">
+                {selectedReview?.translatedText || selectedReview?.text}
+              </p>
+            </div>
+            
+            {selectedReview?.responseFromOwnerText && (
+              <div className="space-y-2 border-t pt-4">
+                <h3 className="font-medium">Owner Response:</h3>
+                <p className="text-sm whitespace-pre-line">
+                  {selectedReview.responseFromOwnerText}
+                </p>
+              </div>
+            )}
+            
+            <div className="pt-4 flex justify-end">
+              <DialogClose asChild>
+                <Button>Close</Button>
+              </DialogClose>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

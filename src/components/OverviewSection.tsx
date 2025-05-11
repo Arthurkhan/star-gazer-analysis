@@ -2,250 +2,84 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Review } from "@/types/reviews";
 import { 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer,
-  CartesianGrid,
-  Legend 
-} from "recharts";
-import { ArrowUp, ArrowDown } from "lucide-react";
-import { 
   calculateAverageRating, 
-  countReviewsByRating, 
+  countReviewsByRating,
   groupReviewsByMonth,
-  calculateMonthlyComparison 
+  calculateMonthlyComparison
 } from "@/utils/dataUtils";
+import ReviewsChart from "@/components/ReviewsChart";
 
 interface OverviewSectionProps {
   reviews: Review[];
 }
 
 const OverviewSection = ({ reviews }: OverviewSectionProps) => {
+  const totalReviews = reviews.length;
   const averageRating = calculateAverageRating(reviews);
-  const ratingDistribution = countReviewsByRating(reviews);
-  const monthlyReviews = groupReviewsByMonth(reviews);
+  const reviewsByRating = countReviewsByRating(reviews);
+  const monthlyData = groupReviewsByMonth(reviews);
   const monthlyComparison = calculateMonthlyComparison(reviews);
   
-  // Calculate response rate
-  const responseRate = reviews.length > 0
-    ? (reviews.filter(r => r.responseFromOwnerText?.trim()).length / reviews.length) * 100
+  const fiveStars = reviewsByRating[5] || 0;
+  const fiveStarPercentage = totalReviews > 0 
+    ? Math.round((fiveStars / totalReviews) * 100) 
     : 0;
   
-  // Calculate trend (simplified)
-  const prevMonth = new Date();
-  prevMonth.setMonth(prevMonth.getMonth() - 1);
-  
-  const currentMonthReviews = reviews.filter(r => {
-    const date = new Date(r.publishedAtDate);
-    return date.getMonth() === new Date().getMonth() && 
-           date.getFullYear() === new Date().getFullYear();
-  });
-  
-  const prevMonthReviews = reviews.filter(r => {
-    const date = new Date(r.publishedAtDate);
-    return date.getMonth() === prevMonth.getMonth() && 
-           date.getFullYear() === prevMonth.getFullYear();
-  });
-  
-  const currentMonthAvg = calculateAverageRating(currentMonthReviews);
-  const prevMonthAvg = calculateAverageRating(prevMonthReviews);
-  
-  const trend = currentMonthAvg > prevMonthAvg ? "up" : 
-                (currentMonthAvg < prevMonthAvg ? "down" : "neutral");
-
-  // Format data for rating distribution chart
-  const ratingData = [
-    { rating: "1 ★", count: ratingDistribution[1] || 0 },
-    { rating: "2 ★", count: ratingDistribution[2] || 0 },
-    { rating: "3 ★", count: ratingDistribution[3] || 0 },
-    { rating: "4 ★", count: ratingDistribution[4] || 0 },
-    { rating: "5 ★", count: ratingDistribution[5] || 0 },
-  ];
-
   return (
-    <div className="mb-6">
-      <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Overview</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-6">
-        {/* Left column: Stacked metric cards */}
-        <div className="md:col-span-3 flex flex-col gap-4">
-          {/* Total Reviews Card */}
-          <Card className="shadow-md dark:bg-gray-800 border-0">
-            <CardHeader className="pb-2 pt-3 px-4">
-              <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Total Reviews
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="py-0 px-4 pb-3">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                {reviews.length}
-              </div>
-              <div className="mt-1 flex flex-col text-xs">
-                <div className="flex items-center">
-                  <span className="text-gray-600 dark:text-gray-400 mr-1">vs Last Month:</span>
-                  <span className={monthlyComparison.vsLastMonth > 0 ? 'text-green-600' : monthlyComparison.vsLastMonth < 0 ? 'text-red-600' : 'text-gray-600'}>
-                    {monthlyComparison.vsLastMonth > 0 ? '+' : ''}{monthlyComparison.vsLastMonth}
-                  </span>
-                  {monthlyComparison.vsLastMonth > 0 ? (
-                    <ArrowUp className="h-3 w-3 text-green-600 ml-1" />
-                  ) : monthlyComparison.vsLastMonth < 0 ? (
-                    <ArrowDown className="h-3 w-3 text-red-600 ml-1" />
-                  ) : null}
-                </div>
-                <div className="flex items-center">
-                  <span className="text-gray-600 dark:text-gray-400 mr-1">vs Last Year:</span>
-                  <span className={monthlyComparison.vsLastYear > 0 ? 'text-green-600' : monthlyComparison.vsLastYear < 0 ? 'text-red-600' : 'text-gray-600'}>
-                    {monthlyComparison.vsLastYear > 0 ? '+' : ''}{monthlyComparison.vsLastYear}
-                  </span>
-                  {monthlyComparison.vsLastYear > 0 ? (
-                    <ArrowUp className="h-3 w-3 text-green-600 ml-1" />
-                  ) : monthlyComparison.vsLastYear < 0 ? (
-                    <ArrowDown className="h-3 w-3 text-red-600 ml-1" />
-                  ) : null}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Average Rating Card */}
-          <Card className="shadow-md dark:bg-gray-800 border-0">
-            <CardHeader className="pb-2 pt-3 px-4">
-              <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Average Rating
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="py-0 px-4 pb-3">
-              <div className="flex items-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {averageRating.toFixed(1)}
-                </div>
-                <div className="flex items-center ml-2">
-                  <div className="text-lg text-yellow-400 mr-1">★</div>
-                  {trend === "up" && (
-                    <ArrowUp className="h-4 w-4 text-green-500" />
-                  )}
-                  {trend === "down" && (
-                    <ArrowDown className="h-4 w-4 text-red-500" />
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Response Rate Card */}
-          <Card className="shadow-md dark:bg-gray-800 border-0">
-            <CardHeader className="pb-2 pt-3 px-4">
-              <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Response Rate
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="py-0 px-4 pb-3">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                {responseRate.toFixed(0)}%
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Recent Trend Card */}
-          <Card className="shadow-md dark:bg-gray-800 border-0">
-            <CardHeader className="pb-2 pt-3 px-4">
-              <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                Recent Trend
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="py-0 px-4 pb-3">
-              <div className="flex items-center">
-                <div className="text-lg font-bold text-gray-900 dark:text-white">
-                  {trend === "up" ? "Improving" : trend === "down" ? "Declining" : "Stable"}
-                </div>
-                <div className="ml-2">
-                  {trend === "up" && (
-                    <ArrowUp className="h-4 w-4 text-green-500" />
-                  )}
-                  {trend === "down" && (
-                    <ArrowDown className="h-4 w-4 text-red-500" />
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Right column: Rating Distribution Chart */}
-        <div className="md:col-span-9">
-          <Card className="shadow-md dark:bg-gray-800 border-0 h-full">
-            <CardHeader>
-              <CardTitle>Rating Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={ratingData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="rating" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip 
-                      formatter={(value) => [`${value} reviews`, "Count"]}
-                      contentStyle={{
-                        backgroundColor: "rgba(255, 255, 255, 0.9)",
-                        borderRadius: "6px",
-                        border: "none",
-                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                      }}
-                    />
-                    <Bar 
-                      dataKey="count" 
-                      fill="#3b82f6" 
-                      radius={[4, 4, 0, 0]} 
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-      
-      {/* Reviews Over Time Chart - Full width */}
-      <Card className="shadow-md dark:bg-gray-800 border-0">
-        <CardHeader>
-          <CardTitle>Reviews Over Time</CardTitle>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <Card className="shadow-md border-0 dark:bg-gray-800">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-md font-medium">Total Reviews</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyReviews}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" />
-                <YAxis allowDecimals={false} />
-                <Tooltip 
-                  formatter={(value) => [`${value} reviews`, "Count"]}
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    borderRadius: "6px",
-                    border: "none",
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                  }}
-                />
-                <Legend />
-                <Area 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="#3b82f6" 
-                  fill="#3b82f6" 
-                  fillOpacity={0.2} 
-                  name="Reviews"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="text-3xl font-bold">{totalReviews}</div>
+          <p className="text-xs text-gray-500 mt-1">
+            {monthlyComparison.vsLastMonth > 0 
+              ? `+${monthlyComparison.vsLastMonth} from last month` 
+              : monthlyComparison.vsLastMonth < 0 
+                ? `${monthlyComparison.vsLastMonth} from last month`
+                : `Same as last month`}
+          </p>
+        </CardContent>
+      </Card>
+      
+      <Card className="shadow-md border-0 dark:bg-gray-800">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-md font-medium">Average Rating</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold">{averageRating.toFixed(1)}</div>
+          <div className="text-sm text-gray-500 mt-1">
+            {fiveStarPercentage}% 5-star reviews
           </div>
         </CardContent>
       </Card>
+      
+      <Card className="shadow-md border-0 dark:bg-gray-800">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-md font-medium">Review Distribution</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {[5, 4, 3, 2, 1].map(star => (
+              <div key={star} className="flex items-center gap-2">
+                <div className="text-xs min-w-[1.5rem]">{star}★</div>
+                <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ 
+                      width: `${totalReviews ? (reviewsByRating[star] || 0) / totalReviews * 100 : 0}%` 
+                    }}
+                  />
+                </div>
+                <div className="text-xs min-w-[2rem] text-right">{reviewsByRating[star] || 0}</div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      
+      <ReviewsChart data={monthlyData} />
     </div>
   );
 };

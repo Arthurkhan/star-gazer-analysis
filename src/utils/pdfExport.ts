@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Review } from '@/types/reviews';
@@ -111,8 +110,12 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
   const avgRating = calculateAverageRating(reviews);
   const totalReviews = reviews.length;
   
-  autoTable(doc, {
-    startY: 60,
+  // Keep track of the last Y position
+  let currentY = 60;
+  
+  // Add overview table
+  const result = autoTable(doc, {
+    startY: currentY,
     head: [['Metric', 'Value']],
     body: [
       ['Total Reviews', totalReviews.toString()],
@@ -123,22 +126,27 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
     headStyles: { fillColor: [66, 135, 245] }
   });
   
+  // Update the current Y position
+  currentY = (result.finalY || currentY) + 15;
+  
   // Add insights section
   doc.setFontSize(16);
-  doc.text('Key Insights', 14, doc.lastAutoTable.finalY + 15);
+  doc.text('Key Insights', 14, currentY);
   
   // Add insights content
   doc.setFontSize(10);
   const insights = generateInsights(reviews);
   const insightLines = doc.splitTextToSize(insights, pageWidth - 30);
-  doc.text(insightLines, 14, doc.lastAutoTable.finalY + 25);
+  doc.text(insightLines, 14, currentY + 10);
+  
+  // Update the current Y position (approximate height based on text lines)
+  currentY = currentY + 10 + (insightLines.length * 5);
   
   // Add rating distribution chart (simplified as a table)
-  const startY = doc.lastAutoTable.finalY + 15 + insightLines.length * 7;
-  const ratingCounts = countRatingsByStars(reviews);
-  
   doc.setFontSize(16);
-  doc.text('Rating Distribution', 14, startY);
+  doc.text('Rating Distribution', 14, currentY + 10);
+  
+  const ratingCounts = countRatingsByStars(reviews);
   
   const ratingData: any[] = [];
   Object.entries(ratingCounts).forEach(([rating, count]) => {
@@ -146,23 +154,28 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
     ratingData.push([`${rating} Star Reviews`, count, `${percentage}%`]);
   });
   
-  autoTable(doc, {
-    startY: startY + 5,
+  // Add rating distribution table
+  const ratingResult = autoTable(doc, {
+    startY: currentY + 15,
     head: [['Rating', 'Count', 'Percentage']],
     body: ratingData,
     theme: 'grid',
     headStyles: { fillColor: [66, 135, 245] }
   });
   
+  // Update the current Y position
+  currentY = (ratingResult.finalY || currentY) + 15;
+  
   // Add monthly trend data
   doc.setFontSize(16);
-  doc.text('Monthly Review Trends', 14, doc.lastAutoTable.finalY + 15);
+  doc.text('Monthly Review Trends', 14, currentY);
   
   const monthlyData = getReviewsOverTime(reviews);
   const monthlyRows = monthlyData.map(item => [item.month, item.count.toString()]);
   
+  // Add monthly trends table
   autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 20,
+    startY: currentY + 10,
     head: [['Month', 'Number of Reviews']],
     body: monthlyRows,
     theme: 'grid',
@@ -170,7 +183,7 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
   });
   
   // Add footer
-  const pageCount = doc.internal.getNumberOfPages();
+  const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(10);

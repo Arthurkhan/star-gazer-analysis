@@ -32,6 +32,9 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
   });
+
+  // Track which date we're currently selecting (start or end)
+  const [selectingDate, setSelectingDate] = useState<'from' | 'to'>('from');
   
   // Time period reviews data
   const [timeReviewsData, setTimeReviewsData] = useState<{
@@ -101,6 +104,34 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   const applyDateRangePreset = (presetIndex: number) => {
     const newRange = dateRangePresets[presetIndex].range();
     setDateRange(newRange);
+  };
+
+  // Handle date selection
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+
+    // If we're selecting the 'from' date
+    if (selectingDate === 'from') {
+      // If the selected date is after the end date, adjust the end date
+      if (dateRange.to && date > dateRange.to) {
+        setDateRange({ from: date, to: undefined });
+      } else {
+        setDateRange({ ...dateRange, from: date });
+      }
+      // Toggle to selecting the 'to' date
+      setSelectingDate('to');
+    } 
+    // If we're selecting the 'to' date
+    else {
+      // If the selected date is before the start date, we're actually reselecting the start date
+      if (date < dateRange.from) {
+        setDateRange({ from: date, to: dateRange.from });
+      } else {
+        setDateRange({ ...dateRange, to: date });
+      }
+      // Toggle to selecting the 'from' date
+      setSelectingDate('from');
+    }
   };
 
   // Colors for the charts
@@ -290,22 +321,22 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                     </Button>
                   ))}
                 </div>
-                <p className="text-xs text-center text-muted-foreground mb-1">Or select custom range</p>
+                <p className="text-xs text-center text-muted-foreground mb-1">
+                  Currently selecting: {selectingDate === 'from' ? 'Start date' : 'End date'}
+                </p>
               </div>
               <Calendar
-                mode="range"
+                mode="single"
                 defaultMonth={dateRange.from}
-                selected={{
-                  from: dateRange.from,
-                  to: dateRange.to
-                }}
-                onSelect={(range) => {
-                  if (range) {
-                    setDateRange({ from: range.from || new Date(), to: range.to });
-                  }
-                }}
+                selected={selectingDate === 'from' ? dateRange.from : dateRange.to}
+                onSelect={handleDateSelect}
                 numberOfMonths={2}
                 className={cn("p-3 pointer-events-auto")}
+                footer={
+                  <p className="pt-2 text-xs text-center text-muted-foreground">
+                    {dateRange.from && format(dateRange.from, "MMM d, yyyy")} - {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "Select end date"}
+                  </p>
+                }
               />
             </PopoverContent>
           </Popover>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
@@ -30,9 +31,6 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
   });
-  
-  // Selection mode for the calendar (whether we're choosing start or end date)
-  const [selectingDate, setSelectingDate] = useState<"from" | "to">("from");
   
   // Time period reviews data
   const [timeReviewsData, setTimeReviewsData] = useState<{
@@ -102,32 +100,6 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   const applyDateRangePreset = (presetIndex: number) => {
     const newRange = dateRangePresets[presetIndex].range();
     setDateRange(newRange);
-  };
-
-  // Handle date selection in the calendar
-  const handleDateSelect = (date: Date | undefined) => {
-    if (!date) return;
-    
-    if (selectingDate === "from") {
-      // If we're selecting the start date
-      setDateRange(prev => ({
-        from: date,
-        to: prev.to && date > prev.to ? undefined : prev.to
-      }));
-      setSelectingDate("to");
-    } else {
-      // If we're selecting the end date
-      setDateRange(prev => ({
-        from: prev.from,
-        to: date
-      }));
-      setSelectingDate("from");
-    }
-  };
-
-  // Toggle between selecting start date and end date
-  const toggleSelectingDate = (mode: "from" | "to") => {
-    setSelectingDate(mode);
   };
 
   // Colors for the charts
@@ -317,50 +289,22 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                     </Button>
                   ))}
                 </div>
-                <p className="text-xs text-center text-muted-foreground mb-1">
-                  {selectingDate === "from" ? "Select start date" : "Select end date"}
-                </p>
+                <p className="text-xs text-center text-muted-foreground mb-1">Or select custom range</p>
               </div>
               <Calendar
-                mode="single"
+                mode="range"
                 defaultMonth={dateRange.from}
-                selected={selectingDate === "from" ? dateRange.from : dateRange.to}
-                onSelect={handleDateSelect}
-                initialFocus
+                selected={{
+                  from: dateRange.from,
+                  to: dateRange.to
+                }}
+                onSelect={(range) => {
+                  if (range) {
+                    setDateRange({ from: range.from || new Date(), to: range.to });
+                  }
+                }}
                 numberOfMonths={2}
                 className={cn("p-3 pointer-events-auto")}
-                disabled={(date) => {
-                  if (selectingDate === "to" && dateRange.from) {
-                    return date < dateRange.from;
-                  }
-                  return false;
-                }}
-                footer={
-                  <div className="pt-2 pb-1 border-t mt-2">
-                    <div className="flex justify-between items-center">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => toggleSelectingDate("from")}
-                        className={selectingDate === "from" ? "bg-primary text-primary-foreground" : ""}
-                      >
-                        Start Date
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => toggleSelectingDate("to")}
-                        className={selectingDate === "to" ? "bg-primary text-primary-foreground" : ""}
-                        disabled={!dateRange.from}
-                      >
-                        End Date
-                      </Button>
-                    </div>
-                    <p className="text-xs text-center text-muted-foreground mt-2">
-                      Toggle between selecting start and end dates
-                    </p>
-                  </div>
-                }
               />
             </PopoverContent>
           </Popover>
@@ -455,7 +399,6 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
         </Card>
       </div>
 
-      {/* Review Timeline Chart */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">

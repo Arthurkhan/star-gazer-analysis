@@ -9,7 +9,7 @@ import ReviewAnalysis from "@/components/ReviewAnalysis";
 import ReviewsTable from "@/components/ReviewsTable";
 import KeyInsights from "@/components/KeyInsights";
 import { Review, BusinessData } from "@/types/reviews";
-import { getMockData } from "@/utils/mockData";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -29,24 +29,8 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    // Check if credentials exist
-    const supabaseUrl = localStorage.getItem("supabaseUrl");
-    const supabaseKey = localStorage.getItem("supabaseKey");
-
-    if (!supabaseUrl || !supabaseKey) {
-      toast({
-        title: "Not connected",
-        description: "Please connect to your Supabase database first",
-        variant: "destructive",
-      });
-      navigate("/");
-      return;
-    }
-
-    // Here we would fetch data from Supabase
-    // For this demo, we'll use mock data
     fetchData();
-  }, [navigate, toast]);
+  }, []);
 
   useEffect(() => {
     // Save selected business to localStorage
@@ -79,12 +63,44 @@ const Dashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // In a real app, this would be a Supabase query
-      const data = getMockData();
-      setReviewData(data);
+      // Fetch data from all three tables
+      const tables = [
+        "L'Envol Art Space",
+        "The Little Prince Cafe",
+        "Vol de Nuit, The Hidden Bar"
+      ];
+      
+      let allReviews: Review[] = [];
+      
+      for (const table of tables) {
+        const { data, error } = await supabase
+          .from(table)
+          .select('*');
+          
+        if (error) throw error;
+        
+        if (data) {
+          // Map the data to our Review type
+          const reviews = data.map((item: any) => ({
+            name: item.name,
+            title: item.title || table, // Use table name if title is missing
+            star: item.stars || item.star, // Handle both column names
+            originalLanguage: item.originalLanguage,
+            text: item.text,
+            translatedText: item.textTranslated || item.translatedText, // Handle both column names
+            responseFromOwnerText: item.responseFromOwnerText,
+            publishedAtDate: item.publishedAtDate,
+            reviewUrl: item.reviewUrl
+          }));
+          
+          allReviews = [...allReviews, ...reviews];
+        }
+      }
+      
+      setReviewData(allReviews);
       
       // Count reviews for each business
-      const businessCounts = data.reduce((acc, review) => {
+      const businessCounts = allReviews.reduce((acc, review) => {
         const business = review.title;
         if (!acc[business]) {
           acc[business] = 0;
@@ -93,8 +109,8 @@ const Dashboard = () => {
         return acc;
       }, {} as Record<string, number>);
       
-      setBusinessData((prev) => ({
-        allBusinesses: { name: "All Businesses", count: data.length },
+      setBusinessData({
+        allBusinesses: { name: "All Businesses", count: allReviews.length },
         businesses: {
           "L'Envol Art Space": { 
             name: "L'Envol Art Space", 
@@ -109,7 +125,8 @@ const Dashboard = () => {
             count: businessCounts["Vol de Nuit, The Hidden Bar"] || 0 
           },
         },
-      }));
+      });
+      
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({

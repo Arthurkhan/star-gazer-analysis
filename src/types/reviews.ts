@@ -34,6 +34,7 @@ export interface LanguageData {
 export interface MonthlyReviewData {
   month: string;
   count: number;
+  cumulativeCount?: number;
 }
 
 export interface ThemeData {

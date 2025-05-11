@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { KeyIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { KeyRound, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,9 +11,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -21,45 +18,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export function SetupApiKeyDialog() {
   const [apiKey, setApiKey] = useState("");
+  const [model, setModel] = useState(localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini");
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini");
   const { toast } = useToast();
 
-  const handleSaveApiKey = async () => {
-    if (!apiKey.trim()) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter your OpenAI API key",
-        variant: "destructive",
-      });
-      return;
+  // Load saved API key from localStorage on component mount
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem("OPENAI_API_KEY");
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
     }
+  }, []);
 
-    setIsLoading(true);
+  const handleSaveApiKey = () => {
     try {
-      // Test the API key with a simple request to OpenAI
-      const response = await fetch("https://api.openai.com/v1/models", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API key validation error:", errorText);
-        throw new Error(`Invalid API key: ${response.status} ${errorText}`);
-      }
-
-      // Store the API key and selected model in local storage
+      // Save API key to localStorage
       localStorage.setItem("OPENAI_API_KEY", apiKey);
-      localStorage.setItem("OPENAI_MODEL", selectedModel);
-
+      
+      // Save selected model to localStorage
+      localStorage.setItem("OPENAI_MODEL", model);
+      
       toast({
         title: "API Key Saved",
         description: "Your OpenAI API key has been saved successfully.",
@@ -67,18 +52,13 @@ export function SetupApiKeyDialog() {
       
       // Close the dialog
       setIsOpen(false);
-      
-      // Reload the page to apply the new API key
-      window.location.reload();
     } catch (error) {
       console.error("Error saving API key:", error);
       toast({
-        title: "Invalid API Key",
-        description: "Please check your OpenAI API key and try again.",
+        title: "Error Saving API Key",
+        description: "There was an error saving your API key.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -86,66 +66,84 @@ export function SetupApiKeyDialog() {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button 
-          variant="ghost" 
-          size="icon" 
-          className="mr-2"
-          aria-label="Setup OpenAI API Key"
+          variant="outline" 
+          size="icon"
+          className="relative"
         >
-          <KeyIcon size={20} />
+          <KeyRound className="h-[1.2rem] w-[1.2rem]" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Setup OpenAI API Key</DialogTitle>
           <DialogDescription>
-            Enter your OpenAI API key to enable AI features. Your key will be stored securely in your browser.
+            Enter your OpenAI API key to enable AI-powered analysis features.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-1 gap-2">
-            <Label htmlFor="api-key">OpenAI API Key</Label>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="openai-api-key" className="text-right">
+              API Key
+            </Label>
             <Input
-              id="api-key"
-              type="password"
-              placeholder="sk-..."
+              id="openai-api-key"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
+              placeholder="sk-..."
+              className="col-span-3"
             />
-            <p className="text-xs text-muted-foreground">
-              You can find your API key in the{" "}
-              <a
-                href="https://platform.openai.com/api-keys"
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary underline"
-              >
-                OpenAI dashboard
-              </a>
-            </p>
           </div>
-          
-          <div className="grid grid-cols-1 gap-2 mt-2">
-            <Label htmlFor="model-select">OpenAI Model</Label>
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger id="model-select">
-                <SelectValue placeholder="Select model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gpt-4o-mini">GPT-4o Mini (Fast & Cost-effective)</SelectItem>
-                <SelectItem value="gpt-4o">GPT-4o (Powerful & Comprehensive)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Select the OpenAI model to use for review analysis.
-            </p>
+
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label className="text-right pt-2">
+              Model
+            </Label>
+            <div className="col-span-3">
+              <RadioGroup value={model} onValueChange={setModel}>
+                <div className="space-y-3">
+                  <div className="border p-4 rounded-md">
+                    <h4 className="font-medium mb-2 text-sm">GPT-4o Series</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="gpt-4o" id="gpt-4o" />
+                        <Label htmlFor="gpt-4o" className="font-normal">GPT-4o</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="gpt-4o-mini" id="gpt-4o-mini" />
+                        <Label htmlFor="gpt-4o-mini" className="font-normal">GPT-4o Mini</Label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border p-4 rounded-md">
+                    <h4 className="font-medium mb-2 text-sm">GPT-4.1 Series</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="gpt-4.1" id="gpt-4.1" />
+                        <Label htmlFor="gpt-4.1" className="font-normal">GPT-4.1</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="gpt-4.1-mini" id="gpt-4.1-mini" />
+                        <Label htmlFor="gpt-4.1-mini" className="font-normal">GPT-4.1 Mini</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="gpt-4.1-nano" id="gpt-4.1-nano" />
+                        <Label htmlFor="gpt-4.1-nano" className="font-normal">GPT-4.1 Nano</Label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </RadioGroup>
+              <p className="text-xs text-muted-foreground mt-2">
+                Select your preferred OpenAI model for analysis.
+                More powerful models may cost more but provide better insights.
+              </p>
+            </div>
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={handleSaveApiKey} disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save API Key"}
+          <Button type="button" onClick={handleSaveApiKey}>
+            Save API Key
           </Button>
         </DialogFooter>
       </DialogContent>

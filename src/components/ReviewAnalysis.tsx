@@ -38,8 +38,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Loader2Icon, UserIcon } from "lucide-react";
+import { InfoIcon, Loader2Icon, UserIcon, RefreshCw } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
 import { CustomPromptDialog } from "./CustomPromptDialog";
 
 interface ReviewAnalysisProps {
@@ -181,6 +182,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
   const [overallAnalysis, setOverallAnalysis] = useState("");
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0); // New state to trigger refresh
   
   // State for pie chart active segment
   const [activePieIndex, setActivePieIndex] = useState(0);
@@ -211,7 +213,12 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
     "Negative": "#EF4444"
   };
 
-  // Load AI analysis when reviews change
+  // Handle refresh AI analysis
+  const handleRefreshAnalysis = () => {
+    setRefreshKey(prev => prev + 1); // Increment refresh key to trigger useEffect
+  };
+
+  // Load AI analysis when reviews change or refresh is triggered
   useEffect(() => {
     let isMounted = true;
     
@@ -227,6 +234,9 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
     // Fetch AI-enhanced data
     const fetchAIAnalysis = async () => {
       try {
+        // Clear cache to force a fresh analysis
+        localStorage.removeItem("analysis_cache_key"); 
+        
         // Run all analysis in parallel
         const [
           sentimentResults, 
@@ -269,7 +279,7 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
     return () => {
       isMounted = false;
     };
-  }, [reviews]);
+  }, [reviews, refreshKey]); // Add refreshKey dependency to trigger on refresh
 
   return (
     <Card className="shadow-md dark:bg-gray-800 border-0">
@@ -281,7 +291,19 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
               Breakdown of review sentiment, languages, and key terms
             </CardDescription>
           </div>
-          <CustomPromptDialog />
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefreshAnalysis}
+              className="gap-1 text-xs"
+              disabled={loading}
+            >
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+              <span>Refresh Analysis</span>
+            </Button>
+            <CustomPromptDialog />
+          </div>
         </div>
       </CardHeader>
       <CardContent>

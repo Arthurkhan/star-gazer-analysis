@@ -220,6 +220,8 @@ async function analyzeReviewChunk(
 
   // Call OpenAI API
   console.log("Calling OpenAI API with authorization...");
+  console.log("Using model:", model);
+  
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -309,8 +311,10 @@ const analysisCache = new Map<string, any>();
 
 // Function to get or create analysis
 export const getAnalysis = async (reviews: Review[]): Promise<any> => {
-  // Create a cache key based on the number of reviews and their IDs
-  const cacheKey = `${reviews.length}_${reviews.slice(0, 5).map(r => r.publishedAtDate).join('_')}`;
+  // Create a cache key based on the number of reviews, a few review IDs, and a timestamp
+  // This will be cleared whenever the refresh button is clicked
+  const cacheTimestamp = localStorage.getItem("analysis_cache_key") || Date.now().toString();
+  const cacheKey = `${reviews.length}_${reviews.slice(0, 3).map(r => r.publishedAtDate).join('_')}_${cacheTimestamp}`;
   
   if (analysisCache.has(cacheKey)) {
     console.log("Using cached analysis result");
@@ -319,6 +323,12 @@ export const getAnalysis = async (reviews: Review[]): Promise<any> => {
   
   console.log("No cached result found, performing fresh analysis");
   const analysis = await analyzeReviewsWithOpenAI(reviews);
+  
+  // Store in cache with the timestamp-based key
   analysisCache.set(cacheKey, analysis);
+  
+  // Update cache timestamp for next time
+  localStorage.setItem("analysis_cache_key", Date.now().toString());
+  
   return analysis;
 };

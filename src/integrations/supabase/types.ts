@@ -45,7 +45,7 @@ export type Database = {
         }
         Relationships: []
       }
-      "The Little Prince cafe": {
+      "The Little Prince Cafe": {
         Row: {
           name: string
           originalLanguage: string | null

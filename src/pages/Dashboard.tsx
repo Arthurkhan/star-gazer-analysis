@@ -11,6 +11,9 @@ import KeyInsights from "@/components/KeyInsights";
 import { Review, BusinessData } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 
+// Define valid table names type to match Supabase schema
+type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -63,8 +66,8 @@ const Dashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch data from all three tables
-      const tables = [
+      // Define the tables to fetch from
+      const tables: TableName[] = [
         "L'Envol Art Space",
         "The Little Prince Cafe",
         "Vol de Nuit, The Hidden Bar"

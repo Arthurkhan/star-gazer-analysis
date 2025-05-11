@@ -32,6 +32,9 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     to: endOfMonth(new Date())
   });
   
+  // Selection mode for the calendar (whether we're choosing start or end date)
+  const [selectingMode, setSelectingMode] = useState<"start" | "end">("start");
+  
   // Time period reviews data
   const [timeReviewsData, setTimeReviewsData] = useState<{
     date: string;
@@ -100,6 +103,33 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   const applyDateRangePreset = (presetIndex: number) => {
     const newRange = dateRangePresets[presetIndex].range();
     setDateRange(newRange);
+  };
+
+  // Handle date selection in the calendar
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    
+    if (selectingMode === "start") {
+      // If selecting start date, set it and switch to end date selection
+      setDateRange(prev => {
+        // If the selected date is after the current end date, adjust the end date as well
+        if (prev.to && date > prev.to) {
+          return { from: date, to: undefined };
+        }
+        return { ...prev, from: date };
+      });
+      setSelectingMode("end");
+    } else {
+      // If selecting end date, set it and switch back to start date selection
+      setDateRange(prev => {
+        // If the selected date is before the current start date, adjust accordingly
+        if (date < prev.from) {
+          return { from: date, to: prev.from };
+        }
+        return { ...prev, to: date };
+      });
+      setSelectingMode("start");
+    }
   };
 
   // Colors for the charts
@@ -289,22 +319,51 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                     </Button>
                   ))}
                 </div>
-                <p className="text-xs text-center text-muted-foreground mb-1">Or select custom range</p>
+                <p className="text-xs text-center text-muted-foreground mb-1">
+                  {selectingMode === "start" ? "Select start date" : "Select end date"}
+                </p>
               </div>
               <Calendar
-                mode="range"
+                mode="single"
                 defaultMonth={dateRange.from}
-                selected={{
-                  from: dateRange.from,
-                  to: dateRange.to
-                }}
-                onSelect={(range) => {
-                  if (range) {
-                    setDateRange({ from: range.from || new Date(), to: range.to });
-                  }
-                }}
+                selected={selectingMode === "start" ? dateRange.from : dateRange.to}
+                onSelect={handleDateSelect}
+                initialFocus
                 numberOfMonths={2}
                 className={cn("p-3 pointer-events-auto")}
+                disabled={(date) => {
+                  // Only disable dates if we're selecting end date (to prevent selecting before start)
+                  if (selectingMode === "end") {
+                    return date < dateRange.from;
+                  }
+                  return false;
+                }}
+                footer={
+                  <div className="pt-2 pb-1 border-t mt-2">
+                    <div className="flex justify-between items-center">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setSelectingMode("start")}
+                        className={selectingMode === "start" ? "bg-primary text-primary-foreground" : ""}
+                      >
+                        Start Date
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setSelectingMode("end")}
+                        className={selectingMode === "end" ? "bg-primary text-primary-foreground" : ""}
+                        disabled={!dateRange.from}
+                      >
+                        End Date
+                      </Button>
+                    </div>
+                    <p className="text-xs text-center text-muted-foreground mt-2">
+                      Toggle between selecting start and end dates
+                    </p>
+                  </div>
+                }
               />
             </PopoverContent>
           </Popover>

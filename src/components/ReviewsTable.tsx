@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -242,18 +243,17 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead width="30%">
+                  <TableHead className="w-[30%]">
                     Reviewer
                   </TableHead>
-                  <TableHead width="45%">Review</TableHead>
+                  <TableHead className="w-[45%]">Review</TableHead>
                   <TableHead 
-                    className="cursor-pointer"
+                    className="w-[15%] cursor-pointer"
                     onClick={() => toggleSort("date")}
-                    width="15%"
                   >
                     Date {sortBy === "date" && (sortOrder === "desc" ? "↓" : "↑")}
                   </TableHead>
-                  <TableHead className="text-right" width="10%">Actions</TableHead>
+                  <TableHead className="w-[10%] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

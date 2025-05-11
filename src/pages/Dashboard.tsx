@@ -69,11 +69,29 @@ const Dashboard = () => {
           businesses,
         };
       });
+      
+      // Prepare data for PDF export
+      const exportEvent = new CustomEvent('prepare-export-data', {
+        detail: {
+          reviews: filteredData,
+          businessName: selectedBusiness
+        }
+      });
+      window.dispatchEvent(exportEvent);
     } else {
       setBusinessData((prev) => ({
         ...prev,
         allBusinesses: { ...prev.allBusinesses, count: reviewData.length },
       }));
+      
+      // Prepare data for PDF export (all reviews)
+      const exportEvent = new CustomEvent('prepare-export-data', {
+        detail: {
+          reviews: reviewData,
+          businessName: "All Businesses"
+        }
+      });
+      window.dispatchEvent(exportEvent);
     }
   }, [selectedBusiness, reviewData]);
 

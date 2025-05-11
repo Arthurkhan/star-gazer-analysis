@@ -14,11 +14,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function SetupApiKeyDialog() {
   const [apiKey, setApiKey] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini");
   const { toast } = useToast();
 
   const handleSaveApiKey = async () => {
@@ -48,8 +56,9 @@ export function SetupApiKeyDialog() {
         throw new Error(`Invalid API key: ${response.status} ${errorText}`);
       }
 
-      // Store the API key in local storage
+      // Store the API key and selected model in local storage
       localStorage.setItem("OPENAI_API_KEY", apiKey);
+      localStorage.setItem("OPENAI_MODEL", selectedModel);
 
       toast({
         title: "API Key Saved",
@@ -112,6 +121,22 @@ export function SetupApiKeyDialog() {
               >
                 OpenAI dashboard
               </a>
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-2 mt-2">
+            <Label htmlFor="model-select">OpenAI Model</Label>
+            <Select value={selectedModel} onValueChange={setSelectedModel}>
+              <SelectTrigger id="model-select">
+                <SelectValue placeholder="Select model" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gpt-4o-mini">GPT-4o Mini (Fast & Cost-effective)</SelectItem>
+                <SelectItem value="gpt-4o">GPT-4o (Powerful & Comprehensive)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Select the OpenAI model to use for review analysis.
             </p>
           </div>
         </div>

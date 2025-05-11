@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Review } from "@/types/reviews";
@@ -41,6 +40,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, Loader2Icon, UserIcon } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { CustomPromptDialog } from "./CustomPromptDialog";
 
 interface ReviewAnalysisProps {
   reviews: Review[];
@@ -274,10 +274,15 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
   return (
     <Card className="shadow-md dark:bg-gray-800 border-0">
       <CardHeader>
-        <CardTitle>Review Analysis</CardTitle>
-        <CardDescription>
-          Breakdown of review sentiment, languages, and key terms
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Review Analysis</CardTitle>
+            <CardDescription>
+              Breakdown of review sentiment, languages, and key terms
+            </CardDescription>
+          </div>
+          <CustomPromptDialog />
+        </div>
       </CardHeader>
       <CardContent>
         {loading && (

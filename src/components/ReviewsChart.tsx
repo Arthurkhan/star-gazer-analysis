@@ -13,7 +13,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
   const [chartType, setChartType] = useState<"line" | "bar">("line");
   
   return (
-    <Card className="col-span-2 shadow-md border-0 dark:bg-gray-800 overflow-hidden transition-all duration-300 hover:shadow-lg">
+    <Card className="col-span-full shadow-md border-0 dark:bg-gray-800 overflow-hidden transition-all duration-300 hover:shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-750">
         <CardTitle className="text-md font-medium">Reviews Timeline</CardTitle>
         <ToggleGroup 

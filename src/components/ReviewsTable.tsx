@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -378,23 +379,58 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            {/* Original language review text */}
             <div className="space-y-2">
-              <h3 className="font-medium">Review Text:</h3>
-              <p className="text-sm whitespace-pre-line">
-                {selectedReview?.translatedText || selectedReview?.text}
+              <h3 className="font-medium">Original Review:</h3>
+              <p className="text-sm whitespace-pre-line bg-gray-50 dark:bg-gray-900 p-3 rounded-md border">
+                {selectedReview?.text}
               </p>
             </div>
             
-            {selectedReview?.responseFromOwnerText && (
-              <div className="space-y-2 border-t pt-4">
-                <h3 className="font-medium">Owner Response:</h3>
-                <p className="text-sm whitespace-pre-line">
-                  {selectedReview.responseFromOwnerText}
+            {/* Translated text when available */}
+            {selectedReview?.translatedText && (
+              <div className="space-y-2">
+                <h3 className="font-medium">Translated Review:</h3>
+                <p className="text-sm whitespace-pre-line bg-blue-50 dark:bg-blue-950/30 p-3 rounded-md border border-blue-100 dark:border-blue-900">
+                  {selectedReview.translatedText}
                 </p>
               </div>
             )}
             
-            <div className="pt-4 flex justify-end">
+            {/* Owner's response when available */}
+            {selectedReview?.responseFromOwnerText && (
+              <div className="space-y-2 border-t pt-4">
+                <h3 className="font-medium flex items-center">
+                  <span className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded-full mr-2">Owner Response</span>
+                </h3>
+                <p className="text-sm whitespace-pre-line bg-green-50 dark:bg-green-950/30 p-3 rounded-md border border-green-100 dark:border-green-900">
+                  {selectedReview?.responseFromOwnerText}
+                </p>
+              </div>
+            )}
+            
+            {/* Additional review metadata */}
+            <div className="pt-2 mt-4 border-t">
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                <div>
+                  <span className="font-medium">Review Date:</span> {selectedReview && new Date(selectedReview.publishedAtDate).toLocaleDateString()}
+                </div>
+                <div>
+                  <span className="font-medium">Original Language:</span> {selectedReview?.originalLanguage || "Unknown"}
+                </div>
+              </div>
+            </div>
+            
+            <div className="pt-4 flex justify-between">
+              {selectedReview?.reviewUrl && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open(selectedReview.reviewUrl, "_blank")}
+                >
+                  View Original Source
+                </Button>
+              )}
               <DialogClose asChild>
                 <Button>Close</Button>
               </DialogClose>

@@ -1,15 +1,17 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO } from "date-fns";
-import { CalendarRange } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO, startOfWeek, endOfWeek, addWeeks, eachWeekOfInterval } from "date-fns";
+import { CalendarRange, List, BarChart2 } from "lucide-react";
 import { groupReviewsByMonth, countReviewsByRating, calculateAverageRating } from "@/utils/dataUtils";
 import { Review } from "@/types/reviews";
 import { cn } from "@/lib/utils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface MonthlyReportProps {
   reviews: Review[];
@@ -24,6 +26,9 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     ratingDistribution: { name: string; value: number }[];
   }[]>([]);
   
+  // View mode (daily or weekly)
+  const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
+  
   // Date range state
   const [dateRange, setDateRange] = useState<{
     from: Date;
@@ -33,12 +38,18 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     to: endOfMonth(new Date())
   });
   
-  // Daily reviews data
-  const [dailyReviewsData, setDailyReviewsData] = useState<{
+  // Time period reviews data
+  const [timeReviewsData, setTimeReviewsData] = useState<{
     date: string;
     count: number;
   }[]>([]);
 
+  // Selected month reviews
+  const [selectedReviews, setSelectedReviews] = useState<Review[]>([]);
+
+  // Colors for the charts
+  const COLORS = ['#FF5252', '#FF9800', '#FFC107', '#8BC34A', '#4CAF50'];
+  
   // Prepare monthly data
   useEffect(() => {
     if (!reviews.length) return;
@@ -88,7 +99,7 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     }
   }, [reviews, selectedMonth]);
 
-  // Prepare daily data based on date range
+  // Prepare time period data based on date range and view mode
   useEffect(() => {
     if (!reviews.length) return;
 
@@ -98,39 +109,73 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
       return isWithinInterval(reviewDate, { start: dateRange.from, end: dateRange.to });
     });
 
-    // Generate all days in the range
-    const allDays = eachDayOfInterval({
-      start: dateRange.from,
-      end: dateRange.to
-    });
+    // Set the selected reviews for display at the bottom
+    setSelectedReviews(filteredReviews);
 
-    // Initialize counts for each day
-    const dailyCounts = allDays.map(day => ({
-      date: format(day, 'MMM dd'),
-      count: 0
-    }));
+    if (viewMode === "daily") {
+      // Generate all days in the range
+      const allDays = eachDayOfInterval({
+        start: dateRange.from,
+        end: dateRange.to
+      });
 
-    // Count reviews for each day
-    filteredReviews.forEach(review => {
-      const reviewDate = parseISO(review.publishedAtDate);
-      const dayIndex = allDays.findIndex(day => 
-        day.getDate() === reviewDate.getDate() && 
-        day.getMonth() === reviewDate.getMonth() &&
-        day.getFullYear() === reviewDate.getFullYear()
-      );
-      if (dayIndex !== -1) {
-        dailyCounts[dayIndex].count += 1;
-      }
-    });
+      // Initialize counts for each day
+      const dailyCounts = allDays.map(day => ({
+        date: format(day, 'MMM dd'),
+        count: 0
+      }));
 
-    setDailyReviewsData(dailyCounts);
-  }, [reviews, dateRange]);
+      // Count reviews for each day
+      filteredReviews.forEach(review => {
+        const reviewDate = parseISO(review.publishedAtDate);
+        const dayIndex = allDays.findIndex(day => 
+          day.getDate() === reviewDate.getDate() && 
+          day.getMonth() === reviewDate.getMonth() &&
+          day.getFullYear() === reviewDate.getFullYear()
+        );
+        if (dayIndex !== -1) {
+          dailyCounts[dayIndex].count += 1;
+        }
+      });
+
+      setTimeReviewsData(dailyCounts);
+    } else {
+      // Weekly view
+      // Generate all weeks in the range
+      const allWeeks = eachWeekOfInterval({
+        start: dateRange.from,
+        end: dateRange.to
+      });
+
+      // Initialize counts for each week
+      const weeklyCounts = allWeeks.map(weekStart => {
+        const weekEnd = endOfWeek(weekStart);
+        return {
+          date: `${format(weekStart, 'MMM dd')} - ${format(weekEnd, 'MMM dd')}`,
+          count: 0
+        };
+      });
+
+      // Count reviews for each week
+      filteredReviews.forEach(review => {
+        const reviewDate = parseISO(review.publishedAtDate);
+        const weekIndex = allWeeks.findIndex(weekStart => 
+          isWithinInterval(reviewDate, { 
+            start: weekStart, 
+            end: endOfWeek(weekStart)
+          })
+        );
+        if (weekIndex !== -1) {
+          weeklyCounts[weekIndex].count += 1;
+        }
+      });
+
+      setTimeReviewsData(weeklyCounts);
+    }
+  }, [reviews, dateRange, viewMode]);
 
   // Selected month data
   const selectedMonthData = monthlyData.find(month => month.name === selectedMonth);
-
-  // Colors for the pie chart
-  const COLORS = ['#FF5252', '#FF9800', '#FFC107', '#8BC34A', '#4CAF50'];
 
   return (
     <div className="space-y-6">
@@ -138,41 +183,54 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
-              <CardTitle>Daily Review Summary</CardTitle>
+              <CardTitle>Review Summary</CardTitle>
               <CardDescription>
-                Review count by day for selected date range
+                Review count by {viewMode === "daily" ? "day" : "week"} for selected date range
               </CardDescription>
             </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="mt-2 md:mt-0">
-                  <CalendarRange className="mr-2 h-4 w-4" />
-                  <span>
-                    {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={(range) => {
-                    if (range && range.from && range.to) {
-                      setDateRange(range as { from: Date; to: Date });
-                    }
-                  }}
-                  numberOfMonths={2}
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex flex-col md:flex-row gap-2 mt-2 md:mt-0">
+              <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as "daily" | "weekly")}>
+                <ToggleGroupItem value="daily" aria-label="Daily view">
+                  <List className="h-4 w-4 mr-1" />
+                  Daily
+                </ToggleGroupItem>
+                <ToggleGroupItem value="weekly" aria-label="Weekly view">
+                  <BarChart2 className="h-4 w-4 mr-1" />
+                  Weekly
+                </ToggleGroupItem>
+              </ToggleGroup>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="md:ml-2">
+                    <CalendarRange className="mr-2 h-4 w-4" />
+                    <span>
+                      {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={(range) => {
+                      if (range && range.from && range.to) {
+                        setDateRange(range as { from: Date; to: Date });
+                      }
+                    }}
+                    numberOfMonths={2}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={dailyReviewsData}
+                data={timeReviewsData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
@@ -270,30 +328,73 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
             <CardContent>
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={selectedMonthData.ratingDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
+                  <BarChart
+                    data={selectedMonthData.ratingDistribution}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" name="Count">
                       {selectedMonthData.ratingDistribution.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
-                    </Pie>
-                    <Legend />
-                    <Tooltip />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
         </div>
       )}
+
+      {/* Reviews list section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Reviews</CardTitle>
+          <CardDescription>
+            {selectedReviews.length} reviews for the selected date range ({format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")})
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {selectedReviews.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No reviews found for the selected date range</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Reviewer</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead>Review</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {selectedReviews.map((review, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="whitespace-nowrap">
+                        {format(parseISO(review.publishedAtDate), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{review.name}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center">
+                          {review.star} <span className="text-yellow-500 ml-1">★</span>
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-md">
+                        <div className="line-clamp-3">{review.text}</div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

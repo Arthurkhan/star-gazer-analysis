@@ -9,10 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
-import { Sun, Moon, LogOut, FileDown } from "lucide-react";
+import { Sun, Moon, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { exportToPDF } from "@/utils/pdfExport";
-import { Review } from "@/types/reviews";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -25,10 +23,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     localStorage.getItem("theme") as "light" | "dark" || "light"
   );
 
-  // Store global review data for export functionality
-  const [exportReviews, setExportReviews] = useState<Review[]>([]);
-  const [exportBusinessName, setExportBusinessName] = useState<string>("All Businesses");
-
   useEffect(() => {
     // Apply theme to document
     if (theme === "dark") {
@@ -38,22 +32,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     }
     localStorage.setItem("theme", theme);
   }, [theme]);
-
-  // Setup a global event listener to capture review data for export
-  useEffect(() => {
-    const handleExportData = (event: CustomEvent) => {
-      setExportReviews(event.detail.reviews || []);
-      setExportBusinessName(event.detail.businessName || "All Businesses");
-    };
-
-    // Add event listener
-    window.addEventListener('prepare-export-data', handleExportData as EventListener);
-
-    // Clean up
-    return () => {
-      window.removeEventListener('prepare-export-data', handleExportData as EventListener);
-    };
-  }, []);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
@@ -77,38 +55,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     }
   };
 
-  const handleExportPDF = () => {
-    if (exportReviews.length === 0) {
-      toast({
-        title: "No data to export",
-        description: "Please wait for the data to load or make sure there is data available",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Export initiated",
-      description: "Your PDF report is being generated...",
-    });
-    
-    try {
-      exportToPDF(exportReviews, exportBusinessName);
-      
-      toast({
-        title: "Export complete",
-        description: "Your PDF report has been downloaded",
-      });
-    } catch (error) {
-      console.error("PDF generation error:", error);
-      toast({
-        title: "Export failed",
-        description: "There was a problem generating your PDF",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <header className="bg-white dark:bg-gray-800 shadow">
@@ -119,15 +65,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </h1>
           </div>
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleExportPDF}
-              className="hidden sm:flex items-center gap-2"
-            >
-              <FileDown size={16} />
-              Export PDF
-            </Button>
             <Button
               variant="ghost"
               size="icon"

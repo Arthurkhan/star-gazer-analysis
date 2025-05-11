@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO, 
-         startOfWeek, endOfWeek, addWeeks, eachWeekOfInterval, differenceInDays } from "date-fns";
+         startOfWeek, endOfWeek, addWeeks, eachWeekOfInterval, differenceInDays,
+         subMonths, startOfDay, endOfDay, startOfYear, endOfYear } from "date-fns";
 import { CalendarRange, List, BarChart2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { countReviewsByRating, calculateAverageRating } from "@/utils/dataUtils";
 import { Review } from "@/types/reviews";
@@ -25,7 +26,7 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   // Date range state
   const [dateRange, setDateRange] = useState<{
     from: Date;
-    to: Date;
+    to: Date | undefined;
   }>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
@@ -60,12 +61,53 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     }
   });
 
+  // Date range preset options
+  const dateRangePresets = [
+    { 
+      name: "This Month", 
+      range: () => ({ 
+        from: startOfMonth(new Date()), 
+        to: endOfMonth(new Date()) 
+      })
+    },
+    { 
+      name: "Last Month", 
+      range: () => {
+        const lastMonth = subMonths(new Date(), 1);
+        return { 
+          from: startOfMonth(lastMonth), 
+          to: endOfMonth(lastMonth) 
+        };
+      }
+    },
+    { 
+      name: "Last 30 Days", 
+      range: () => ({ 
+        from: startOfDay(subMonths(new Date(), 1)), 
+        to: endOfDay(new Date()) 
+      })
+    },
+    { 
+      name: "This Year", 
+      range: () => ({ 
+        from: startOfYear(new Date()), 
+        to: endOfYear(new Date()) 
+      })
+    }
+  ];
+
+  // Apply preset date range
+  const applyDateRangePreset = (presetIndex: number) => {
+    const newRange = dateRangePresets[presetIndex].range();
+    setDateRange(newRange);
+  };
+
   // Colors for the charts
   const COLORS = ['#FF5252', '#FF9800', '#FFC107', '#8BC34A', '#4CAF50'];
   
   // Process filtered data based on date range
   useEffect(() => {
-    if (!reviews.length) return;
+    if (!reviews.length || !dateRange.to) return;
 
     // Filter reviews within the selected date range
     const filteredReviews = reviews.filter(review => {
@@ -219,7 +261,7 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Reviews Analysis</h2>
           <p className="text-muted-foreground">
-            Analysis for period: {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
+            Analysis for period: {format(dateRange.from, "MMM d, yyyy")} - {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "Select end date"}
           </p>
         </div>
         <div className="flex flex-col md:flex-row gap-2">
@@ -228,17 +270,37 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
               <Button variant="outline">
                 <CalendarRange className="mr-2 h-4 w-4" />
                 <span>
-                  {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
+                  {format(dateRange.from, "MMM d, yyyy")} - {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "Select end date"}
                 </span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
+              <div className="p-2 border-b">
+                <div className="flex justify-center flex-wrap gap-1 mb-2">
+                  {dateRangePresets.map((preset, index) => (
+                    <Button 
+                      key={preset.name} 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={() => applyDateRangePreset(index)}
+                    >
+                      {preset.name}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-center text-muted-foreground mb-1">Or select custom range</p>
+              </div>
               <Calendar
                 mode="range"
-                selected={dateRange}
+                defaultMonth={dateRange.from}
+                selected={{
+                  from: dateRange.from,
+                  to: dateRange.to
+                }}
                 onSelect={(range) => {
-                  if (range && range.from && range.to) {
-                    setDateRange(range as { from: Date; to: Date });
+                  if (range) {
+                    setDateRange({ from: range.from || new Date(), to: range.to });
                   }
                 }}
                 numberOfMonths={2}
@@ -407,7 +469,7 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
         <CardHeader>
           <CardTitle>Reviews</CardTitle>
           <CardDescription>
-            {selectedReviews.length} reviews for the selected date range ({format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")})
+            {selectedReviews.length} reviews for the selected date range ({format(dateRange.from, "MMM d, yyyy")} - {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "Select end date"})
           </CardDescription>
         </CardHeader>
         <CardContent>

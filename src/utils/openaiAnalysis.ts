@@ -139,11 +139,12 @@ export const analyzeReviewsWithOpenAI = async (
 
 // Helper function to get API key
 function getOpenAIApiKey(): string {
-  // First try to get from environment variable, then from localStorage
-  const key = process.env.OPENAI_API_KEY || localStorage.getItem("OPENAI_API_KEY") || "";
+  // In browser environments, process.env is not available
+  // First try to get from localStorage
+  const key = localStorage.getItem("OPENAI_API_KEY") || "";
   
   if (!key) {
-    console.warn("OpenAI API key not found in environment variables or localStorage");
+    console.warn("OpenAI API key not found in localStorage");
     // Could add alternative ways to get the key here if needed
   } else {
     console.log("OpenAI API key found (masked):", key.substring(0, 3) + "..." + key.substring(key.length - 3));

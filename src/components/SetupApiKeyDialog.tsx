@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export function SetupApiKeyDialog() {
   const [apiKey, setApiKey] = useState("");
@@ -44,10 +43,12 @@ export function SetupApiKeyDialog() {
       });
 
       if (!response.ok) {
-        throw new Error("Invalid API key");
+        const errorText = await response.text();
+        console.error("API key validation error:", errorText);
+        throw new Error(`Invalid API key: ${response.status} ${errorText}`);
       }
 
-      // Store the API key in local storage temporarily
+      // Store the API key in local storage
       localStorage.setItem("OPENAI_API_KEY", apiKey);
 
       toast({
@@ -88,7 +89,7 @@ export function SetupApiKeyDialog() {
         <DialogHeader>
           <DialogTitle>Setup OpenAI API Key</DialogTitle>
           <DialogDescription>
-            Enter your OpenAI API key to enable AI features. Your key will be stored securely.
+            Enter your OpenAI API key to enable AI features. Your key will be stored securely in your browser.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

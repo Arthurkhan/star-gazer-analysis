@@ -12,8 +12,8 @@ export function ApiKeyStatus() {
     // Check if the OpenAI API key is set
     const checkApiKey = async () => {
       try {
-        // Check for API key in environment variables or localStorage
-        const openAiKey = process.env.OPENAI_API_KEY || localStorage.getItem("OPENAI_API_KEY");
+        // Check for API key in localStorage only (since process.env is not available in browser)
+        const openAiKey = localStorage.getItem("OPENAI_API_KEY");
         
         if (!openAiKey) {
           setApiKeyStatus("missing");

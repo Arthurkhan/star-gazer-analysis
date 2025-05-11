@@ -74,15 +74,21 @@ const Dashboard = () => {
       ];
       
       let allReviews: Review[] = [];
+      console.log("Fetching data from tables:", tables);
       
       for (const table of tables) {
+        console.log(`Fetching data from table: ${table}`);
         const { data, error } = await supabase
           .from(table)
           .select('*');
           
-        if (error) throw error;
+        if (error) {
+          console.error(`Error fetching from ${table}:`, error);
+          throw error;
+        }
         
         if (data) {
+          console.log(`Retrieved ${data.length} rows from ${table}`);
           // Map the data to our Review type
           const reviews = data.map((item: any) => ({
             name: item.name,
@@ -100,6 +106,7 @@ const Dashboard = () => {
         }
       }
       
+      console.log(`Total reviews fetched: ${allReviews.length}`);
       setReviewData(allReviews);
       
       // Count reviews for each business
@@ -111,6 +118,8 @@ const Dashboard = () => {
         acc[business]++;
         return acc;
       }, {} as Record<string, number>);
+      
+      console.log("Business counts:", businessCounts);
       
       setBusinessData({
         allBusinesses: { name: "All Businesses", count: allReviews.length },

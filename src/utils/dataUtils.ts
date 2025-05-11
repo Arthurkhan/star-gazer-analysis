@@ -192,98 +192,17 @@ export const extractStaffMentions = async (reviews: Review[]): Promise<StaffMent
       return analysis.staffMentions;
     }
   } catch (error) {
-    console.error("Error getting OpenAI staff mentions, falling back to basic analysis:", error);
+    console.error("Error getting OpenAI staff mentions, falling back to empty staff list:", error);
   }
   
-  // Fallback to mock data if OpenAI analysis fails
-  const staffNames = [
-    "John", "Maria", "David", "Sophie", "Michael", 
-    "Emma", "Robert", "Alice", "Thomas", "Olivia"
-  ];
-  
-  const sentiments = ["positive", "negative", "neutral"] as const;
-  
-  // Generate mock staff mentions based on the number of reviews
-  const numStaffToShow = Math.min(5, Math.ceil(reviews.length / 100));
-  
-  const staffMentions: StaffMention[] = [];
-  
-  for (let i = 0; i < numStaffToShow; i++) {
-    const name = staffNames[i % staffNames.length];
-    const count = Math.floor(Math.random() * 15) + 1;
-    const sentiment = sentiments[Math.floor(Math.random() * 3)];
-    
-    // Add example contexts
-    const examples = [
-      "Great service",
-      "Very helpful",
-      "Excellent staff",
-      "Knowledgeable",
-      "Friendly",
-      "Professional"
-    ];
-    
-    // Pick 1-3 random examples
-    const numExamples = Math.floor(Math.random() * 3) + 1;
-    const selectedExamples = examples
-      .sort(() => 0.5 - Math.random())
-      .slice(0, numExamples);
-    
-    staffMentions.push({
-      name,
-      count,
-      sentiment,
-      examples: selectedExamples
-    });
-  }
-  
-  return staffMentions.sort((a, b) => b.count - a.count);
+  // If OpenAI analysis fails or no staff are found, return empty array instead of mock data
+  return [];
 };
 
-// For backward compatibility with synchronous code
+// For backward compatibility with synchronous code - now returns empty array instead of fake data
 export const extractStaffMentions_sync = (reviews: Review[]): StaffMention[] => {
-  const staffNames = [
-    "John", "Maria", "David", "Sophie", "Michael", 
-    "Emma", "Robert", "Alice", "Thomas", "Olivia"
-  ];
-  
-  const sentiments = ["positive", "negative", "neutral"] as const;
-  
-  // Generate mock staff mentions based on the number of reviews
-  const numStaffToShow = Math.min(5, Math.ceil(reviews.length / 100));
-  
-  const staffMentions: StaffMention[] = [];
-  
-  for (let i = 0; i < numStaffToShow; i++) {
-    const name = staffNames[i % staffNames.length];
-    const count = Math.floor(Math.random() * 15) + 1;
-    const sentiment = sentiments[Math.floor(Math.random() * 3)];
-    
-    // Add example contexts
-    const examples = [
-      "Great service",
-      "Very helpful",
-      "Excellent staff",
-      "Knowledgeable",
-      "Friendly",
-      "Professional"
-    ];
-    
-    // Pick 1-3 random examples
-    const numExamples = Math.floor(Math.random() * 3) + 1;
-    const selectedExamples = examples
-      .sort(() => 0.5 - Math.random())
-      .slice(0, numExamples);
-    
-    staffMentions.push({
-      name,
-      count,
-      sentiment,
-      examples: selectedExamples
-    });
-  }
-  
-  return staffMentions.sort((a, b) => b.count - a.count);
+  // Return empty array instead of fake data
+  return [];
 };
 
 // Extract common terms from reviews using OpenAI

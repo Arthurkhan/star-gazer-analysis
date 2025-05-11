@@ -28,17 +28,27 @@ export const analyzeReviewsWithOpenAI = async (
       
       Please provide:
       1. A sentiment breakdown with exact counts for positive, neutral, and negative reviews
-      2. A list of staff members mentioned in the reviews with the count of mentions, overall sentiment toward each staff member, and 1-3 example contexts where they were mentioned
+      2. A detailed list of staff members mentioned in the reviews with:
+         - The exact name of each staff member as mentioned in reviews
+         - The count of distinct mentions
+         - Overall sentiment toward each staff member (positive/neutral/negative)
+         - 2-3 exact quotes from reviews that mention each staff member
       3. Common terms/themes mentioned in reviews with their frequency
       4. A brief overall analysis of the review trends
       
       Format the response as a JSON with the following structure:
       {
         "sentimentAnalysis": [{"name": "Positive", "value": number}, {"name": "Neutral", "value": number}, {"name": "Negative", "value": number}],
-        "staffMentions": [{"name": "staff name", "count": number, "sentiment": "positive"|"neutral"|"negative", "examples": ["example context 1", "example context 2"]}, ...],
+        "staffMentions": [{"name": "staff name", "count": number, "sentiment": "positive"|"neutral"|"negative", "examples": ["example quote 1", "example quote 2"]}, ...],
         "commonTerms": [{"text": "term", "count": number}, ...],
         "overallAnalysis": "text analysis"
       }
+      
+      IMPORTANT GUIDELINES FOR STAFF EXTRACTION:
+      - Only include actual staff members (people working at the business), not generic mentions like "staff" or "server"
+      - For each staff member, include exact quotes from reviews where they are mentioned
+      - If someone seems to be a customer rather than staff, do not include them
+      - If no staff are mentioned by name in any review, return an empty array for staffMentions
     `;
 
     // Call OpenAI API
@@ -53,7 +63,7 @@ export const analyzeReviewsWithOpenAI = async (
         messages: [
           {
             role: "system",
-            content: "You are an AI assistant that analyzes customer reviews and extracts insights. Respond only with the requested JSON format."
+            content: "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name and analyzing sentiment about them. Respond only with the requested JSON format."
           },
           {
             role: "user",

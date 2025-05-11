@@ -14,6 +14,7 @@ import { Review } from "@/types/reviews";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import ReviewsTable from "@/components/ReviewsTable";
 
 interface MonthlyReportProps {
   reviews: Review[];
@@ -464,55 +465,8 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
         </CardContent>
       </Card>
 
-      {/* Reviews list section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Reviews</CardTitle>
-          <CardDescription>
-            {selectedReviews.length} reviews for the selected date range ({format(dateRange.from, "MMM d, yyyy")} - {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "Select end date"})
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {selectedReviews.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No reviews found for the selected date range</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Day</TableHead>
-                    <TableHead>Reviewer</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead>Review</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedReviews.map((review, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="whitespace-nowrap">
-                        {format(parseISO(review.publishedAtDate), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {format(parseISO(review.publishedAtDate), "EEEE")}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">{review.name}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center">
-                          {review.star} <span className="text-yellow-500 ml-1">★</span>
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-md">
-                        <div className="line-clamp-3">{review.text}</div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Reviews section - Now using the ReviewsTable component instead of the simple table */}
+      <ReviewsTable reviews={selectedReviews} />
     </div>
   );
 };

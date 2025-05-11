@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Review } from '@/types/reviews';
@@ -80,6 +81,12 @@ const generateInsights = (reviews: Review[]): string => {
   `;
 };
 
+// Define a type for the return value of autoTable
+interface AutoTableResult {
+  finalY?: number;
+  // Add other properties as needed
+}
+
 // Main export function
 export const exportToPDF = (reviews: Review[], businessName: string = "All Businesses"): void => {
   // Create a new PDF document
@@ -124,10 +131,10 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
     ],
     theme: 'grid',
     headStyles: { fillColor: [66, 135, 245] }
-  });
+  }) as AutoTableResult;
   
   // Update the current Y position
-  currentY = (result.finalY || currentY) + 15;
+  currentY = (result?.finalY || currentY) + 15;
   
   // Add insights section
   doc.setFontSize(16);
@@ -161,10 +168,10 @@ export const exportToPDF = (reviews: Review[], businessName: string = "All Busin
     body: ratingData,
     theme: 'grid',
     headStyles: { fillColor: [66, 135, 245] }
-  });
+  }) as AutoTableResult;
   
   // Update the current Y position
-  currentY = (ratingResult.finalY || currentY) + 15;
+  currentY = (ratingResult?.finalY || currentY) + 15;
   
   // Add monthly trend data
   doc.setFontSize(16);

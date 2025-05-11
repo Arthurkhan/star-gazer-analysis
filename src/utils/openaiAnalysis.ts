@@ -49,6 +49,8 @@ export const analyzeReviewsWithOpenAI = async (
       - For each staff member, include exact quotes from reviews where they are mentioned
       - If someone seems to be a customer rather than staff, do not include them
       - If no staff are mentioned by name in any review, return an empty array for staffMentions
+      - Look very carefully for names of individual staff members in the review text
+      - Pay special attention to sentences that mention service, employees, or contain phrases like "our waiter", "our server", etc.
     `;
 
     // Call OpenAI API
@@ -80,6 +82,8 @@ export const analyzeReviewsWithOpenAI = async (
 
     const data = await response.json();
     const analysis = JSON.parse(data.choices[0].message.content);
+
+    console.log("OpenAI Analysis Results:", analysis);
 
     // Return the analysis in the expected format
     return {

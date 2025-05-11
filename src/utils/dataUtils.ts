@@ -1,3 +1,4 @@
+
 import { 
   Review, 
   SentimentData, 
@@ -186,11 +187,16 @@ export const countReviewsByLanguage = (reviews: Review[]): LanguageData[] => {
 // Extract staff mentions from reviews using OpenAI
 export const extractStaffMentions = async (reviews: Review[]): Promise<StaffMention[]> => {
   try {
+    console.log("Attempting to extract staff mentions from", reviews.length, "reviews");
     // Try to get OpenAI analysis first
     const analysis = await getAnalysis(reviews);
+    console.log("Staff mentions from OpenAI:", analysis.staffMentions);
+    
     if (analysis && analysis.staffMentions && analysis.staffMentions.length > 0) {
       return analysis.staffMentions;
     }
+    
+    console.log("No staff mentions found in OpenAI analysis");
   } catch (error) {
     console.error("Error getting OpenAI staff mentions, falling back to empty staff list:", error);
   }

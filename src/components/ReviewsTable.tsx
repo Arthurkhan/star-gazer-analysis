@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -243,37 +242,35 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead 
-                    className="cursor-pointer"
-                    onClick={() => toggleSort("rating")}
-                  >
-                    Rating {sortBy === "rating" && (sortOrder === "desc" ? "↓" : "↑")}
+                  <TableHead width="30%">
+                    Reviewer
                   </TableHead>
-                  <TableHead>Reviewer</TableHead>
-                  <TableHead>Review</TableHead>
+                  <TableHead width="45%">Review</TableHead>
                   <TableHead 
                     className="cursor-pointer"
                     onClick={() => toggleSort("date")}
+                    width="15%"
                   >
                     Date {sortBy === "date" && (sortOrder === "desc" ? "↓" : "↑")}
                   </TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right" width="10%">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {currentReviews.length > 0 ? (
                   currentReviews.map((review, index) => (
                     <TableRow key={index}>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="text-star">
-                          {"★".repeat(review.star)}
-                          {"☆".repeat(5 - review.star)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {review.name}
-                        <div className="text-xs text-gray-500">
-                          {review.title}
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="text-xs text-gray-500 font-medium">
+                            {review.title}
+                          </div>
+                          <div className="font-medium">
+                            {review.name}
+                          </div>
+                          <div className="flex items-center">
+                            <span className="text-yellow-500 font-medium">{review.star} ★</span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -322,7 +319,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24 text-gray-500">
+                    <TableCell colSpan={4} className="text-center h-24 text-gray-500">
                       No reviews found matching your filters
                     </TableCell>
                   </TableRow>
@@ -367,14 +364,14 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span className="text-star">
-                {selectedReview && "★".repeat(selectedReview.star)}
-                {selectedReview && "☆".repeat(5 - (selectedReview?.star || 0))}
+              <span className="text-yellow-500 font-medium">
+                {selectedReview?.star} ★
               </span>
               {selectedReview?.name}'s Review
             </DialogTitle>
-            <DialogDescription>
-              {selectedReview?.title} - {selectedReview && formatDate(selectedReview.publishedAtDate)}
+            <DialogDescription className="flex flex-col">
+              <span className="font-medium">{selectedReview?.title}</span>
+              <span>{selectedReview && formatDate(selectedReview.publishedAtDate)}</span>
             </DialogDescription>
           </DialogHeader>
           

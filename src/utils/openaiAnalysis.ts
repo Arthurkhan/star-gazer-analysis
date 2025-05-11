@@ -1,5 +1,6 @@
 
 import { Review } from "@/types/reviews";
+import { useToast } from "@/hooks/use-toast";
 
 // Function to analyze reviews using OpenAI
 export const analyzeReviewsWithOpenAI = async (
@@ -11,6 +12,13 @@ export const analyzeReviewsWithOpenAI = async (
   overallAnalysis: string;
 }> => {
   try {
+    // Check if we have a valid API key
+    const apiKey = getOpenAIApiKey();
+    if (!apiKey) {
+      console.error("No OpenAI API key found. Please set the OPENAI_API_KEY environment variable.");
+      throw new Error("OpenAI API key not found");
+    }
+
     // Prepare review data for API
     const reviewTexts = reviews.map(review => ({
       text: review.text,
@@ -20,6 +28,8 @@ export const analyzeReviewsWithOpenAI = async (
 
     // Limit the number of reviews to analyze if there are too many (to avoid token limits)
     const limitedReviews = reviewTexts.slice(0, 100);
+
+    console.log(`Sending ${limitedReviews.length} reviews to OpenAI for analysis...`);
 
     // Create the prompt for OpenAI
     const prompt = `
@@ -51,14 +61,16 @@ export const analyzeReviewsWithOpenAI = async (
       - If no staff are mentioned by name in any review, return an empty array for staffMentions
       - Look very carefully for names of individual staff members in the review text
       - Pay special attention to sentences that mention service, employees, or contain phrases like "our waiter", "our server", etc.
+      - Look specifically for mentions of staff like "Laura", "Arnaud", "Nazare-Aga", and any other names of people who work at the establishment
     `;
 
     // Call OpenAI API
+    console.log("Calling OpenAI API with authorization...");
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${getOpenAIApiKey()}`,
+        "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
@@ -76,14 +88,31 @@ export const analyzeReviewsWithOpenAI = async (
       }),
     });
 
+    console.log("OpenAI API Response Status:", response.status);
+
     if (!response.ok) {
-      throw new Error(`API call failed with status: ${response.status}`);
+      const errorData = await response.text();
+      console.error(`API call failed with status: ${response.status}`, errorData);
+      throw new Error(`API call failed with status: ${response.status}. Details: ${errorData}`);
     }
 
     const data = await response.json();
-    const analysis = JSON.parse(data.choices[0].message.content);
+    console.log("OpenAI Raw Response:", data);
 
-    console.log("OpenAI Analysis Results:", analysis);
+    if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+      console.error("Unexpected response format from OpenAI:", data);
+      throw new Error("Invalid response format from OpenAI");
+    }
+
+    let analysis;
+    try {
+      analysis = JSON.parse(data.choices[0].message.content);
+      console.log("Parsed OpenAI Analysis Results:", analysis);
+    } catch (parseError) {
+      console.error("Failed to parse OpenAI response as JSON:", parseError);
+      console.log("Raw content that couldn't be parsed:", data.choices[0].message.content);
+      throw new Error("Failed to parse OpenAI response");
+    }
 
     // Return the analysis in the expected format
     return {
@@ -104,17 +133,23 @@ export const analyzeReviewsWithOpenAI = async (
       ],
       staffMentions: [],
       commonTerms: [],
-      overallAnalysis: "Unable to generate detailed analysis. Using basic rating-based analysis instead.",
+      overallAnalysis: "Unable to generate detailed analysis. Using basic rating-based analysis instead. Error: " + error.message,
     };
   }
 };
 
 // Helper function to get API key
 function getOpenAIApiKey(): string {
+  // First try to get from environment variable
   const key = process.env.OPENAI_API_KEY || "";
+  
   if (!key) {
-    console.warn("OpenAI API key not found");
+    console.warn("OpenAI API key not found in environment variables");
+    // Could add alternative ways to get the key here if needed
+  } else {
+    console.log("OpenAI API key found (masked):", key.substring(0, 3) + "..." + key.substring(key.length - 3));
   }
+  
   return key;
 }
 
@@ -127,9 +162,11 @@ export const getAnalysis = async (reviews: Review[]): Promise<any> => {
   const cacheKey = `${reviews.length}_${reviews.slice(0, 5).map(r => r.publishedAtDate).join('_')}`;
   
   if (analysisCache.has(cacheKey)) {
+    console.log("Using cached analysis result");
     return analysisCache.get(cacheKey);
   }
   
+  console.log("No cached result found, performing fresh analysis");
   const analysis = await analyzeReviewsWithOpenAI(reviews);
   analysisCache.set(cacheKey, analysis);
   return analysis;

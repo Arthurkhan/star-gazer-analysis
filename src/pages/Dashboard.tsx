@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
@@ -10,6 +10,7 @@ import ReviewAnalysis from "@/components/ReviewAnalysis";
 import ReviewsTable from "@/components/ReviewsTable";
 import KeyInsights from "@/components/KeyInsights";
 import MonthlyReport from "@/components/MonthlyReport";
+import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 import { Review, BusinessData } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -261,6 +262,9 @@ const Dashboard = () => {
           businessData={businessData}
         />
       </div>
+      
+      {/* Add API Key Status Alert */}
+      <ApiKeyStatus />
       
       {loading ? (
         <div className="flex items-center justify-center h-[calc(100vh-200px)]">

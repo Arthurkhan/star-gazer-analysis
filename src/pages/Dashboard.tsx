@@ -2,12 +2,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
 import OverviewSection from "@/components/OverviewSection";
 import ReviewAnalysis from "@/components/ReviewAnalysis";
 import ReviewsTable from "@/components/ReviewsTable";
 import KeyInsights from "@/components/KeyInsights";
+import MonthlyReport from "@/components/MonthlyReport";
 import { Review, BusinessData } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,6 +20,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all-reviews");
   const [availableTables, setAvailableTables] = useState<string[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<string>(
     localStorage.getItem("selectedBusiness") || "all"
@@ -265,14 +268,30 @@ const Dashboard = () => {
           </div>
         </div>
       ) : (
-        <>
-          <OverviewSection reviews={getFilteredReviews()} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <ReviewAnalysis reviews={getFilteredReviews()} />
-            <KeyInsights reviews={getFilteredReviews()} />
-          </div>
-          <ReviewsTable reviews={getFilteredReviews()} />
-        </>
+        <Tabs 
+          defaultValue="all-reviews" 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <TabsList className="mb-6">
+            <TabsTrigger value="all-reviews">All Reviews</TabsTrigger>
+            <TabsTrigger value="monthly-report">Monthly Report</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all-reviews" className="mt-0">
+            <OverviewSection reviews={getFilteredReviews()} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <ReviewAnalysis reviews={getFilteredReviews()} />
+              <KeyInsights reviews={getFilteredReviews()} />
+            </div>
+            <ReviewsTable reviews={getFilteredReviews()} />
+          </TabsContent>
+          
+          <TabsContent value="monthly-report" className="mt-0">
+            <MonthlyReport reviews={getFilteredReviews()} />
+          </TabsContent>
+        </Tabs>
       )}
     </DashboardLayout>
   );

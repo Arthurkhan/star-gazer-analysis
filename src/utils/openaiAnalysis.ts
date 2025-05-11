@@ -1,6 +1,5 @@
 
 import { Review } from "@/types/reviews";
-import { useToast } from "@/hooks/use-toast";
 
 // Function to analyze reviews using OpenAI
 export const analyzeReviewsWithOpenAI = async (
@@ -15,7 +14,7 @@ export const analyzeReviewsWithOpenAI = async (
     // Check if we have a valid API key
     const apiKey = getOpenAIApiKey();
     if (!apiKey) {
-      console.error("No OpenAI API key found. Please set the OPENAI_API_KEY environment variable.");
+      console.error("No OpenAI API key found. Please set the OPENAI_API_KEY environment variable or use the setup button.");
       throw new Error("OpenAI API key not found");
     }
 
@@ -140,11 +139,11 @@ export const analyzeReviewsWithOpenAI = async (
 
 // Helper function to get API key
 function getOpenAIApiKey(): string {
-  // First try to get from environment variable
-  const key = process.env.OPENAI_API_KEY || "";
+  // First try to get from environment variable, then from localStorage
+  const key = process.env.OPENAI_API_KEY || localStorage.getItem("OPENAI_API_KEY") || "";
   
   if (!key) {
-    console.warn("OpenAI API key not found in environment variables");
+    console.warn("OpenAI API key not found in environment variables or localStorage");
     // Could add alternative ways to get the key here if needed
   } else {
     console.log("OpenAI API key found (masked):", key.substring(0, 3) + "..." + key.substring(key.length - 3));

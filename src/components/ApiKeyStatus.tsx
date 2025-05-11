@@ -1,8 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { InfoIcon, AlertCircleIcon, CheckCircleIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,7 +12,8 @@ export function ApiKeyStatus() {
     // Check if the OpenAI API key is set
     const checkApiKey = async () => {
       try {
-        const openAiKey = process.env.OPENAI_API_KEY;
+        // Check for API key in environment variables or localStorage
+        const openAiKey = process.env.OPENAI_API_KEY || localStorage.getItem("OPENAI_API_KEY");
         
         if (!openAiKey) {
           setApiKeyStatus("missing");
@@ -58,7 +57,7 @@ export function ApiKeyStatus() {
         <AlertDescription>
           <p>The OpenAI API key is not set. Staff analysis and other AI features will not work.</p>
           <p className="mt-2">
-            Please set the OPENAI_API_KEY environment variable in your project settings.
+            Please set your OpenAI API key using the key button in the header.
           </p>
         </AlertDescription>
       </Alert>

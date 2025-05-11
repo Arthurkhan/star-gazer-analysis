@@ -213,10 +213,27 @@ export const extractStaffMentions = async (reviews: Review[]): Promise<StaffMent
     const count = Math.floor(Math.random() * 15) + 1;
     const sentiment = sentiments[Math.floor(Math.random() * 3)];
     
+    // Add example contexts
+    const examples = [
+      "Great service",
+      "Very helpful",
+      "Excellent staff",
+      "Knowledgeable",
+      "Friendly",
+      "Professional"
+    ];
+    
+    // Pick 1-3 random examples
+    const numExamples = Math.floor(Math.random() * 3) + 1;
+    const selectedExamples = examples
+      .sort(() => 0.5 - Math.random())
+      .slice(0, numExamples);
+    
     staffMentions.push({
       name,
       count,
-      sentiment
+      sentiment,
+      examples: selectedExamples
     });
   }
   
@@ -242,10 +259,27 @@ export const extractStaffMentions_sync = (reviews: Review[]): StaffMention[] => 
     const count = Math.floor(Math.random() * 15) + 1;
     const sentiment = sentiments[Math.floor(Math.random() * 3)];
     
+    // Add example contexts
+    const examples = [
+      "Great service",
+      "Very helpful",
+      "Excellent staff",
+      "Knowledgeable",
+      "Friendly",
+      "Professional"
+    ];
+    
+    // Pick 1-3 random examples
+    const numExamples = Math.floor(Math.random() * 3) + 1;
+    const selectedExamples = examples
+      .sort(() => 0.5 - Math.random())
+      .slice(0, numExamples);
+    
     staffMentions.push({
       name,
       count,
-      sentiment
+      sentiment,
+      examples: selectedExamples
     });
   }
   

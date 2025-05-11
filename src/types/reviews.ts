@@ -52,6 +52,7 @@ export interface StaffMention {
   name: string;
   count: number;
   sentiment: "positive" | "negative" | "neutral";
+  examples?: string[]; // Added the examples property as optional
 }
 
 export interface InsightsData {

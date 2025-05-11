@@ -6,7 +6,7 @@ export const analyzeReviewsWithOpenAI = async (
   reviews: Review[]
 ): Promise<{
   sentimentAnalysis: { name: string; value: number }[];
-  staffMentions: { name: string; count: number; sentiment: "positive" | "negative" | "neutral" }[];
+  staffMentions: { name: string; count: number; sentiment: "positive" | "negative" | "neutral"; examples?: string[] }[];
   commonTerms: { text: string; count: number }[];
   overallAnalysis: string;
 }> => {
@@ -28,14 +28,14 @@ export const analyzeReviewsWithOpenAI = async (
       
       Please provide:
       1. A sentiment breakdown with exact counts for positive, neutral, and negative reviews
-      2. A list of staff members mentioned in the reviews with the count of mentions and overall sentiment toward each staff member
+      2. A list of staff members mentioned in the reviews with the count of mentions, overall sentiment toward each staff member, and 1-3 example contexts where they were mentioned
       3. Common terms/themes mentioned in reviews with their frequency
       4. A brief overall analysis of the review trends
       
       Format the response as a JSON with the following structure:
       {
         "sentimentAnalysis": [{"name": "Positive", "value": number}, {"name": "Neutral", "value": number}, {"name": "Negative", "value": number}],
-        "staffMentions": [{"name": "staff name", "count": number, "sentiment": "positive"|"neutral"|"negative"}, ...],
+        "staffMentions": [{"name": "staff name", "count": number, "sentiment": "positive"|"neutral"|"negative", "examples": ["example context 1", "example context 2"]}, ...],
         "commonTerms": [{"text": "term", "count": number}, ...],
         "overallAnalysis": "text analysis"
       }

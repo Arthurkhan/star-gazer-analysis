@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO, startOfWeek, endOfWeek, addWeeks, eachWeekOfInterval } from "date-fns";
 import { CalendarRange, List, BarChart2 } from "lucide-react";
-import { groupReviewsByMonth, countReviewsByRating, calculateAverageRating } from "@/utils/dataUtils";
+import { countReviewsByRating, calculateAverageRating } from "@/utils/dataUtils";
 import { Review } from "@/types/reviews";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,14 +18,6 @@ interface MonthlyReportProps {
 }
 
 const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
-  const [monthlyData, setMonthlyData] = useState<{
-    name: string;
-    totalReviews: number;
-    averageRating: number;
-    ratingDistribution: { name: string; value: number }[];
-  }[]>([]);
-  
   // View mode (daily or weekly)
   const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
   
@@ -43,82 +35,21 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     date: string;
     count: number;
   }[]>([]);
-
-  // Selected month reviews
-  const [selectedMonthData, setSelectedMonthData] = useState<{
-    name: string;
-    totalReviews: number;
-    averageRating: number;
-    ratingDistribution: { name: string; value: number }[];
-  } | null>(null);
   
   // Selected reviews (for the date range)
   const [selectedReviews, setSelectedReviews] = useState<Review[]>([]);
+  
+  // Filtered reviews summary data
+  const [summaryData, setSummaryData] = useState({
+    totalReviews: 0,
+    averageRating: 0,
+    ratingDistribution: [] as { name: string; value: number }[]
+  });
 
   // Colors for the charts
   const COLORS = ['#FF5252', '#FF9800', '#FFC107', '#8BC34A', '#4CAF50'];
   
-  // Prepare monthly data
-  useEffect(() => {
-    if (!reviews.length) return;
-
-    // Group reviews by month first
-    const reviewsByMonth = new Map<string, Review[]>();
-    
-    reviews.forEach(review => {
-      const date = new Date(review.publishedAtDate);
-      const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      
-      if (!reviewsByMonth.has(monthKey)) {
-        reviewsByMonth.set(monthKey, []);
-      }
-      
-      reviewsByMonth.get(monthKey)?.push(review);
-    });
-    
-    // Convert to array format for our component
-    const monthlySummary = Array.from(reviewsByMonth.entries()).map(([month, monthReviews]) => {
-      const ratingCounts = countReviewsByRating(monthReviews);
-      const ratingDistribution = [1, 2, 3, 4, 5].map(star => ({
-        name: `${star} ★`,
-        value: ratingCounts[star] || 0
-      }));
-      
-      return {
-        name: month,
-        totalReviews: monthReviews.length,
-        averageRating: calculateAverageRating(monthReviews),
-        ratingDistribution
-      };
-    });
-    
-    // Sort by date (most recent first)
-    monthlySummary.sort((a, b) => {
-      const dateA = new Date(a.name);
-      const dateB = new Date(b.name);
-      return dateB.getTime() - dateA.getTime();
-    });
-    
-    setMonthlyData(monthlySummary);
-    
-    // Set the most recent month as selected by default
-    if (monthlySummary.length > 0 && !selectedMonth) {
-      setSelectedMonth(monthlySummary[0].name);
-      setSelectedMonthData(monthlySummary[0]);
-    }
-  }, [reviews, selectedMonth]);
-
-  // Update selected month data when selectedMonth changes
-  useEffect(() => {
-    if (selectedMonth) {
-      const monthData = monthlyData.find(month => month.name === selectedMonth);
-      if (monthData) {
-        setSelectedMonthData(monthData);
-      }
-    }
-  }, [selectedMonth, monthlyData]);
-
-  // Prepare date range filtered data for all visualizations
+  // Process filtered data based on date range
   useEffect(() => {
     if (!reviews.length) return;
 
@@ -130,6 +61,21 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
 
     // Set the selected reviews for the table at the bottom
     setSelectedReviews(filteredReviews);
+    
+    // Calculate summary data
+    const totalReviews = filteredReviews.length;
+    const averageRating = calculateAverageRating(filteredReviews);
+    const ratingCounts = countReviewsByRating(filteredReviews);
+    const ratingDistribution = [1, 2, 3, 4, 5].map(star => ({
+      name: `${star} ★`,
+      value: ratingCounts[star] || 0
+    }));
+    
+    setSummaryData({
+      totalReviews,
+      averageRating,
+      ratingDistribution
+    });
 
     // Generate time-based data (daily or weekly)
     if (viewMode === "daily") {
@@ -196,6 +142,41 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Date range selector at the top of the page */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Reviews Analysis</h2>
+          <p className="text-muted-foreground">
+            Analysis for period: {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
+          </p>
+        </div>
+        <div className="flex flex-col md:flex-row gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                <CalendarRange className="mr-2 h-4 w-4" />
+                <span>
+                  {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={(range) => {
+                  if (range && range.from && range.to) {
+                    setDateRange(range as { from: Date; to: Date });
+                  }
+                }}
+                numberOfMonths={2}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -216,30 +197,6 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
                   Weekly
                 </ToggleGroupItem>
               </ToggleGroup>
-              
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="md:ml-2">
-                    <CalendarRange className="mr-2 h-4 w-4" />
-                    <span>
-                      {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="range"
-                    selected={dateRange}
-                    onSelect={(range) => {
-                      if (range && range.from && range.to) {
-                        setDateRange(range as { from: Date; to: Date });
-                      }
-                    }}
-                    numberOfMonths={2}
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
             </div>
           </div>
         </CardHeader>
@@ -272,100 +229,57 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly Review Summary</CardTitle>
-          <CardDescription>
-            Review summary by month. Select a month to view detailed stats.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={monthlyData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
-                onClick={(data) => {
-                  if (data && data.activePayload && data.activePayload[0]) {
-                    setSelectedMonth(data.activePayload[0].payload.name);
-                  }
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  angle={-45} 
-                  textAnchor="end" 
-                  height={70} 
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis />
-                <Tooltip />
-                <Bar 
-                  dataKey="totalReviews" 
-                  fill="#6366F1" 
-                  name="Reviews"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      {selectedMonthData && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">{selectedMonthData.name}</CardTitle>
-              <CardDescription>Month summary</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Reviews</p>
-                  <p className="text-2xl font-bold">{selectedMonthData.totalReviews}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
-                  <p className="text-2xl font-bold">
-                    {selectedMonthData.averageRating.toFixed(1)}
-                    <span className="text-yellow-500 ml-1">★</span>
-                  </p>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Summary</CardTitle>
+            <CardDescription>Selected date range</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Reviews</p>
+                <p className="text-2xl font-bold">{summaryData.totalReviews}</p>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-lg">Rating Distribution</CardTitle>
-              <CardDescription>Breakdown by star rating</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={selectedMonthData.ratingDistribution}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="value" name="Count">
-                      {selectedMonthData.ratingDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
+                <p className="text-2xl font-bold">
+                  {summaryData.averageRating.toFixed(1)}
+                  <span className="text-yellow-500 ml-1">★</span>
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-lg">Rating Distribution</CardTitle>
+            <CardDescription>Breakdown by star rating</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={summaryData.ratingDistribution}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="value" name="Count">
+                    {summaryData.ratingDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Reviews list section */}
       <Card>

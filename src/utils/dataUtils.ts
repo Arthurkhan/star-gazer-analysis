@@ -60,6 +60,13 @@ export const groupReviewsByMonth = (reviews: Review[]): MonthlyReviewData[] => {
     });
   });
   
+  // Sort by date to ensure chronological order
+  result.sort((a, b) => {
+    const dateA = new Date(a.month);
+    const dateB = new Date(b.month);
+    return dateA.getTime() - dateB.getTime();
+  });
+  
   return result;
 };
 

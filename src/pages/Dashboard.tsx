@@ -104,6 +104,60 @@ const Dashboard = () => {
     }
   };
 
+  // Function to fetch data from a table with pagination
+  const fetchTableDataWithPagination = async (tableName: TableName) => {
+    console.log(`Fetching data from table: ${tableName} with pagination`);
+    
+    let allData: any[] = [];
+    let hasMore = true;
+    let page = 0;
+    const pageSize = 1000; // Supabase default limit
+    
+    while (hasMore) {
+      try {
+        // Calculate the range start based on the current page
+        const rangeStart = page * pageSize;
+        const rangeEnd = rangeStart + pageSize - 1;
+        
+        console.log(`Fetching page ${page+1} (rows ${rangeStart}-${rangeEnd}) from ${tableName}`);
+        
+        const { data, error, count } = await supabase
+          .from(tableName)
+          .select('*', { count: 'exact' })
+          .range(rangeStart, rangeEnd);
+        
+        if (error) {
+          console.error(`Error fetching page ${page+1} from ${tableName}:`, error);
+          break;
+        }
+        
+        if (data && data.length > 0) {
+          console.log(`Retrieved ${data.length} rows from ${tableName}, page ${page+1}`);
+          allData = [...allData, ...data];
+          
+          // Check if we've received fewer rows than the page size, indicating we're done
+          hasMore = data.length === pageSize;
+          
+          // If count is available, we can be more precise
+          if (count !== null) {
+            hasMore = allData.length < count;
+          }
+        } else {
+          // No more data
+          hasMore = false;
+        }
+        
+        page++;
+      } catch (tableError) {
+        console.error(`Failed to query table ${tableName} at page ${page+1}:`, tableError);
+        break;
+      }
+    }
+    
+    console.log(`Total rows fetched from ${tableName}: ${allData.length}`);
+    return allData;
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -114,27 +168,15 @@ const Dashboard = () => {
       console.log("Fetching data from tables:", tables);
       
       for (const tableName of tables) {
-        console.log(`Fetching data from table: ${tableName}`);
+        console.log(`Starting data fetch from table: ${tableName}`);
         
         try {
-          // Special handling for The Little Prince Cafe with higher limit
-          let query = supabase
-            .from(tableName as TableName)
-            .select('*');
+          // Use the pagination function to fetch all data
+          const tableData = await fetchTableDataWithPagination(tableName as TableName);
           
-          // Explicitly remove any row limit for The Little Prince Cafe
-          // For Supabase, we need to use a very high number as there's no way to remove the limit completely
-          const { data, error } = await query.limit(10000);
-            
-          if (error) {
-            console.error(`Error fetching from ${tableName}:`, error);
-            continue; // Skip this table but continue with others
-          }
-          
-          if (data) {
-            console.log(`Retrieved ${data.length} rows from ${tableName}`);
+          if (tableData && tableData.length > 0) {
             // Map the data to our Review type, handling possible column name variations
-            const reviews = data.map((item: any) => ({
+            const reviews = tableData.map((item: any) => ({
               name: item.name,
               title: item.title || tableName, // Use table name if title is missing
               star: item.stars || item.star, // Handle both column names
@@ -154,7 +196,7 @@ const Dashboard = () => {
         }
       }
       
-      console.log(`Total reviews fetched: ${allReviews.length}`);
+      console.log(`Total reviews fetched across all tables: ${allReviews.length}`);
       setReviewData(allReviews);
       
       // Count reviews for each business

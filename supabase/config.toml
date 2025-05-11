@@ -1,1 +1,5 @@
+
 project_id = "nmlrvkcvzzeewhamjxgj"
+
+[functions.analyze-reviews]
+verify_jwt = false

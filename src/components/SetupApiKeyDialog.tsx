@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { KeyRound, Plus } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 export function SetupApiKeyDialog() {
   const [apiProvider, setApiProvider] = useState(localStorage.getItem("AI_PROVIDER") || "openai");
@@ -33,6 +34,7 @@ export function SetupApiKeyDialog() {
   const [anthropicModel, setAnthropicModel] = useState(localStorage.getItem("ANTHROPIC_MODEL") || "claude-3-haiku-20240307");
   const [geminiModel, setGeminiModel] = useState(localStorage.getItem("GEMINI_MODEL") || "gemini-1.5-pro");
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   // Load saved API keys from localStorage on component mount
@@ -53,21 +55,88 @@ export function SetupApiKeyDialog() {
     }
   }, []);
 
-  const handleSaveApiKey = () => {
+  const handleSaveApiKey = async () => {
     try {
-      // Save the selected provider
+      setLoading(true);
+      
+      // Save the selected provider to localStorage
       localStorage.setItem("AI_PROVIDER", apiProvider);
       
-      // Save API keys to localStorage based on provider
+      // Save API keys using Supabase Edge Function Secrets
       if (apiProvider === "openai" && openaiKey) {
+        // Store in localStorage for UI display purposes
         localStorage.setItem("OPENAI_API_KEY", openaiKey);
         localStorage.setItem("OPENAI_MODEL", openaiModel);
+        
+        // Call Edge Function to set up the secret
+        try {
+          const { error } = await supabase.functions.invoke("analyze-reviews", {
+            body: { 
+              action: "test",
+              provider: "openai",
+              apiKey: openaiKey
+            }
+          });
+          
+          if (error) {
+            throw new Error(`Error testing OpenAI API key: ${error.message}`);
+          }
+        } catch (error) {
+          console.error("Error setting OpenAI API key:", error);
+          toast({
+            title: "Error Setting OpenAI API Key",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       } else if (apiProvider === "anthropic" && anthropicKey) {
         localStorage.setItem("ANTHROPIC_API_KEY", anthropicKey);
         localStorage.setItem("ANTHROPIC_MODEL", anthropicModel);
+        
+        try {
+          const { error } = await supabase.functions.invoke("analyze-reviews", {
+            body: { 
+              action: "test",
+              provider: "anthropic",
+              apiKey: anthropicKey
+            }
+          });
+          
+          if (error) {
+            throw new Error(`Error testing Anthropic API key: ${error.message}`);
+          }
+        } catch (error) {
+          console.error("Error setting Anthropic API key:", error);
+          toast({
+            title: "Error Setting Anthropic API Key",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       } else if (apiProvider === "gemini" && geminiKey) {
         localStorage.setItem("GEMINI_API_KEY", geminiKey);
         localStorage.setItem("GEMINI_MODEL", geminiModel);
+        
+        try {
+          const { error } = await supabase.functions.invoke("analyze-reviews", {
+            body: { 
+              action: "test",
+              provider: "gemini",
+              apiKey: geminiKey
+            }
+          });
+          
+          if (error) {
+            throw new Error(`Error testing Gemini API key: ${error.message}`);
+          }
+        } catch (error) {
+          console.error("Error setting Gemini API key:", error);
+          toast({
+            title: "Error Setting Gemini API Key",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       }
       
       toast({
@@ -84,9 +153,11 @@ export function SetupApiKeyDialog() {
       console.error("Error saving API settings:", error);
       toast({
         title: "Error Saving Settings",
-        description: "There was an error saving your settings.",
+        description: "There was an error saving your settings: " + error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -260,8 +331,8 @@ export function SetupApiKeyDialog() {
         </Tabs>
         
         <DialogFooter>
-          <Button type="button" onClick={handleSaveApiKey}>
-            Save Settings
+          <Button type="button" onClick={handleSaveApiKey} disabled={loading}>
+            {loading ? "Saving..." : "Save Settings"}
           </Button>
         </DialogFooter>
       </DialogContent>

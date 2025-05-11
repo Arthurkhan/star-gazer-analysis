@@ -1,5 +1,6 @@
 
 import { Review } from "@/types/reviews";
+import { supabase } from "@/integrations/supabase/client";
 
 // Function to analyze reviews using various AI providers
 export const analyzeReviewsWithOpenAI = async (
@@ -11,9 +12,11 @@ export const analyzeReviewsWithOpenAI = async (
   overallAnalysis: string;
 }> => {
   try {
-    // Get the AI provider and API key
+    // Get the AI provider
     const provider = localStorage.getItem("AI_PROVIDER") || "openai";
-    const apiKey = getApiKey(provider);
+    
+    // Check if the API key exists in localStorage (needed for UI only)
+    const apiKey = localStorage.getItem(`${provider.toUpperCase()}_API_KEY`);
     
     if (!apiKey) {
       console.error(`No API key found for ${provider}. Please set up your API key in the settings.`);
@@ -50,7 +53,6 @@ export const analyzeReviewsWithOpenAI = async (
       const firstChunkResults = await analyzeReviewChunk(
         chunks[0], 
         provider,
-        apiKey, 
         model, 
         reviews.length, 
         true
@@ -68,7 +70,6 @@ export const analyzeReviewsWithOpenAI = async (
           const chunkResults = await analyzeReviewChunk(
             chunks[i], 
             provider,
-            apiKey, 
             model, 
             reviews.length, 
             false
@@ -131,7 +132,6 @@ export const analyzeReviewsWithOpenAI = async (
       return await analyzeReviewChunk(
         chunks[0], 
         provider,
-        apiKey, 
         model, 
         reviews.length, 
         true
@@ -154,20 +154,6 @@ export const analyzeReviewsWithOpenAI = async (
   }
 };
 
-// Helper function to get API key based on provider
-function getApiKey(provider: string): string {
-  switch (provider) {
-    case "openai":
-      return localStorage.getItem("OPENAI_API_KEY") || "";
-    case "anthropic":
-      return localStorage.getItem("ANTHROPIC_API_KEY") || "";
-    case "gemini":
-      return localStorage.getItem("GEMINI_API_KEY") || "";
-    default:
-      return "";
-  }
-}
-
 // Helper function to get selected model based on provider
 function getSelectedModel(provider: string): string {
   switch (provider) {
@@ -186,245 +172,51 @@ function getSelectedModel(provider: string): string {
 async function analyzeReviewChunk(
   reviewChunk: any[], 
   provider: string,
-  apiKey: string, 
   model: string, 
   totalReviewCount: number,
   fullAnalysis: boolean
 ): Promise<any> {
-  // Get custom prompt if available, otherwise use default
-  let promptTemplate = localStorage.getItem("OPENAI_CUSTOM_PROMPT");
+  console.log(`Calling Edge Function to analyze ${reviewChunk.length} reviews with ${provider}`);
   
-  // Create the prompt for AI with the review data
-  const reviewsJSON = JSON.stringify(reviewChunk);
-  
-  let prompt;
-  if (promptTemplate && promptTemplate.includes("[REVIEWS]")) {
-    // Use custom prompt with reviews inserted
-    prompt = promptTemplate.replace("[REVIEWS]", reviewsJSON);
-  } else {
-    // Use default structured prompt
-    prompt = `
-      Analyze these ${reviewChunk.length} customer reviews from a total of ${totalReviewCount} reviews:
-      ${reviewsJSON}
-      
-      Please provide:
-      1. A sentiment breakdown with exact counts for positive, neutral, and negative reviews
-      2. A detailed list of staff members mentioned in the reviews with:
-         - The exact name of each staff member as mentioned in reviews
-         - The count of distinct mentions
-         - Overall sentiment toward each staff member (positive/neutral/negative)
-         - 2-3 exact quotes from reviews that mention each staff member
-      3. Common terms/themes mentioned in reviews with their frequency
-      4. A brief overall analysis of the review trends
-      
-      Format the response as a JSON with the following structure:
-      {
-        "sentimentAnalysis": [{"name": "Positive", "value": number}, {"name": "Neutral", "value": number}, {"name": "Negative", "value": number}],
-        "staffMentions": [{"name": "staff name", "count": number, "sentiment": "positive"|"neutral"|"negative", "examples": ["example quote 1", "example quote 2"]}, ...],
-        "commonTerms": [{"text": "term", "count": number}, ...],
-        "overallAnalysis": "text analysis"
-      }
-      
-      IMPORTANT GUIDELINES FOR STAFF EXTRACTION:
-      - Only include actual staff members (people working at the business), not generic mentions like "staff" or "server"
-      - For each staff member, include exact quotes from reviews where they are mentioned
-      - If someone seems to be a customer rather than staff, do not include them
-      - If no staff are mentioned by name in any review, return an empty array for staffMentions
-      - Look very carefully for names of individual staff members in the review text
-      - Pay special attention to sentences that mention service, employees, or contain phrases like "our waiter", "our server", etc.
-      - Look specifically for mentions of staff like "Laura", "Arnaud", "Nazare-Aga", and any other names of people who work at the establishment
-    `;
-  }
-  
-  // For partial analysis (not the first chunk), focus only on staff mentions
-  if (!fullAnalysis) {
-    prompt = `
-      Analyze these ${reviewChunk.length} customer reviews from a total of ${totalReviewCount} reviews:
-      ${reviewsJSON}
-      
-      FOCUS ONLY ON STAFF MENTIONS in these reviews. Please identify:
-      - The exact name of each staff member mentioned in reviews
-      - The count of distinct mentions for each staff member
-      - Overall sentiment toward each staff member (positive/neutral/negative)
-      - 2-3 exact quotes from reviews that mention each staff member
-      
-      Format the response as a JSON with the following structure:
-      {
-        "staffMentions": [{"name": "staff name", "count": number, "sentiment": "positive"|"neutral"|"negative", "examples": ["example quote 1", "example quote 2"]}, ...]
-      }
-      
-      IMPORTANT GUIDELINES FOR STAFF EXTRACTION:
-      - Only include actual staff members (people working at the business), not generic mentions like "staff" or "server"
-      - For each staff member, include exact quotes from reviews where they are mentioned
-      - If someone seems to be a customer rather than staff, do not include them
-      - If no staff are mentioned by name in any review, return an empty array for staffMentions
-      - Look very carefully for names of individual staff members in the review text
-      - Pay special attention to sentences that mention service, employees, or contain phrases like "our waiter", "our server", etc.
-    `;
-  }
-
-  // System message that instructs the AI about the task
-  const systemMessage = fullAnalysis
-    ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name and analyzing sentiment about them. Respond only with the requested JSON format."
-    : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name. Respond only with the requested JSON format.";
-
-  // Call the appropriate AI API based on provider
-  let data;
-  switch (provider) {
-    case "openai":
-      data = await callOpenAI(apiKey, model, systemMessage, prompt);
-      break;
-    case "anthropic":
-      data = await callAnthropic(apiKey, model, systemMessage, prompt);
-      break;
-    case "gemini":
-      data = await callGemini(apiKey, model, systemMessage, prompt);
-      break;
-    default:
-      throw new Error("Unsupported AI provider");
-  }
-
-  console.log("AI Analysis Results:", data);
-
-  let analysis;
   try {
-    // For different providers, parse the response accordingly
-    if (provider === "anthropic") {
-      analysis = JSON.parse(data.content[0].text);
-    } else if (provider === "gemini") {
-      analysis = JSON.parse(data.candidates[0].content.parts[0].text);
-    } else { // OpenAI
-      analysis = JSON.parse(data.choices[0].message.content);
+    // Call the Edge Function instead of making direct API calls
+    const { data, error } = await supabase.functions.invoke("analyze-reviews", {
+      body: {
+        reviews: reviewChunk,
+        provider: provider,
+        model: model,
+        fullAnalysis: fullAnalysis
+      }
+    });
+    
+    if (error) {
+      console.error("Edge Function error:", error);
+      throw new Error(`Edge Function error: ${error.message}`);
     }
     
-    console.log("Parsed AI Analysis Results:", analysis);
-  } catch (parseError) {
-    console.error(`Failed to parse ${provider} response as JSON:`, parseError);
-    console.log("Raw content that couldn't be parsed:", JSON.stringify(data));
-    throw new Error(`Failed to parse ${provider} response`);
-  }
-
-  // If this is a partial analysis, return a complete structure 
-  // with empty arrays for the parts not analyzed
-  if (!fullAnalysis) {
+    console.log("AI Analysis Results:", data);
+    
+    // If this is a partial analysis and we didn't get staffMentions, return empty arrays
+    if (!fullAnalysis && (!data || !data.staffMentions)) {
+      return {
+        sentimentAnalysis: [],
+        staffMentions: [],
+        commonTerms: [],
+        overallAnalysis: "",
+      };
+    }
+    
+    // Return the analysis in the expected format
     return {
-      sentimentAnalysis: [],
-      staffMentions: analysis.staffMentions || [],
-      commonTerms: [],
-      overallAnalysis: "",
+      sentimentAnalysis: data.sentimentAnalysis || [],
+      staffMentions: data.staffMentions || [],
+      commonTerms: data.commonTerms || [],
+      overallAnalysis: data.overallAnalysis || "",
     };
+  } catch (error) {
+    console.error("Error calling Edge Function:", error);
+    throw error;
   }
-
-  // Return the analysis in the expected format
-  return {
-    sentimentAnalysis: analysis.sentimentAnalysis || [],
-    staffMentions: analysis.staffMentions || [],
-    commonTerms: analysis.commonTerms || [],
-    overallAnalysis: analysis.overallAnalysis || "",
-  };
-}
-
-// Call OpenAI API
-async function callOpenAI(apiKey: string, model: string, systemMessage: string, prompt: string) {
-  console.log("Calling OpenAI API...");
-  
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: model,
-      messages: [
-        {
-          role: "system",
-          content: systemMessage
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.2,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    console.error(`OpenAI API call failed with status: ${response.status}`, errorData);
-    throw new Error(`OpenAI API call failed with status: ${response.status}. Details: ${errorData}`);
-  }
-
-  return await response.json();
-}
-
-// Call Anthropic API
-async function callAnthropic(apiKey: string, model: string, systemMessage: string, prompt: string) {
-  console.log("Calling Anthropic API...");
-  
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model: model,
-      system: systemMessage,
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: 4000,
-      temperature: 0.2,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    console.error(`Anthropic API call failed with status: ${response.status}`, errorData);
-    throw new Error(`Anthropic API call failed with status: ${response.status}. Details: ${errorData}`);
-  }
-
-  return await response.json();
-}
-
-// Call Gemini API
-async function callGemini(apiKey: string, model: string, systemMessage: string, prompt: string) {
-  console.log("Calling Gemini API...");
-  
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: `${systemMessage}\n\n${prompt}` }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 4000,
-      }
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.text();
-    console.error(`Gemini API call failed with status: ${response.status}`, errorData);
-    throw new Error(`Gemini API call failed with status: ${response.status}. Details: ${errorData}`);
-  }
-
-  return await response.json();
 }
 
 // Cache for analysis results to avoid repeated API calls

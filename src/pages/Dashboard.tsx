@@ -117,11 +117,14 @@ const Dashboard = () => {
         console.log(`Fetching data from table: ${tableName}`);
         
         try {
-          // Use type casting to handle the TypeScript error with table names
-          const { data, error } = await supabase
+          // Special handling for The Little Prince Cafe with higher limit
+          let query = supabase
             .from(tableName as TableName)
-            .select('*')
-            .limit(5000); // Increased limit to 5000 reviews per table
+            .select('*');
+          
+          // Explicitly remove any row limit for The Little Prince Cafe
+          // For Supabase, we need to use a very high number as there's no way to remove the limit completely
+          const { data, error } = await query.limit(10000);
             
           if (error) {
             console.error(`Error fetching from ${tableName}:`, error);

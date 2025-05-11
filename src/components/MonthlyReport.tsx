@@ -2,8 +2,14 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO } from "date-fns";
+import { CalendarRange } from "lucide-react";
 import { groupReviewsByMonth, countReviewsByRating, calculateAverageRating } from "@/utils/dataUtils";
 import { Review } from "@/types/reviews";
+import { cn } from "@/lib/utils";
 
 interface MonthlyReportProps {
   reviews: Review[];
@@ -16,6 +22,21 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     totalReviews: number;
     averageRating: number;
     ratingDistribution: { name: string; value: number }[];
+  }[]>([]);
+  
+  // Date range state
+  const [dateRange, setDateRange] = useState<{
+    from: Date;
+    to: Date;
+  }>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date())
+  });
+  
+  // Daily reviews data
+  const [dailyReviewsData, setDailyReviewsData] = useState<{
+    date: string;
+    count: number;
   }[]>([]);
 
   // Prepare monthly data
@@ -67,6 +88,44 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     }
   }, [reviews, selectedMonth]);
 
+  // Prepare daily data based on date range
+  useEffect(() => {
+    if (!reviews.length) return;
+
+    // Filter reviews within the selected date range
+    const filteredReviews = reviews.filter(review => {
+      const reviewDate = parseISO(review.publishedAtDate);
+      return isWithinInterval(reviewDate, { start: dateRange.from, end: dateRange.to });
+    });
+
+    // Generate all days in the range
+    const allDays = eachDayOfInterval({
+      start: dateRange.from,
+      end: dateRange.to
+    });
+
+    // Initialize counts for each day
+    const dailyCounts = allDays.map(day => ({
+      date: format(day, 'MMM dd'),
+      count: 0
+    }));
+
+    // Count reviews for each day
+    filteredReviews.forEach(review => {
+      const reviewDate = parseISO(review.publishedAtDate);
+      const dayIndex = allDays.findIndex(day => 
+        day.getDate() === reviewDate.getDate() && 
+        day.getMonth() === reviewDate.getMonth() &&
+        day.getFullYear() === reviewDate.getFullYear()
+      );
+      if (dayIndex !== -1) {
+        dailyCounts[dayIndex].count += 1;
+      }
+    });
+
+    setDailyReviewsData(dailyCounts);
+  }, [reviews, dateRange]);
+
   // Selected month data
   const selectedMonthData = monthlyData.find(month => month.name === selectedMonth);
 
@@ -75,6 +134,69 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle>Daily Review Summary</CardTitle>
+              <CardDescription>
+                Review count by day for selected date range
+              </CardDescription>
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="mt-2 md:mt-0">
+                  <CalendarRange className="mr-2 h-4 w-4" />
+                  <span>
+                    {format(dateRange.from, "MMM d, yyyy")} - {format(dateRange.to, "MMM d, yyyy")}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="range"
+                  selected={dateRange}
+                  onSelect={(range) => {
+                    if (range && range.from && range.to) {
+                      setDateRange(range as { from: Date; to: Date });
+                    }
+                  }}
+                  numberOfMonths={2}
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={dailyReviewsData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="date" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={70} 
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis />
+                <Tooltip />
+                <Bar 
+                  dataKey="count" 
+                  fill="#6366F1" 
+                  name="Reviews"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Monthly Review Summary</CardTitle>

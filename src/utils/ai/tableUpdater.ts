@@ -21,6 +21,9 @@ export const updateReviewsWithAnalysis = async (
       };
     }
 
+    // Clear cache to force fresh analysis
+    localStorage.removeItem("analysis_cache_key");
+
     // Call the Edge Function to get individual review analyses
     const { data, error } = await supabase.functions.invoke("analyze-reviews", {
       body: {
@@ -103,6 +106,9 @@ export const analyzeAndUpdateTable = async (
       duration: 3000
     });
     
+    // Clear cache to force fresh analysis
+    localStorage.removeItem("analysis_cache_key");
+    
     // Call updateReviewsWithAnalysis to handle the analysis and database update
     const result = await updateReviewsWithAnalysis(tableName, reviews, {});
     
@@ -142,4 +148,3 @@ export const analyzeAndUpdateTable = async (
     };
   }
 };
-

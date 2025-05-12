@@ -120,6 +120,9 @@ export const exportToPDF = async (
   // For AI reports, prioritize getting the AI-generated overall analysis
   if (isAIReport) {
     try {
+      // Clear cache to force fresh analysis
+      localStorage.removeItem("analysis_cache_key");
+      
       const overallAnalysis = await getOverallAnalysis(reviews);
       if (overallAnalysis) {
         doc.setFontSize(14);

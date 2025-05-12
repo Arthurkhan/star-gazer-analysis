@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Review } from "@/types/reviews";
@@ -309,6 +308,8 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
 
   // Handle refresh AI analysis
   const handleRefreshAnalysis = () => {
+    // Clear the cache to force a fresh analysis
+    localStorage.removeItem("analysis_cache_key");
     setRefreshKey(prev => prev + 1); // Increment refresh key to trigger useEffect
   };
 
@@ -436,7 +437,9 @@ const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
           <Alert className="mb-4 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
             <InfoIcon className="h-4 w-4" />
             <AlertTitle>AI Analysis ({aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel})</AlertTitle>
-            <AlertDescription className="whitespace-pre-line">{overallAnalysis}</AlertDescription>
+            <AlertDescription className="whitespace-pre-line prose prose-sm max-w-none">
+              {overallAnalysis}
+            </AlertDescription>
           </Alert>
         )}
         

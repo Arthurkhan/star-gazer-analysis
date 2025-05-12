@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
@@ -8,13 +9,15 @@ import { Input } from "@/components/ui/input";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval, parseISO, 
          startOfWeek, endOfWeek, addWeeks, eachWeekOfInterval, differenceInDays,
          subMonths, startOfDay, endOfDay, startOfYear, endOfYear, parse, isValid } from "date-fns";
-import { CalendarRange, List, BarChart2, TrendingUp, TrendingDown, Minus, Calendar as CalendarIcon } from "lucide-react";
-import { countReviewsByRating, calculateAverageRating } from "@/utils/dataUtils";
+import { CalendarRange, List, BarChart2, TrendingUp, TrendingDown, Minus, Calendar as CalendarIcon, RefreshCw } from "lucide-react";
+import { countReviewsByRating, calculateAverageRating, getOverallAnalysis } from "@/utils/dataUtils";
 import { Review } from "@/types/reviews";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import ReviewsTable from "@/components/ReviewsTable";
 
 interface MonthlyReportProps {
@@ -51,6 +54,11 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   
   // Selected reviews (for the date range)
   const [selectedReviews, setSelectedReviews] = useState<Review[]>([]);
+  
+  // AI Analysis state
+  const [aiAnalysis, setAiAnalysis] = useState<string>("");
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState<boolean>(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   
   // Filtered reviews summary data
   const [summaryData, setSummaryData] = useState({
@@ -181,6 +189,30 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
       });
     } catch (error) {
       setDateInputError("Error parsing dates. Please use YYYY-MM-DD format.");
+    }
+  };
+
+  // Handle refresh analysis
+  const handleRefreshAnalysis = async () => {
+    if (selectedReviews.length === 0) {
+      setAnalysisError("No reviews available for analysis in the selected date range.");
+      return;
+    }
+    
+    setIsAnalysisLoading(true);
+    setAnalysisError(null);
+    
+    try {
+      // Clear analysis cache to force a fresh analysis
+      localStorage.removeItem("analysis_cache_key");
+      
+      const analysis = await getOverallAnalysis(selectedReviews);
+      setAiAnalysis(analysis);
+    } catch (error) {
+      console.error("Error fetching AI analysis:", error);
+      setAnalysisError("Could not retrieve AI analysis. Please try again later.");
+    } finally {
+      setIsAnalysisLoading(false);
     }
   };
 
@@ -334,6 +366,13 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
 
       setTimeReviewsData(weeklyCounts);
     }
+    
+    // Get AI analysis for the filtered reviews
+    if (filteredReviews.length > 0) {
+      handleRefreshAnalysis();
+    } else {
+      setAiAnalysis("");
+    }
   }, [reviews, dateRange, viewMode]);
 
   // Helper function to create date modifier to highlight the range
@@ -348,6 +387,22 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
 
   // Create a date modifier for the selected range
   const isDateInRange = createDateModifier(dateRange);
+
+  // Get the AI provider and model information
+  const aiProvider = localStorage.getItem("AI_PROVIDER") || "openai";
+  let aiModel = "";
+  
+  switch (aiProvider) {
+    case "openai":
+      aiModel = localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini";
+      break;
+    case "anthropic":
+      aiModel = localStorage.getItem("ANTHROPIC_MODEL") || "claude-3-haiku-20240307";
+      break;
+    case "gemini":
+      aiModel = localStorage.getItem("GEMINI_MODEL") || "gemini-1.5-flash";
+      break;
+  }
 
   return (
     <div className="space-y-6">
@@ -527,6 +582,57 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Analysis Card */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>AI Analysis</CardTitle>
+            <CardDescription>
+              Insights for the selected date range ({selectedReviews.length} reviews)
+            </CardDescription>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefreshAnalysis} 
+            disabled={isAnalysisLoading || selectedReviews.length === 0}
+            className="ml-2"
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", isAnalysisLoading && "animate-spin")} />
+            Refresh Analysis
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {isAnalysisLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-[90%]" />
+              <Skeleton className="h-4 w-[80%]" />
+              <Skeleton className="h-4 w-[85%]" />
+              <Skeleton className="h-4 w-[70%]" />
+            </div>
+          ) : analysisError ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>Analysis Error</AlertTitle>
+              <AlertDescription>{analysisError}</AlertDescription>
+            </Alert>
+          ) : aiAnalysis ? (
+            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line">
+              <div className="text-xs text-muted-foreground mb-2">
+                Generated with {aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel}
+              </div>
+              {aiAnalysis}
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground py-4">
+              {selectedReviews.length === 0 
+                ? "No reviews available in the selected date range for analysis" 
+                : "Click 'Refresh Analysis' to generate insights"}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

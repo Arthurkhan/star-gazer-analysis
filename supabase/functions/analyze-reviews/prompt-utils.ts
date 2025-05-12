@@ -64,7 +64,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       IMPORTANT GUIDELINES FOR STAFF EXTRACTION:
       - Only include actual staff members (people working at the business), not generic mentions like "staff" or "server"
       - Consolidate variations of the same name using these guidelines:
-        * Arnaud/Armand/The Boss/Artist/Mr. Arnaud/Owner → Arnaud
+        * Arnaud/Armand/The Boss/Artist/Mr. Arnaud/Owner/Arnoud → Arnaud
         * Anna/Ana/Anne/Nong Ana/Nong Ena → Anna
         * Sam/Sammy/Samuel/Samantha → Sam
         * Dave/David/Davey → Dave
@@ -83,6 +83,15 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       - For Little Prince Theme category, include any terms related to the book, characters, or story elements
       - For Art Gallery category, include terms related to exhibitions, artwork, installations
       - Ensure terms are evenly distributed across categories rather than having one dominant category
+      
+      IMPORTANT GUIDELINES FOR OVERALL ANALYSIS:
+      - Format your analysis with bullet points and clear paragraphs
+      - Use headings for different sections such as "Key Strengths", "Areas for Improvement", "Staff Impact", etc.
+      - Present information in a scannable, easy-to-read format
+      - Highlight the most important insights at the beginning
+      - For numerical data, use percentages when appropriate
+      - Keep sentences concise and avoid overly complex language
+      - Organize information in a logical flow
     `;
   }
 }
@@ -90,7 +99,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
 // System message that instructs the AI about the task
 export function getSystemMessage(fullAnalysis: boolean) {
   return fullAnalysis
-    ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name, consolidating variations of the same name, and analyzing sentiment about them. You're also skilled at categorizing review themes into meaningful groups and providing actionable business intelligence. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
+    ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name, consolidating variations of the same name, and analyzing sentiment about them. You're also skilled at categorizing review themes into meaningful groups and providing actionable business intelligence. Format your analysis with bullet points, clear paragraphs, and section headings to make it easy to read. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
     : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name, consolidating variations of the same name. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
 }
 
@@ -137,6 +146,22 @@ export function createCompleteAnalysis(analysis: any, fullAnalysis: boolean) {
     };
   }
   return analysis;
+}
+
+// Format the overall analysis for better readability
+export function formatOverallAnalysis(analysis: string): string {
+  if (!analysis) return "";
+  
+  // The AI now includes formatting in its response based on the prompt,
+  // but we'll ensure it's properly formatted here as well
+  let formattedAnalysis = analysis;
+  
+  // Add paragraph breaks if they don't exist
+  if (!formattedAnalysis.includes('\n\n') && !formattedAnalysis.includes('• ')) {
+    formattedAnalysis = formattedAnalysis.replace(/\. ([A-Z])/g, '.\n\n$1');
+  }
+  
+  return formattedAnalysis;
 }
 
 // Extract individual review analysis for database updates
@@ -224,4 +249,3 @@ export function extractIndividualReviewAnalysis(review: any, analysisResults: an
     mainThemes
   };
 }
-

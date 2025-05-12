@@ -30,6 +30,9 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
          - Cleanliness (hygiene, tidiness)
          - Location (accessibility, parking, area)
          - Special Features (unique offerings, events, art, exhibitions)
+         - Little Prince Theme (book references, characters, story elements)
+         - Art Gallery (exhibitions, artwork, installations)
+         - Overall Experience (satisfaction, return likelihood)
       4. A comprehensive analysis of the review trends including:
          - How reviews have evolved over time (improving/declining/steady)
          - Key strengths consistently mentioned
@@ -49,7 +52,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       {
         "sentimentAnalysis": [{"name": "Positive", "value": number}, {"name": "Neutral", "value": number}, {"name": "Negative", "value": number}],
         "staffMentions": [{"name": "staff name", "count": number, "sentiment": "positive"|"neutral"|"negative", "examples": ["example quote 1", "example quote 2"]}, ...],
-        "commonTerms": [{"text": "term", "count": number, "category": "Service|Ambiance|Food & Drinks|Value|Cleanliness|Location|Special Features"}, ...],
+        "commonTerms": [{"text": "term", "count": number, "category": "Service|Ambiance|Food & Drinks|Value|Cleanliness|Location|Special Features|Little Prince Theme|Art Gallery|Overall Experience"}, ...],
         "overallAnalysis": "text analysis"
       }
       ` : `
@@ -60,12 +63,26 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       
       IMPORTANT GUIDELINES FOR STAFF EXTRACTION:
       - Only include actual staff members (people working at the business), not generic mentions like "staff" or "server"
-      - Consolidate variations of the same name (e.g., Sam/Samantha/Sammy → Sam, Ana/Anna/Anne → Anna)
+      - Consolidate variations of the same name using these guidelines:
+        * Arnaud/Armand/The Boss/Artist/Mr. Arnaud/Owner → Arnaud
+        * Anna/Ana/Anne/Nong Ana/Nong Ena → Anna
+        * Sam/Sammy/Samuel/Samantha → Sam
+        * Dave/David/Davey → Dave
+        * Mike/Michael/Mikey/Michel → Mike
+        * Alex/Alexander/Alexandra/Alexa → Alex
+        * Peps/Pepsi/Pep → Peps
       - For each staff member, include exact quotes from reviews where they are mentioned
       - If someone seems to be a customer rather than staff, do not include them
       - If no staff are mentioned by name in any review, return an empty array for staffMentions
       - Look very carefully for names of individual staff members in the review text
       - Pay special attention to sentences that mention service, employees, or contain phrases like "our waiter", "our server", etc.
+      
+      IMPORTANT GUIDELINES FOR TERM CATEGORIZATION:
+      - Group similar terms together (e.g., "great food", "delicious food", "tasty dishes" should be grouped under a common term)
+      - Be specific with categories - don't overuse "Others" category
+      - For Little Prince Theme category, include any terms related to the book, characters, or story elements
+      - For Art Gallery category, include terms related to exhibitions, artwork, installations
+      - Ensure terms are evenly distributed across categories rather than having one dominant category
     `;
   }
 }
@@ -73,7 +90,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
 // System message that instructs the AI about the task
 export function getSystemMessage(fullAnalysis: boolean) {
   return fullAnalysis
-    ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name, consolidating variations of the same name, and analyzing sentiment about them. You're also skilled at categorizing review themes into meaningful groups. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
+    ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name, consolidating variations of the same name, and analyzing sentiment about them. You're also skilled at categorizing review themes into meaningful groups and providing actionable business intelligence. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
     : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name, consolidating variations of the same name. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
 }
 
@@ -173,19 +190,19 @@ export function extractIndividualReviewAnalysis(review: any, analysisResults: an
     const reviewThemes = [];
     
     // Check if the review contains any of the common terms, prioritizing categories
-    const categories = new Set();
+    const categoriesFound = new Set();
     
     for (const term of analysisResults.commonTerms) {
       const termRegex = new RegExp('\\b' + term.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
       
       if ((review.text && termRegex.test(review.text)) || 
-          (review.textTranslated && termRegex.test(review.textTranslated))) {
+          (review.textTranslated && review.textTranslated.includes(term.text))) {
         
         // Add the category if it exists, otherwise the term itself
         if (term.category) {
           // Only add the category if we haven't added it yet (avoid duplicates)
-          if (!categories.has(term.category)) {
-            categories.add(term.category);
+          if (!categoriesFound.has(term.category)) {
+            categoriesFound.add(term.category);
             reviewThemes.push(`${term.category}: ${term.text}`);
           }
         } else {
@@ -207,3 +224,4 @@ export function extractIndividualReviewAnalysis(review: any, analysisResults: an
     mainThemes
   };
 }
+

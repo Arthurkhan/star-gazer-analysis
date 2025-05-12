@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { TableName } from "@/types/reviews";
+import { toast } from "sonner";
 
 // Function to update database with AI analysis results
 export const updateReviewsWithAnalysis = async (
@@ -88,23 +89,40 @@ export const updateReviewsWithAnalysis = async (
   }
 };
 
-// Add the missing analyzeAndUpdateTable function
+// Function to analyze and update all reviews in a table
 export const analyzeAndUpdateTable = async (
   tableName: TableName,
   reviews: any[]
 ): Promise<{ success: boolean; errors: string[] }> => {
-  console.log(`Analyzing ${reviews.length} reviews in table ${tableName}`);
+  console.log(`Analyzing and updating ${reviews.length} reviews in table ${tableName}`);
   
   try {
+    // Show notification
+    toast.info(`Starting analysis of ${reviews.length} reviews`, {
+      description: "This may take a moment to complete",
+      duration: 3000
+    });
+    
     // Call updateReviewsWithAnalysis to handle the analysis and database update
     const result = await updateReviewsWithAnalysis(tableName, reviews, {});
     
     if (!result.success) {
+      toast.error("Analysis failed", {
+        description: result.message,
+        duration: 4000
+      });
+      
       return {
         success: false,
         errors: [result.message]
       };
     }
+    
+    // Show success notification
+    toast.success("Analysis completed", {
+      description: `Successfully updated ${result.updatedCount} reviews with AI insights`,
+      duration: 4000
+    });
     
     return {
       success: true,
@@ -112,9 +130,16 @@ export const analyzeAndUpdateTable = async (
     };
   } catch (error) {
     console.error("Error during analysis and update:", error);
+    
+    toast.error("Analysis failed", {
+      description: error instanceof Error ? error.message : String(error),
+      duration: 4000
+    });
+    
     return {
       success: false,
       errors: [error instanceof Error ? error.message : String(error)]
     };
   }
 };
+

@@ -62,17 +62,12 @@ const COLORS = [
   '#F2FCE2'  // Soft Green
 ];
 
-// Define theme categories with associated keywords
+// Define theme categories with associated keywords - updated as requested
 const THEME_CATEGORIES: ThemeCategory[] = [
   { 
     name: 'All', 
     color: '#9b87f5', 
     keywords: [] 
-  },
-  { 
-    name: 'Food', 
-    color: '#10B981', 
-    keywords: ['food', 'cuisine', 'dish', 'taste', 'flavor', 'meal', 'dinner', 'lunch', 'breakfast', 'appetizer', 'dessert', 'sweet', 'savory', 'menu', 'portion'] 
   },
   { 
     name: 'Service', 
@@ -85,19 +80,29 @@ const THEME_CATEGORIES: ThemeCategory[] = [
     keywords: ['ambiance', 'atmosphere', 'vibe', 'decor', 'design', 'interior', 'music', 'noise', 'mood', 'lighting', 'cozy', 'romantic', 'formal', 'casual'] 
   },
   { 
-    name: 'Value', 
-    color: '#F97316', 
-    keywords: ['price', 'value', 'expensive', 'reasonable', 'overpriced', 'affordable', 'worth', 'cost', 'cheap', 'pricey', 'budget', 'deal', 'discount'] 
-  },
-  { 
-    name: 'Cleanliness', 
-    color: '#06B6D4', 
-    keywords: ['clean', 'dirty', 'hygiene', 'tidy', 'spotless', 'mess', 'stain', 'dust', 'bathroom', 'toilet', 'sanitary'] 
-  },
-  { 
     name: 'Location', 
     color: '#D946EF', 
     keywords: ['location', 'area', 'neighborhood', 'access', 'parking', 'downtown', 'central', 'quiet', 'busy', 'street', 'view', 'transport'] 
+  },
+  { 
+    name: 'Art', 
+    color: '#EF4444', 
+    keywords: ['art', 'artwork', 'exhibition', 'gallery', 'artist', 'painting', 'sculpture', 'creative', 'artistic', 'installation', 'contemporary', 'culture'] 
+  },
+  { 
+    name: 'The Little Prince', 
+    color: '#F59E0B', 
+    keywords: ['little prince', 'prince', 'saint-exupéry', 'exupery', 'fox', 'rose', 'aviator', 'planet', 'book', 'story', 'character', 'quotation', 'theme', 'childhood'] 
+  },
+  { 
+    name: 'F&B', 
+    color: '#10B981', 
+    keywords: ['food', 'beverage', 'drink', 'coffee', 'tea', 'wine', 'cocktail', 'menu', 'dish', 'meal', 'cuisine', 'taste', 'flavor', 'dessert', 'appetizer', 'breakfast', 'lunch', 'dinner'] 
+  },
+  { 
+    name: 'Others', 
+    color: '#6B7280', 
+    keywords: ['price', 'value', 'experience', 'visit', 'recommend', 'return', 'clean', 'hygiene', 'wifi', 'internet', 'toilets', 'bathroom', 'accessibility'] 
   }
 ];
 

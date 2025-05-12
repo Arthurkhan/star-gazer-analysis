@@ -1,3 +1,4 @@
+
 export interface Review {
   id?: number;
   name: string;
@@ -26,4 +27,53 @@ export interface FilterOptions {
   category: string | null;
   sortBy: 'count' | 'alphabetical';
   sortOrder: 'asc' | 'desc';
+}
+
+// Add missing type definitions for other parts of the application
+export interface SentimentData {
+  name: string;
+  value: number;
+}
+
+export interface LanguageData {
+  name: string;
+  value: number;
+  languages?: LanguageData[];
+  tooltip?: string;
+}
+
+export interface MonthlyReviewData {
+  month: string;
+  count: number;
+  cumulativeCount: number;
+}
+
+export interface InsightsData {
+  trendData: TrendPoint[];
+  needAttention: Review[];
+  ratingTrend: string;
+  commonThemes: ThemeData[];
+}
+
+export interface ThemeData {
+  text: string;
+  count: number;
+  sentiment: 'positive' | 'negative' | 'neutral';
+}
+
+export interface TrendPoint {
+  period: string;
+  value: number;
+}
+
+export interface StaffMention {
+  name: string;
+  count: number;
+  sentiment: 'positive' | 'negative' | 'neutral';
+  examples?: string[];
+}
+
+export interface BusinessData {
+  name: string;
+  reviews: Review[];
 }

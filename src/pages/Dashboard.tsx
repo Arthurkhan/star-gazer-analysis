@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
 import OverviewSection from "@/components/OverviewSection";
-import ReviewAnalysis from "@/components/review-analysis/ReviewAnalysis";
+import ReviewAnalysis from "@/components/review-analysis/ReviewAnalysis"; // Updated import path
 import ReviewsTable from "@/components/ReviewsTable";
 import KeyInsights from "@/components/KeyInsights";
 import MonthlyReport from "@/components/MonthlyReport";

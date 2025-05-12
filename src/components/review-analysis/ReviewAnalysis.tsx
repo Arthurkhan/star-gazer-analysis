@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { analyzeReviews } from "@/utils/ai/analysisService";
+import { getAnalysis } from "@/utils/ai/analysisService"; // Changed from analyzeReviews to getAnalysis
 import SentimentBreakdown from "./SentimentBreakdown";
 import StaffMentions from "./StaffMentions";
 import LanguageDistribution from "./LanguageDistribution";
@@ -47,7 +47,8 @@ const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
     setError(null);
 
     try {
-      const analysisResponse = await analyzeReviews(reviews);
+      // Changed from analyzeReviews to getAnalysis to match the exported function
+      const analysisResponse = await getAnalysis(reviews);
       
       if (analysisResponse.error) {
         setError(analysisResponse.error);
@@ -122,7 +123,8 @@ const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
           </TabsContent>
 
           <TabsContent value="language" className="space-y-0 mt-0">
-            <LanguageDistribution reviews={reviews} loading={isAnalyzing} />
+            {/* Removed the loading prop since LanguageDistribution doesn't accept it */}
+            <LanguageDistribution reviews={reviews} />
           </TabsContent>
 
           <TabsContent value="terms" className="space-y-0 mt-0">

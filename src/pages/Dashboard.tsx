@@ -14,7 +14,7 @@ import { TableAnalysisPanel } from "@/components/TableAnalysisPanel";
 import AllReviewsAiAnalysis from "@/components/AllReviewsAiAnalysis";
 import MonthlyReviewsChart from "@/components/review-analysis/MonthlyReviewsChart";
 import ReviewsChart from "@/components/ReviewsChart";
-import { Review, BusinessData, TableName } from "@/types/reviews";
+import { Review, BusinessData, TableName, MonthlyReviewData } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
@@ -245,6 +245,39 @@ const Dashboard = () => {
     }
   };
 
+  // Function to create the chart data with cumulative count
+  const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
+    // Group reviews by month
+    const monthMap = new Map<string, number>();
+    
+    reviews.forEach(review => {
+      const date = new Date(review.publishedAtDate);
+      const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      
+      monthMap.set(monthYear, (monthMap.get(monthYear) || 0) + 1);
+    });
+    
+    // Convert to array and sort by date
+    const monthData = Array.from(monthMap.entries())
+      .map(([month, count]) => ({ month, count }))
+      .sort((a, b) => {
+        const dateA = new Date(a.month);
+        const dateB = new Date(b.month);
+        return dateA.getTime() - dateB.getTime();
+      });
+    
+    // Add cumulative count
+    let cumulative = 0;
+    return monthData.map(item => {
+      cumulative += item.count;
+      return {
+        month: item.month,
+        count: item.count,
+        cumulativeCount: cumulative
+      };
+    });
+  };
+
   const handleBusinessChange = (business: string) => {
     setSelectedBusiness(business);
   };
@@ -292,10 +325,7 @@ const Dashboard = () => {
           <TabsContent value="all-reviews" className="mt-0">
             <OverviewSection reviews={getFilteredReviews()} />
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
-              <ReviewsChart data={getFilteredReviews().map(r => ({ 
-                month: new Date(r.publishedAtDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-                count: 1
-              }))} />
+              <ReviewsChart data={getChartData(getFilteredReviews())} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
               <MonthlyReviewsChart reviews={getFilteredReviews()} />

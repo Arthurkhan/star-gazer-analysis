@@ -11,7 +11,6 @@ import SentimentBreakdown from "./SentimentBreakdown";
 import StaffMentions from "./StaffMentions";
 import LanguageDistribution from "./LanguageDistribution";
 import CommonTerms from "./CommonTerms";
-import MonthlyReviewsChart from "./MonthlyReviewsChart";
 
 interface ReviewAnalysisProps {
   reviews: Review[];
@@ -74,7 +73,6 @@ const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
             <TabsTrigger value="staff">Staff Mentioned</TabsTrigger>
             <TabsTrigger value="language">Language</TabsTrigger>
             <TabsTrigger value="terms">Common Terms</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly Trend</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sentiment" className="space-y-0 mt-0">
@@ -91,10 +89,6 @@ const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
 
           <TabsContent value="terms" className="space-y-0 mt-0">
             <CommonTerms reviews={reviews} loading={isAnalyzing} />
-          </TabsContent>
-
-          <TabsContent value="monthly" className="space-y-0 mt-0">
-            <MonthlyReviewsChart reviews={reviews} />
           </TabsContent>
         </Tabs>
       </CardContent>

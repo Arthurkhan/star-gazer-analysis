@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +12,8 @@ import MonthlyReport from "@/components/monthly-report";
 import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 import { TableAnalysisPanel } from "@/components/TableAnalysisPanel";
 import AllReviewsAiAnalysis from "@/components/AllReviewsAiAnalysis";
+import MonthlyReviewsChart from "@/components/review-analysis/MonthlyReviewsChart";
+import ReviewsChart from "@/components/ReviewsChart";
 import { Review, BusinessData, TableName } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -290,6 +291,15 @@ const Dashboard = () => {
           
           <TabsContent value="all-reviews" className="mt-0">
             <OverviewSection reviews={getFilteredReviews()} />
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
+              <ReviewsChart data={getFilteredReviews().map(r => ({ 
+                month: new Date(r.publishedAtDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                count: 1
+              }))} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
+              <MonthlyReviewsChart reviews={getFilteredReviews()} />
+            </div>
             <div className="mb-6">
               <AllReviewsAiAnalysis reviews={getFilteredReviews()} />
             </div>

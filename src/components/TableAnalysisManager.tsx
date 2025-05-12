@@ -14,11 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import { analyzeAndUpdateTable } from "@/utils/ai/tableUpdater";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { TableName } from "@/types/reviews";
 
 const BATCH_SIZE = 50;
 
 interface TableAnalysisManagerProps {
-  tableName: string;
+  tableName: TableName;
   onComplete?: () => void;
 }
 

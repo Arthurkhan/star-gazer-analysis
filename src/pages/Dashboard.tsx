@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -13,9 +14,6 @@ import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 import { TableAnalysisPanel } from "@/components/TableAnalysisPanel";
 import { Review, BusinessData, TableName } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
-
-// Define allowed table names explicitly to match Supabase structure
-type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
 
 const Dashboard = () => {
   const navigate = useNavigate();

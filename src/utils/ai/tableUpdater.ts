@@ -87,3 +87,34 @@ export const updateReviewsWithAnalysis = async (
     };
   }
 };
+
+// Add the missing analyzeAndUpdateTable function
+export const analyzeAndUpdateTable = async (
+  tableName: TableName,
+  reviews: any[]
+): Promise<{ success: boolean; errors: string[] }> => {
+  console.log(`Analyzing ${reviews.length} reviews in table ${tableName}`);
+  
+  try {
+    // Call updateReviewsWithAnalysis to handle the analysis and database update
+    const result = await updateReviewsWithAnalysis(tableName, reviews, {});
+    
+    if (!result.success) {
+      return {
+        success: false,
+        errors: [result.message]
+      };
+    }
+    
+    return {
+      success: true,
+      errors: []
+    };
+  } catch (error) {
+    console.error("Error during analysis and update:", error);
+    return {
+      success: false,
+      errors: [error instanceof Error ? error.message : String(error)]
+    };
+  }
+};

@@ -1,188 +1,138 @@
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
 import { Review } from "@/types/reviews";
-import { 
-  analyzeReviewSentiment_sync,
-  extractStaffMentions_sync,
-  extractCommonTerms_sync,
-  analyzeReviewSentiment,
-  extractStaffMentions,
-  extractCommonTerms,
-  getOverallAnalysis
-} from "@/utils/dataUtils";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Loader2Icon, RefreshCw } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CustomPromptDialog } from "@/components/CustomPromptDialog";
-
-// Import sub-components
-import MonthlyReviewsChart from "./MonthlyReviewsChart";
+import { RefreshCcw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { analyzeReviews } from "@/utils/ai/analysisService";
 import SentimentBreakdown from "./SentimentBreakdown";
-import CommonTerms from "./CommonTerms";
 import StaffMentions from "./StaffMentions";
 import LanguageDistribution from "./LanguageDistribution";
+import CommonTerms from "./CommonTerms";
+import MonthlyReviewsChart from "./MonthlyReviewsChart";
 import AnalysisAlertSection from "./AnalysisAlertSection";
 
 interface ReviewAnalysisProps {
   reviews: Review[];
 }
 
-const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
-  // States for async data
-  const [sentimentData, setSentimentData] = useState(analyzeReviewSentiment_sync(reviews));
-  const [staffMentions, setStaffMentions] = useState(extractStaffMentions_sync(reviews));
-  const [commonTerms, setCommonTerms] = useState(extractCommonTerms_sync(reviews));
-  const [overallAnalysis, setOverallAnalysis] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0); // State to trigger refresh
+const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
+  const { toast } = useToast();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [analysisTab, setAnalysisTab] = useState("sentiment");
+  const [overallAnalysis, setOverallAnalysis] = useState<string>("");
+  const [aiProvider, setAiProvider] = useState<string>("gemini");
+  const [aiModel, setAiModel] = useState<string>("pro");
 
-  // Handle refresh AI analysis
-  const handleRefreshAnalysis = () => {
-    // Clear the cache to force a fresh analysis
-    localStorage.removeItem("analysis_cache_key");
-    setRefreshKey(prev => prev + 1); // Increment refresh key to trigger useEffect
+  // Fetch analysis when reviews change
+  useEffect(() => {
+    if (reviews.length > 0) {
+      refreshAnalysis();
+    } else {
+      setOverallAnalysis("");
+      setError(null);
+    }
+  }, [reviews]);
+
+  const refreshAnalysis = async () => {
+    if (reviews.length === 0) {
+      setError("No reviews available to analyze");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setError(null);
+
+    try {
+      const analysisResponse = await analyzeReviews(reviews);
+      
+      if (analysisResponse.error) {
+        setError(analysisResponse.error);
+        toast({
+          title: "Analysis Error",
+          description: analysisResponse.error,
+          variant: "destructive",
+        });
+      } else {
+        setOverallAnalysis(analysisResponse.overallAnalysis || "");
+        setAiProvider(analysisResponse.provider || "gemini");
+        setAiModel(analysisResponse.model || "pro");
+        
+        toast({
+          title: "Analysis Complete",
+          description: "Review analysis has been updated",
+        });
+      }
+    } catch (err) {
+      console.error("Error analyzing reviews:", err);
+      setError("Failed to analyze reviews. Please try again later.");
+      toast({
+        title: "Analysis Error",
+        description: "Failed to analyze reviews. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  // Display the current AI provider and model
-  const aiProvider = localStorage.getItem("AI_PROVIDER") || "openai";
-  let aiModel = "";
-  
-  switch (aiProvider) {
-    case "openai":
-      aiModel = localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini";
-      break;
-    case "anthropic":
-      aiModel = localStorage.getItem("ANTHROPIC_MODEL") || "claude-3-haiku-20240307";
-      break;
-    case "gemini":
-      aiModel = localStorage.getItem("GEMINI_MODEL") || "gemini-1.5-flash";
-      break;
-  }
-
-  // Load AI analysis when reviews change or refresh is triggered
-  useEffect(() => {
-    let isMounted = true;
-    
-    // Reset loading state
-    setLoading(true);
-    setApiError(null);
-    
-    // Start with synchronous data for immediate UI display
-    setSentimentData(analyzeReviewSentiment_sync(reviews));
-    setStaffMentions(extractStaffMentions_sync(reviews));
-    setCommonTerms(extractCommonTerms_sync(reviews));
-    
-    // Fetch AI-enhanced data
-    const fetchAIAnalysis = async () => {
-      try {
-        // Clear cache to force a fresh analysis
-        localStorage.removeItem("analysis_cache_key"); 
-        
-        // Run all analysis in parallel
-        const [
-          sentimentResults, 
-          staffResults, 
-          termsResults,
-          analysisResult
-        ] = await Promise.all([
-          analyzeReviewSentiment(reviews),
-          extractStaffMentions(reviews),
-          extractCommonTerms(reviews),
-          getOverallAnalysis(reviews)
-        ]);
-        
-        // Only update state if component is still mounted
-        if (isMounted) {
-          setSentimentData(sentimentResults);
-          setStaffMentions(staffResults);
-          setCommonTerms(termsResults);
-          setOverallAnalysis(analysisResult);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Error fetching AI analysis:", error);
-        if (isMounted) {
-          setApiError(
-            "Could not retrieve AI-enhanced analysis. Using basic analysis instead."
-          );
-          setLoading(false);
-        }
-      }
-    };
-    
-    if (reviews.length > 0) {
-      fetchAIAnalysis();
-    } else {
-      setLoading(false);
-    }
-    
-    // Cleanup function to prevent setting state after unmount
-    return () => {
-      isMounted = false;
-    };
-  }, [reviews, refreshKey]); // Add refreshKey dependency to trigger on refresh
-
   return (
-    <Card className="shadow-md dark:bg-gray-800 border-0">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>Review Analysis</CardTitle>
-            <CardDescription>
-              Breakdown of review sentiment, languages, and key terms
-            </CardDescription>
-          </div>
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefreshAnalysis}
-              className="gap-1 text-xs"
-              disabled={loading}
-            >
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-              <span>Refresh Analysis</span>
-            </Button>
-            <CustomPromptDialog />
-          </div>
-        </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-xl font-bold">Review Analysis</CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={refreshAnalysis}
+          disabled={isAnalyzing || reviews.length === 0}
+        >
+          <RefreshCcw
+            className={`h-4 w-4 mr-2 ${isAnalyzing ? "animate-spin" : ""}`}
+          />
+          {isAnalyzing ? "Analyzing..." : "Refresh Analysis"}
+        </Button>
       </CardHeader>
-      <CardContent>
-        {loading && (
-          <div className="flex items-center justify-center p-4 mb-4">
-            <Loader2Icon className="h-6 w-6 animate-spin mr-2" />
-            <span>Analyzing reviews with {aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel}...</span>
-          </div>
-        )}
-        
+      <CardContent className="pt-6">
         <AnalysisAlertSection 
-          overallAnalysis={overallAnalysis}
-          loading={loading}
-          error={apiError}
+          overallAnalysis={overallAnalysis} 
+          loading={isAnalyzing} 
+          error={error}
           aiProvider={aiProvider}
           aiModel={aiModel}
         />
-        
-        <div className="grid grid-cols-1 gap-6">
-          {/* Monthly Reviews Line Graph */}
-          <MonthlyReviewsChart reviews={reviews} />
-          
-          {/* Sentiment Breakdown */}
-          <SentimentBreakdown reviews={reviews} loading={loading} />
-          
-          {/* Common Terms Section */}
-          <CommonTerms reviews={reviews} loading={loading} />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          {/* Staff Mentions Section */}
-          <StaffMentions reviews={reviews} loading={loading} />
-          
-          {/* Review Languages Section */}
-          <LanguageDistribution reviews={reviews} />
-        </div>
+
+        <Tabs value={analysisTab} onValueChange={setAnalysisTab} className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
+            <TabsTrigger value="staff">Staff Mentioned</TabsTrigger>
+            <TabsTrigger value="language">Language</TabsTrigger>
+            <TabsTrigger value="terms">Common Terms</TabsTrigger>
+            <TabsTrigger value="monthly">Monthly Trend</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="sentiment" className="space-y-0 mt-0">
+            <SentimentBreakdown reviews={reviews} loading={isAnalyzing} />
+          </TabsContent>
+
+          <TabsContent value="staff" className="space-y-0 mt-0">
+            <StaffMentions reviews={reviews} loading={isAnalyzing} />
+          </TabsContent>
+
+          <TabsContent value="language" className="space-y-0 mt-0">
+            <LanguageDistribution reviews={reviews} loading={isAnalyzing} />
+          </TabsContent>
+
+          <TabsContent value="terms" className="space-y-0 mt-0">
+            <CommonTerms reviews={reviews} loading={isAnalyzing} />
+          </TabsContent>
+
+          <TabsContent value="monthly" className="space-y-0 mt-0">
+            <MonthlyReviewsChart reviews={reviews} />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

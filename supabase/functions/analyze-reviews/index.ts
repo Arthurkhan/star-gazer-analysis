@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Define CORS headers for browser requests
@@ -14,13 +13,92 @@ serve(async (req) => {
   }
 
   try {
-    const { reviews, provider, fullAnalysis = true } = await req.json();
+    const requestData = await req.json();
+    const { action, provider } = requestData;
+    
+    // Test mode - just check if API key exists/is valid
+    if (action === "test") {
+      console.log(`Testing ${provider} API key...`);
+      let apiKey;
+      
+      // If we're testing a key directly passed from the app
+      if (requestData.apiKey) {
+        apiKey = requestData.apiKey;
+      } else {
+        // Otherwise use the secret from environment
+        switch (provider) {
+          case "openai":
+            apiKey = Deno.env.get("OPENAI_API_KEY");
+            break;
+          case "anthropic":
+            apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+            break;
+          case "gemini":
+            apiKey = Deno.env.get("GEMINI_API_KEY");
+            break;
+          default:
+            throw new Error("Unsupported AI provider");
+        }
+      }
+      
+      if (!apiKey) {
+        throw new Error(`API key not found for ${provider}`);
+      }
+      
+      // Make a very simple API call to validate the key
+      try {
+        let valid = false;
+        
+        if (provider === "openai") {
+          const response = await fetch("https://api.openai.com/v1/models", {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+            },
+          });
+          valid = response.ok;
+        }
+        else if (provider === "anthropic") {
+          const response = await fetch("https://api.anthropic.com/v1/models", {
+            method: "GET",
+            headers: {
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01"
+            },
+          });
+          valid = response.ok;
+        }
+        else if (provider === "gemini") {
+          // For Gemini, we'll just make a simple API call to check if the key works
+          const modelName = "gemini-1.5-flash";
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}?key=${apiKey}`, {
+            method: "GET",
+          });
+          valid = response.ok;
+        }
+        
+        if (!valid) {
+          throw new Error(`Invalid ${provider} API key`);
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        console.error(`Error validating ${provider} API key:`, error);
+        throw new Error(`Error validating ${provider} API key: ${error.message}`);
+      }
+    }
+    
+    // Standard analysis mode
+    const { reviews, provider: analysisProvider, fullAnalysis = true } = requestData;
     
     // Get the appropriate API key from Supabase secrets
     let apiKey;
     let model;
     
-    switch (provider) {
+    switch (analysisProvider) {
       case "openai":
         apiKey = Deno.env.get("OPENAI_API_KEY");
         model = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
@@ -38,10 +116,10 @@ serve(async (req) => {
     }
     
     if (!apiKey) {
-      throw new Error(`API key not found for ${provider}`);
+      throw new Error(`API key not found for ${analysisProvider}`);
     }
     
-    console.log(`Analyzing ${reviews.length} reviews with ${provider} model: ${model}`);
+    console.log(`Analyzing ${reviews.length} reviews with ${analysisProvider} model: ${model}`);
     
     // Get custom prompt if available
     const customPrompt = Deno.env.get("OPENAI_CUSTOM_PROMPT");
@@ -77,7 +155,7 @@ serve(async (req) => {
         - 2-3 exact quotes from reviews that mention each staff member
         `}
         
-        Format the response as a JSON with the following structure:
+        Format the response as a JSON object without markdown formatting, code blocks, or backticks. Here's the required structure:
         ${fullAnalysis ? `
         {
           "sentimentAnalysis": [{"name": "Positive", "value": number}, {"name": "Neutral", "value": number}, {"name": "Negative", "value": number}],
@@ -103,12 +181,12 @@ serve(async (req) => {
 
     // System message that instructs the AI about the task
     const systemMessage = fullAnalysis
-      ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name and analyzing sentiment about them. Respond only with the requested JSON format."
-      : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name. Respond only with the requested JSON format.";
+      ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name and analyzing sentiment about them. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
+      : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
 
     // Call the appropriate AI API based on provider
     let data;
-    switch (provider) {
+    switch (analysisProvider) {
       case "openai":
         data = await callOpenAI(apiKey, model, systemMessage, prompt);
         break;
@@ -125,17 +203,32 @@ serve(async (req) => {
     // Parse the response accordingly
     let analysis;
     try {
-      if (provider === "anthropic") {
+      if (analysisProvider === "anthropic") {
         analysis = JSON.parse(data.content[0].text);
-      } else if (provider === "gemini") {
+      } else if (analysisProvider === "gemini") {
         analysis = JSON.parse(data.candidates[0].content.parts[0].text);
       } else { // OpenAI
-        analysis = JSON.parse(data.choices[0].message.content);
+        // Clean potential markdown formatting from the content
+        let content = data.choices[0].message.content;
+        
+        // Remove markdown code blocks if present
+        if (content.startsWith("```") && content.endsWith("```")) {
+          const lines = content.split("\n");
+          lines.shift(); // Remove first line with ```json or ```
+          lines.pop();   // Remove last line with ```
+          content = lines.join("\n");
+        }
+        
+        // Remove any remaining backticks just in case
+        content = content.replace(/```/g, "");
+        
+        // Parse the cleaned JSON
+        analysis = JSON.parse(content);
       }
     } catch (parseError) {
-      console.error(`Failed to parse ${provider} response as JSON:`, parseError);
+      console.error(`Failed to parse ${analysisProvider} response as JSON:`, parseError);
       console.log("Raw content that couldn't be parsed:", JSON.stringify(data));
-      throw new Error(`Failed to parse ${provider} response`);
+      throw new Error(`Failed to parse ${analysisProvider} response`);
     }
 
     // If this is a partial analysis, return a complete structure 

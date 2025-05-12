@@ -89,15 +89,59 @@ interface AutoTableOutput {
   [key: string]: any;
 }
 
+// Format the AI Analysis to fit well in the PDF report
+const formatAIAnalysisForPDF = (analysis: string): string[] => {
+  if (!analysis) return ["No AI analysis available."];
+  
+  // Split by section headers
+  const sections = analysis.split(/\n\n(?:📊|📈|🗣️|🌍|🎯)/g);
+  const headers = analysis.match(/(?:📊|📈|🗣️|🌍|🎯)[^\n]*/g) || [];
+  
+  let formattedSections: string[] = [];
+  
+  // Add formatted sections
+  headers.forEach((header, index) => {
+    if (index < sections.length) {
+      const content = sections[index + 1]?.trim() || "";
+      formattedSections.push(`${header.trim()}\n${content}`);
+    }
+  });
+  
+  // If no sections were extracted properly, return the original text
+  if (formattedSections.length === 0) {
+    // Split into paragraphs
+    formattedSections = analysis.split(/\n\n+/).filter(p => p.trim().length > 0);
+  }
+  
+  return formattedSections;
+};
+
 // Main export function - now with AI report option
 export const exportToPDF = async (
   reviews: Review[], 
   businessName: string = "All Businesses", 
-  isAIReport: boolean = false
+  isAIReport: boolean = false,
+  dateRange?: { startDate: Date; endDate: Date }
 ): Promise<void> => {
   // Create a new PDF document
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  
+  // Filter reviews by date range if provided
+  let filteredReviews = reviews;
+  let dateRangeText = "";
+  
+  if (dateRange && dateRange.startDate && dateRange.endDate) {
+    const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
+    
+    filteredReviews = reviews.filter(review => {
+      const reviewDate = new Date(review.publishedAtDate);
+      return reviewDate >= startDate && reviewDate <= endDate;
+    });
+    
+    dateRangeText = `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
+  }
   
   // Add title with appropriate type
   doc.setFontSize(20);
@@ -107,15 +151,20 @@ export const exportToPDF = async (
   doc.setFontSize(16);
   doc.text(businessName, pageWidth / 2, 30, { align: 'center' });
   
-  // Add date
+  // Add date and range information
   doc.setFontSize(12);
   doc.setTextColor(100);
   const today = new Date().toLocaleDateString();
   doc.text(`Generated on: ${today}`, pageWidth / 2, 40, { align: 'center' });
+  
+  if (dateRangeText) {
+    doc.text(`Date Range: ${dateRangeText}`, pageWidth / 2, 48, { align: 'center' });
+  }
+  
   doc.setTextColor(0);
   
   // Keep track of the last Y position
-  let currentY = 50;
+  let currentY = dateRangeText ? 58 : 50;
   
   // For AI reports, prioritize getting the AI-generated overall analysis
   if (isAIReport) {
@@ -123,7 +172,7 @@ export const exportToPDF = async (
       // Clear cache to force fresh analysis
       localStorage.removeItem("analysis_cache_key");
       
-      const overallAnalysis = await getOverallAnalysis(reviews);
+      const overallAnalysis = await getOverallAnalysis(filteredReviews);
       if (overallAnalysis) {
         doc.setFontSize(14);
         doc.setTextColor(0, 102, 204);
@@ -131,11 +180,24 @@ export const exportToPDF = async (
         currentY += 10;
         doc.setTextColor(0);
         
-        // Split the analysis into lines that fit the page width
-        const textLines = doc.splitTextToSize(overallAnalysis, pageWidth - 28);
+        // Format the analysis into sections
+        const sections = formatAIAnalysisForPDF(overallAnalysis);
+        
         doc.setFontSize(12);
-        doc.text(textLines, 14, currentY);
-        currentY += textLines.length * 7 + 15;
+        
+        // Add each section with proper spacing
+        for (const section of sections) {
+          // Check if we need a page break
+          if (currentY > doc.internal.pageSize.getHeight() - 20) {
+            doc.addPage();
+            currentY = 20;
+          }
+          
+          // Split the section into lines that fit the page width
+          const textLines = doc.splitTextToSize(section, pageWidth - 28);
+          doc.text(textLines, 14, currentY);
+          currentY += textLines.length * 7 + 15;
+        }
         
         // Add a separator
         doc.setDrawColor(200, 200, 200);
@@ -158,9 +220,9 @@ export const exportToPDF = async (
   doc.text('Overview', 14, currentY);
   currentY += 10;
   
-  const totalReviews = reviews.length;
-  const averageRating = calculateAverageRating(reviews);
-  const reviewsByRating = countReviewsByRating(reviews);
+  const totalReviews = filteredReviews.length;
+  const averageRating = calculateAverageRating(filteredReviews);
+  const reviewsByRating = countReviewsByRating(filteredReviews);
   
   // Create a grid for the overview cards
   const cardWidth = (pageWidth - 30) / 3;
@@ -197,7 +259,7 @@ export const exportToPDF = async (
   currentY += 10;
   
   // Create a simplified chart representation
-  const monthlyData = groupReviewsByMonth(reviews);
+  const monthlyData = groupReviewsByMonth(filteredReviews);
   const chartData = [];
   
   for (const item of monthlyData) {
@@ -222,7 +284,7 @@ export const exportToPDF = async (
   currentY += 10;
   
   // Sentiment Analysis
-  const sentimentData = analyzeReviewSentiment_sync(reviews);
+  const sentimentData = analyzeReviewSentiment_sync(filteredReviews);
   const sentimentRows = sentimentData.map(item => [item.name, item.value.toString()]);
   
   const sentimentResult = autoTable(doc, {
@@ -242,7 +304,7 @@ export const exportToPDF = async (
   doc.text('Review Languages', 14, currentY);
   currentY += 10;
   
-  const languageData = countReviewsByLanguage(reviews);
+  const languageData = countReviewsByLanguage(filteredReviews);
   const languageRows = languageData.map(item => [item.name, item.value.toString()]);
   
   const languageResult = autoTable(doc, {
@@ -262,7 +324,7 @@ export const exportToPDF = async (
   doc.text('Staff Mentioned in Reviews', 14, currentY);
   currentY += 10;
   
-  const staffMentions = extractStaffMentions_sync(reviews);
+  const staffMentions = extractStaffMentions_sync(filteredReviews);
   const staffRows = staffMentions.map(item => [
     item.name, 
     item.count.toString(), 
@@ -292,17 +354,18 @@ export const exportToPDF = async (
   doc.text('Common Terms', 14, currentY);
   currentY += 10;
   
-  const commonTerms = extractCommonTerms_sync(reviews);
+  const commonTerms = extractCommonTerms_sync(filteredReviews);
   const termRows = commonTerms.slice(0, 10).map(item => [
     item.text, 
     item.count.toString(), 
-    `${((item.count / reviews.length) * 100).toFixed(1)}%`
+    item.category || "General",
+    `${((item.count / filteredReviews.length) * 100).toFixed(1)}%`
   ]);
   
   if (termRows.length > 0) {
     const termsResult = autoTable(doc, {
       startY: currentY,
-      head: [['Term', 'Count', '% of Reviews']],
+      head: [['Term', 'Count', 'Category', '% of Reviews']],
       body: termRows,
       theme: 'grid',
       headStyles: { fillColor: [66, 135, 245] },
@@ -332,5 +395,6 @@ export const exportToPDF = async (
   
   // Save the PDF with appropriate filename
   const reportType = isAIReport ? 'AI_Report' : 'Dashboard';
-  doc.save(`${businessName.replace(/\s+/g, '_')}_${reportType}_${today.replace(/\//g, '-')}.pdf`);
+  const dateRangeSuffix = dateRangeText ? `_${dateRangeText.replace(/\//g, '-').replace(/ to /g, '_to_')}` : '';
+  doc.save(`${businessName.replace(/\s+/g, '_')}_${reportType}${dateRangeSuffix}_${today.replace(/\//g, '-')}.pdf`);
 };

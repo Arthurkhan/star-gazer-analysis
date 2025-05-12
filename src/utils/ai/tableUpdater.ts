@@ -21,7 +21,7 @@ export const updateReviewsWithAnalysis = async (
       };
     }
 
-    // Clear cache to force fresh analysis
+    // Clear local storage cache to force fresh analysis
     localStorage.removeItem("analysis_cache_key");
 
     // Call the Edge Function to get individual review analyses
@@ -101,9 +101,8 @@ export const analyzeAndUpdateTable = async (
   
   try {
     // Show notification
-    toast.info(`Starting analysis of ${reviews.length} reviews`, {
-      description: "This may take a moment to complete",
-      duration: 3000
+    const toastId = toast.loading(`Starting analysis of ${reviews.length} reviews`, {
+      description: "This may take a moment to complete"
     });
     
     // Clear cache to force fresh analysis
@@ -114,6 +113,7 @@ export const analyzeAndUpdateTable = async (
     
     if (!result.success) {
       toast.error("Analysis failed", {
+        id: toastId,
         description: result.message,
         duration: 4000
       });
@@ -126,6 +126,7 @@ export const analyzeAndUpdateTable = async (
     
     // Show success notification
     toast.success("Analysis completed", {
+      id: toastId,
       description: `Successfully updated ${result.updatedCount} reviews with AI insights`,
       duration: 4000
     });

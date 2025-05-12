@@ -79,19 +79,34 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       
       IMPORTANT GUIDELINES FOR TERM CATEGORIZATION:
       - Group similar terms together (e.g., "great food", "delicious food", "tasty dishes" should be grouped under a common term)
-      - Be specific with categories - don't overuse "Others" category
+      - Be specific with categories - don't use "Others" category
       - For Little Prince Theme category, include any terms related to the book, characters, or story elements
       - For Art Gallery category, include terms related to exhibitions, artwork, installations
       - Ensure terms are evenly distributed across categories rather than having one dominant category
       
       IMPORTANT GUIDELINES FOR OVERALL ANALYSIS:
-      - Format your analysis with bullet points and clear paragraphs
-      - Use headings for different sections such as "Key Strengths", "Areas for Improvement", "Staff Impact", etc.
-      - Present information in a scannable, easy-to-read format
-      - Highlight the most important insights at the beginning
-      - For numerical data, use percentages when appropriate
-      - Keep sentences concise and avoid overly complex language
+      - Format your analysis into these clear sections with emojis:
+        * 📊 PERFORMANCE SNAPSHOT
+          - Include average rating, total review count, review period dates (if available)
+          - Monthly average reviews (if timespan data is available)
+        * 📈 TREND ANALYSIS
+          - Current period reviews compared to previous period (with percentage change)
+          - Overall sentiment trends
+        * 🗣️ CUSTOMER HIGHLIGHTS
+          - Top 3-5 most mentioned categories with specific examples
+          - Staff impact on experience (if relevant)
+        * 🌍 AUDIENCE INSIGHTS
+          - Languages breakdown with percentages
+          - International appeal assessment
+        * 🎯 RECOMMENDATIONS
+          - 3-5 specific and actionable suggestions based on review data
+          - Prioritize by potential impact
+      - Use bullet points for all lists to enhance readability
+      - Use specific percentages and numbers when available (e.g., "70% of reviews mention...")
+      - Avoid vague terms like "others" - always be specific about categories
+      - Provide specific, actionable recommendations rather than generic advice
       - Organize information in a logical flow
+      - Highlight insights that can directly impact business decisions
     `;
   }
 }
@@ -99,7 +114,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
 // System message that instructs the AI about the task
 export function getSystemMessage(fullAnalysis: boolean) {
   return fullAnalysis
-    ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name, consolidating variations of the same name, and analyzing sentiment about them. You're also skilled at categorizing review themes into meaningful groups and providing actionable business intelligence. Format your analysis with bullet points, clear paragraphs, and section headings to make it easy to read. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
+    ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name, consolidating variations of the same name, and analyzing sentiment about them. You're also skilled at categorizing review themes into meaningful groups and providing actionable business intelligence. Format your analysis with clear section headers, emojis, bullet points, and specific metrics to make it easy to read. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
     : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name, consolidating variations of the same name. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
 }
 
@@ -109,21 +124,30 @@ export function parseAIResponse(data: any, provider: string) {
     if (provider === "anthropic") {
       return JSON.parse(data.content[0].text);
     } else if (provider === "gemini") {
-      return JSON.parse(data.candidates[0].content.parts[0].text);
+      // Clean potential markdown formatting from the content
+      let content = data.candidates[0].content.parts[0].text;
+      
+      // Remove markdown code blocks if present
+      if (content.includes("```json") && content.includes("```")) {
+        content = content.replace(/```json/g, "").replace(/```/g, "");
+      }
+      
+      // Remove any remaining backticks just in case
+      content = content.replace(/`/g, "");
+      
+      // Parse the cleaned JSON
+      return JSON.parse(content);
     } else { // OpenAI
       // Clean potential markdown formatting from the content
       let content = data.choices[0].message.content;
       
       // Remove markdown code blocks if present
-      if (content.startsWith("```") && content.endsWith("```")) {
-        const lines = content.split("\n");
-        lines.shift(); // Remove first line with ```json or ```
-        lines.pop();   // Remove last line with ```
-        content = lines.join("\n");
+      if (content.includes("```json") && content.includes("```")) {
+        content = content.replace(/```json/g, "").replace(/```/g, "");
       }
       
       // Remove any remaining backticks just in case
-      content = content.replace(/```/g, "");
+      content = content.replace(/`/g, "");
       
       // Parse the cleaned JSON
       return JSON.parse(content);
@@ -156,9 +180,23 @@ export function formatOverallAnalysis(analysis: string): string {
   // but we'll ensure it's properly formatted here as well
   let formattedAnalysis = analysis;
   
-  // Add paragraph breaks if they don't exist
-  if (!formattedAnalysis.includes('\n\n') && !formattedAnalysis.includes('• ')) {
-    formattedAnalysis = formattedAnalysis.replace(/\. ([A-Z])/g, '.\n\n$1');
+  // Convert sections to proper headings if not already
+  if (!formattedAnalysis.includes('📊 PERFORMANCE SNAPSHOT')) {
+    // Add emojis to section headings if missing
+    formattedAnalysis = formattedAnalysis
+      .replace(/PERFORMANCE SNAPSHOT/g, '📊 PERFORMANCE SNAPSHOT')
+      .replace(/TREND ANALYSIS/g, '📈 TREND ANALYSIS')
+      .replace(/CUSTOMER HIGHLIGHTS/g, '🗣️ CUSTOMER HIGHLIGHTS')
+      .replace(/AUDIENCE INSIGHTS/g, '🌍 AUDIENCE INSIGHTS')
+      .replace(/RECOMMENDATIONS/g, '🎯 RECOMMENDATIONS');
+  }
+  
+  // Ensure proper spacing between sections
+  formattedAnalysis = formattedAnalysis.replace(/\n(📊|📈|🗣️|🌍|🎯)/g, '\n\n$1');
+  
+  // Format bullet points if needed
+  if (!formattedAnalysis.includes('• ') && !formattedAnalysis.includes('- ')) {
+    formattedAnalysis = formattedAnalysis.replace(/([.?!])\s+([A-Z])/g, '$1\n• $2');
   }
   
   return formattedAnalysis;

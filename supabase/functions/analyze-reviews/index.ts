@@ -6,7 +6,8 @@ import {
   getSystemMessage, 
   parseAIResponse, 
   createCompleteAnalysis,
-  extractIndividualReviewAnalysis 
+  extractIndividualReviewAnalysis,
+  formatOverallAnalysis 
 } from "./prompt-utils.ts";
 import { testApiKey, getApiKeyAndModel } from "./api-key-manager.ts";
 
@@ -75,6 +76,11 @@ serve(async (req) => {
       // Parse the response
       const analysis = parseAIResponse(data, analysisProvider);
       
+      // Format the overall analysis for better readability
+      if (analysis.overallAnalysis) {
+        analysis.overallAnalysis = formatOverallAnalysis(analysis.overallAnalysis);
+      }
+      
       // Create individual review analyses for database updates
       const reviewAnalyses = reviews.map(review => {
         const individualAnalysis = extractIndividualReviewAnalysis(review, analysis);
@@ -95,18 +101,32 @@ serve(async (req) => {
     }
     
     // Standard analysis mode
-    const { reviews, provider: analysisProvider, fullAnalysis = true } = requestData;
+    const { reviews, provider: analysisProvider, fullAnalysis = true, dateRange } = requestData;
     
     // Get the appropriate API key and model
     const { apiKey, model } = getApiKeyAndModel(analysisProvider);
     
     console.log(`Analyzing ${reviews.length} reviews with ${analysisProvider} model: ${model}`);
     
+    // Filter reviews by date range if provided
+    let filteredReviews = reviews;
+    if (dateRange && dateRange.startDate && dateRange.endDate) {
+      const startDate = new Date(dateRange.startDate);
+      const endDate = new Date(dateRange.endDate);
+      
+      filteredReviews = reviews.filter(review => {
+        const reviewDate = new Date(review.publishedAtDate);
+        return reviewDate >= startDate && reviewDate <= endDate;
+      });
+      
+      console.log(`Filtered reviews by date range: ${filteredReviews.length} reviews remain`);
+    }
+    
     // Get custom prompt if available
     const customPrompt = Deno.env.get("OPENAI_CUSTOM_PROMPT");
     
     // Create the prompt for AI with the review data
-    const prompt = generatePrompt(reviews, fullAnalysis, customPrompt);
+    const prompt = generatePrompt(filteredReviews, fullAnalysis, customPrompt);
     
     // Get system message
     const systemMessage = getSystemMessage(fullAnalysis);
@@ -129,6 +149,11 @@ serve(async (req) => {
 
     // Parse the response accordingly
     const analysis = parseAIResponse(data, analysisProvider);
+
+    // Format the overall analysis for better readability
+    if (analysis.overallAnalysis) {
+      analysis.overallAnalysis = formatOverallAnalysis(analysis.overallAnalysis);
+    }
 
     // If this is a partial analysis, return a complete structure 
     // with empty arrays for the parts not analyzed

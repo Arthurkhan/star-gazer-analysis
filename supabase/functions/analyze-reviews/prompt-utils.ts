@@ -18,15 +18,27 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       Please provide:
       1. A sentiment breakdown with exact counts for positive, neutral, and negative reviews
       2. A detailed list of staff members mentioned in the reviews with:
-         - The exact name of each staff member as mentioned in reviews
+         - The exact name of each staff member as mentioned in reviews (combine similar names like Anna/Ana/Anne to the most common version)
          - The count of distinct mentions
          - Overall sentiment toward each staff member (positive/neutral/negative)
          - 2-3 exact quotes from reviews that mention each staff member
-      3. Common terms/themes mentioned in reviews with their frequency
-      4. A brief overall analysis of the review trends
+      3. Common terms/themes mentioned in reviews with their frequency, grouped into these categories:
+         - Service (staff behavior, customer service, waiting time)
+         - Ambiance (atmosphere, decor, environment, music, lighting)
+         - Food & Drinks (taste, menu options, presentation, quality)
+         - Value (pricing, portion size, value for money)
+         - Cleanliness (hygiene, tidiness)
+         - Location (accessibility, parking, area)
+         - Special Features (unique offerings, events, art, exhibitions)
+      4. A comprehensive analysis of the review trends including:
+         - How reviews have evolved over time (improving/declining/steady)
+         - Key strengths consistently mentioned
+         - Areas that might need improvement
+         - Any seasonal patterns if visible
+         - Impact of specific staff members on customer satisfaction
       ` : `
       FOCUS ONLY ON STAFF MENTIONS in these reviews. Please identify:
-      - The exact name of each staff member mentioned in reviews
+      - The exact name of each staff member mentioned in reviews (combine similar names like Anna/Ana/Anne to the most common version)
       - The count of distinct mentions for each staff member
       - Overall sentiment toward each staff member (positive/neutral/negative)
       - 2-3 exact quotes from reviews that mention each staff member
@@ -37,7 +49,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       {
         "sentimentAnalysis": [{"name": "Positive", "value": number}, {"name": "Neutral", "value": number}, {"name": "Negative", "value": number}],
         "staffMentions": [{"name": "staff name", "count": number, "sentiment": "positive"|"neutral"|"negative", "examples": ["example quote 1", "example quote 2"]}, ...],
-        "commonTerms": [{"text": "term", "count": number}, ...],
+        "commonTerms": [{"text": "term", "count": number, "category": "Service|Ambiance|Food & Drinks|Value|Cleanliness|Location|Special Features"}, ...],
         "overallAnalysis": "text analysis"
       }
       ` : `
@@ -48,6 +60,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       
       IMPORTANT GUIDELINES FOR STAFF EXTRACTION:
       - Only include actual staff members (people working at the business), not generic mentions like "staff" or "server"
+      - Consolidate variations of the same name (e.g., Sam/Samantha/Sammy → Sam, Ana/Anna/Anne → Anna)
       - For each staff member, include exact quotes from reviews where they are mentioned
       - If someone seems to be a customer rather than staff, do not include them
       - If no staff are mentioned by name in any review, return an empty array for staffMentions
@@ -60,8 +73,8 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
 // System message that instructs the AI about the task
 export function getSystemMessage(fullAnalysis: boolean) {
   return fullAnalysis
-    ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name and analyzing sentiment about them. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
-    : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
+    ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name, consolidating variations of the same name, and analyzing sentiment about them. You're also skilled at categorizing review themes into meaningful groups. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
+    : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name, consolidating variations of the same name. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
 }
 
 // Parse the AI response according to provider
@@ -116,11 +129,21 @@ export function extractIndividualReviewAnalysis(review: any, analysisResults: an
   let staffMentioned = "";
   let mainThemes = "";
   
-  // Determine sentiment based on review rating
-  if (review.star >= 4) {
-    sentiment = "positive";
-  } else if (review.star <= 2) {
-    sentiment = "negative";
+  // Determine sentiment based on review rating or AI analysis
+  if (analysisResults.sentimentAnalysis) {
+    // Try to use AI sentiment if available
+    if (review.star >= 4) {
+      sentiment = "positive";
+    } else if (review.star <= 2) {
+      sentiment = "negative";
+    }
+  } else {
+    // Use rating-based sentiment as fallback
+    if (review.star >= 4) {
+      sentiment = "positive";
+    } else if (review.star <= 2) {
+      sentiment = "negative";
+    }
   }
   
   // Check if staff are mentioned in this specific review
@@ -133,7 +156,7 @@ export function extractIndividualReviewAnalysis(review: any, analysisResults: an
       if (staff.examples && staff.examples.length > 0) {
         for (const example of staff.examples) {
           if (review.text.includes(example) || 
-              (review.translatedText && review.translatedText.includes(example))) {
+              (review.textTranslated && review.textTranslated.includes(example))) {
             mentionedStaff.push(staff.name);
             break; // Found a match, no need to check other examples
           }
@@ -145,16 +168,29 @@ export function extractIndividualReviewAnalysis(review: any, analysisResults: an
     staffMentioned = mentionedStaff.join(", ");
   }
   
-  // Extract main themes from the review text
+  // Extract main themes from the review text using AI-identified categories
   if (analysisResults.commonTerms && analysisResults.commonTerms.length > 0) {
     const reviewThemes = [];
     
-    // Check if the review contains any of the common terms
+    // Check if the review contains any of the common terms, prioritizing categories
+    const categories = new Set();
+    
     for (const term of analysisResults.commonTerms) {
-      const termRegex = new RegExp('\\b' + term.text + '\\b', 'i');
-      if (termRegex.test(review.text) || 
-          (review.translatedText && termRegex.test(review.translatedText))) {
-        reviewThemes.push(term.text);
+      const termRegex = new RegExp('\\b' + term.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+      
+      if ((review.text && termRegex.test(review.text)) || 
+          (review.textTranslated && termRegex.test(review.textTranslated))) {
+        
+        // Add the category if it exists, otherwise the term itself
+        if (term.category) {
+          // Only add the category if we haven't added it yet (avoid duplicates)
+          if (!categories.has(term.category)) {
+            categories.add(term.category);
+            reviewThemes.push(`${term.category}: ${term.text}`);
+          }
+        } else {
+          reviewThemes.push(term.text);
+        }
       }
       
       // Limit to top 5 themes
@@ -171,4 +207,3 @@ export function extractIndividualReviewAnalysis(review: any, analysisResults: an
     mainThemes
   };
 }
-

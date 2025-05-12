@@ -1,28 +1,28 @@
 
+// Define allowed table names explicitly to match Supabase structure
+export type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
+
 export interface Review {
-  name: string;
-  title: string;
   star: number;
-  originalLanguage: string;
+  name: string;
   text: string;
   textTranslated?: string;
-  responseFromOwnerText?: string;
+  title?: string;
   publishedAtDate: string;
   reviewUrl: string;
-  sentiment?: string;
+  originalLanguage?: string;
+  responseFromOwnerText?: string;
+  sentiment?: string; 
   staffMentioned?: string;
   mainThemes?: string;
   "common terms"?: string;
 }
 
-export interface BusinessInfo {
-  name: string;
-  count: number;
-}
-
 export interface BusinessData {
-  allBusinesses: BusinessInfo;
-  businesses: Record<string, BusinessInfo>;
+  id: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
 }
 
 export interface SentimentData {
@@ -56,7 +56,7 @@ export interface StaffMention {
   name: string;
   count: number;
   sentiment: "positive" | "negative" | "neutral";
-  examples?: string[]; // Added the examples property as optional
+  examples?: string[];
 }
 
 export interface InsightsData {
@@ -65,6 +65,3 @@ export interface InsightsData {
   ratingTrend: "up" | "down" | "neutral";
   commonThemes: ThemeData[];
 }
-
-// Define allowed table names explicitly to match Supabase structure
-export type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";

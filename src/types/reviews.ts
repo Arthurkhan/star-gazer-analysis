@@ -5,10 +5,14 @@ export interface Review {
   star: number;
   originalLanguage: string;
   text: string;
-  translatedText?: string;
+  textTranslated?: string;
   responseFromOwnerText?: string;
   publishedAtDate: string;
   reviewUrl: string;
+  sentiment?: string;
+  staffMentioned?: string;
+  mainThemes?: string;
+  "common terms"?: string;
 }
 
 export interface BusinessInfo {
@@ -34,7 +38,7 @@ export interface LanguageData {
 export interface MonthlyReviewData {
   month: string;
   count: number;
-  cumulativeCount?: number;
+  cumulativeCount: number;
 }
 
 export interface ThemeData {
@@ -61,3 +65,6 @@ export interface InsightsData {
   ratingTrend: "up" | "down" | "neutral";
   commonThemes: ThemeData[];
 }
+
+// Define allowed table names explicitly to match Supabase structure
+export type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";

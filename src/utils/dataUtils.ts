@@ -9,7 +9,6 @@ import {
   TrendPoint,
   StaffMention
 } from "@/types/reviews";
-import { getAnalysis } from "@/utils/openaiAnalysis";
 
 // Calculate average rating from reviews
 export const calculateAverageRating = (reviews: Review[]): number => {
@@ -59,6 +58,7 @@ export const groupReviewsByMonth = (reviews: Review[]): MonthlyReviewData[] => {
     result.push({
       month: key,
       count: value.count,
+      cumulativeCount: 0, // Will be calculated next
     });
   });
   
@@ -132,41 +132,35 @@ export const calculateMonthlyComparison = (reviews: Review[]): {
   };
 };
 
-// Analyze sentiment based on star ratings with OpenAI enhancement
-export const analyzeReviewSentiment = async (reviews: Review[]): Promise<SentimentData[]> => {
-  try {
-    // Try to get OpenAI analysis first
-    const analysis = await getAnalysis(reviews);
-    if (analysis && analysis.sentimentAnalysis && analysis.sentimentAnalysis.length > 0) {
-      return analysis.sentimentAnalysis;
-    }
-  } catch (error) {
-    console.error("Error getting OpenAI sentiment analysis, falling back to basic analysis:", error);
-  }
+// Analyze sentiment from the database "sentiment" column
+export const analyzeReviewSentiment_sync = (reviews: Review[]): SentimentData[] => {
+  const sentimentCounts: Record<string, number> = { 
+    'positive': 0, 
+    'neutral': 0, 
+    'negative': 0 
+  };
   
-  // Fallback to basic rating-based sentiment analysis
-  const positive = reviews.filter(r => r.star >= 4).length;
-  const neutral = reviews.filter(r => r.star === 3).length;
-  const negative = reviews.filter(r => r.star <= 2).length;
+  reviews.forEach(review => {
+    const sentiment = review.sentiment?.toLowerCase() || 'neutral';
+    if (sentiment.includes('positive')) {
+      sentimentCounts['positive']++;
+    } else if (sentiment.includes('negative')) {
+      sentimentCounts['negative']++;
+    } else {
+      sentimentCounts['neutral']++;
+    }
+  });
   
   return [
-    { name: "Positive", value: positive },
-    { name: "Neutral", value: neutral },
-    { name: "Negative", value: negative },
+    { name: "Positive", value: sentimentCounts['positive'] },
+    { name: "Neutral", value: sentimentCounts['neutral'] },
+    { name: "Negative", value: sentimentCounts['negative'] },
   ];
 };
 
-// For backward compatibility with synchronous code
-export const analyzeReviewSentiment_sync = (reviews: Review[]): SentimentData[] => {
-  const positive = reviews.filter(r => r.star >= 4).length;
-  const neutral = reviews.filter(r => r.star === 3).length;
-  const negative = reviews.filter(r => r.star <= 2).length;
-  
-  return [
-    { name: "Positive", value: positive },
-    { name: "Neutral", value: neutral },
-    { name: "Negative", value: negative },
-  ];
+// Async version for compatibility
+export const analyzeReviewSentiment = async (reviews: Review[]): Promise<SentimentData[]> => {
+  return analyzeReviewSentiment_sync(reviews);
 };
 
 // Count reviews by language
@@ -174,7 +168,7 @@ export const countReviewsByLanguage = (reviews: Review[]): LanguageData[] => {
   const languageCounts: Record<string, number> = {};
   
   reviews.forEach(review => {
-    const language = review.originalLanguage;
+    const language = review.originalLanguage || 'Unknown';
     languageCounts[language] = (languageCounts[language] || 0) + 1;
   });
   
@@ -184,96 +178,166 @@ export const countReviewsByLanguage = (reviews: Review[]): LanguageData[] => {
     .sort((a, b) => b.value - a.value);
 };
 
-// Extract staff mentions from reviews using OpenAI
-export const extractStaffMentions = async (reviews: Review[]): Promise<StaffMention[]> => {
-  try {
-    console.log("Attempting to extract staff mentions from", reviews.length, "reviews");
-    // Try to get OpenAI analysis first
-    const analysis = await getAnalysis(reviews);
-    console.log("Staff mentions from OpenAI:", analysis.staffMentions);
-    
-    if (analysis && analysis.staffMentions && analysis.staffMentions.length > 0) {
-      return analysis.staffMentions;
-    }
-    
-    console.log("No staff mentions found in OpenAI analysis");
-  } catch (error) {
-    console.error("Error getting OpenAI staff mentions, falling back to empty staff list:", error);
-  }
-  
-  // If OpenAI analysis fails or no staff are found, return empty array instead of mock data
-  return [];
-};
-
-// For backward compatibility with synchronous code - now returns empty array instead of fake data
+// Extract staff mentions from "staffMentioned" column
 export const extractStaffMentions_sync = (reviews: Review[]): StaffMention[] => {
-  // Return empty array instead of fake data
-  return [];
-};
-
-// Extract common terms from reviews using OpenAI
-export const extractCommonTerms = async (reviews: Review[]): Promise<{text: string, count: number}[]> => {
-  try {
-    // Try to get OpenAI analysis first
-    const analysis = await getAnalysis(reviews);
-    if (analysis && analysis.commonTerms && analysis.commonTerms.length > 0) {
-      return analysis.commonTerms;
-    }
-  } catch (error) {
-    console.error("Error getting OpenAI common terms, falling back to basic analysis:", error);
-  }
+  const staffMap: Record<string, { count: number, sentiment: string, examples: string[] }> = {};
   
-  // Fallback to mock data for common terms
-  return [
-    { text: "service", count: Math.floor(Math.random() * 15) + 15 },
-    { text: "food", count: Math.floor(Math.random() * 15) + 10 },
-    { text: "atmosphere", count: Math.floor(Math.random() * 10) + 10 },
-    { text: "staff", count: Math.floor(Math.random() * 10) + 8 },
-    { text: "price", count: Math.floor(Math.random() * 8) + 5 },
-    { text: "quality", count: Math.floor(Math.random() * 8) + 5 },
-    { text: "experience", count: Math.floor(Math.random() * 7) + 5 },
-    { text: "recommend", count: Math.floor(Math.random() * 6) + 4 },
-    { text: "ambiance", count: Math.floor(Math.random() * 6) + 3 },
-    { text: "excellent", count: Math.floor(Math.random() * 5) + 3 },
-  ].sort((a, b) => b.count - a.count);
+  reviews.forEach(review => {
+    if (!review.staffMentioned) return;
+    
+    // Split by commas or semicolons if multiple staff are mentioned
+    const staffNames = review.staffMentioned.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+    
+    staffNames.forEach(staffName => {
+      if (!staffName) return;
+      
+      if (!staffMap[staffName]) {
+        staffMap[staffName] = { count: 0, sentiment: 'neutral', examples: [] };
+      }
+      
+      staffMap[staffName].count++;
+      
+      // Determine sentiment based on review sentiment
+      if (review.sentiment?.toLowerCase().includes('positive')) {
+        staffMap[staffName].sentiment = 'positive';
+      } else if (review.sentiment?.toLowerCase().includes('negative')) {
+        staffMap[staffName].sentiment = 'negative';
+      }
+      
+      // Add review text as example if not already present
+      if (review.text && !staffMap[staffName].examples.includes(review.text)) {
+        if (staffMap[staffName].examples.length < 3) { // Limit to 3 examples
+          staffMap[staffName].examples.push(review.text);
+        }
+      }
+    });
+  });
+  
+  // Convert to array and sort by count
+  return Object.entries(staffMap)
+    .map(([name, data]) => ({
+      name,
+      count: data.count,
+      sentiment: data.sentiment as "positive" | "negative" | "neutral",
+      examples: data.examples
+    }))
+    .sort((a, b) => b.count - a.count);
 };
 
-// For backward compatibility with synchronous code
+// Async version for compatibility
+export const extractStaffMentions = async (reviews: Review[]): Promise<StaffMention[]> => {
+  return extractStaffMentions_sync(reviews);
+};
+
+// Extract common terms from the "mainThemes" and "common terms" columns
 export const extractCommonTerms_sync = (reviews: Review[]): {text: string, count: number}[] => {
-  return [
-    { text: "service", count: Math.floor(Math.random() * 15) + 15 },
-    { text: "food", count: Math.floor(Math.random() * 15) + 10 },
-    { text: "atmosphere", count: Math.floor(Math.random() * 10) + 10 },
-    { text: "staff", count: Math.floor(Math.random() * 10) + 8 },
-    { text: "price", count: Math.floor(Math.random() * 8) + 5 },
-    { text: "quality", count: Math.floor(Math.random() * 8) + 5 },
-    { text: "experience", count: Math.floor(Math.random() * 7) + 5 },
-    { text: "recommend", count: Math.floor(Math.random() * 6) + 4 },
-    { text: "ambiance", count: Math.floor(Math.random() * 6) + 3 },
-    { text: "excellent", count: Math.floor(Math.random() * 5) + 3 },
-  ].sort((a, b) => b.count - a.count);
+  // Create a map to merge similar terms and count occurrences
+  const termsMap: Record<string, number> = {};
+  
+  reviews.forEach(review => {
+    // Process mainThemes
+    if (review.mainThemes) {
+      const themes = review.mainThemes.split(/[,;]/).map(t => t.trim().toLowerCase()).filter(Boolean);
+      themes.forEach(theme => {
+        termsMap[theme] = (termsMap[theme] || 0) + 1;
+      });
+    }
+    
+    // Process common terms - using camelCase for TS compatibility
+    if (review["common terms"]) {
+      const terms = review["common terms"].split(/[,;]/).map(t => t.trim().toLowerCase()).filter(Boolean);
+      terms.forEach(term => {
+        termsMap[term] = (termsMap[term] || 0) + 1;
+      });
+    }
+  });
+  
+  // Intelligently group similar terms
+  const groupedTerms: Record<string, number> = {};
+  
+  // Define term categories for grouping
+  const categories: Record<string, string[]> = {
+    'service': ['service', 'staff', 'waiter', 'waitress', 'server', 'customer service', 'employee'],
+    'ambiance': ['ambiance', 'atmosphere', 'decor', 'environment', 'vibe', 'interior', 'mood', 'lighting'],
+    'location': ['location', 'place', 'area', 'neighborhood', 'parking', 'accessibility'],
+    'art': ['art', 'artwork', 'exhibition', 'gallery', 'artist', 'painting', 'sculpture', 'creative'],
+    'the little prince': ['little prince', 'prince', 'exupery', 'fox', 'rose', 'planet', 'book theme'],
+    'f&b': ['food', 'drink', 'menu', 'dish', 'meal', 'taste', 'flavor', 'coffee', 'wine', 'cocktail', 'dessert', 'appetizer']
+  };
+  
+  // Group terms by category
+  Object.entries(termsMap).forEach(([term, count]) => {
+    let categorized = false;
+    
+    for (const [category, relatedTerms] of Object.entries(categories)) {
+      if (relatedTerms.some(related => term.includes(related) || related.includes(term))) {
+        groupedTerms[category] = (groupedTerms[category] || 0) + count;
+        categorized = true;
+        break;
+      }
+    }
+    
+    if (!categorized) {
+      groupedTerms['others'] = (groupedTerms['others'] || 0) + count;
+    }
+  });
+  
+  // Convert to array and sort by count
+  return Object.entries(groupedTerms)
+    .map(([text, count]) => ({ text: text.charAt(0).toUpperCase() + text.slice(1), count }))
+    .sort((a, b) => b.count - a.count);
 };
 
-// Get overall analysis from OpenAI
+// Async version for compatibility
+export const extractCommonTerms = async (reviews: Review[]): Promise<{text: string, count: number}[]> => {
+  return extractCommonTerms_sync(reviews);
+};
+
+// Get overall analysis based on sentiment distribution and common themes
 export const getOverallAnalysis = async (reviews: Review[]): Promise<string> => {
-  try {
-    // Try to get OpenAI analysis first
-    const analysis = await getAnalysis(reviews);
-    if (analysis && analysis.overallAnalysis) {
-      return analysis.overallAnalysis;
-    }
-  } catch (error) {
-    console.error("Error getting OpenAI overall analysis, falling back to basic analysis:", error);
+  const sentimentData = analyzeReviewSentiment_sync(reviews);
+  const avgRating = calculateAverageRating(reviews);
+  const staffMentions = extractStaffMentions_sync(reviews);
+  const commonTerms = extractCommonTerms_sync(reviews);
+  
+  // Calculate positive percentage
+  const totalReviews = reviews.length;
+  const positiveReviews = sentimentData.find(item => item.name === "Positive")?.value || 0;
+  const positivePercentage = totalReviews > 0 ? (positiveReviews / totalReviews * 100).toFixed(1) : "0";
+  
+  // Build overall analysis message
+  let analysis = `Based on ${totalReviews} reviews, ${positivePercentage}% are positive with an average rating of ${avgRating.toFixed(1)}/5. `;
+  
+  // Add insights about most mentioned terms
+  if (commonTerms.length > 0) {
+    const topTerms = commonTerms.slice(0, 3).map(term => term.text.toLowerCase()).join(", ");
+    analysis += `Customers frequently mention ${topTerms}. `;
   }
   
-  // Fallback to basic analysis
-  const avgRating = calculateAverageRating(reviews);
-  return `Based on ${reviews.length} reviews with an average rating of ${avgRating.toFixed(1)}, the business is ${avgRating >= 4 ? 'performing well' : avgRating >= 3 ? 'performing adequately' : 'underperforming'}.`;
+  // Add insights about staff if available
+  if (staffMentions.length > 0) {
+    const staffWithPositiveFeedback = staffMentions.filter(staff => staff.sentiment === "positive");
+    if (staffWithPositiveFeedback.length > 0) {
+      const topStaff = staffWithPositiveFeedback[0].name;
+      analysis += `${topStaff} received the most positive mentions from customers. `;
+    }
+  }
+  
+  // Add strengths and areas for improvement
+  if (avgRating >= 4.0) {
+    analysis += "Overall, the business is performing well with strong customer satisfaction. ";
+  } else if (avgRating >= 3.0) {
+    analysis += "The business is performing adequately but has room for improvement. ";
+  } else {
+    analysis += "The business should focus on addressing customer concerns to improve satisfaction. ";
+  }
+  
+  return analysis;
 };
 
 // Analyze reviews for insights
 export const analyzeReviewInsights = (reviews: Review[]): InsightsData => {
-  // Generate trend data
+  // Generate trend data by quarter
   const trendData: TrendPoint[] = [];
   
   // Group reviews by quarter
@@ -338,29 +402,40 @@ export const analyzeReviewInsights = (reviews: Review[]): InsightsData => {
     .filter(review => review.star <= 2 && !review.responseFromOwnerText?.trim())
     .slice(0, 3);
   
-  // Mock common themes (in a real app, this would use NLP)
-  const commonThemes: ThemeData[] = [
-    { 
-      text: "Excellent service mentioned in positive reviews", 
-      count: Math.floor(reviews.length * 0.3), 
-      sentiment: "positive" 
-    },
-    { 
-      text: "Atmosphere praised by customers", 
-      count: Math.floor(reviews.length * 0.25), 
-      sentiment: "positive" 
-    },
-    { 
-      text: "Wait times mentioned in negative reviews", 
-      count: Math.floor(reviews.length * 0.15), 
-      sentiment: "negative" 
-    },
-    { 
-      text: "Price mentioned in mixed context", 
-      count: Math.floor(reviews.length * 0.2), 
-      sentiment: "neutral" 
-    },
-  ];
+  // Extract common themes from the database
+  const themeCount: Record<string, { count: number, sentiment: "positive" | "negative" | "neutral" }> = {};
+  
+  reviews.forEach(review => {
+    if (!review.mainThemes) return;
+    
+    const themes = review.mainThemes.split(/[,;]/).map(t => t.trim()).filter(Boolean);
+    const sentiment = review.sentiment?.toLowerCase().includes('positive') 
+      ? "positive" 
+      : review.sentiment?.toLowerCase().includes('negative') 
+        ? "negative" 
+        : "neutral";
+    
+    themes.forEach(theme => {
+      if (!themeCount[theme]) {
+        themeCount[theme] = { count: 0, sentiment: "neutral" };
+      }
+      
+      themeCount[theme].count++;
+      
+      // Update theme sentiment based on review sentiment
+      if (sentiment === "positive" && themeCount[theme].sentiment !== "negative") {
+        themeCount[theme].sentiment = "positive";
+      } else if (sentiment === "negative" && themeCount[theme].sentiment !== "positive") {
+        themeCount[theme].sentiment = "negative";
+      }
+    });
+  });
+  
+  // Convert to ThemeData array and sort by count
+  const commonThemes: ThemeData[] = Object.entries(themeCount)
+    .map(([text, { count, sentiment }]) => ({ text, count, sentiment }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4); // Limit to top 4 themes
   
   return {
     trendData: lastSixQuarters,

@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       "L'Envol Art Space": {
         Row: {
+          "common terms": string | null
           mainThemes: string | null
           name: string
           originalLanguage: string | null
@@ -25,6 +26,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
+          "common terms"?: string | null
           mainThemes?: string | null
           name: string
           originalLanguage?: string | null
@@ -39,6 +41,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
+          "common terms"?: string | null
           mainThemes?: string | null
           name?: string
           originalLanguage?: string | null
@@ -56,6 +59,7 @@ export type Database = {
       }
       "The Little Prince Cafe": {
         Row: {
+          "common terms": string | null
           mainThemes: string | null
           name: string
           originalLanguage: string | null
@@ -70,6 +74,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
+          "common terms"?: string | null
           mainThemes?: string | null
           name: string
           originalLanguage?: string | null
@@ -84,6 +89,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
+          "common terms"?: string | null
           mainThemes?: string | null
           name?: string
           originalLanguage?: string | null
@@ -101,6 +107,7 @@ export type Database = {
       }
       "Vol de Nuit, The Hidden Bar": {
         Row: {
+          "common terms": string | null
           mainThemes: string | null
           name: string
           originalLanguage: string | null
@@ -115,6 +122,7 @@ export type Database = {
           title: string | null
         }
         Insert: {
+          "common terms"?: string | null
           mainThemes?: string | null
           name: string
           originalLanguage?: string | null
@@ -129,6 +137,7 @@ export type Database = {
           title?: string | null
         }
         Update: {
+          "common terms"?: string | null
           mainThemes?: string | null
           name?: string
           originalLanguage?: string | null

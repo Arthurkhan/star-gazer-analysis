@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +11,7 @@ import KeyInsights from "@/components/KeyInsights";
 import MonthlyReport from "@/components/MonthlyReport";
 import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 import { TableAnalysisPanel } from "@/components/TableAnalysisPanel";
-import { Review, BusinessData } from "@/types/reviews";
+import { Review, BusinessData, TableName } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 
 // Define allowed table names explicitly to match Supabase structure
@@ -23,7 +22,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all-reviews");
-  const [availableTables, setAvailableTables] = useState<string[]>([]);
+  const [availableTables, setAvailableTables] = useState<TableName[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<string>(
     localStorage.getItem("selectedBusiness") || "all"
   );
@@ -82,7 +81,6 @@ const Dashboard = () => {
   const fetchAvailableTables = async () => {
     try {
       // We'll use the predefined tables instead of querying for them
-      // since the pg_catalog.pg_tables query is causing TypeScript errors
       const knownTables: TableName[] = [
         "L'Envol Art Space",
         "The Little Prince Cafe", 
@@ -177,7 +175,7 @@ const Dashboard = () => {
         
         try {
           // Use the pagination function to fetch all data
-          const tableData = await fetchTableDataWithPagination(tableName as TableName);
+          const tableData = await fetchTableDataWithPagination(tableName);
           
           if (tableData && tableData.length > 0) {
             // Map the data to our Review type, handling possible column name variations
@@ -187,10 +185,14 @@ const Dashboard = () => {
               star: item.stars || item.star, // Handle both column names
               originalLanguage: item.originalLanguage,
               text: item.text,
-              translatedText: item.textTranslated || item.translatedText, // Handle both column names
+              textTranslated: item.textTranslated, // Match the property name in our type
               responseFromOwnerText: item.responseFromOwnerText,
               publishedAtDate: item.publishedAtDate,
-              reviewUrl: item.reviewUrl
+              reviewUrl: item.reviewUrl,
+              sentiment: item.sentiment,
+              staffMentioned: item.staffMentioned,
+              mainThemes: item.mainThemes,
+              "common terms": item["common terms"]
             }));
             
             allReviews = [...allReviews, ...reviews];

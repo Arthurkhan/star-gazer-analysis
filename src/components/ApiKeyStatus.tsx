@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from "react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, AlertCircleIcon, CheckCircleIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { testApiKey } from "@/utils/ai/aiProviders";
 
 export function ApiKeyStatus() {
   const { toast } = useToast();
@@ -32,19 +31,13 @@ export function ApiKeyStatus() {
         }
         
         // Try to call the Edge Function to verify the API key
-        const { data, error } = await supabase.functions.invoke("analyze-reviews", {
-          body: { 
-            action: "test",
-            provider: aiProvider
-          }
-        });
+        const isValid = await testApiKey(aiProvider);
         
-        if (error) {
-          console.error("Error checking API key:", error);
+        if (!isValid) {
           setApiKeyStatus("missing");
           toast({
             title: `${aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} API Key Error`,
-            description: `Error verifying the ${aiProvider} API key: ${error.message}`,
+            description: `Error verifying the ${aiProvider} API key.`,
             variant: "destructive",
           });
           return;

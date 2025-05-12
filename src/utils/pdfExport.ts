@@ -150,6 +150,132 @@ export const exportToPDF = async (
     }
   }
   
+  // Add a section specifically for sentiment distribution from the database
+  doc.setFontSize(16);
+  doc.text('Sentiment Analysis from Database', 14, currentY);
+  currentY += 10;
+  
+  // Count sentiments from the database columns
+  const dbSentiments = {
+    positive: reviews.filter(r => r.sentiment?.toLowerCase() === 'positive').length,
+    neutral: reviews.filter(r => r.sentiment?.toLowerCase() === 'neutral').length,
+    negative: reviews.filter(r => r.sentiment?.toLowerCase() === 'negative').length,
+    unknown: reviews.filter(r => !r.sentiment).length
+  };
+  
+  // Create sentiment data rows
+  const dbSentimentRows = [
+    ['Positive', dbSentiments.positive.toString()],
+    ['Neutral', dbSentiments.neutral.toString()],
+    ['Negative', dbSentiments.negative.toString()]
+  ];
+  
+  if (dbSentiments.unknown > 0) {
+    dbSentimentRows.push(['Unknown/Not Set', dbSentiments.unknown.toString()]);
+  }
+  
+  const dbSentimentResult = autoTable(doc, {
+    startY: currentY,
+    head: [['Sentiment (from database)', 'Count']],
+    body: dbSentimentRows,
+    theme: 'grid',
+    headStyles: { fillColor: [66, 135, 245] },
+    margin: { left: 14, right: 14 }
+  }) as unknown as AutoTableOutput;
+  
+  // Update the current Y position
+  currentY = (dbSentimentResult?.finalY || currentY) + 15;
+  
+  // Staff Mentions section from database
+  doc.setFontSize(14);
+  doc.text('Staff Mentioned in Reviews (from database)', 14, currentY);
+  currentY += 10;
+  
+  // Extract and group staff mentions from the database column
+  const staffMentionsMap = new Map();
+  
+  reviews.forEach(review => {
+    if (review.staffMentioned) {
+      const staffArray = review.staffMentioned.split(',').map(s => s.trim());
+      staffArray.forEach(staff => {
+        if (staff && staff.length > 0) {
+          if (staffMentionsMap.has(staff)) {
+            staffMentionsMap.set(staff, staffMentionsMap.get(staff) + 1);
+          } else {
+            staffMentionsMap.set(staff, 1);
+          }
+        }
+      });
+    }
+  });
+  
+  // Convert map to array and sort by count
+  const staffMentionsArray = Array.from(staffMentionsMap.entries())
+    .map(([name, count]) => [name, count.toString()])
+    .sort((a, b) => parseInt(b[1]) - parseInt(a[1]));
+  
+  if (staffMentionsArray.length > 0) {
+    const staffResult = autoTable(doc, {
+      startY: currentY,
+      head: [['Staff Name (from database)', 'Mentions']],
+      body: staffMentionsArray,
+      theme: 'grid',
+      headStyles: { fillColor: [66, 135, 245] },
+      margin: { left: 14, right: 14 }
+    }) as unknown as { finalY?: number };
+    
+    currentY = (staffResult?.finalY || currentY) + 15;
+  } else {
+    doc.setFontSize(12);
+    doc.text("No staff mentions found in database", 14, currentY + 10);
+    currentY += 20;
+  }
+  
+  // Main Themes section from database
+  doc.setFontSize(14);
+  doc.text('Main Themes (from database)', 14, currentY);
+  currentY += 10;
+  
+  // Extract and group themes from the database column
+  const themesMap = new Map();
+  
+  reviews.forEach(review => {
+    if (review.mainThemes) {
+      const themesArray = review.mainThemes.split(',').map(t => t.trim());
+      themesArray.forEach(theme => {
+        if (theme && theme.length > 0) {
+          if (themesMap.has(theme)) {
+            themesMap.set(theme, themesMap.get(theme) + 1);
+          } else {
+            themesMap.set(theme, 1);
+          }
+        }
+      });
+    }
+  });
+  
+  // Convert map to array and sort by count
+  const themesArray = Array.from(themesMap.entries())
+    .map(([text, count]) => [text, count.toString()])
+    .sort((a, b) => parseInt(b[1]) - parseInt(a[1]));
+  
+  if (themesArray.length > 0) {
+    const themesResult = autoTable(doc, {
+      startY: currentY,
+      head: [['Theme (from database)', 'Count']],
+      body: themesArray.slice(0, 15), // Show top 15 themes
+      theme: 'grid',
+      headStyles: { fillColor: [66, 135, 245] },
+      margin: { left: 14, right: 14 }
+    }) as unknown as { finalY?: number };
+    
+    currentY = (themesResult?.finalY || currentY) + 15;
+  } else {
+    doc.setFontSize(12);
+    doc.text("No themes found in database", 14, currentY + 10);
+    currentY += 20;
+  }
+  
   // ----- OVERVIEW SECTION -----
   doc.setFontSize(16);
   doc.text('Overview', 14, currentY);

@@ -13,9 +13,9 @@ export function TableAnalysisPanel() {
   return (
     <Card className="shadow-md dark:bg-gray-800 border-0">
       <CardHeader>
-        <CardTitle>AI Review Table Analysis</CardTitle>
+        <CardTitle>AI Review Analysis</CardTitle>
         <CardDescription>
-          Fill sentiment, staff mentions, and main themes columns with AI analysis
+          Analyze sentiment, staff mentions, and main themes from existing columns
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -25,8 +25,9 @@ export function TableAnalysisPanel() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>About this feature</AlertTitle>
           <AlertDescription>
-            This tool will analyze all reviews in the selected table and fill in the new sentiment, staffMentioned, and 
-            mainThemes columns. The process may take several minutes depending on the number of reviews.
+            This tool analyzes the reviews from the selected table using the data already filled in the 
+            sentiment, staffMentioned, and mainThemes columns. It provides insights and visualizations 
+            based on the existing data.
           </AlertDescription>
         </Alert>
         

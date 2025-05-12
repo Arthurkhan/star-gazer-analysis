@@ -68,14 +68,24 @@ export function AiAnalysisCard({
       break;
   }
 
-  // Fetch AI analysis when the selected reviews change
+  // Only trigger analysis when there's a significant change in reviews
+  // Using a ref to store previous review set length to compare
+  const [previousReviewCount, setPreviousReviewCount] = useState(0);
+  
   useEffect(() => {
-    if (selectedReviews.length > 0) {
+    // Only fetch analysis if the review count has changed significantly
+    // or if we don't have an analysis yet but have reviews
+    if (
+      (selectedReviews.length > 0 && Math.abs(selectedReviews.length - previousReviewCount) > 5) || 
+      (selectedReviews.length > 0 && !aiAnalysis && !isAnalysisLoading)
+    ) {
+      setPreviousReviewCount(selectedReviews.length);
       handleRefreshAnalysis();
-    } else {
+    } else if (selectedReviews.length === 0) {
       setAiAnalysis("");
+      setPreviousReviewCount(0);
     }
-  }, [selectedReviews]);
+  }, [selectedReviews.length]);
 
   return (
     <Card>

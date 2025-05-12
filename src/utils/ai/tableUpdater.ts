@@ -1,5 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
+import { TableName } from "@/components/TableAnalysisPanel";
 
 // Interface for the review data from the Edge Function
 interface ReviewAnalysis {
@@ -16,14 +16,14 @@ interface ReviewAnalysis {
  * @returns Object containing success status and counts
  */
 export const updateReviewsTable = async (
-  tableName: string,
+  tableName: TableName,
   reviewAnalyses: ReviewAnalysis[]
 ): Promise<{ success: boolean; updatedCount: number; errors: string[] }> => {
   const errors: string[] = [];
   let updatedCount = 0;
   
   // Validate table name to prevent SQL injection
-  const validTables = ["L'Envol Art Space", "The Little Prince Cafe", "Vol de Nuit, The Hidden Bar"];
+  const validTables: TableName[] = ["L'Envol Art Space", "The Little Prince Cafe", "Vol de Nuit, The Hidden Bar"];
   if (!validTables.includes(tableName)) {
     return {
       success: false,
@@ -82,7 +82,7 @@ export const updateReviewsTable = async (
  * @returns Object with the update results
  */
 export const analyzeAndUpdateTable = async (
-  tableName: string,
+  tableName: TableName,
   reviews: any[]
 ): Promise<{
   success: boolean;

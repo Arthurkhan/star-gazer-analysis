@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -14,16 +13,14 @@ import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 import { TableAnalysisPanel } from "@/components/TableAnalysisPanel";
 import { Review, BusinessData } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
-
-// Define allowed table names explicitly to match Supabase structure
-type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
+import { TableName } from "@/components/TableAnalysisPanel";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all-reviews");
-  const [availableTables, setAvailableTables] = useState<string[]>([]);
+  const [availableTables, setAvailableTables] = useState<TableName[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<string>(
     localStorage.getItem("selectedBusiness") || "all"
   );

@@ -74,6 +74,6 @@ export interface StaffMention {
 }
 
 export interface BusinessData {
-  name: string;
-  reviews: Review[];
+  allBusinesses: { name: string; count: number };
+  businesses: Record<string, { name: string; count: number }>;
 }

@@ -1,4 +1,3 @@
-
 import { Review } from "@/types/reviews";
 
 // Generate a random date within the last 2 years
@@ -100,7 +99,7 @@ const generateMockReviews = (): Review[] => {
       : languages[Math.floor(Math.random() * languages.length)];
     
     // Generate translated text for non-English reviews
-    const translatedText = language !== "English" ? text : undefined;
+    const textTranslated = language !== "English" ? text : undefined;
     
     // Only some reviews have owner responses
     const hasResponse = Math.random() < 0.7;
@@ -128,7 +127,7 @@ const generateMockReviews = (): Review[] => {
       star,
       originalLanguage: language,
       text,
-      translatedText,
+      textTranslated,
       responseFromOwnerText,
       publishedAtDate: publishedDate,
       reviewUrl: `https://maps.google.com/review/r${i}`,

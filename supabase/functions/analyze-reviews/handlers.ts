@@ -109,3 +109,17 @@ export async function callGemini(apiKey: string, model: string, systemMessage: s
 
   return await response.json();
 }
+
+// Get the custom prompt from environment
+export async function getCustomPrompt() {
+  const customPrompt = Deno.env.get("OPENAI_CUSTOM_PROMPT") || "";
+  return { prompt: customPrompt };
+}
+
+// Set the custom prompt in environment
+export async function setCustomPrompt(prompt: string) {
+  // Note: In a real deployment, this would write to a database
+  // Since Edge Functions are stateless, this is just a placeholder
+  console.log("Custom prompt set:", prompt);
+  return { success: true };
+}

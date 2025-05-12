@@ -11,6 +11,7 @@ import ReviewsTable from "@/components/ReviewsTable";
 import KeyInsights from "@/components/KeyInsights";
 import MonthlyReport from "@/components/MonthlyReport";
 import { ApiKeyStatus } from "@/components/ApiKeyStatus";
+import { TableAnalysisPanel } from "@/components/TableAnalysisPanel";
 import { Review, BusinessData } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -283,6 +284,7 @@ const Dashboard = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="all-reviews">All Reviews</TabsTrigger>
             <TabsTrigger value="monthly-report">Monthly Report</TabsTrigger>
+            <TabsTrigger value="table-analysis">Table Analysis</TabsTrigger>
           </TabsList>
           
           <TabsContent value="all-reviews" className="mt-0">
@@ -296,6 +298,10 @@ const Dashboard = () => {
           
           <TabsContent value="monthly-report" className="mt-0">
             <MonthlyReport reviews={getFilteredReviews()} />
+          </TabsContent>
+          
+          <TabsContent value="table-analysis" className="mt-0">
+            <TableAnalysisPanel />
           </TabsContent>
         </Tabs>
       )}

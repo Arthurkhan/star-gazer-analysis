@@ -11,33 +11,42 @@ export type Database = {
     Tables: {
       "L'Envol Art Space": {
         Row: {
+          mainThemes: string | null
           name: string
           originalLanguage: string | null
           publishedAtDate: string | null
           responseFromOwnerText: string | null
           reviewUrl: string
+          sentiment: string | null
+          staffMentioned: string | null
           stars: number | null
           text: string | null
           textTranslated: string | null
           title: string | null
         }
         Insert: {
+          mainThemes?: string | null
           name: string
           originalLanguage?: string | null
           publishedAtDate?: string | null
           responseFromOwnerText?: string | null
           reviewUrl: string
+          sentiment?: string | null
+          staffMentioned?: string | null
           stars?: number | null
           text?: string | null
           textTranslated?: string | null
           title?: string | null
         }
         Update: {
+          mainThemes?: string | null
           name?: string
           originalLanguage?: string | null
           publishedAtDate?: string | null
           responseFromOwnerText?: string | null
           reviewUrl?: string
+          sentiment?: string | null
+          staffMentioned?: string | null
           stars?: number | null
           text?: string | null
           textTranslated?: string | null
@@ -47,33 +56,42 @@ export type Database = {
       }
       "The Little Prince Cafe": {
         Row: {
+          mainThemes: string | null
           name: string
           originalLanguage: string | null
           publishedAtDate: string | null
           responseFromOwnerText: string | null
           reviewUrl: string
+          sentiment: string | null
+          staffMentioned: string | null
           stars: number | null
           text: string | null
           textTranslated: string | null
           title: string | null
         }
         Insert: {
+          mainThemes?: string | null
           name: string
           originalLanguage?: string | null
           publishedAtDate?: string | null
           responseFromOwnerText?: string | null
           reviewUrl: string
+          sentiment?: string | null
+          staffMentioned?: string | null
           stars?: number | null
           text?: string | null
           textTranslated?: string | null
           title?: string | null
         }
         Update: {
+          mainThemes?: string | null
           name?: string
           originalLanguage?: string | null
           publishedAtDate?: string | null
           responseFromOwnerText?: string | null
           reviewUrl?: string
+          sentiment?: string | null
+          staffMentioned?: string | null
           stars?: number | null
           text?: string | null
           textTranslated?: string | null
@@ -83,33 +101,42 @@ export type Database = {
       }
       "Vol de Nuit, The Hidden Bar": {
         Row: {
+          mainThemes: string | null
           name: string
           originalLanguage: string | null
           publishedAtDate: string | null
           responseFromOwnerText: string | null
           reviewUrl: string
+          sentiment: string | null
+          staffMentioned: string | null
           stars: number | null
           text: string | null
           textTranslated: string | null
           title: string | null
         }
         Insert: {
+          mainThemes?: string | null
           name: string
           originalLanguage?: string | null
           publishedAtDate?: string | null
           responseFromOwnerText?: string | null
           reviewUrl: string
+          sentiment?: string | null
+          staffMentioned?: string | null
           stars?: number | null
           text?: string | null
           textTranslated?: string | null
           title?: string | null
         }
         Update: {
+          mainThemes?: string | null
           name?: string
           originalLanguage?: string | null
           publishedAtDate?: string | null
           responseFromOwnerText?: string | null
           reviewUrl?: string
+          sentiment?: string | null
+          staffMentioned?: string | null
           stars?: number | null
           text?: string | null
           textTranslated?: string | null

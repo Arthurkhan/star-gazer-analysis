@@ -108,3 +108,67 @@ export function createCompleteAnalysis(analysis: any, fullAnalysis: boolean) {
   }
   return analysis;
 }
+
+// Extract individual review analysis for database updates
+export function extractIndividualReviewAnalysis(review: any, analysisResults: any) {
+  // Default values
+  let sentiment = "neutral";
+  let staffMentioned = "";
+  let mainThemes = "";
+  
+  // Determine sentiment based on review rating
+  if (review.star >= 4) {
+    sentiment = "positive";
+  } else if (review.star <= 2) {
+    sentiment = "negative";
+  }
+  
+  // Check if staff are mentioned in this specific review
+  if (analysisResults.staffMentions && analysisResults.staffMentions.length > 0) {
+    const mentionedStaff = [];
+    
+    // Loop through all identified staff members
+    for (const staff of analysisResults.staffMentions) {
+      // Check if any examples for this staff mention the current review
+      if (staff.examples && staff.examples.length > 0) {
+        for (const example of staff.examples) {
+          if (review.text.includes(example) || 
+              (review.translatedText && review.translatedText.includes(example))) {
+            mentionedStaff.push(staff.name);
+            break; // Found a match, no need to check other examples
+          }
+        }
+      }
+    }
+    
+    // Join the staff names with commas
+    staffMentioned = mentionedStaff.join(", ");
+  }
+  
+  // Extract main themes from the review text
+  if (analysisResults.commonTerms && analysisResults.commonTerms.length > 0) {
+    const reviewThemes = [];
+    
+    // Check if the review contains any of the common terms
+    for (const term of analysisResults.commonTerms) {
+      const termRegex = new RegExp('\\b' + term.text + '\\b', 'i');
+      if (termRegex.test(review.text) || 
+          (review.translatedText && termRegex.test(review.translatedText))) {
+        reviewThemes.push(term.text);
+      }
+      
+      // Limit to top 5 themes
+      if (reviewThemes.length >= 5) break;
+    }
+    
+    // Join the themes with commas
+    mainThemes = reviewThemes.join(", ");
+  }
+  
+  return {
+    sentiment,
+    staffMentioned,
+    mainThemes
+  };
+}
+

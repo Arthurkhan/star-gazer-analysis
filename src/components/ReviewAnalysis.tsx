@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Review, ThemeCategory, FilterOptions } from "@/types/reviews";
+import { Review } from "@/types/reviews";
 import { 
   BarChart,
   Bar,
@@ -38,11 +38,14 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Loader2Icon, UserIcon, RefreshCw, Filter, ArrowUpDown } from "lucide-react";
+import { InfoIcon, Loader2Icon, UserIcon, RefreshCw } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { CustomPromptDialog } from "./CustomPromptDialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface ReviewAnalysisProps {
+  reviews: Review[];
+}
 
 // Enhanced colors for pie chart with better contrast
 const COLORS = [
@@ -60,50 +63,6 @@ const COLORS = [
   '#FEC6A1', // Soft Orange
   '#FEF7CD', // Soft Yellow
   '#F2FCE2'  // Soft Green
-];
-
-// Define theme categories with associated keywords - updated as requested
-const THEME_CATEGORIES: ThemeCategory[] = [
-  { 
-    name: 'All', 
-    color: '#9b87f5', 
-    keywords: [] 
-  },
-  { 
-    name: 'Service', 
-    color: '#0EA5E9', 
-    keywords: ['service', 'staff', 'waiter', 'waitress', 'server', 'attentive', 'helpful', 'friendly', 'rude', 'slow', 'quick', 'efficient', 'response', 'attitude'] 
-  },
-  { 
-    name: 'Ambiance', 
-    color: '#8B5CF6', 
-    keywords: ['ambiance', 'atmosphere', 'vibe', 'decor', 'design', 'interior', 'music', 'noise', 'mood', 'lighting', 'cozy', 'romantic', 'formal', 'casual'] 
-  },
-  { 
-    name: 'Location', 
-    color: '#D946EF', 
-    keywords: ['location', 'area', 'neighborhood', 'access', 'parking', 'downtown', 'central', 'quiet', 'busy', 'street', 'view', 'transport'] 
-  },
-  { 
-    name: 'Art', 
-    color: '#EF4444', 
-    keywords: ['art', 'artwork', 'exhibition', 'gallery', 'artist', 'painting', 'sculpture', 'creative', 'artistic', 'installation', 'contemporary', 'culture'] 
-  },
-  { 
-    name: 'The Little Prince', 
-    color: '#F59E0B', 
-    keywords: ['little prince', 'prince', 'saint-exupéry', 'exupery', 'fox', 'rose', 'aviator', 'planet', 'book', 'story', 'character', 'quotation', 'theme', 'childhood'] 
-  },
-  { 
-    name: 'F&B', 
-    color: '#10B981', 
-    keywords: ['food', 'beverage', 'drink', 'coffee', 'tea', 'wine', 'cocktail', 'menu', 'dish', 'meal', 'cuisine', 'taste', 'flavor', 'dessert', 'appetizer', 'breakfast', 'lunch', 'dinner'] 
-  },
-  { 
-    name: 'Others', 
-    color: '#6B7280', 
-    keywords: ['price', 'value', 'experience', 'visit', 'recommend', 'return', 'clean', 'hygiene', 'wifi', 'internet', 'toilets', 'bathroom', 'accessibility'] 
-  }
 ];
 
 // Function to group languages with less than 1% into "Other"
@@ -215,7 +174,7 @@ const CustomPieTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-const ReviewAnalysis = ({ reviews }: { reviews: Review[] }) => {
+const ReviewAnalysis = ({ reviews }: ReviewAnalysisProps) => {
   // States for async data
   const [sentimentData, setSentimentData] = useState(analyzeReviewSentiment_sync(reviews));
   const [staffMentions, setStaffMentions] = useState(extractStaffMentions_sync(reviews));
@@ -254,13 +213,6 @@ const ReviewAnalysis = ({ reviews }: { reviews: Review[] }) => {
     "Negative": "#EF4444"
   };
 
-  // Added filter state
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
-    category: 'All',
-    sortBy: 'count',
-    sortOrder: 'desc'
-  });
-  
   // Handle refresh AI analysis
   const handleRefreshAnalysis = () => {
     setRefreshKey(prev => prev + 1); // Increment refresh key to trigger useEffect
@@ -345,66 +297,6 @@ const ReviewAnalysis = ({ reviews }: { reviews: Review[] }) => {
     };
   }, [reviews, refreshKey]); // Add refreshKey dependency to trigger on refresh
 
-  // Filter and sort common terms based on current filter options
-  const getFilteredCommonTerms = () => {
-    if (!commonTerms) return [];
-    
-    let filtered = [...commonTerms];
-    
-    // Filter by category if not "All"
-    if (filterOptions.category !== 'All') {
-      const category = THEME_CATEGORIES.find(cat => cat.name === filterOptions.category);
-      if (category) {
-        filtered = filtered.filter(term => 
-          category.keywords.some(keyword => 
-            term.text.toLowerCase().includes(keyword.toLowerCase())
-          )
-        );
-      }
-    }
-    
-    // Sort the terms
-    filtered.sort((a, b) => {
-      if (filterOptions.sortBy === 'count') {
-        return filterOptions.sortOrder === 'desc' 
-          ? b.count - a.count 
-          : a.count - b.count;
-      } else { // alphabetical
-        return filterOptions.sortOrder === 'desc' 
-          ? b.text.localeCompare(a.text)
-          : a.text.localeCompare(b.text);
-      }
-    });
-    
-    return filtered;
-  };
-  
-  const filteredTerms = getFilteredCommonTerms();
-  
-  // Handle changing the sort order
-  const toggleSortOrder = () => {
-    setFilterOptions(prev => ({
-      ...prev,
-      sortOrder: prev.sortOrder === 'desc' ? 'asc' : 'desc'
-    }));
-  };
-  
-  // Handle sort field change
-  const handleSortChange = (value: string) => {
-    setFilterOptions(prev => ({
-      ...prev,
-      sortBy: value as 'count' | 'alphabetical'
-    }));
-  };
-  
-  // Handle category change
-  const handleCategoryChange = (value: string) => {
-    setFilterOptions(prev => ({
-      ...prev,
-      category: value
-    }));
-  };
-  
   return (
     <Card className="shadow-md dark:bg-gray-800 border-0">
       <CardHeader>
@@ -520,75 +412,11 @@ const ReviewAnalysis = ({ reviews }: { reviews: Review[] }) => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          {/* Common Terms Table - Enhanced with filtering */}
+          {/* Common Terms Table */}
           <div>
-            <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white flex justify-between items-center">
-              <span>Common Terms {loading && <span className="text-sm font-normal text-gray-500">(AI-enhanced)</span>}</span>
+            <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
+              Common Terms {loading && <span className="text-sm font-normal text-gray-500">(AI-enhanced)</span>}
             </h3>
-            
-            <div className="flex flex-wrap gap-2 mb-4">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center gap-2">
-                  <Filter size={16} />
-                  <span className="text-sm">Category:</span>
-                </div>
-                <Select 
-                  value={filterOptions.category || 'All'} 
-                  onValueChange={handleCategoryChange}
-                >
-                  <SelectTrigger className="h-8 w-[160px]">
-                    <SelectValue placeholder="Filter by category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {THEME_CATEGORIES.map(category => (
-                      <SelectItem key={category.name} value={category.name}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-2 h-2 rounded-full" 
-                            style={{ backgroundColor: category.color }}
-                          ></div>
-                          {category.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center gap-2">
-                  <ArrowUpDown size={16} />
-                  <span className="text-sm">Sort by:</span>
-                </div>
-                <div className="flex gap-2">
-                  <Select 
-                    value={filterOptions.sortBy} 
-                    onValueChange={handleSortChange}
-                  >
-                    <SelectTrigger className="h-8 w-[150px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="count">Frequency</SelectItem>
-                      <SelectItem value="alphabetical">Term Name</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-8 w-8" 
-                    onClick={toggleSortOrder}
-                  >
-                    {filterOptions.sortOrder === 'desc' ? 
-                      <ArrowUpDown className="h-4 w-4 rotate-180" /> : 
-                      <ArrowUpDown className="h-4 w-4" />
-                    }
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
@@ -596,63 +424,19 @@ const ReviewAnalysis = ({ reviews }: { reviews: Review[] }) => {
                     <TableHead>Term</TableHead>
                     <TableHead>Occurrences</TableHead>
                     <TableHead>% of Reviews</TableHead>
-                    <TableHead>Category</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTerms.length > 0 ? (
-                    filteredTerms.map((term, index) => {
-                      const percentage = (term.count / reviews.length * 100).toFixed(1);
-                      
-                      // Determine which category the term belongs to
-                      const categories = THEME_CATEGORIES.filter(cat => 
-                        cat.name !== 'All' && cat.keywords.some(keyword => 
-                          term.text.toLowerCase().includes(keyword.toLowerCase())
-                        )
-                      );
-                      
-                      const categoryName = categories.length > 0 
-                        ? categories[0].name 
-                        : 'Other';
-                        
-                      const categoryColor = categories.length > 0 
-                        ? categories[0].color 
-                        : '#6B7280';
-                      
-                      return (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium capitalize">{term.text}</TableCell>
-                          <TableCell>{term.count}</TableCell>
-                          <TableCell>{percentage}%</TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline" 
-                              className="flex items-center gap-1.5 w-fit"
-                              style={{
-                                backgroundColor: `${categoryColor}20`,
-                                borderColor: categoryColor,
-                                color: categoryColor
-                              }}
-                            >
-                              <div 
-                                className="w-2 h-2 rounded-full" 
-                                style={{ backgroundColor: categoryColor }}
-                              />
-                              {categoryName}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-4 text-gray-500">
-                        {commonTerms.length > 0 
-                          ? 'No terms match the current filter.' 
-                          : 'No common terms found in the reviews.'}
-                      </TableCell>
-                    </TableRow>
-                  )}
+                  {commonTerms.map((term, index) => {
+                    const percentage = (term.count / reviews.length * 100).toFixed(1);
+                    return (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium capitalize">{term.text}</TableCell>
+                        <TableCell>{term.count}</TableCell>
+                        <TableCell>{percentage}%</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

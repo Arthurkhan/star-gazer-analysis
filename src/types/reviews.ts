@@ -1,35 +1,26 @@
 
 export interface Review {
-  id?: number;
   name: string;
-  text: string;
-  textTranslated?: string;
-  title?: string;
+  title: string;
   star: number;
-  publishedAtDate: string;
+  originalLanguage: string;
+  text: string;
+  translatedText?: string;
   responseFromOwnerText?: string;
-  originalLanguage?: string;
-  reviewUrl?: string;
-  // Add new fields for AI analysis
-  sentiment?: 'positive' | 'negative' | 'neutral';
-  staffMentioned?: string;
-  mainThemes?: string;
+  publishedAtDate: string;
+  reviewUrl: string;
 }
 
-// Add these new interfaces to the bottom of the file
-export interface ThemeCategory {
+export interface BusinessInfo {
   name: string;
-  color: string;
-  keywords: string[];
+  count: number;
 }
 
-export interface FilterOptions {
-  category: string | null;
-  sortBy: 'count' | 'alphabetical';
-  sortOrder: 'asc' | 'desc';
+export interface BusinessData {
+  allBusinesses: BusinessInfo;
+  businesses: Record<string, BusinessInfo>;
 }
 
-// Add missing type definitions for other parts of the application
 export interface SentimentData {
   name: string;
   value: number;
@@ -38,27 +29,18 @@ export interface SentimentData {
 export interface LanguageData {
   name: string;
   value: number;
-  languages?: LanguageData[];
-  tooltip?: string;
 }
 
 export interface MonthlyReviewData {
   month: string;
   count: number;
-  cumulativeCount: number;
-}
-
-export interface InsightsData {
-  trendData: TrendPoint[];
-  needAttention: Review[];
-  ratingTrend: string;
-  commonThemes: ThemeData[];
+  cumulativeCount?: number;
 }
 
 export interface ThemeData {
   text: string;
   count: number;
-  sentiment: 'positive' | 'negative' | 'neutral';
+  sentiment: "positive" | "negative" | "neutral";
 }
 
 export interface TrendPoint {
@@ -69,11 +51,13 @@ export interface TrendPoint {
 export interface StaffMention {
   name: string;
   count: number;
-  sentiment: 'positive' | 'negative' | 'neutral';
-  examples?: string[];
+  sentiment: "positive" | "negative" | "neutral";
+  examples?: string[]; // Added the examples property as optional
 }
 
-export interface BusinessData {
-  allBusinesses: { name: string; count: number };
-  businesses: Record<string, { name: string; count: number }>;
+export interface InsightsData {
+  trendData: TrendPoint[];
+  needAttention: Review[];
+  ratingTrend: "up" | "down" | "neutral";
+  commonThemes: ThemeData[];
 }

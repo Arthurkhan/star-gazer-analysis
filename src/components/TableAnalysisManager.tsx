@@ -15,11 +15,10 @@ import { analyzeAndUpdateTable } from "@/utils/ai/tableUpdater";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
-// Define a union type for valid table names
-type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
+const BATCH_SIZE = 50;
 
 interface TableAnalysisManagerProps {
-  tableName: TableName;
+  tableName: string;
   onComplete?: () => void;
 }
 
@@ -127,9 +126,6 @@ export function TableAnalysisManager({ tableName, onComplete }: TableAnalysisMan
       setIsAnalyzing(false);
     }
   };
-  
-  // Add the missing constant
-  const BATCH_SIZE = 50;
   
   return (
     <Card className="shadow-sm">

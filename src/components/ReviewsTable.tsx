@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -62,7 +63,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
       results = results.filter(
         (review) => 
           review.text.toLowerCase().includes(term) ||
-          (review.textTranslated && review.textTranslated.toLowerCase().includes(term)) ||
+          (review.translatedText && review.translatedText.toLowerCase().includes(term)) ||
           review.name.toLowerCase().includes(term)
       );
     }
@@ -274,7 +275,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                       </TableCell>
                       <TableCell>
                         <div className="max-w-md truncate">
-                          {review.textTranslated || review.text}
+                          {review.translatedText || review.text}
                         </div>
                         {review.responseFromOwnerText && (
                           <div className="mt-1 text-xs text-gray-500 italic max-w-md truncate">
@@ -384,11 +385,11 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
             </div>
             
             {/* Translated text when available */}
-            {selectedReview?.textTranslated && (
+            {selectedReview?.translatedText && (
               <div className="space-y-2">
                 <h3 className="font-medium">Translated Review:</h3>
                 <p className="text-sm whitespace-pre-line bg-blue-50 dark:bg-blue-950/30 p-3 rounded-md border border-blue-100 dark:border-blue-900">
-                  {selectedReview.textTranslated}
+                  {selectedReview.translatedText}
                 </p>
               </div>
             )}

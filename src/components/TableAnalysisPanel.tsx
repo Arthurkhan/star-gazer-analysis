@@ -7,18 +7,15 @@ import { AlertCircle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 
-// Define types for table names to ensure type safety
-export type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
-
 export function TableAnalysisPanel() {
-  const [activeTab, setActiveTab] = useState<TableName>("L'Envol Art Space");
+  const [activeTab, setActiveTab] = useState("lenvol");
   
   return (
     <Card className="shadow-md dark:bg-gray-800 border-0">
       <CardHeader>
-        <CardTitle>AI Review Analysis</CardTitle>
+        <CardTitle>AI Review Table Analysis</CardTitle>
         <CardDescription>
-          Analyze sentiment, staff mentions, and main themes from existing columns
+          Fill sentiment, staff mentions, and main themes columns with AI analysis
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -28,28 +25,27 @@ export function TableAnalysisPanel() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>About this feature</AlertTitle>
           <AlertDescription>
-            This tool analyzes the reviews from the selected table using the data already filled in the 
-            sentiment, staffMentioned, and mainThemes columns. It provides insights and visualizations 
-            based on the existing data.
+            This tool will analyze all reviews in the selected table and fill in the new sentiment, staffMentioned, and 
+            mainThemes columns. The process may take several minutes depending on the number of reviews.
           </AlertDescription>
         </Alert>
         
-        <Tabs defaultValue="lenvol" value={activeTab} onValueChange={(value) => setActiveTab(value as TableName)}>
+        <Tabs defaultValue="lenvol" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
-            <TabsTrigger value="L'Envol Art Space">L'Envol Art Space</TabsTrigger>
-            <TabsTrigger value="The Little Prince Cafe">The Little Prince Cafe</TabsTrigger>
-            <TabsTrigger value="Vol de Nuit, The Hidden Bar">Vol de Nuit, The Hidden Bar</TabsTrigger>
+            <TabsTrigger value="lenvol">L'Envol Art Space</TabsTrigger>
+            <TabsTrigger value="prince">The Little Prince Cafe</TabsTrigger>
+            <TabsTrigger value="voldenuit">Vol de Nuit, The Hidden Bar</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="L'Envol Art Space">
+          <TabsContent value="lenvol">
             <TableAnalysisManager tableName="L'Envol Art Space" />
           </TabsContent>
           
-          <TabsContent value="The Little Prince Cafe">
+          <TabsContent value="prince">
             <TableAnalysisManager tableName="The Little Prince Cafe" />
           </TabsContent>
           
-          <TabsContent value="Vol de Nuit, The Hidden Bar">
+          <TabsContent value="voldenuit">
             <TableAnalysisManager tableName="Vol de Nuit, The Hidden Bar" />
           </TabsContent>
         </Tabs>

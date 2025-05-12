@@ -37,8 +37,8 @@ serve(async (req) => {
       }
     }
     
-    // Read and analyze existing columns
-    if (action === "analyze-existing-columns") {
+    // New action for updating review columns
+    if (action === "update-review-columns") {
       const { reviews, tableName, provider: analysisProvider } = requestData;
       
       if (!reviews || !tableName) {
@@ -48,27 +48,13 @@ serve(async (req) => {
       // Get the appropriate API key and model
       const { apiKey, model } = getApiKeyAndModel(analysisProvider);
       
-      console.log(`Analyzing existing data from ${reviews.length} reviews with ${analysisProvider} model: ${model} for table: ${tableName}`);
+      console.log(`Analyzing ${reviews.length} reviews with ${analysisProvider} model: ${model} for table: ${tableName}`);
       
-      // Create the prompt for AI focused on analyzing existing data
-      const prompt = `
-        Analyze these ${reviews.length} reviews from ${tableName} that already have sentiment, staff mentioned, and theme analysis data:
-        ${JSON.stringify(reviews)}
-        
-        Please provide:
-        1. A sentiment breakdown summary with counts for positive, neutral, and negative reviews
-        2. A consolidated list of staff members mentioned across all reviews with:
-           - The staff member's name
-           - How many times they were mentioned
-           - The overall sentiment about them
-        3. The top themes found across all reviews with their frequency
-        4. An overall analysis of the review trends
-        
-        Format the response as a JSON object.
-      `;
+      // Create the prompt for AI with the review data
+      const prompt = generatePrompt(reviews, true);
       
       // Get system message
-      const systemMessage = "You are a review analysis assistant that analyzes existing sentiment, staff mention, and theme data from customer reviews.";
+      const systemMessage = getSystemMessage(true);
 
       // Call the appropriate AI API based on provider
       let data;
@@ -89,10 +75,20 @@ serve(async (req) => {
       // Parse the response
       const analysis = parseAIResponse(data, analysisProvider);
       
+      // Create individual review analyses for database updates
+      const reviewAnalyses = reviews.map(review => {
+        const individualAnalysis = extractIndividualReviewAnalysis(review, analysis);
+        return {
+          reviewUrl: review.reviewUrl, // Primary key for updates
+          ...individualAnalysis
+        };
+      });
+      
       return new Response(
         JSON.stringify({ 
           success: true, 
-          analysis
+          analysisResults: analysis,
+          reviewAnalyses 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

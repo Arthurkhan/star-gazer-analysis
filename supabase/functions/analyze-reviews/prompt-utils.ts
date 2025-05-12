@@ -87,7 +87,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       IMPORTANT GUIDELINES FOR OVERALL ANALYSIS:
       - Format your analysis into these clear sections with emojis:
         * 📊 PERFORMANCE SNAPSHOT
-          - Include average rating, total review count, review period dates (if available)
+          - Include accurate total review count (use exactly the number of reviews in this batch)
           - Monthly average reviews (if timespan data is available)
         * 📈 TREND ANALYSIS
           - Current period reviews compared to previous period (with percentage change)

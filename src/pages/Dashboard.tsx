@@ -9,7 +9,7 @@ import OverviewSection from "@/components/OverviewSection";
 import ReviewAnalysis from "@/components/review-analysis/ReviewAnalysis"; // Updated import path
 import ReviewsTable from "@/components/ReviewsTable";
 import KeyInsights from "@/components/KeyInsights";
-import MonthlyReport from "@/components/MonthlyReport";
+import MonthlyReport from "@/components/monthly-report"; // Updated import path
 import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 import { TableAnalysisPanel } from "@/components/TableAnalysisPanel";
 import { Review, BusinessData, TableName } from "@/types/reviews";

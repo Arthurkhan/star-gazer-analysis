@@ -1,0 +1,131 @@
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { getOverallAnalysis } from "@/utils/dataUtils";
+import { Review } from "@/types/reviews";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface AiAnalysisCardProps {
+  selectedReviews: Review[];
+  aiAnalysis: string;
+  setAiAnalysis: (analysis: string) => void;
+  isAnalysisLoading: boolean;
+  setIsAnalysisLoading: (loading: boolean) => void;
+  analysisError: string | null;
+  setAnalysisError: (error: string | null) => void;
+}
+
+export function AiAnalysisCard({
+  selectedReviews,
+  aiAnalysis,
+  setAiAnalysis,
+  isAnalysisLoading,
+  setIsAnalysisLoading,
+  analysisError,
+  setAnalysisError
+}: AiAnalysisCardProps) {
+  // Handle refresh analysis
+  const handleRefreshAnalysis = async () => {
+    if (selectedReviews.length === 0) {
+      setAnalysisError("No reviews available for analysis in the selected date range.");
+      return;
+    }
+    
+    setIsAnalysisLoading(true);
+    setAnalysisError(null);
+    
+    try {
+      // Clear analysis cache to force a fresh analysis
+      localStorage.removeItem("analysis_cache_key");
+      
+      const analysis = await getOverallAnalysis(selectedReviews);
+      setAiAnalysis(analysis);
+    } catch (error) {
+      console.error("Error fetching AI analysis:", error);
+      setAnalysisError("Could not retrieve AI analysis. Please try again later.");
+    } finally {
+      setIsAnalysisLoading(false);
+    }
+  };
+
+  // Get the AI provider and model information
+  const aiProvider = localStorage.getItem("AI_PROVIDER") || "openai";
+  let aiModel = "";
+  
+  switch (aiProvider) {
+    case "openai":
+      aiModel = localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini";
+      break;
+    case "anthropic":
+      aiModel = localStorage.getItem("ANTHROPIC_MODEL") || "claude-3-haiku-20240307";
+      break;
+    case "gemini":
+      aiModel = localStorage.getItem("GEMINI_MODEL") || "gemini-1.5-flash";
+      break;
+  }
+
+  // Fetch AI analysis when the selected reviews change
+  useEffect(() => {
+    if (selectedReviews.length > 0) {
+      handleRefreshAnalysis();
+    } else {
+      setAiAnalysis("");
+    }
+  }, [selectedReviews]);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>AI Analysis</CardTitle>
+          <CardDescription>
+            Insights for the selected date range ({selectedReviews.length} reviews)
+          </CardDescription>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefreshAnalysis} 
+          disabled={isAnalysisLoading || selectedReviews.length === 0}
+          className="ml-2"
+        >
+          <RefreshCw className={cn("h-4 w-4 mr-2", isAnalysisLoading && "animate-spin")} />
+          Refresh Analysis
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {isAnalysisLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-[90%]" />
+            <Skeleton className="h-4 w-[80%]" />
+            <Skeleton className="h-4 w-[85%]" />
+            <Skeleton className="h-4 w-[70%]" />
+          </div>
+        ) : analysisError ? (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Analysis Error</AlertTitle>
+            <AlertDescription>{analysisError}</AlertDescription>
+          </Alert>
+        ) : aiAnalysis ? (
+          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line">
+            <div className="text-xs text-muted-foreground mb-2">
+              Generated with {aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel}
+            </div>
+            {aiAnalysis}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground py-4">
+            {selectedReviews.length === 0 
+              ? "No reviews available in the selected date range for analysis" 
+              : "Click 'Refresh Analysis' to generate insights"}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

@@ -7,8 +7,11 @@ import { AlertCircle } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 
+// Define types for table names to ensure type safety
+export type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
+
 export function TableAnalysisPanel() {
-  const [activeTab, setActiveTab] = useState("lenvol");
+  const [activeTab, setActiveTab] = useState<TableName>("L'Envol Art Space");
   
   return (
     <Card className="shadow-md dark:bg-gray-800 border-0">
@@ -31,22 +34,22 @@ export function TableAnalysisPanel() {
           </AlertDescription>
         </Alert>
         
-        <Tabs defaultValue="lenvol" value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue="lenvol" value={activeTab} onValueChange={(value) => setActiveTab(value as TableName)}>
           <TabsList className="mb-4">
-            <TabsTrigger value="lenvol">L'Envol Art Space</TabsTrigger>
-            <TabsTrigger value="prince">The Little Prince Cafe</TabsTrigger>
-            <TabsTrigger value="voldenuit">Vol de Nuit, The Hidden Bar</TabsTrigger>
+            <TabsTrigger value="L'Envol Art Space">L'Envol Art Space</TabsTrigger>
+            <TabsTrigger value="The Little Prince Cafe">The Little Prince Cafe</TabsTrigger>
+            <TabsTrigger value="Vol de Nuit, The Hidden Bar">Vol de Nuit, The Hidden Bar</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="lenvol">
+          <TabsContent value="L'Envol Art Space">
             <TableAnalysisManager tableName="L'Envol Art Space" />
           </TabsContent>
           
-          <TabsContent value="prince">
+          <TabsContent value="The Little Prince Cafe">
             <TableAnalysisManager tableName="The Little Prince Cafe" />
           </TabsContent>
           
-          <TabsContent value="voldenuit">
+          <TabsContent value="Vol de Nuit, The Hidden Bar">
             <TableAnalysisManager tableName="Vol de Nuit, The Hidden Bar" />
           </TabsContent>
         </Tabs>

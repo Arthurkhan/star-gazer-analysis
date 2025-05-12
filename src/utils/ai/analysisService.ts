@@ -67,7 +67,7 @@ export const analyzeReviewsWithAI = async (
               // Try to determine sentiment
               if (review.sentiment) {
                 const currentSentiment = staffMap.get(staff).sentiment;
-                const reviewSentiment = review.sentiment.toLowerCase() as "positive" | "negative" | "neutral";
+                const reviewSentiment = (review.sentiment.toLowerCase() as "positive" | "negative" | "neutral");
                 
                 // Simple majority rule for sentiment
                 if (currentSentiment === "neutral") {

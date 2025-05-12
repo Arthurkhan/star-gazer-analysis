@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, AlertCircleIcon, CheckCircleIcon } from "lucide-react";
@@ -31,24 +32,34 @@ export function ApiKeyStatus() {
         }
         
         // Try to call the Edge Function to verify the API key
-        const isValid = await testApiKey(aiProvider);
-        
-        if (!isValid) {
+        try {
+          const isValid = await testApiKey(aiProvider);
+          
+          if (!isValid) {
+            setApiKeyStatus("missing");
+            toast({
+              title: `${aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} API Key Error`,
+              description: `Error verifying the ${aiProvider} API key.`,
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          setApiKeyStatus("present");
+          toast({
+            title: `${aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} API Key Found`,
+            description: `The ${aiProvider} API key is properly configured.`,
+            variant: "default",
+          });
+        } catch (error) {
+          console.error("Error verifying API key:", error);
           setApiKeyStatus("missing");
           toast({
             title: `${aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} API Key Error`,
-            description: `Error verifying the ${aiProvider} API key.`,
+            description: `Error verifying the ${aiProvider} API key: ${error.message}`,
             variant: "destructive",
           });
-          return;
         }
-        
-        setApiKeyStatus("present");
-        toast({
-          title: `${aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} API Key Found`,
-          description: `The ${aiProvider} API key is properly configured.`,
-          variant: "default",
-        });
       } catch (error) {
         console.error("Error checking API key:", error);
         setApiKeyStatus("missing");

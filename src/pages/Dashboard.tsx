@@ -5,6 +5,7 @@ import BusinessSelector from "@/components/BusinessSelector";
 import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import MonthlyReviewsChart from "@/components/review-analysis/MonthlyReviewsChart";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ const Dashboard = () => {
     handleBusinessChange 
   } = useDashboardData();
 
+  const filteredReviews = getFilteredReviews();
+  
   return (
     <DashboardLayout>
       <div className="flex justify-between items-center mb-4 w-full">
@@ -32,9 +35,16 @@ const Dashboard = () => {
       
       <DashboardContent
         loading={loading}
-        reviews={getFilteredReviews()}
-        chartData={getChartData(getFilteredReviews())}
+        reviews={filteredReviews}
+        chartData={getChartData(filteredReviews)}
       />
+      
+      {/* Monthly Review Trend directly after the DashboardContent */}
+      {!loading && (
+        <div className="mt-6">
+          <MonthlyReviewsChart reviews={filteredReviews} className="w-full" />
+        </div>
+      )}
     </DashboardLayout>
   );
 };

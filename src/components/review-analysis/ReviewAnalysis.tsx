@@ -1,18 +1,17 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Review } from "@/types/reviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAnalysis } from "@/utils/ai/analysisService"; // Changed from analyzeReviews to getAnalysis
+import { getAnalysis } from "@/utils/ai/analysisService";
 import SentimentBreakdown from "./SentimentBreakdown";
 import StaffMentions from "./StaffMentions";
 import LanguageDistribution from "./LanguageDistribution";
 import CommonTerms from "./CommonTerms";
 import MonthlyReviewsChart from "./MonthlyReviewsChart";
-import AnalysisAlertSection from "./AnalysisAlertSection";
 
 interface ReviewAnalysisProps {
   reviews: Review[];
@@ -23,19 +22,6 @@ const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysisTab, setAnalysisTab] = useState("sentiment");
-  const [overallAnalysis, setOverallAnalysis] = useState<string>("");
-  const [aiProvider, setAiProvider] = useState<string>("gemini");
-  const [aiModel, setAiModel] = useState<string>("pro");
-
-  // Fetch analysis when reviews change
-  useEffect(() => {
-    if (reviews.length > 0) {
-      refreshAnalysis();
-    } else {
-      setOverallAnalysis("");
-      setError(null);
-    }
-  }, [reviews]);
 
   const refreshAnalysis = async () => {
     if (reviews.length === 0) {
@@ -47,26 +33,11 @@ const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
     setError(null);
 
     try {
-      // Changed from analyzeReviews to getAnalysis to match the exported function
-      const analysisResponse = await getAnalysis(reviews);
-      
-      if (analysisResponse.error) {
-        setError(analysisResponse.error);
-        toast({
-          title: "Analysis Error",
-          description: analysisResponse.error,
-          variant: "destructive",
-        });
-      } else {
-        setOverallAnalysis(analysisResponse.overallAnalysis || "");
-        setAiProvider(analysisResponse.provider || "gemini");
-        setAiModel(analysisResponse.model || "pro");
-        
-        toast({
-          title: "Analysis Complete",
-          description: "Review analysis has been updated",
-        });
-      }
+      await getAnalysis(reviews);
+      toast({
+        title: "Analysis Complete",
+        description: "Review analysis has been updated",
+      });
     } catch (err) {
       console.error("Error analyzing reviews:", err);
       setError("Failed to analyze reviews. Please try again later.");
@@ -97,14 +68,6 @@ const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
         </Button>
       </CardHeader>
       <CardContent className="pt-6">
-        <AnalysisAlertSection 
-          overallAnalysis={overallAnalysis} 
-          loading={isAnalyzing} 
-          error={error}
-          aiProvider={aiProvider}
-          aiModel={aiModel}
-        />
-
         <Tabs value={analysisTab} onValueChange={setAnalysisTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
@@ -123,7 +86,6 @@ const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
           </TabsContent>
 
           <TabsContent value="language" className="space-y-0 mt-0">
-            {/* Removed the loading prop since LanguageDistribution doesn't accept it */}
             <LanguageDistribution reviews={reviews} />
           </TabsContent>
 

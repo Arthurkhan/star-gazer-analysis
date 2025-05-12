@@ -6,12 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
 import OverviewSection from "@/components/OverviewSection";
-import ReviewAnalysis from "@/components/review-analysis/ReviewAnalysis"; // Updated import path
+import ReviewAnalysis from "@/components/review-analysis/ReviewAnalysis";
 import ReviewsTable from "@/components/ReviewsTable";
 import KeyInsights from "@/components/KeyInsights";
-import MonthlyReport from "@/components/monthly-report"; // Updated import path
+import MonthlyReport from "@/components/monthly-report";
 import { ApiKeyStatus } from "@/components/ApiKeyStatus";
 import { TableAnalysisPanel } from "@/components/TableAnalysisPanel";
+import AllReviewsAiAnalysis from "@/components/AllReviewsAiAnalysis";
 import { Review, BusinessData, TableName } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -289,6 +290,9 @@ const Dashboard = () => {
           
           <TabsContent value="all-reviews" className="mt-0">
             <OverviewSection reviews={getFilteredReviews()} />
+            <div className="mb-6">
+              <AllReviewsAiAnalysis reviews={getFilteredReviews()} />
+            </div>
             <div className="grid grid-cols-1 gap-6 mb-6">
               <ReviewAnalysis reviews={getFilteredReviews()} />
               <KeyInsights reviews={getFilteredReviews()} />

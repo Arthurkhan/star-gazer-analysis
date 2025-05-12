@@ -19,10 +19,19 @@ export interface Review {
 }
 
 export interface BusinessData {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
   description?: string;
   imageUrl?: string;
+  // Add the following properties to resolve the type errors
+  allBusinesses: {
+    name: string;
+    count: number;
+  };
+  businesses: Record<string, {
+    name: string;
+    count: number;
+  }>;
 }
 
 export interface SentimentData {

@@ -87,6 +87,51 @@ export function AiAnalysisCard({
     }
   }, [selectedReviews.length]);
 
+  // Function to format the analysis for display
+  const formatAnalysisForDisplay = (analysis: string) => {
+    if (!analysis) return null;
+    
+    // Split sections by emoji headers
+    const sections = analysis.split(/\n\n(?=📊|📈|🗣️|💬|🌍|🎯)/g);
+    
+    return sections.map((section, index) => {
+      // Check if the section has an emoji header
+      const hasEmojiHeader = /^(📊|📈|🗣️|💬|🌍|🎯)/.test(section.trim());
+      
+      if (!hasEmojiHeader) return <p key={index} className="mb-4">{section}</p>;
+      
+      // Get the section title
+      const [title, ...content] = section.split('\n');
+      
+      return (
+        <div key={index} className="mb-4">
+          <h3 className="text-lg font-semibold mb-2">{title}</h3>
+          <div className="pl-4">
+            {content.map((line, i) => {
+              // Handle bullet points
+              if (line.trim().startsWith('-') || line.trim().startsWith('•')) {
+                return <p key={i} className="mb-1">{line}</p>;
+              }
+              // Handle numbered lists
+              else if (/^\d+\./.test(line.trim())) {
+                return <p key={i} className="mb-1">{line}</p>;
+              }
+              // Handle subheadings
+              else if (line.endsWith(':')) {
+                return <p key={i} className="font-medium mt-2 mb-1">{line}</p>;
+              }
+              // Regular text
+              else if (line.trim()) {
+                return <p key={i} className="mb-1">{line}</p>;
+              }
+              return null;
+            })}
+          </div>
+        </div>
+      );
+    });
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -122,11 +167,11 @@ export function AiAnalysisCard({
             <AlertDescription>{analysisError}</AlertDescription>
           </Alert>
         ) : aiAnalysis ? (
-          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-line">
+          <div className="prose prose-sm dark:prose-invert max-w-none">
             <div className="text-xs text-muted-foreground mb-2">
               Generated with {aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel}
             </div>
-            {aiAnalysis}
+            {formatAnalysisForDisplay(aiAnalysis)}
           </div>
         ) : (
           <div className="text-center text-muted-foreground py-4">

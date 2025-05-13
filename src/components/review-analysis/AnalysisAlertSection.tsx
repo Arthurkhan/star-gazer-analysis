@@ -1,50 +1,96 @@
 
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
 
 interface AnalysisAlertSectionProps {
   overallAnalysis: string;
   loading: boolean;
   error: string | null;
-  aiProvider: string;
-  aiModel: string;
+  aiProvider?: string;
+  aiModel?: string;
 }
 
-const AnalysisAlertSection: React.FC<AnalysisAlertSectionProps> = ({ 
-  overallAnalysis, 
-  loading, 
-  error, 
-  aiProvider, 
-  aiModel 
+const AnalysisAlertSection: React.FC<AnalysisAlertSectionProps> = ({
+  overallAnalysis,
+  loading,
+  error,
+  aiProvider = "AI",
+  aiModel = "",
 }) => {
-  if (loading) {
-    return null;
-  }
+  // Function to format analysis for display
+  const formatAnalysisForDisplay = (analysis: string) => {
+    if (!analysis) return null;
+    
+    // Split sections by emoji headers
+    const sections = analysis.split(/\n\n(?=📊|📈|🗣️|💬|🌍|🎯)/g);
+    
+    return sections.map((section, index) => {
+      // Check if the section has an emoji header
+      const hasEmojiHeader = /^(📊|📈|🗣️|💬|🌍|🎯)/.test(section.trim());
+      
+      if (!hasEmojiHeader) return <p key={index} className="mb-4">{section}</p>;
+      
+      // Get the section title
+      const [title, ...content] = section.split('\n');
+      
+      return (
+        <div key={index} className="mb-4">
+          <h3 className="text-lg font-semibold mb-2">{title}</h3>
+          <div className="pl-4">
+            {content.map((line, i) => {
+              // Handle bullet points
+              if (line.trim().startsWith('-') || line.trim().startsWith('•')) {
+                return <p key={i} className="mb-1">{line}</p>;
+              }
+              // Handle numbered lists
+              else if (/^\d+\./.test(line.trim())) {
+                return <p key={i} className="mb-1">{line}</p>;
+              }
+              // Handle subheadings
+              else if (line.trim().endsWith(':')) {
+                return <p key={i} className="font-medium mt-2 mb-1">{line}</p>;
+              }
+              // Regular text
+              else if (line.trim()) {
+                return <p key={i} className="mb-1">{line}</p>;
+              }
+              return null;
+            })}
+          </div>
+        </div>
+      );
+    });
+  };
 
   if (error) {
     return (
-      <Alert variant="destructive" className="mb-4">
-        <InfoIcon className="h-4 w-4" />
-        <AlertTitle>Analysis Incomplete</AlertTitle>
+      <Alert variant="destructive">
+        <AlertTitle>Analysis Error</AlertTitle>
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
 
-  if (overallAnalysis) {
+  if (!overallAnalysis && !loading) {
     return (
-      <Alert className="mb-4 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
-        <InfoIcon className="h-4 w-4" />
-        <AlertTitle>AI Analysis ({aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel})</AlertTitle>
-        <AlertDescription className="whitespace-pre-line prose prose-sm max-w-none">
-          {overallAnalysis}
-        </AlertDescription>
-      </Alert>
+      <div className="text-center text-muted-foreground py-8">
+        No analysis available. Click "Refresh Analysis" to generate insights.
+      </div>
     );
   }
 
-  return null;
+  return (
+    <div className="prose prose-sm dark:prose-invert max-w-none">
+      {overallAnalysis && (
+        <>
+          <div className="text-xs text-muted-foreground mb-2">
+            Generated with {aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel}
+          </div>
+          <div className="whitespace-pre-line">{formatAnalysisForDisplay(overallAnalysis)}</div>
+        </>
+      )}
+    </div>
+  );
 };
 
 export default AnalysisAlertSection;

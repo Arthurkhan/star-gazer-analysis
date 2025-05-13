@@ -87,14 +87,18 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       IMPORTANT GUIDELINES FOR OVERALL ANALYSIS:
       - Format your analysis into these clear sections with emojis:
         * 📊 PERFORMANCE SNAPSHOT
-          - Include accurate total review count (use exactly the number of reviews in this batch)
-          - Monthly average reviews (if timespan data is available)
+          - Average Rating: X/5 ⭐
+          - Total Reviews: [number]
+          - Review Period: [dates from earliest to latest review]
         * 📈 TREND ANALYSIS
-          - Current period reviews compared to previous period (with percentage change)
-          - Overall sentiment trends
+          - Current Period: [X reviews]
+          - Previous Period: [Y reviews]
+          - Change: [+/- percentage]
         * 🗣️ CUSTOMER HIGHLIGHTS
-          - Top 3-5 most mentioned categories with specific examples
-          - Staff impact on experience (if relevant)
+          - Top Mentioned Categories (list the top 3-5 categories with highest mentions)
+          - Staff Impact: Mention any key staff that significantly impact experiences
+        * 💬 SAMPLE REVIEWS
+          - Include 2-3 actual customer quotes that represent the overall sentiment
         * 🌍 AUDIENCE INSIGHTS
           - Languages breakdown with percentages
           - International appeal assessment
@@ -187,12 +191,13 @@ export function formatOverallAnalysis(analysis: string): string {
       .replace(/PERFORMANCE SNAPSHOT/g, '📊 PERFORMANCE SNAPSHOT')
       .replace(/TREND ANALYSIS/g, '📈 TREND ANALYSIS')
       .replace(/CUSTOMER HIGHLIGHTS/g, '🗣️ CUSTOMER HIGHLIGHTS')
+      .replace(/SAMPLE REVIEWS/g, '💬 SAMPLE REVIEWS')
       .replace(/AUDIENCE INSIGHTS/g, '🌍 AUDIENCE INSIGHTS')
       .replace(/RECOMMENDATIONS/g, '🎯 RECOMMENDATIONS');
   }
   
   // Ensure proper spacing between sections
-  formattedAnalysis = formattedAnalysis.replace(/\n(📊|📈|🗣️|🌍|🎯)/g, '\n\n$1');
+  formattedAnalysis = formattedAnalysis.replace(/\n(📊|📈|🗣️|💬|🌍|🎯)/g, '\n\n$1');
   
   // Format bullet points if needed
   if (!formattedAnalysis.includes('• ') && !formattedAnalysis.includes('- ')) {

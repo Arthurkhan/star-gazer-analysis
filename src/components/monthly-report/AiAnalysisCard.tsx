@@ -49,13 +49,13 @@ export function AiAnalysisCard({
       const analysisData = await getOverallAnalysis(selectedReviews);
       
       // Check if we have a structured response with additional data
-      if (typeof analysisData === 'object' && analysisData.overallAnalysis) {
-        setAiAnalysis(analysisData.overallAnalysis);
+      if (typeof analysisData === 'object' && analysisData !== null && 'overallAnalysis' in analysisData) {
+        setAiAnalysis(analysisData.overallAnalysis || "");
         setRatingBreakdown(analysisData.ratingBreakdown || []);
         setLanguageDistribution(analysisData.languageDistribution || []);
       } else {
         // If we just got a string, set it as the analysis
-        setAiAnalysis(analysisData);
+        setAiAnalysis(analysisData as string);
         
         // Calculate rating breakdown manually
         calculateRatingBreakdown(selectedReviews);

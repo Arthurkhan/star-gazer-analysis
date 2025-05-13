@@ -3,6 +3,7 @@
 import { Review } from "@/types/reviews";
 import { getSelectedModel } from "./aiProviders";
 import { generateCacheKey, getFromCache, storeInCache } from "./analysisCache";
+import { supabase } from "@/integrations/supabase/client";
 
 // Main function to analyze reviews using AI
 export const analyzeReviewsWithAI = async (
@@ -48,7 +49,7 @@ export const analyzeReviewsWithAI = async (
     const languageDistribution = calculateLanguageDistribution(reviews);
     
     // Call the Edge Function to analyze the reviews
-    const { data, error } = await window.supabase.functions.invoke("analyze-reviews", {
+    const { data, error } = await supabase.functions.invoke("analyze-reviews", {
       body: {
         reviews: reviewTexts,
         provider: provider,

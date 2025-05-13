@@ -8,6 +8,8 @@ interface AnalysisAlertSectionProps {
   error: string | null;
   aiProvider?: string;
   aiModel?: string;
+  ratingBreakdown?: { rating: number; count: number; percentage: number }[];
+  languageDistribution?: { language: string; count: number; percentage: number }[];
 }
 
 const AnalysisAlertSection: React.FC<AnalysisAlertSectionProps> = ({
@@ -16,6 +18,8 @@ const AnalysisAlertSection: React.FC<AnalysisAlertSectionProps> = ({
   error,
   aiProvider = "AI",
   aiModel = "",
+  ratingBreakdown,
+  languageDistribution
 }) => {
   // Function to format analysis for display
   const formatAnalysisForDisplay = (analysis: string) => {
@@ -62,6 +66,64 @@ const AnalysisAlertSection: React.FC<AnalysisAlertSectionProps> = ({
     });
   };
 
+  // Format rating breakdowns as a horizontal bar chart
+  const renderRatingBreakdown = () => {
+    if (!ratingBreakdown || ratingBreakdown.length === 0) return null;
+    
+    return (
+      <div className="mt-4 mb-6">
+        <h3 className="text-lg font-semibold mb-3">Rating Breakdown</h3>
+        <div className="space-y-2">
+          {ratingBreakdown.map((item) => (
+            <div key={item.rating} className="flex items-center">
+              <div className="w-16 flex items-center">
+                <span className="text-sm font-medium">{item.rating}★</span>
+              </div>
+              <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-yellow-400" 
+                  style={{ width: `${Math.max(item.percentage, 2)}%` }} 
+                />
+              </div>
+              <div className="w-20 ml-2 text-sm">
+                {item.count} ({Math.round(item.percentage)}%)
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Format language distribution
+  const renderLanguageDistribution = () => {
+    if (!languageDistribution || languageDistribution.length === 0) return null;
+    
+    return (
+      <div className="mt-4 mb-6">
+        <h3 className="text-lg font-semibold mb-3">Language Distribution</h3>
+        <div className="space-y-2">
+          {languageDistribution.slice(0, 5).map((item) => (
+            <div key={item.language} className="flex items-center">
+              <div className="w-24 flex items-center">
+                <span className="text-sm font-medium truncate">{item.language}</span>
+              </div>
+              <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-400" 
+                  style={{ width: `${Math.max(item.percentage, 2)}%` }} 
+                />
+              </div>
+              <div className="w-20 ml-2 text-sm">
+                {item.count} ({Math.round(item.percentage)}%)
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   if (error) {
     return (
       <Alert variant="destructive">
@@ -86,6 +148,14 @@ const AnalysisAlertSection: React.FC<AnalysisAlertSectionProps> = ({
           <div className="text-xs text-muted-foreground mb-2">
             Generated with {aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel}
           </div>
+          
+          {/* Show rating breakdown at the top */}
+          {renderRatingBreakdown()}
+          
+          {/* Show language distribution */}
+          {renderLanguageDistribution()}
+          
+          {/* Show the overall analysis */}
           <div className="whitespace-pre-line">{formatAnalysisForDisplay(overallAnalysis)}</div>
         </>
       )}

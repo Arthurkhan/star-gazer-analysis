@@ -21,6 +21,8 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
   const [aiProvider, setAiProvider] = useState<string>("gemini");
   const [aiModel, setAiModel] = useState<string>("pro");
   const [previousReviewCount, setPreviousReviewCount] = useState(0);
+  const [ratingBreakdown, setRatingBreakdown] = useState<{ rating: number; count: number; percentage: number }[]>([]);
+  const [languageDistribution, setLanguageDistribution] = useState<{ language: string; count: number; percentage: number }[]>([]);
 
   // Fetch analysis when reviews change
   useEffect(() => {
@@ -33,6 +35,8 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
     } else if (reviews.length === 0) {
       setOverallAnalysis("");
       setPreviousReviewCount(0);
+      setRatingBreakdown([]);
+      setLanguageDistribution([]);
     }
   }, [reviews.length]);
 
@@ -59,6 +63,8 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
         setOverallAnalysis(analysisResponse.overallAnalysis || "");
         setAiProvider(analysisResponse.provider || "gemini");
         setAiModel(analysisResponse.model || "pro");
+        setRatingBreakdown(analysisResponse.ratingBreakdown || []);
+        setLanguageDistribution(analysisResponse.languageDistribution || []);
         
         toast({
           title: "Analysis Complete",
@@ -110,6 +116,8 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
             error={error}
             aiProvider={aiProvider}
             aiModel={aiModel}
+            ratingBreakdown={ratingBreakdown}
+            languageDistribution={languageDistribution}
           />
         )}
       </CardContent>

@@ -28,6 +28,10 @@ export function AiAnalysisCard({
   analysisError,
   setAnalysisError
 }: AiAnalysisCardProps) {
+  // State for the additional analysis data
+  const [ratingBreakdown, setRatingBreakdown] = useState<any[]>([]);
+  const [languageDistribution, setLanguageDistribution] = useState<any[]>([]);
+
   // Handle refresh analysis
   const handleRefreshAnalysis = async () => {
     if (selectedReviews.length === 0) {
@@ -42,14 +46,72 @@ export function AiAnalysisCard({
       // Clear analysis cache to force a fresh analysis
       localStorage.removeItem("analysis_cache_key");
       
-      const analysis = await getOverallAnalysis(selectedReviews);
-      setAiAnalysis(analysis);
+      const analysisData = await getOverallAnalysis(selectedReviews);
+      
+      // Check if we have a structured response with additional data
+      if (typeof analysisData === 'object' && analysisData.overallAnalysis) {
+        setAiAnalysis(analysisData.overallAnalysis);
+        setRatingBreakdown(analysisData.ratingBreakdown || []);
+        setLanguageDistribution(analysisData.languageDistribution || []);
+      } else {
+        // If we just got a string, set it as the analysis
+        setAiAnalysis(analysisData);
+        
+        // Calculate rating breakdown manually
+        calculateRatingBreakdown(selectedReviews);
+        calculateLanguageDistribution(selectedReviews);
+      }
     } catch (error) {
       console.error("Error fetching AI analysis:", error);
       setAnalysisError("Could not retrieve AI analysis. Please try again later.");
+      
+      // Still calculate basic stats even if AI fails
+      calculateRatingBreakdown(selectedReviews);
+      calculateLanguageDistribution(selectedReviews);
     } finally {
       setIsAnalysisLoading(false);
     }
+  };
+
+  // Calculate rating breakdown as a fallback
+  const calculateRatingBreakdown = (reviews: Review[]) => {
+    const totalReviews = reviews.length;
+    const counts = {
+      1: reviews.filter(r => r.star === 1).length,
+      2: reviews.filter(r => r.star === 2).length,
+      3: reviews.filter(r => r.star === 3).length,
+      4: reviews.filter(r => r.star === 4).length,
+      5: reviews.filter(r => r.star === 5).length
+    };
+    
+    setRatingBreakdown([
+      { rating: 5, count: counts[5], percentage: totalReviews ? (counts[5] / totalReviews) * 100 : 0 },
+      { rating: 4, count: counts[4], percentage: totalReviews ? (counts[4] / totalReviews) * 100 : 0 },
+      { rating: 3, count: counts[3], percentage: totalReviews ? (counts[3] / totalReviews) * 100 : 0 },
+      { rating: 2, count: counts[2], percentage: totalReviews ? (counts[2] / totalReviews) * 100 : 0 },
+      { rating: 1, count: counts[1], percentage: totalReviews ? (counts[1] / totalReviews) * 100 : 0 }
+    ]);
+  };
+
+  // Calculate language distribution as a fallback
+  const calculateLanguageDistribution = (reviews: Review[]) => {
+    const totalReviews = reviews.length;
+    const languages: Record<string, number> = {};
+    
+    // Count occurrences of each language
+    reviews.forEach(review => {
+      const language = review.originalLanguage || "Unknown";
+      languages[language] = (languages[language] || 0) + 1;
+    });
+    
+    // Convert to array and calculate percentages
+    const distribution = Object.entries(languages).map(([language, count]) => ({
+      language,
+      count,
+      percentage: totalReviews ? (count / totalReviews) * 100 : 0
+    })).sort((a, b) => b.count - a.count);
+    
+    setLanguageDistribution(distribution);
   };
 
   // Get the AI provider and model information
@@ -84,6 +146,8 @@ export function AiAnalysisCard({
     } else if (selectedReviews.length === 0) {
       setAiAnalysis("");
       setPreviousReviewCount(0);
+      setRatingBreakdown([]);
+      setLanguageDistribution([]);
     }
   }, [selectedReviews.length]);
 
@@ -132,6 +196,64 @@ export function AiAnalysisCard({
     });
   };
 
+  // Format rating breakdowns as a horizontal bar chart
+  const renderRatingBreakdown = () => {
+    if (!ratingBreakdown || ratingBreakdown.length === 0) return null;
+    
+    return (
+      <div className="mt-4 mb-6">
+        <h3 className="text-lg font-semibold mb-3">Rating Breakdown</h3>
+        <div className="space-y-2">
+          {ratingBreakdown.map((item) => (
+            <div key={item.rating} className="flex items-center">
+              <div className="w-16 flex items-center">
+                <span className="text-sm font-medium">{item.rating}★</span>
+              </div>
+              <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-yellow-400" 
+                  style={{ width: `${Math.max(item.percentage, 2)}%` }} 
+                />
+              </div>
+              <div className="w-20 ml-2 text-sm">
+                {item.count} ({Math.round(item.percentage)}%)
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Format language distribution
+  const renderLanguageDistribution = () => {
+    if (!languageDistribution || languageDistribution.length === 0) return null;
+    
+    return (
+      <div className="mt-4 mb-6">
+        <h3 className="text-lg font-semibold mb-3">Language Distribution</h3>
+        <div className="space-y-2">
+          {languageDistribution.slice(0, 5).map((item) => (
+            <div key={item.language} className="flex items-center">
+              <div className="w-24 flex items-center">
+                <span className="text-sm font-medium truncate">{item.language}</span>
+              </div>
+              <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-400" 
+                  style={{ width: `${Math.max(item.percentage, 2)}%` }} 
+                />
+              </div>
+              <div className="w-20 ml-2 text-sm">
+                {item.count} ({Math.round(item.percentage)}%)
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -171,6 +293,14 @@ export function AiAnalysisCard({
             <div className="text-xs text-muted-foreground mb-2">
               Generated with {aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} {aiModel}
             </div>
+            
+            {/* Show rating breakdown at the top */}
+            {renderRatingBreakdown()}
+            
+            {/* Show language distribution */}
+            {renderLanguageDistribution()}
+            
+            {/* Show overall analysis */}
             {formatAnalysisForDisplay(aiAnalysis)}
           </div>
         ) : (

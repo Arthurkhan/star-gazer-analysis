@@ -2,7 +2,6 @@
 // This file combines all the AI analysis functionality
 import { Review } from "@/types/reviews";
 import { getSelectedModel } from "./aiProviders";
-import { analyzeReviewChunk } from "./reviewChunkProcessor";
 import { generateCacheKey, getFromCache, storeInCache } from "./analysisCache";
 
 // Main function to analyze reviews using AI
@@ -11,8 +10,10 @@ export const analyzeReviewsWithAI = async (
 ): Promise<{
   sentimentAnalysis: { name: string; value: number }[];
   staffMentions: { name: string; count: number; sentiment: "positive" | "negative" | "neutral"; examples?: string[] }[];
-  commonTerms: { text: string; count: number }[];
+  commonTerms: { text: string; count: number; category?: string }[];
   overallAnalysis: string;
+  ratingBreakdown?: { rating: number; count: number; percentage: number }[];
+  languageDistribution?: { language: string; count: number; percentage: number }[];
 }> => {
   try {
     // Get the AI provider
@@ -30,120 +31,50 @@ export const analyzeReviewsWithAI = async (
     const model = getSelectedModel(provider);
     console.log(`Using ${provider} model: ${model}`);
 
-    // Prepare all reviews for API, but we'll process them in chunks
+    // Prepare all reviews for API
     const reviewTexts = reviews.map(review => ({
       text: review.text,
       rating: review.star,
-      date: review.publishedAtDate
+      date: review.publishedAtDate,
+      language: review.originalLanguage || "unknown"
     }));
 
     console.log(`Processing ${reviewTexts.length} reviews with ${provider}...`);
     
-    // Process reviews in chunks to avoid token limits
-    const CHUNK_SIZE = 100;
-    const chunks = [];
-    for (let i = 0; i < reviewTexts.length; i += CHUNK_SIZE) {
-      chunks.push(reviewTexts.slice(i, i + CHUNK_SIZE));
-    }
+    // Calculate rating breakdown before sending to AI
+    const ratingBreakdown = calculateRatingBreakdown(reviews);
     
-    console.log(`Split reviews into ${chunks.length} chunks for processing`);
+    // Calculate language distribution before sending to AI
+    const languageDistribution = calculateLanguageDistribution(reviews);
     
-    // If there are multiple chunks, we'll analyze each one and then combine results
-    if (chunks.length > 1) {
-      console.log("Multiple chunks detected - analyzing in sequence");
-      
-      // Analyze the first chunk with the complete analysis
-      const firstChunkResults = await analyzeReviewChunk(
-        chunks[0], 
-        provider,
-        model, 
-        reviews.length, 
-        true
-      );
-      
-      let combinedResults = { ...firstChunkResults };
-      
-      // Now process the remaining chunks for staff mentions only
-      if (chunks.length > 1) {
-        let allStaffMentions = [...firstChunkResults.staffMentions];
-        
-        // Process remaining chunks
-        for (let i = 1; i < chunks.length; i++) {
-          console.log(`Processing chunk ${i+1}/${chunks.length}...`);
-          const chunkResults = await analyzeReviewChunk(
-            chunks[i], 
-            provider,
-            model, 
-            reviews.length, 
-            false
-          );
-          
-          // Merge staff mentions
-          if (chunkResults.staffMentions && chunkResults.staffMentions.length > 0) {
-            // Build a map of staff names we already have
-            const existingStaff = new Map();
-            allStaffMentions.forEach(staff => {
-              existingStaff.set(staff.name.toLowerCase(), staff);
-            });
-            
-            // Add or merge new staff mentions
-            chunkResults.staffMentions.forEach(newStaff => {
-              const lowerName = newStaff.name.toLowerCase();
-              if (existingStaff.has(lowerName)) {
-                // Staff already exists, merge the data
-                const existing = existingStaff.get(lowerName);
-                existing.count += newStaff.count;
-                
-                // Add new examples if they exist
-                if (newStaff.examples && existing.examples) {
-                  // Add non-duplicate examples
-                  newStaff.examples.forEach(example => {
-                    if (!existing.examples.includes(example)) {
-                      existing.examples.push(example);
-                    }
-                  });
-                  
-                  // Limit to 5 examples max
-                  existing.examples = existing.examples.slice(0, 5);
-                }
-                
-                // Recalculate sentiment if needed
-                // This is simplistic - in a real app we might weight by counts
-                if (existing.sentiment !== newStaff.sentiment) {
-                  existing.sentiment = "neutral";
-                }
-              } else {
-                // New staff member, add to our list
-                allStaffMentions.push(newStaff);
-              }
-            });
-          }
-        }
-        
-        // Update the combined results with all staff mentions
-        combinedResults.staffMentions = allStaffMentions;
-        
-        // Add a note to the overall analysis about processing in chunks
-        combinedResults.overallAnalysis += "\n\nNote: This analysis was performed on " + 
-          `${reviews.length} reviews processed in ${chunks.length} chunks of up to ${CHUNK_SIZE} reviews each.`;
+    // Call the Edge Function to analyze the reviews
+    const { data, error } = await window.supabase.functions.invoke("analyze-reviews", {
+      body: {
+        reviews: reviewTexts,
+        provider: provider,
+        model: model,
+        fullAnalysis: true
       }
-      
-      return combinedResults;
-    } else {
-      // Just one chunk, process normally
-      console.log("Single chunk processing");
-      return await analyzeReviewChunk(
-        chunks[0], 
-        provider,
-        model, 
-        reviews.length, 
-        true
-      );
+    });
+
+    if (error) {
+      console.error("Edge Function error:", error);
+      throw new Error(`Analysis failed: ${error.message}`);
     }
+    
+    // Add our pre-calculated stats to the analysis results
+    return {
+      ...data,
+      ratingBreakdown,
+      languageDistribution
+    };
   } catch (error) {
     console.error("AI analysis failed:", error);
     
     // Fallback to basic analysis if AI fails
+    const ratingBreakdown = calculateRatingBreakdown(reviews);
+    const languageDistribution = calculateLanguageDistribution(reviews);
+    
     return {
       sentimentAnalysis: [
         { name: "Positive", value: reviews.filter(r => r.star >= 4).length },
@@ -152,10 +83,51 @@ export const analyzeReviewsWithAI = async (
       ],
       staffMentions: [],
       commonTerms: [],
-      overallAnalysis: "Unable to generate detailed analysis. Using basic rating-based analysis instead. Error: " + error.message,
+      overallAnalysis: "Unable to generate detailed analysis. Using basic rating-based analysis instead.",
+      ratingBreakdown,
+      languageDistribution
     };
   }
 };
+
+// Calculate rating breakdown statistics
+function calculateRatingBreakdown(reviews: Review[]) {
+  const totalReviews = reviews.length;
+  const counts = {
+    1: reviews.filter(r => r.star === 1).length,
+    2: reviews.filter(r => r.star === 2).length,
+    3: reviews.filter(r => r.star === 3).length,
+    4: reviews.filter(r => r.star === 4).length,
+    5: reviews.filter(r => r.star === 5).length
+  };
+  
+  return [
+    { rating: 5, count: counts[5], percentage: totalReviews ? (counts[5] / totalReviews) * 100 : 0 },
+    { rating: 4, count: counts[4], percentage: totalReviews ? (counts[4] / totalReviews) * 100 : 0 },
+    { rating: 3, count: counts[3], percentage: totalReviews ? (counts[3] / totalReviews) * 100 : 0 },
+    { rating: 2, count: counts[2], percentage: totalReviews ? (counts[2] / totalReviews) * 100 : 0 },
+    { rating: 1, count: counts[1], percentage: totalReviews ? (counts[1] / totalReviews) * 100 : 0 }
+  ];
+}
+
+// Calculate language distribution statistics
+function calculateLanguageDistribution(reviews: Review[]) {
+  const totalReviews = reviews.length;
+  const languages: Record<string, number> = {};
+  
+  // Count occurrences of each language
+  reviews.forEach(review => {
+    const language = review.originalLanguage || "Unknown";
+    languages[language] = (languages[language] || 0) + 1;
+  });
+  
+  // Convert to array and calculate percentages
+  return Object.entries(languages).map(([language, count]) => ({
+    language,
+    count,
+    percentage: totalReviews ? (count / totalReviews) * 100 : 0
+  })).sort((a, b) => b.count - a.count);
+}
 
 // Function to get or create analysis
 export const getAnalysis = async (reviews: Review[]): Promise<any> => {

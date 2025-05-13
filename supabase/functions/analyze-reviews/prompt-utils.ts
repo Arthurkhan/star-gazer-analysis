@@ -39,6 +39,8 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
          - Areas that might need improvement
          - Any seasonal patterns if visible
          - Impact of specific staff members on customer satisfaction
+      5. Include a detailed star rating breakdown showing the count and percentage for 5-star, 4-star, 3-star, 2-star, and 1-star reviews
+      6. Include a language distribution analysis showing which languages reviews are written in and their percentages
       ` : `
       FOCUS ONLY ON STAFF MENTIONS in these reviews. Please identify:
       - The exact name of each staff member mentioned in reviews (combine similar names like Anna/Ana/Anne to the most common version)
@@ -90,6 +92,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
           - Average Rating: X/5 ⭐
           - Total Reviews: [number]
           - Review Period: [dates from earliest to latest review]
+          - Star Breakdown: 5★: X (X%), 4★: X (X%), 3★: X (X%), 2★: X (X%), 1★: X (X%)
         * 📈 TREND ANALYSIS
           - Current Period: [X reviews]
           - Previous Period: [Y reviews]
@@ -100,7 +103,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
         * 💬 SAMPLE REVIEWS
           - Include 2-3 actual customer quotes that represent the overall sentiment
         * 🌍 AUDIENCE INSIGHTS
-          - Languages breakdown with percentages
+          - Languages breakdown with percentages (e.g., English (70%), French (15%), Thai (10%), Other (5%))
           - International appeal assessment
         * 🎯 RECOMMENDATIONS
           - 3-5 specific and actionable suggestions based on review data

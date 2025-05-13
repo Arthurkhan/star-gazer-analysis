@@ -1,23 +1,22 @@
 
-// This file handles processing of review chunks
+// This file handles processing of reviews in the Edge Function
 import { supabase } from "@/integrations/supabase/client";
-import { getSelectedModel } from "./aiProviders";
 
-// Process a single chunk of reviews
+// Process reviews with the Edge Function
 export async function analyzeReviewChunk(
-  reviewChunk: any[], 
+  reviews: any[], 
   provider: string,
   model: string, 
   totalReviewCount: number,
   fullAnalysis: boolean
 ): Promise<any> {
-  console.log(`Calling Edge Function to analyze ${reviewChunk.length} reviews with ${provider}`);
+  console.log(`Calling Edge Function to analyze ${reviews.length} reviews with ${provider}`);
   
   try {
     // Call the Edge Function instead of making direct API calls
     const { data, error } = await supabase.functions.invoke("analyze-reviews", {
       body: {
-        reviews: reviewChunk,
+        reviews: reviews,
         provider: provider,
         model: model,
         fullAnalysis: fullAnalysis
@@ -31,22 +30,16 @@ export async function analyzeReviewChunk(
     
     console.log("AI Analysis Results:", data);
     
-    // If this is a partial analysis and we didn't get staffMentions, return empty arrays
-    if (!fullAnalysis && (!data || !data.staffMentions)) {
-      return {
-        sentimentAnalysis: [],
-        staffMentions: [],
-        commonTerms: [],
-        overallAnalysis: "",
-      };
-    }
-    
     // Return the analysis in the expected format
     return {
       sentimentAnalysis: data.sentimentAnalysis || [],
       staffMentions: data.staffMentions || [],
       commonTerms: data.commonTerms || [],
       overallAnalysis: data.overallAnalysis || "",
+      ratingBreakdown: data.ratingBreakdown || [],
+      languageDistribution: data.languageDistribution || [],
+      provider: data.provider || provider,
+      model: data.model || model
     };
   } catch (error) {
     console.error("Error calling Edge Function:", error);

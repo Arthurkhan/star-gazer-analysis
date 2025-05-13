@@ -158,9 +158,20 @@ serve(async (req) => {
     // If this is a partial analysis, return a complete structure 
     // with empty arrays for the parts not analyzed
     const completeAnalysis = createCompleteAnalysis(analysis, fullAnalysis);
+    
+    // Calculate rating breakdown and language distribution
+    // These will be calculated on the frontend too, but we include them here for completeness
+    const ratingBreakdown = filteredReviews.length > 0 ? calculateRatingBreakdown(filteredReviews) : [];
+    const languageDistribution = filteredReviews.length > 0 ? calculateLanguageDistribution(filteredReviews) : [];
 
-    // Return the analysis
-    return new Response(JSON.stringify(completeAnalysis), {
+    // Return the analysis with the additional statistics
+    return new Response(JSON.stringify({
+      ...completeAnalysis,
+      ratingBreakdown,
+      languageDistribution,
+      provider: analysisProvider,
+      model
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
@@ -180,3 +191,42 @@ serve(async (req) => {
     );
   }
 });
+
+// Calculate rating breakdown statistics
+function calculateRatingBreakdown(reviews: any[]) {
+  const totalReviews = reviews.length;
+  const counts = {
+    1: reviews.filter(r => r.rating === 1 || r.star === 1).length,
+    2: reviews.filter(r => r.rating === 2 || r.star === 2).length,
+    3: reviews.filter(r => r.rating === 3 || r.star === 3).length,
+    4: reviews.filter(r => r.rating === 4 || r.star === 4).length,
+    5: reviews.filter(r => r.rating === 5 || r.star === 5).length
+  };
+  
+  return [
+    { rating: 5, count: counts[5], percentage: totalReviews ? (counts[5] / totalReviews) * 100 : 0 },
+    { rating: 4, count: counts[4], percentage: totalReviews ? (counts[4] / totalReviews) * 100 : 0 },
+    { rating: 3, count: counts[3], percentage: totalReviews ? (counts[3] / totalReviews) * 100 : 0 },
+    { rating: 2, count: counts[2], percentage: totalReviews ? (counts[2] / totalReviews) * 100 : 0 },
+    { rating: 1, count: counts[1], percentage: totalReviews ? (counts[1] / totalReviews) * 100 : 0 }
+  ];
+}
+
+// Calculate language distribution statistics
+function calculateLanguageDistribution(reviews: any[]) {
+  const totalReviews = reviews.length;
+  const languages: Record<string, number> = {};
+  
+  // Count occurrences of each language
+  reviews.forEach(review => {
+    const language = review.language || review.originalLanguage || "Unknown";
+    languages[language] = (languages[language] || 0) + 1;
+  });
+  
+  // Convert to array and calculate percentages
+  return Object.entries(languages).map(([language, count]) => ({
+    language,
+    count,
+    percentage: totalReviews ? (count / totalReviews) * 100 : 0
+  })).sort((a, b) => b.count - a.count);
+}

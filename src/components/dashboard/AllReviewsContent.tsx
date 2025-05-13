@@ -2,7 +2,6 @@
 import React from "react";
 import { Review } from "@/types/reviews";
 import OverviewSection from "@/components/OverviewSection";
-import ReviewsChart from "@/components/ReviewsChart";
 import AllReviewsAiAnalysis from "@/components/AllReviewsAiAnalysis";
 import ReviewAnalysis from "@/components/review-analysis/ReviewAnalysis";
 import KeyInsights from "@/components/KeyInsights";
@@ -17,9 +16,6 @@ const AllReviewsContent: React.FC<AllReviewsContentProps> = ({ reviews, chartDat
   return (
     <>
       <OverviewSection reviews={reviews} />
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
-        <ReviewsChart data={chartData} />
-      </div>
       <div className="mb-6">
         <AllReviewsAiAnalysis reviews={reviews} />
       </div>

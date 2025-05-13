@@ -6,6 +6,7 @@ import AllReviewsAiAnalysis from "@/components/AllReviewsAiAnalysis";
 import ReviewAnalysis from "@/components/review-analysis/ReviewAnalysis";
 import KeyInsights from "@/components/KeyInsights";
 import ReviewsTable from "@/components/ReviewsTable";
+import MonthlyReviewsChart from "@/components/review-analysis/MonthlyReviewsChart";
 
 interface AllReviewsContentProps {
   reviews: Review[];
@@ -19,6 +20,12 @@ const AllReviewsContent: React.FC<AllReviewsContentProps> = ({ reviews, chartDat
       <div className="mb-6">
         <AllReviewsAiAnalysis reviews={reviews} />
       </div>
+      
+      {/* Add Cumulative Reviews Chart */}
+      <div className="mb-6">
+        <MonthlyReviewsChart reviews={reviews} className="w-full" />
+      </div>
+      
       <div className="grid grid-cols-1 gap-6 mb-6">
         <ReviewAnalysis reviews={reviews} />
         <KeyInsights reviews={reviews} />

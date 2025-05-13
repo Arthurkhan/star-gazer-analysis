@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AllReviewsContent from "./AllReviewsContent";
 import MonthlyReport from "@/components/monthly-report";
-import { TableAnalysisPanel } from "@/components/TableAnalysisPanel";
 import { Review } from "@/types/reviews";
 
 interface DashboardContentProps {
@@ -40,7 +39,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       <TabsList className="mb-6">
         <TabsTrigger value="all-reviews">All Reviews</TabsTrigger>
         <TabsTrigger value="monthly-report">Monthly Report</TabsTrigger>
-        <TabsTrigger value="table-analysis">Table Analysis</TabsTrigger>
       </TabsList>
       
       <TabsContent value="all-reviews" className="mt-0">
@@ -49,10 +47,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       
       <TabsContent value="monthly-report" className="mt-0">
         <MonthlyReport reviews={reviews} />
-      </TabsContent>
-      
-      <TabsContent value="table-analysis" className="mt-0">
-        <TableAnalysisPanel />
       </TabsContent>
     </Tabs>
   );

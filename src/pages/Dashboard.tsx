@@ -39,7 +39,7 @@ const Dashboard = () => {
         chartData={getChartData(filteredReviews)}
       />
       
-      {/* Monthly Review Trend directly after the DashboardContent */}
+      {/* Cumulative Reviews Chart */}
       {!loading && (
         <div className="mt-6">
           <MonthlyReviewsChart reviews={filteredReviews} className="w-full" />

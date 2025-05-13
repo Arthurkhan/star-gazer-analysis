@@ -12,6 +12,11 @@ interface ReviewsChartProps {
 const ReviewsChart = ({ data }: ReviewsChartProps) => {
   const [chartType, setChartType] = useState<"line" | "bar">("line");
   
+  // Find the maximum count for Y-axis scaling
+  const maxCount = data.length > 0 
+    ? Math.max(...data.map(item => item.count || 0)) + 5
+    : 10;
+  
   return (
     <Card className="col-span-full shadow-md border-0 dark:bg-gray-800 overflow-hidden transition-all duration-300 hover:shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-750">
@@ -53,9 +58,11 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                   tick={{ fontSize: 12 }} 
                   tickLine={{ stroke: '#ccc' }}
                   axisLine={{ stroke: '#ccc' }}
+                  domain={[0, maxCount]}
+                  allowDecimals={false}
                 />
                 <Tooltip 
-                  formatter={(value) => [`${value} reviews`, 'Count']}
+                  formatter={(value) => [`${value} reviews`, 'Monthly Count']}
                   labelFormatter={(label) => `${label}`}
                   contentStyle={{ 
                     borderRadius: '6px', 
@@ -74,7 +81,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                 <Line
                   type="monotone"
                   dataKey="count"
-                  name="Reviews"
+                  name="Monthly Reviews"
                   stroke="#8884d8"
                   strokeWidth={2}
                   dot={{ r: 4, strokeWidth: 1, fill: '#fff' }}
@@ -106,9 +113,11 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                   tick={{ fontSize: 12 }}
                   tickLine={{ stroke: '#ccc' }}
                   axisLine={{ stroke: '#ccc' }}
+                  domain={[0, maxCount]}
+                  allowDecimals={false}
                 />
                 <Tooltip 
-                  formatter={(value) => [`${value} reviews`, 'Count']}
+                  formatter={(value) => [`${value} reviews`, 'Monthly Count']}
                   labelFormatter={(label) => `${label}`}
                   contentStyle={{ 
                     borderRadius: '6px',
@@ -126,7 +135,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                 />
                 <Bar 
                   dataKey="count" 
-                  name="Reviews" 
+                  name="Monthly Reviews" 
                   fill="#8884d8" 
                   radius={[4, 4, 0, 0]}
                   animationDuration={1000}

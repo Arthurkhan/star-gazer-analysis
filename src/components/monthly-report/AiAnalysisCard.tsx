@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,15 +48,21 @@ export function AiAnalysisCard({
       const analysisData = await getOverallAnalysis(selectedReviews);
       
       // Check if we have a structured response with additional data
-      if (typeof analysisData === 'object' && analysisData !== null && 'overallAnalysis' in analysisData) {
-        setAiAnalysis(analysisData.overallAnalysis || "");
-        setRatingBreakdown(analysisData.ratingBreakdown || []);
-        setLanguageDistribution(analysisData.languageDistribution || []);
-      } else {
+      if (analysisData && typeof analysisData === 'object' && 'overallAnalysis' in analysisData) {
+        // Use optional chaining and nullish coalescing for safer property access
+        setAiAnalysis(analysisData?.overallAnalysis || "");
+        setRatingBreakdown(analysisData?.ratingBreakdown || []);
+        setLanguageDistribution(analysisData?.languageDistribution || []);
+      } else if (analysisData) {
         // If we just got a string, set it as the analysis
-        setAiAnalysis(analysisData as string);
+        setAiAnalysis(typeof analysisData === 'string' ? analysisData : "");
         
         // Calculate rating breakdown manually
+        calculateRatingBreakdown(selectedReviews);
+        calculateLanguageDistribution(selectedReviews);
+      } else {
+        // If we got nothing valid, set an empty string and calculate stats manually
+        setAiAnalysis("");
         calculateRatingBreakdown(selectedReviews);
         calculateLanguageDistribution(selectedReviews);
       }
@@ -118,18 +123,6 @@ export function AiAnalysisCard({
   const aiProvider = localStorage.getItem("AI_PROVIDER") || "openai";
   let aiModel = "";
   
-  switch (aiProvider) {
-    case "openai":
-      aiModel = localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini";
-      break;
-    case "anthropic":
-      aiModel = localStorage.getItem("ANTHROPIC_MODEL") || "claude-3-haiku-20240307";
-      break;
-    case "gemini":
-      aiModel = localStorage.getItem("GEMINI_MODEL") || "gemini-1.5-flash";
-      break;
-  }
-
   // Only trigger analysis when there's a significant change in reviews
   // Using a ref to store previous review set length to compare
   const [previousReviewCount, setPreviousReviewCount] = useState(0);

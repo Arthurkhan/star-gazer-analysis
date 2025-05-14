@@ -1,4 +1,8 @@
+
 import { BusinessType } from './businessTypes';
+
+// Re-export BusinessType so it's available to importers of this file
+export { BusinessType };
 
 // Industry benchmarks for recommendations
 export interface IndustryBenchmark {

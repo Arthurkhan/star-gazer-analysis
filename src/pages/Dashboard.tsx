@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useRecommendations } from "@/hooks/useRecommendations";
-import { BusinessType } from "@/types/recommendations";
+import { BusinessType } from "@/types/businessTypes";
 import { type AIProvider } from "@/components/AIProviderToggle";
 import { Sparkles, Download, Save } from "lucide-react";
 

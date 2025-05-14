@@ -66,22 +66,22 @@ export async function testApiKey(provider: string, apiKey?: string) {
   return true;
 }
 
-// Get API key and model for a provider
-export function getApiKeyAndModel(provider: string) {
+// Get API key and model for a provider - NOW ACCEPTS API KEY FROM REQUEST
+export function getApiKeyAndModel(provider: string, requestApiKey?: string) {
   let apiKey;
   let model;
   
   switch (provider) {
     case "openai":
-      apiKey = Deno.env.get("OPENAI_API_KEY");
+      apiKey = requestApiKey || Deno.env.get("OPENAI_API_KEY");
       model = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
       break;
     case "anthropic":
-      apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+      apiKey = requestApiKey || Deno.env.get("ANTHROPIC_API_KEY");
       model = Deno.env.get("ANTHROPIC_MODEL") || "claude-3-haiku-20240307";
       break;
     case "gemini":
-      apiKey = Deno.env.get("GEMINI_API_KEY");
+      apiKey = requestApiKey || Deno.env.get("GEMINI_API_KEY");
       model = Deno.env.get("GEMINI_MODEL") || "gemini-1.5-flash";
       break;
     default:

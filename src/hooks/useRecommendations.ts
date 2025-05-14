@@ -23,10 +23,20 @@ export const useRecommendations = ({
   const { toast } = useToast();
 
   const generateRecommendations = useCallback(async (provider: AIProvider) => {
-    if (!selectedBusiness || !businessData) {
+    if (!selectedBusiness || !businessData || !businessData.reviews) {
       toast({
         title: "Error",
-        description: "Please select a business first",
+        description: "Please select a business with reviews first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if we have reviews
+    if (!businessData.reviews || businessData.reviews.length === 0) {
+      toast({
+        title: "Error",
+        description: "No reviews found for this business",
         variant: "destructive",
       });
       return;
@@ -43,11 +53,15 @@ export const useRecommendations = ({
       const analysisData = {
         business: selectedBusiness,
         businessType,
-        reviews: businessData.reviews,
+        reviews: businessData.reviews || [],
         metrics: {
-          totalReviews: businessData.reviews.length,
-          avgRating: businessData.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / businessData.reviews.length,
-          responseRate: businessData.reviews.filter((r: any) => r.owner_response).length / businessData.reviews.length,
+          totalReviews: businessData.reviews?.length || 0,
+          avgRating: businessData.reviews?.length > 0 
+            ? businessData.reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / businessData.reviews.length
+            : 0,
+          responseRate: businessData.reviews?.length > 0
+            ? businessData.reviews.filter((r: any) => r.owner_response).length / businessData.reviews.length
+            : 0,
         },
         patterns: businessData.patterns || {},
         sentiment: businessData.sentiment || {},

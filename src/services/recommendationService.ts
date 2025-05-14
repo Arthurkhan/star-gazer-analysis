@@ -2,21 +2,10 @@ import { BrowserAIService } from '@/services/ai/browserAI';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Recommendations, 
-  BusinessType 
+  BusinessType,
+  AnalysisResult 
 } from '@/types/recommendations';
-import { Review } from '@/types/reviews';
-
-interface AnalysisResult {
-  sentimentAnalysis: { name: string; value: number }[];
-  staffMentions: { name: string; count: number; sentiment: string }[];
-  commonTerms: { text: string; count: number }[];
-  mainThemes?: { theme: string; count: number; percentage: number }[];
-  overallAnalysis: string;
-  ratingBreakdown?: { rating: number; count: number; percentage: number }[];
-  languageDistribution?: { language: string; count: number; percentage: number }[];
-}
-
-export type AIProvider = 'browser' | 'api';
+import { type AIProvider } from '@/components/AIProviderToggle';
 
 export class RecommendationService {
   private browserService: BrowserAIService;
@@ -31,16 +20,16 @@ export class RecommendationService {
     this.provider = provider;
   }
   
-  async generateRecommendations(
-    analysisData: AnalysisResult,
-    reviews: Review[],
-    businessType: BusinessType = BusinessType.OTHER
-  ): Promise<Recommendations> {
+  async generateRecommendations(analysisData: AnalysisResult): Promise<Recommendations> {
     try {
       if (this.provider === 'api') {
-        return await this.generateApiRecommendations(analysisData, reviews, businessType);
+        return await this.generateApiRecommendations(analysisData);
       } else {
-        return await this.browserService.generateRecommendations(analysisData, reviews, businessType);
+        return await this.browserService.generateRecommendations(
+          analysisData,
+          analysisData.reviews,
+          analysisData.businessType
+        );
       }
     } catch (error) {
       console.error('Primary AI failed, falling back to browser AI', error);
@@ -48,7 +37,11 @@ export class RecommendationService {
       // Fallback to browser AI if API fails
       if (this.provider === 'api') {
         try {
-          return await this.browserService.generateRecommendations(analysisData, reviews, businessType);
+          return await this.browserService.generateRecommendations(
+            analysisData,
+            analysisData.reviews,
+            analysisData.businessType
+          );
         } catch (fallbackError) {
           console.error('Fallback to browser AI also failed', fallbackError);
           throw fallbackError;
@@ -59,12 +52,8 @@ export class RecommendationService {
     }
   }
   
-  private async generateApiRecommendations(
-    analysisData: AnalysisResult,
-    reviews: Review[],
-    businessType: BusinessType
-  ): Promise<Recommendations> {
-    // Get the API provider from localStorage
+  private async generateApiRecommendations(analysisData: AnalysisResult): Promise<Recommendations> {
+    // Get the API provider and key
     const apiProvider = localStorage.getItem('AI_PROVIDER') || 'openai';
     const apiKey = localStorage.getItem(`${apiProvider.toUpperCase()}_API_KEY`);
     
@@ -72,19 +61,12 @@ export class RecommendationService {
       throw new Error(`No API key found for ${apiProvider}`);
     }
     
-    // Add average rating to analysis data
-    const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length;
-    const enrichedAnalysisData = {
-      ...analysisData,
-      avgRating
-    };
-    
     const { data, error } = await supabase.functions.invoke('generate-recommendations', {
       body: {
-        analysisData: enrichedAnalysisData,
-        reviews: reviews.slice(0, 50), // Send only recent reviews to avoid token limits
-        businessType,
-        provider: apiProvider
+        analysisData,
+        businessType: analysisData.businessType,
+        provider: apiProvider,
+        apiKey
       }
     });
     

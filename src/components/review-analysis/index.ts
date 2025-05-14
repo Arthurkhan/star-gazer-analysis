@@ -7,7 +7,7 @@ import MonthlyReviewsChart from "./MonthlyReviewsChart";
 import ReviewAnalysis from "./ReviewAnalysis";
 import SentimentBreakdown from "./SentimentBreakdown";
 import StaffMentions from "./StaffMentions";
-import { PieChartRenderer } from "./PieChartRenderer";
+import { PieChartRenderer as PieChart } from "./PieChartRenderer";
 
 export {
   AIAnalysisReport,
@@ -18,7 +18,7 @@ export {
   ReviewAnalysis,
   SentimentBreakdown,
   StaffMentions,
-  PieChartRenderer
+  PieChart as PieChartRenderer
 };
 
 export default AIAnalysisReport;

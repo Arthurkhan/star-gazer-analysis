@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -29,19 +30,24 @@ export const ScenariosView = ({ scenarios }: ScenariosViewProps) => {
 
   const formatMetricValue = (key: string, value: number | string) => {
     if (key === 'revenue') return value;
-    if (key === 'avgRating') return value.toFixed(2);
-    if (key === 'sentiment') return `${(value * 100).toFixed(0)}%`;
-    return value.toString();
+    if (key === 'avgRating' && typeof value === 'number') return value.toFixed(2);
+    if (key === 'sentiment' && typeof value === 'number') return `${(value * 100).toFixed(0)}%`;
+    return String(value);
   };
 
   const getChangeIndicator = (key: string, value: string | number) => {
     if (key === 'revenue') {
-      const numValue = parseFloat(value.toString().replace('%', ''));
-      return numValue > 0 ? (
-        <TrendingUp className="w-4 h-4 text-green-500" />
-      ) : numValue < 0 ? (
-        <TrendingDown className="w-4 h-4 text-red-500" />
-      ) : null;
+      const numValue = typeof value === 'string' ? 
+        parseFloat(value.toString().replace('%', '')) : 
+        value;
+      
+      if (typeof numValue === 'number') {
+        return numValue > 0 ? (
+          <TrendingUp className="w-4 h-4 text-green-500" />
+        ) : numValue < 0 ? (
+          <TrendingDown className="w-4 h-4 text-red-500" />
+        ) : null;
+      }
     }
     return null;
   };
@@ -70,7 +76,7 @@ export const ScenariosView = ({ scenarios }: ScenariosViewProps) => {
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
                 <Clock className="w-4 h-4" />
-                <span>{scenario.timeframe}</span>
+                <span>{scenario.timeframe || 'Ongoing'}</span>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">

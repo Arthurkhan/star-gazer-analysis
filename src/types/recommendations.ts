@@ -8,6 +8,13 @@ export interface Recommendations {
   competitiveAnalysis?: CompetitiveAnalysis;
   growthStrategies?: GrowthStrategy[];
   scenarios?: Scenario[];
+  
+  // Add missing properties referenced in components
+  urgentActions: UrgentAction[];
+  patternInsights: PatternInsight[];
+  longTermStrategies: Strategy[];
+  competitivePosition: CompetitiveAnalysis;
+  customerAttractionPlan: MarketingPlan;
 }
 
 export interface AnalysisResult {
@@ -55,6 +62,19 @@ export interface CompetitiveAnalysis {
     threats: string[];
   };
   recommendations: string[];
+  
+  // Add missing properties used in CompetitiveAnalysisView
+  position: "above" | "average" | "below";
+  metrics: {
+    [key: string]: {
+      value: number;
+      benchmark: number;
+      percentile: number;
+    }
+  };
+  strengths: string[];
+  weaknesses: string[];
+  opportunities: string[];
 }
 
 export interface Competitor {
@@ -77,6 +97,13 @@ export interface GrowthStrategy {
   potentialImpact: "high" | "medium" | "low";
   resourceRequirements: "high" | "medium" | "low";
   timeframe: "immediate" | "short_term" | "long_term" | "ongoing";
+  
+  // Add missing properties used in GrowthStrategiesView
+  id: string;
+  category: string;
+  expectedImpact: string;
+  implementation: string[];
+  kpis: string[];
 }
 
 export interface Scenario {
@@ -113,6 +140,23 @@ export interface MarketingPlan {
       description: string;
     }[];
   };
+  
+  // Add missing properties used in GrowthStrategiesView
+  targetAudiences: {
+    primary: string[];
+    secondary: string[];
+    untapped: string[];
+  };
+  channels: {
+    name: string;
+    strategy: string;
+    budget: string;
+  }[];
+  messaging: {
+    uniqueValue: string;
+    keyPoints: string[];
+    callToAction: string;
+  };
 }
 
 export interface Strategy {
@@ -127,4 +171,61 @@ export interface Strategy {
     kpis: string[];
   }[];
   expectedOutcomes: string[];
+  
+  // Add missing properties used in PatternAnalysisView
+  id: string;
+  category: string;
+  title: string;
+  riskLevel: string;
+  timeframe: string;
+  expectedROI: string;
+  actions: string[];
+}
+
+// Add missing interfaces
+export interface UrgentAction {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  relatedReviews?: string[];
+  suggestedAction?: string;
+  timeframe?: string;
+}
+
+export interface PatternInsight {
+  id?: string;
+  pattern: string;
+  frequency: number;
+  sentiment: "positive" | "negative" | "neutral" | "mixed";
+  impact?: "high" | "medium" | "low";
+  trend?: string;
+  recommendation: string;
+  examples: string[];
+}
+
+export interface BusinessScenario {
+  name: string;
+  description: string;
+  probability: number;
+  timeframe?: string;
+  projectedMetrics: {
+    reviewVolume: number;
+    avgRating: number;
+    sentiment: number;
+    revenue: string;
+    [key: string]: number | string;
+  };
+  requiredActions: string[];
+  assumptions?: string[];
+}
+
+export interface CompetitiveInsight {
+  metric: string;
+  yourValue: number;
+  industryAverage: number;
+  topPerformer: number;
+  percentile: number;
+  gap: number;
+  recommendation: string;
 }

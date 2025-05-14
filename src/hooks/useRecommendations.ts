@@ -1,8 +1,8 @@
+
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { type Recommendations } from '@/types/recommendations';
-import { type BusinessType } from '@/types/businessTypes';
+import { type Recommendations, type BusinessType } from '@/types/recommendations';
 import { type AIProvider } from '@/components/AIProviderToggle';
 import { RecommendationService } from '@/services/recommendationService';
 
@@ -87,7 +87,81 @@ export const useRecommendations = ({
 
       console.log('Analysis Data:', analysisData); // Debug log
 
-      const result = await service.generateRecommendations(analysisData);
+      // Create a placeholder for expected result structure that matches our defined types
+      const mockResult: Recommendations = {
+        analysis: {
+          sentimentAnalysis: [
+            { name: 'Positive', value: mappedReviews.filter((r: any) => r.sentiment === 'positive').length },
+            { name: 'Neutral', value: mappedReviews.filter((r: any) => r.sentiment === 'neutral').length },
+            { name: 'Negative', value: mappedReviews.filter((r: any) => r.sentiment === 'negative').length }
+          ],
+          staffMentions: [],
+          commonTerms: [],
+          overallAnalysis: "Analysis in progress...",
+        },
+        suggestions: [],
+        actionPlan: {
+          title: "Initial Action Plan",
+          description: "This is an automatically generated action plan based on your reviews.",
+          steps: [],
+          expectedResults: "Improved customer satisfaction and business growth",
+          timeframe: "short_term"
+        },
+        urgentActions: [],
+        patternInsights: [],
+        longTermStrategies: [],
+        competitivePosition: {
+          overview: "Competitive analysis in progress...",
+          competitors: [],
+          strengthsWeaknesses: {
+            strengths: [],
+            weaknesses: [],
+            opportunities: [],
+            threats: []
+          },
+          recommendations: [],
+          position: "average",
+          metrics: {
+            rating: { value: avgRating, benchmark: 4.0, percentile: 50 },
+            reviewVolume: { value: totalReviews, benchmark: 100, percentile: 50 },
+            sentiment: { value: 0.5, benchmark: 0.5, percentile: 50 }
+          },
+          strengths: [],
+          weaknesses: [],
+          opportunities: []
+        },
+        customerAttractionPlan: {
+          overview: "Marketing plan in development...",
+          objectives: [],
+          tactics: [],
+          budget: {
+            total: "$0",
+            breakdown: {}
+          },
+          timeline: {
+            start: new Date().toISOString(),
+            end: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+            milestones: []
+          },
+          targetAudiences: {
+            primary: [],
+            secondary: [],
+            untapped: []
+          },
+          channels: [],
+          messaging: {
+            uniqueValue: "",
+            keyPoints: [],
+            callToAction: ""
+          }
+        }
+      };
+
+      // Get actual recommendations if service is available
+      const serviceResult = await service.generateRecommendations(analysisData);
+      
+      // Merge the received results with our placeholder structure to ensure all properties exist
+      const result = { ...mockResult, ...serviceResult };
       setRecommendations(result);
       
       toast({
@@ -138,6 +212,7 @@ export const useRecommendations = ({
     if (!recommendations || !selectedBusiness) return;
 
     try {
+      // Use the generic 'from' method instead of trying to reference a specific table
       const { error } = await supabase
         .from('saved_recommendations')
         .insert({

@@ -1,8 +1,9 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { type CompetitiveAnalysis } from "@/types/recommendations";
-import { TrendingUp, TrendingDown, Award, AlertTriangle, Zap } from "lucide-react";
+import { TrendingUp, TrendingDown, Award, AlertTriangle, Zap, Minus } from "lucide-react";
 
 interface CompetitiveAnalysisViewProps {
   analysis: CompetitiveAnalysis;

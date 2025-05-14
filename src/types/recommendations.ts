@@ -1,113 +1,162 @@
-import { BusinessType } from './businessTypes';
+// Business types and industry benchmarks
+export enum BusinessType {
+  CAFE = 'cafe',
+  BAR = 'bar',
+  RESTAURANT = 'restaurant',
+  GALLERY = 'gallery',
+  RETAIL = 'retail',
+  SERVICE = 'service',
+  OTHER = 'other'
+}
 
-export interface Recommendation {
+export interface IndustryBenchmark {
+  avgRating: number;
+  monthlyReviews: number;
+  responseRate: number;
+  commonThemes: string[];
+  sentimentDistribution: {
+    positive: number;
+    neutral: number;
+    negative: number;
+  };
+}
+
+export const industryBenchmarks: Record<BusinessType, IndustryBenchmark> = {
+  [BusinessType.CAFE]: {
+    avgRating: 4.2,
+    monthlyReviews: 150,
+    responseRate: 0.3,
+    commonThemes: ['coffee', 'ambiance', 'wifi', 'service', 'atmosphere'],
+    sentimentDistribution: { positive: 0.7, neutral: 0.2, negative: 0.1 }
+  },
+  [BusinessType.BAR]: {
+    avgRating: 4.0,
+    monthlyReviews: 120,
+    responseRate: 0.25,
+    commonThemes: ['drinks', 'atmosphere', 'music', 'crowd', 'service'],
+    sentimentDistribution: { positive: 0.65, neutral: 0.25, negative: 0.1 }
+  },
+  [BusinessType.RESTAURANT]: {
+    avgRating: 4.1,
+    monthlyReviews: 200,
+    responseRate: 0.4,
+    commonThemes: ['food', 'service', 'ambiance', 'value', 'quality'],
+    sentimentDistribution: { positive: 0.68, neutral: 0.22, negative: 0.1 }
+  },
+  [BusinessType.GALLERY]: {
+    avgRating: 4.5,
+    monthlyReviews: 50,
+    responseRate: 0.2,
+    commonThemes: ['art', 'exhibits', 'atmosphere', 'curation', 'space'],
+    sentimentDistribution: { positive: 0.8, neutral: 0.15, negative: 0.05 }
+  },
+  [BusinessType.RETAIL]: {
+    avgRating: 4.0,
+    monthlyReviews: 100,
+    responseRate: 0.35,
+    commonThemes: ['selection', 'service', 'prices', 'quality', 'location'],
+    sentimentDistribution: { positive: 0.65, neutral: 0.25, negative: 0.1 }
+  },
+  [BusinessType.SERVICE]: {
+    avgRating: 4.3,
+    monthlyReviews: 80,
+    responseRate: 0.45,
+    commonThemes: ['professionalism', 'quality', 'value', 'communication', 'reliability'],
+    sentimentDistribution: { positive: 0.72, neutral: 0.2, negative: 0.08 }
+  },
+  [BusinessType.OTHER]: {
+    avgRating: 4.1,
+    monthlyReviews: 100,
+    responseRate: 0.3,
+    commonThemes: ['service', 'quality', 'value', 'experience', 'staff'],
+    sentimentDistribution: { positive: 0.68, neutral: 0.22, negative: 0.1 }
+  }
+};
+
+// Recommendation types
+export interface UrgentAction {
   id: string;
-  category: 'urgent' | 'growth' | 'operational' | 'strategic' | 'competitive';
-  priority: 'critical' | 'high' | 'medium' | 'low';
   title: string;
   description: string;
-  reasoning: string;
-  expectedImpact: string;
+  category: 'critical' | 'important' | 'moderate';
+  relatedReviews: string[];
+  suggestedAction: string;
   timeframe: string;
-  metrics: string[];
-  actions: string[];
-  relatedData?: any;
 }
 
-export interface UrgentAction extends Recommendation {
-  category: 'urgent';
-  issue: string;
-  affectedCustomers: number;
-  riskLevel: 'severe' | 'high' | 'moderate';
+export interface GrowthStrategy {
+  id: string;
+  title: string;
+  description: string;
+  category: 'marketing' | 'operations' | 'customer_experience' | 'staff';
+  expectedImpact: string;
+  implementation: string[];
+  timeframe: string;
+  kpis: string[];
 }
 
-export interface GrowthStrategy extends Recommendation {
-  category: 'growth';
-  targetAudience: string;
-  marketingChannels: string[];
-  estimatedCost: string;
-  expectedROI: string;
-}
-
-export interface CompetitiveInsight {
-  metric: string;
-  yourValue: number;
-  industryAverage: number;
-  topPerformer: number;
-  percentile: number;
-  gap: number;
+export interface PatternInsight {
+  id: string;
+  pattern: string;
+  frequency: number;
+  sentiment: 'positive' | 'negative' | 'neutral';
   recommendation: string;
+  examples: string[];
 }
 
 export interface CompetitiveAnalysis {
-  businessType: BusinessType;
-  overallPosition: 'leader' | 'above-average' | 'average' | 'below-average' | 'lagging';
-  insights: CompetitiveInsight[];
+  position: 'above' | 'average' | 'below';
+  metrics: {
+    rating: { value: number; benchmark: number; percentile: number };
+    reviewVolume: { value: number; benchmark: number; percentile: number };
+    sentiment: { value: number; benchmark: number; percentile: number };
+  };
   strengths: string[];
   weaknesses: string[];
   opportunities: string[];
-  threats: string[];
+}
+
+export interface MarketingPlan {
+  targetAudiences: {
+    primary: string[];
+    secondary: string[];
+    untapped: string[];
+  };
+  channels: {
+    name: string;
+    strategy: string;
+    budget: 'low' | 'medium' | 'high';
+  }[];
+  messaging: {
+    keyPoints: string[];
+    uniqueValue: string;
+    callToAction: string;
+  };
 }
 
 export interface BusinessScenario {
   name: string;
   description: string;
-  assumptions: string[];
-  projectedMetrics: {
-    rating: number;
-    monthlyReviews: number;
-    customerSatisfaction: number;
-    revenue?: string;
-  };
   probability: number;
-  requiredActions: string[];
-  timeline: string;
-}
-
-export interface PatternInsight {
-  pattern: string;
-  frequency: number;
-  sentiment: 'positive' | 'negative' | 'neutral' | 'mixed';
-  impact: 'high' | 'medium' | 'low';
-  trend: 'increasing' | 'stable' | 'decreasing';
-  recommendation: string;
-  examples: string[];
-}
-
-export interface MarketingPlan {
-  objectives: string[];
-  targetSegments: {
-    segment: string;
-    characteristics: string[];
-    channels: string[];
-    messaging: string;
-  }[];
-  campaigns: {
-    name: string;
-    objective: string;
-    duration: string;
-    budget: string;
-    expectedResults: string;
-  }[];
-  contentStrategy: {
-    themes: string[];
-    formats: string[];
-    frequency: string;
+  timeframe: string;
+  projectedMetrics: {
+    reviewVolume: number;
+    avgRating: number;
+    sentiment: number;
+    revenue: string; // percentage change
   };
-  kpis: string[];
+  requiredActions: string[];
 }
 
 export interface Strategy {
   id: string;
-  category: 'brand' | 'customer' | 'innovation' | 'operational' | 'digital';
+  category: 'brand' | 'customer' | 'innovation' | 'operations';
   title: string;
   description: string;
   timeframe: string;
   actions: string[];
-  expectedOutcomes: string[];
-  resources: string[];
-  risks: string[];
-  mitigations: string[];
+  expectedROI: string;
+  riskLevel: 'low' | 'medium' | 'high';
 }
 
 export interface Recommendations {
@@ -118,7 +167,13 @@ export interface Recommendations {
   customerAttractionPlan: MarketingPlan;
   scenarios: BusinessScenario[];
   longTermStrategies: Strategy[];
-  generatedAt: string;
-  provider: 'browser' | 'api';
-  businessType: BusinessType;
+}
+
+export interface BusinessHealth {
+  score: number; // 0-100
+  trend: 'improving' | 'stable' | 'declining';
+  strengths: string[];
+  weaknesses: string[];
+  opportunities: string[];
+  threats: string[];
 }

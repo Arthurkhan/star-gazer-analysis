@@ -15,6 +15,9 @@ import { testApiKey, getApiKeyAndModel } from "./api-key-manager.ts";
 const analysisCache = new Map();
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour cache TTL
 
+// Storage for custom prompt
+let customPrompt = "";
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -24,6 +27,28 @@ serve(async (req) => {
   try {
     const requestData = await req.json();
     const { action, provider } = requestData;
+    
+    // Handle custom prompt operations
+    if (action === "get-prompt") {
+      return new Response(
+        JSON.stringify({ prompt: customPrompt || Deno.env.get("OPENAI_CUSTOM_PROMPT") || "" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (action === "set-prompt") {
+      customPrompt = requestData.prompt || "";
+      
+      // Also store in env for persistence across cold starts
+      if (Deno.env.get("SUPABASE_URL")) {
+        Deno.env.set("OPENAI_CUSTOM_PROMPT", customPrompt);
+      }
+      
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     // Test mode - just check if API key exists/is valid
     if (action === "test") {
@@ -90,11 +115,11 @@ serve(async (req) => {
     
     console.log(`Analyzing ${filteredReviews.length} reviews with ${analysisProvider} model: ${model}`);
     
-    // Get custom prompt if available
-    const customPrompt = Deno.env.get("OPENAI_CUSTOM_PROMPT");
+    // Get custom prompt if available - first from memory, then from env var
+    const currentCustomPrompt = customPrompt || Deno.env.get("OPENAI_CUSTOM_PROMPT");
     
     // Create the prompt for AI with the review data
-    const prompt = generatePrompt(filteredReviews, fullAnalysis, reportType, dateRange, customPrompt);
+    const prompt = generatePrompt(filteredReviews, fullAnalysis, reportType, dateRange, currentCustomPrompt);
     
     // Get system message
     const systemMessage = getSystemMessage(fullAnalysis, reportType);

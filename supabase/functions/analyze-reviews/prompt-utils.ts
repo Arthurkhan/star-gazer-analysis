@@ -46,9 +46,9 @@ export function generatePrompt(
       
       📈 TREND ANALYSIS
       - Current Period: [X reviews]
-      - Previous Period: [Y reviews]
-      - Change: [+/- percentage]
-      - Momentum: [Increasing/Decreasing/Stable]
+      - Previous Period: [Y reviews] or "No data available"
+      - Change: [+/- percentage]% or "New period (no previous data)" or "N/A" 
+      - Momentum: [Increasing/Decreasing/Stable/New]
       
       🗣️ CUSTOMER HIGHLIGHTS
       Top Mentioned Categories:
@@ -91,8 +91,9 @@ export function generatePrompt(
       
       📈 TREND ANALYSIS
       - Current Period: [X reviews]
-      - Previous Period: [Y reviews]
-      - Change: [+/- percentage]
+      - Previous Period: [Y reviews] or "No data available"
+      - Change: [+/- percentage]% or "New period (no previous data)" or "N/A" 
+      - Momentum: [Increasing/Decreasing/Stable/New]
       
       🗣️ CUSTOMER HIGHLIGHTS
       Top Mentioned Categories:
@@ -149,9 +150,9 @@ export function getSystemMessage(fullAnalysis: boolean, reportType: string = 'st
   const isComprehensive = reportType === 'comprehensive';
   
   if (isComprehensive) {
-    return "You are an AI business intelligence expert specialized in analyzing customer reviews data. Your task is to create a comprehensive, executive-level report based on the reviews provided, focusing SPECIFICALLY on the 'sentiment', 'staffMentioned', 'mainThemes', and 'common terms' columns. Your analysis must include detailed insights on sentiment patterns, staff impact, customer themes, and actionable recommendations. Your report must follow the EXACT format specified with proper section headers, emojis for readability, and data-driven insights. Focus on being specific, insightful, and actionable. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
+    return "You are an AI business intelligence expert specialized in analyzing customer reviews data. Your task is to create a comprehensive, executive-level report based on the reviews provided, focusing SPECIFICALLY on the 'sentiment', 'staffMentioned', 'mainThemes', and 'common terms' columns. Your analysis must include detailed insights on sentiment patterns, staff impact, customer themes, and actionable recommendations. Your report must follow the EXACT format specified with proper section headers, emojis for readability, and data-driven insights. For trend analysis, if previous period has 0 reviews, display 'Change: New period (no previous data)'. Calculate percentage change properly: ((current - previous) / previous * 100). If previous is 0, show 'N/A'. If both periods are 0, show 'No activity in either period'. Focus on being specific, insightful, and actionable. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
   } else if (fullAnalysis) {
-    return "You are an AI assistant that analyzes customer reviews and extracts insights. Focus specifically on analyzing the 'Sentiment', 'Staff Mentioned', 'Main Themes', and 'Common terms' columns to create a comprehensive analysis. Format your analysis with clear section headers, emojis, bullet points, and specific metrics to make it easy to read. Follow the EXACT format specified in the prompt. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
+    return "You are an AI assistant that analyzes customer reviews and extracts insights. Focus specifically on analyzing the 'Sentiment', 'Staff Mentioned', 'Main Themes', and 'Common terms' columns to create a comprehensive analysis. Format your analysis with clear section headers, emojis, bullet points, and specific metrics to make it easy to read. For trend analysis, if previous period has 0 reviews, display 'Change: New period (no previous data)'. Calculate percentage change properly: ((current - previous) / previous * 100). If previous is 0, show 'N/A'. If both periods are 0, show 'No activity in either period'. Follow the EXACT format specified in the prompt. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
   } else {
     return "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name, consolidating variations of the same name. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
   }
@@ -248,6 +249,12 @@ export function formatOverallAnalysis(analysis: string | any): string {
   if (!formattedAnalysis.includes('• ') && !formattedAnalysis.includes('- ')) {
     formattedAnalysis = formattedAnalysis.replace(/([.?!])\s+([A-Z])/g, '$1\n• $2');
   }
+  
+  // Improve trend analysis formatting
+  formattedAnalysis = formattedAnalysis.replace(
+    /(Change:\s+)([+-]?\d+)%/g, 
+    (match, prefix, number) => `${prefix}${number > 0 ? '+' : ''}${number}%`
+  );
   
   return formattedAnalysis;
 }

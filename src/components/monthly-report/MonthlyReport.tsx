@@ -8,12 +8,16 @@ import ReviewsTable from "@/components/ReviewsTable";
 import { useSelectedDateRange } from "./hooks/useSelectedDateRange";
 import { useMonthlySummaryData } from "./hooks/useMonthlySummaryData";
 import AIAnalysisReport from "@/components/review-analysis/AIAnalysisReport";
+import { CustomPromptDialog } from "@/components/CustomPromptDialog";
 
 interface MonthlyReportProps {
   reviews: Review[];
 }
 
 const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
+  // State for view mode (day, week, month)
+  const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
+  
   // Use our custom hooks for handling date range and summary data
   const {
     dateRange,
@@ -39,11 +43,10 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     selectedReviews,
     summaryData,
     timeReviewsData,
-    viewMode,
-    setViewMode
   } = useMonthlySummaryData({ 
     reviews, 
-    dateRange
+    dateRange,
+    viewMode
   });
 
   // Memoize the rendered components for better performance
@@ -78,12 +81,18 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   ), [timeReviewsData, viewMode, setViewMode]);
 
   const aiAnalysis = useMemo(() => (
-    <AIAnalysisReport 
-      reviews={selectedReviews} 
-      dateRange={dateRange} 
-      title="Monthly AI Analysis"
-      className="mb-6"
-    />
+    <div className="flex flex-col space-y-2">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">AI Analysis</h3>
+        <CustomPromptDialog />
+      </div>
+      <AIAnalysisReport 
+        reviews={selectedReviews} 
+        dateRange={dateRange} 
+        title="Monthly AI Analysis"
+        className="mb-6"
+      />
+    </div>
   ), [selectedReviews, dateRange]);
 
   return (

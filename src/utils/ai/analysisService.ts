@@ -60,6 +60,12 @@ export const analyzeReviewsWithAI = async (
     // Calculate language distribution before sending to AI
     const languageDistribution = calculateLanguageDistribution(reviews);
     
+    // Prepare comparison data for the date range
+    let comparisonData = null;
+    if (dateRange) {
+      comparisonData = calculateComparisonPeriod(reviews, dateRange);
+    }
+    
     // Call the Edge Function to analyze the reviews
     const { data, error } = await supabase.functions.invoke("analyze-reviews", {
       body: {
@@ -68,7 +74,8 @@ export const analyzeReviewsWithAI = async (
         model: model,
         fullAnalysis: true,
         reportType: 'comprehensive', // Add this new parameter
-        dateRange: dateRange // Pass date range if provided
+        dateRange: dateRange, // Pass date range if provided
+        comparisonData: comparisonData // Pass comparison data if available
       }
     });
 
@@ -104,6 +111,85 @@ export const analyzeReviewsWithAI = async (
     };
   }
 };
+
+// Calculate comparison period based on date range
+function calculateComparisonPeriod(reviews: Review[], dateRange: DateRange) {
+  const currentStart = new Date(dateRange.startDate);
+  const currentEnd = new Date(dateRange.endDate);
+  
+  // Calculate duration of current period in days
+  const currentDuration = Math.floor((currentEnd.getTime() - currentStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  
+  // Calculate dates for previous period (same duration)
+  const previousEnd = new Date(currentStart);
+  previousEnd.setDate(previousEnd.getDate() - 1); // Day before current start
+  
+  const previousStart = new Date(previousEnd);
+  previousStart.setDate(previousStart.getDate() - currentDuration + 1); // Same duration as current period
+  
+  // Filter reviews for current period
+  const currentPeriodReviews = reviews.filter(review => {
+    const reviewDate = new Date(review.publishedAtDate);
+    return reviewDate >= currentStart && reviewDate <= currentEnd;
+  });
+  
+  // Filter reviews for previous period
+  const previousPeriodReviews = reviews.filter(review => {
+    const reviewDate = new Date(review.publishedAtDate);
+    return reviewDate >= previousStart && reviewDate <= previousEnd;
+  });
+  
+  // Calculate comparison metrics
+  const currentCount = currentPeriodReviews.length;
+  const previousCount = previousPeriodReviews.length;
+  
+  // Calculate change percentage, handling division by zero
+  let changePercentage: number | string = 0;
+  let changeDescription: string = "Stable";
+  
+  if (previousCount === 0 && currentCount === 0) {
+    changePercentage = "N/A";
+    changeDescription = "No activity in either period";
+  } else if (previousCount === 0) {
+    changePercentage = "N/A";
+    changeDescription = "New period (no previous data)";
+  } else {
+    changePercentage = ((currentCount - previousCount) / previousCount) * 100;
+    
+    if (changePercentage > 10) {
+      changeDescription = "Increasing";
+    } else if (changePercentage < -10) {
+      changeDescription = "Decreasing";
+    } else {
+      changeDescription = "Stable";
+    }
+  }
+  
+  // Check if we have enough historical data
+  const oldestReviewDate = new Date(Math.min(
+    ...reviews.map(r => new Date(r.publishedAtDate).getTime())
+  ));
+  
+  const hasEnoughHistory = (currentStart.getTime() - oldestReviewDate.getTime()) >= (30 * 24 * 60 * 60 * 1000); // 30 days
+  
+  return {
+    current: {
+      startDate: currentStart.toISOString(),
+      endDate: currentEnd.toISOString(),
+      count: currentCount
+    },
+    previous: {
+      startDate: previousStart.toISOString(),
+      endDate: previousEnd.toISOString(),
+      count: previousCount
+    },
+    change: {
+      percentage: changePercentage,
+      description: changeDescription
+    },
+    hasEnoughHistory: hasEnoughHistory
+  };
+}
 
 // Calculate rating breakdown statistics
 function calculateRatingBreakdown(reviews: Review[]) {

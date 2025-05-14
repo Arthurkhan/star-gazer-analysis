@@ -75,11 +75,12 @@ serve(async (req) => {
       fullAnalysis = true, 
       dateRange,
       reportType = 'standard', // New parameter for report type
-      comparisonData
+      comparisonData,
+      apiKey: requestApiKey // ACCEPT API KEY FROM REQUEST
     } = requestData;
     
-    // Get the appropriate API key and model
-    const { apiKey, model } = getApiKeyAndModel(analysisProvider);
+    // Get the appropriate API key and model - PASS REQUEST API KEY
+    const { apiKey, model } = getApiKeyAndModel(analysisProvider, requestApiKey);
     
     // Filter reviews by date range if provided
     let filteredReviews = reviews;
@@ -203,15 +204,15 @@ serve(async (req) => {
   }
 });
 
-// Calculate rating breakdown statistics
+// Calculate rating breakdown statistics - FIXED STAR/STARS REFERENCES
 function calculateRatingBreakdown(reviews) {
   const totalReviews = reviews.length;
   const counts = {
-    1: reviews.filter(r => r.rating === 1 || r.star === 1).length,
-    2: reviews.filter(r => r.rating === 2 || r.star === 2).length,
-    3: reviews.filter(r => r.rating === 3 || r.star === 3).length,
-    4: reviews.filter(r => r.rating === 4 || r.star === 4).length,
-    5: reviews.filter(r => r.rating === 5 || r.star === 5).length
+    1: reviews.filter(r => r.rating === 1 || r.stars === 1).length,
+    2: reviews.filter(r => r.rating === 2 || r.stars === 2).length,
+    3: reviews.filter(r => r.rating === 3 || r.stars === 3).length,
+    4: reviews.filter(r => r.rating === 4 || r.stars === 4).length,
+    5: reviews.filter(r => r.rating === 5 || r.stars === 5).length
   };
   
   return [

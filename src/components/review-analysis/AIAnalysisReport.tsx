@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Review } from "@/types/reviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,6 @@ import { RefreshCw, FileText, ClipboardCopy, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAnalysis, clearCache } from "@/utils/ai/analysisService";
-import { CustomPromptDialog } from "@/components/CustomPromptDialog";
 import { generatePDF } from "@/utils/pdfExport";
 
 interface DateRange {
@@ -25,23 +23,24 @@ interface AIAnalysisReportProps {
 const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({ 
   reviews,
   dateRange,
-  title = "AI Analysis Report", 
+  title = "Analysis Report", 
   className = ""
 }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [usingCustomPrompt, setUsingCustomPrompt] = useState(false);
 
   const fetchAnalysis = async (forceRefresh = false) => {
     if (reviews.length === 0) {
-      setError("No reviews to analyze");
+      toast({
+        title: "No reviews",
+        description: "No reviews available to analyze",
+        variant: "default",
+      });
       return;
     }
 
     setLoading(true);
-    setError(null);
 
     try {
       // Clear cache if forcing refresh
@@ -49,21 +48,23 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
         clearCache();
       }
 
-      // Get analysis from the service
+      // Get analysis from the service - now using pre-computed data
       const result = await getAnalysis(reviews, dateRange ? {
         startDate: dateRange.from.toISOString(),
         endDate: dateRange.to ? dateRange.to.toISOString() : new Date().toISOString()
       } : undefined);
       
       setAnalysis(result);
-      // Check if custom prompt was used
-      setUsingCustomPrompt(result.usingCustomPrompt || false);
+      
+      toast({
+        title: "Analysis complete",
+        description: "Report has been generated",
+      });
     } catch (err) {
       console.error("Analysis error:", err);
-      setError("Failed to generate analysis. Please try again later.");
       toast({
         title: "Analysis failed",
-        description: "Could not generate AI analysis",
+        description: "Could not generate analysis",
         variant: "destructive",
       });
     } finally {
@@ -130,14 +131,7 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
   return (
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="flex items-center space-x-2">
-          <CardTitle className="text-xl font-bold">{title}</CardTitle>
-          {usingCustomPrompt && (
-            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
-              Custom Prompt
-            </span>
-          )}
-        </div>
+        <CardTitle className="text-xl font-bold">{title}</CardTitle>
         <div className="flex space-x-2">
           <TooltipProvider>
             <Tooltip>
@@ -175,8 +169,6 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
             </Tooltip>
           </TooltipProvider>
           
-          <CustomPromptDialog />
-          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -200,22 +192,32 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
         {loading ? (
           <div className="text-center py-6">
             <div className="inline-block w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <p className="mt-2 text-sm text-muted-foreground">Analyzing reviews...</p>
-          </div>
-        ) : error ? (
-          <div className="text-center text-muted-foreground py-4">
-            {error}
+            <p className="mt-2 text-sm text-muted-foreground">Generating report...</p>
           </div>
         ) : !analysis?.overallAnalysis ? (
           <div className="text-center text-muted-foreground py-4">
             <Button variant="outline" onClick={() => fetchAnalysis()}>
               <FileText className="mr-2 h-4 w-4" />
-              Generate Analysis
+              Generate Report
             </Button>
           </div>
         ) : (
           <div className="space-y-4">
             {renderFormattedAnalysis()}
+            
+            {/* Additional visualizations */}
+            {analysis.mainThemes && analysis.mainThemes.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-semibold mb-2">Key Themes</h3>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.mainThemes.slice(0, 10).map((theme: any, idx: number) => (
+                    <span key={idx} className="px-3 py-1 bg-primary/10 rounded-full text-sm">
+                      {theme.theme} ({(theme.percentage).toFixed(1)}%)
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

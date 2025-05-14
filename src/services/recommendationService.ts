@@ -2,9 +2,9 @@ import { BrowserAIService } from '@/services/ai/browserAI';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Recommendations, 
-  BusinessType,
   AnalysisResult 
 } from '@/types/recommendations';
+import { BusinessType } from '@/types/businessTypes';
 import { type AIProvider } from '@/components/AIProviderToggle';
 
 export class RecommendationService {

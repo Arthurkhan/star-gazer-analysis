@@ -1,14 +1,6 @@
-// Business types and industry benchmarks
-export enum BusinessType {
-  CAFE = 'cafe',
-  BAR = 'bar',
-  RESTAURANT = 'restaurant',
-  GALLERY = 'gallery',
-  RETAIL = 'retail',
-  SERVICE = 'service',
-  OTHER = 'other'
-}
+import { BusinessType } from './businessTypes';
 
+// Industry benchmarks for recommendations
 export interface IndustryBenchmark {
   avgRating: number;
   monthlyReviews: number;

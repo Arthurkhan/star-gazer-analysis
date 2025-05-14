@@ -23,7 +23,7 @@ interface UseMonthlySummaryDataProps {
     from: Date;
     to: Date | undefined;
   };
-  viewMode?: "day" | "week" | "month";
+  viewMode: "day" | "week" | "month";
 }
 
 export function useMonthlySummaryData({ reviews, dateRange, viewMode = "day" }: UseMonthlySummaryDataProps) {

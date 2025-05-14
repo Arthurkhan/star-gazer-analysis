@@ -97,3 +97,6 @@ export const generatePDF = ({ title, content, filename }: PDFExportOptions) => {
   // Save PDF
   doc.save(filename);
 };
+
+// Adding a default export to ensure the named export is recognized correctly
+export default { generatePDF };

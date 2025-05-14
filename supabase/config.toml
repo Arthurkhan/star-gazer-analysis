@@ -3,3 +3,7 @@ project_id = "nmlrvkcvzzeewhamjxgj"
 
 [functions.analyze-reviews]
 verify_jwt = false
+memory = 256
+timeout_seconds = 60
+bg_tasks = true
+

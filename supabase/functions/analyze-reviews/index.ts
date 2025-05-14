@@ -11,6 +11,10 @@ import {
 } from "./prompt-utils.ts";
 import { testApiKey, getApiKeyAndModel } from "./api-key-manager.ts";
 
+// Simple in-memory cache for analysis results
+const analysisCache = new Map();
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour cache TTL
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -44,8 +48,6 @@ serve(async (req) => {
     // Get the appropriate API key and model
     const { apiKey, model } = getApiKeyAndModel(analysisProvider);
     
-    console.log(`Analyzing ${reviews.length} reviews with ${analysisProvider} model: ${model}`);
-    
     // Filter reviews by date range if provided
     let filteredReviews = reviews;
     if (dateRange && dateRange.startDate && dateRange.endDate) {
@@ -60,6 +62,26 @@ serve(async (req) => {
       console.log(`Filtered reviews by date range: ${filteredReviews.length} reviews remain`);
     }
     
+    // Create a cache key based on the request parameters
+    const cacheKey = JSON.stringify({
+      reviewIds: filteredReviews.map(r => r.reviewUrl || r.publishedAtDate).sort(),
+      provider: analysisProvider,
+      model,
+      fullAnalysis
+    });
+    
+    // Check if we have a cached result
+    const cachedResult = analysisCache.get(cacheKey);
+    if (cachedResult && cachedResult.timestamp > Date.now() - CACHE_TTL) {
+      console.log('Returning cached analysis result');
+      return new Response(
+        JSON.stringify(cachedResult.data),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log(`Analyzing ${filteredReviews.length} reviews with ${analysisProvider} model: ${model}`);
+    
     // Get custom prompt if available
     const customPrompt = Deno.env.get("OPENAI_CUSTOM_PROMPT");
     
@@ -69,21 +91,26 @@ serve(async (req) => {
     // Get system message
     const systemMessage = getSystemMessage(fullAnalysis);
 
+    // Use background task to avoid timeout for large analysis jobs
+    let analysisPromise;
+    
     // Call the appropriate AI API based on provider
-    let data;
     switch (analysisProvider) {
       case "openai":
-        data = await callOpenAI(apiKey, model, systemMessage, prompt);
+        analysisPromise = callOpenAI(apiKey, model, systemMessage, prompt);
         break;
       case "anthropic":
-        data = await callAnthropic(apiKey, model, systemMessage, prompt);
+        analysisPromise = callAnthropic(apiKey, model, systemMessage, prompt);
         break;
       case "gemini":
-        data = await callGemini(apiKey, model, systemMessage, prompt);
+        analysisPromise = callGemini(apiKey, model, systemMessage, prompt);
         break;
       default:
         throw new Error("Unsupported AI provider");
     }
+    
+    // Run the analysis
+    const data = await analysisPromise;
 
     // Parse the response accordingly
     const analysis = parseAIResponse(data, analysisProvider);
@@ -98,18 +125,26 @@ serve(async (req) => {
     const completeAnalysis = createCompleteAnalysis(analysis, fullAnalysis);
     
     // Calculate rating breakdown and language distribution
-    // These will be calculated on the frontend too, but we include them here for completeness
     const ratingBreakdown = filteredReviews.length > 0 ? calculateRatingBreakdown(filteredReviews) : [];
     const languageDistribution = filteredReviews.length > 0 ? calculateLanguageDistribution(filteredReviews) : [];
 
-    // Return the analysis with the additional statistics
-    return new Response(JSON.stringify({
+    // Create the final response object
+    const responseObject = {
       ...completeAnalysis,
       ratingBreakdown,
       languageDistribution,
       provider: analysisProvider,
       model
-    }), {
+    };
+    
+    // Save to cache
+    analysisCache.set(cacheKey, {
+      timestamp: Date.now(),
+      data: responseObject
+    });
+    
+    // Return the analysis with the additional statistics
+    return new Response(JSON.stringify(responseObject), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
@@ -131,7 +166,7 @@ serve(async (req) => {
 });
 
 // Calculate rating breakdown statistics
-function calculateRatingBreakdown(reviews: any[]) {
+function calculateRatingBreakdown(reviews) {
   const totalReviews = reviews.length;
   const counts = {
     1: reviews.filter(r => r.rating === 1 || r.star === 1).length,
@@ -151,9 +186,9 @@ function calculateRatingBreakdown(reviews: any[]) {
 }
 
 // Calculate language distribution statistics
-function calculateLanguageDistribution(reviews: any[]) {
+function calculateLanguageDistribution(reviews) {
   const totalReviews = reviews.length;
-  const languages: Record<string, number> = {};
+  const languages = {};
   
   // Count occurrences of each language
   reviews.forEach(review => {

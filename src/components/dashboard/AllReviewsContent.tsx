@@ -21,7 +21,7 @@ const AllReviewsContent: React.FC<AllReviewsContentProps> = ({ reviews, chartDat
         <AllReviewsAiAnalysis reviews={reviews} />
       </div>
       
-      {/* Add Cumulative Reviews Chart */}
+      {/* Cumulative Reviews Chart */}
       <div className="mb-6">
         <MonthlyReviewsChart reviews={reviews} className="w-full" />
       </div>

@@ -43,10 +43,12 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     selectedReviews,
     summaryData,
     timeReviewsData,
+    viewMode: internalViewMode,
+    setViewMode: setInternalViewMode
   } = useMonthlySummaryData({ 
     reviews, 
     dateRange,
-    viewMode
+    viewMode // Pass the viewMode to the hook
   });
 
   // Memoize the rendered components for better performance
@@ -75,10 +77,10 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
   const timeChart = useMemo(() => (
     <TimeReviewsChart
       timeReviewsData={timeReviewsData}
-      viewMode={viewMode}
-      setViewMode={setViewMode}
+      viewMode={internalViewMode}
+      setViewMode={setViewMode} // This now correctly accepts "day" | "week" | "month"
     />
-  ), [timeReviewsData, viewMode, setViewMode]);
+  ), [timeReviewsData, internalViewMode, setViewMode]);
 
   const aiAnalysis = useMemo(() => (
     <div className="flex flex-col space-y-2">

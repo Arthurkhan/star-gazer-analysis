@@ -10,7 +10,7 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from "recharts";
-import { List, BarChart2 } from "lucide-react";
+import { List, BarChart2, Calendar } from "lucide-react";
 
 interface TimeReviewsChartProps {
   timeReviewsData: {
@@ -18,11 +18,20 @@ interface TimeReviewsChartProps {
     day: string;
     count: number;
   }[];
-  viewMode: "daily" | "weekly";
-  setViewMode: (mode: "daily" | "weekly") => void;
+  viewMode: "daily" | "weekly" | "monthly";
+  setViewMode: (mode: "day" | "week" | "month") => void;
 }
 
 export function TimeReviewsChart({ timeReviewsData, viewMode, setViewMode }: TimeReviewsChartProps) {
+  // Map the internal viewMode to the props viewMode
+  const handleViewModeChange = (value: string) => {
+    if (!value) return;
+    
+    if (value === "daily") setViewMode("day");
+    else if (value === "weekly") setViewMode("week");
+    else if (value === "monthly") setViewMode("month");
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -30,14 +39,14 @@ export function TimeReviewsChart({ timeReviewsData, viewMode, setViewMode }: Tim
           <div>
             <CardTitle>Review Summary</CardTitle>
             <CardDescription>
-              Review count by {viewMode === "daily" ? "day" : "week"} for selected date range
+              Review count by {viewMode === "daily" ? "day" : viewMode === "weekly" ? "week" : "month"} for selected date range
             </CardDescription>
           </div>
           <div className="flex flex-col md:flex-row gap-2 mt-2 md:mt-0">
             <ToggleGroup 
               type="single" 
               value={viewMode} 
-              onValueChange={(value) => value && setViewMode(value as "daily" | "weekly")}
+              onValueChange={handleViewModeChange}
             >
               <ToggleGroupItem value="daily" aria-label="Daily view">
                 <List className="h-4 w-4 mr-1" />
@@ -46,6 +55,10 @@ export function TimeReviewsChart({ timeReviewsData, viewMode, setViewMode }: Tim
               <ToggleGroupItem value="weekly" aria-label="Weekly view">
                 <BarChart2 className="h-4 w-4 mr-1" />
                 Weekly
+              </ToggleGroupItem>
+              <ToggleGroupItem value="monthly" aria-label="Monthly view">
+                <Calendar className="h-4 w-4 mr-1" />
+                Monthly
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
@@ -60,7 +73,7 @@ export function TimeReviewsChart({ timeReviewsData, viewMode, setViewMode }: Tim
             >
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis 
-                dataKey={(data) => `${data.date} (${data.day.substring(0, 3)})`} 
+                dataKey={(data) => `${data.date} ${viewMode !== "monthly" ? `(${data.day.substring(0, 3)})` : ""}`} 
                 angle={-45} 
                 textAnchor="end" 
                 height={70} 

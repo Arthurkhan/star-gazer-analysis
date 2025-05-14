@@ -12,7 +12,9 @@ import {
   eachDayOfInterval, 
   format, 
   eachWeekOfInterval, 
-  endOfWeek 
+  endOfWeek,
+  eachMonthOfInterval,
+  endOfMonth
 } from "date-fns";
 
 interface UseMonthlySummaryDataProps {
@@ -21,14 +23,25 @@ interface UseMonthlySummaryDataProps {
     from: Date;
     to: Date | undefined;
   };
+  viewMode?: "day" | "week" | "month";
 }
 
-export function useMonthlySummaryData({ reviews, dateRange }: UseMonthlySummaryDataProps) {
+export function useMonthlySummaryData({ reviews, dateRange, viewMode = "day" }: UseMonthlySummaryDataProps) {
   // Selected reviews (for the date range)
   const [selectedReviews, setSelectedReviews] = useState<Review[]>([]);
   
-  // View mode state (daily or weekly)
-  const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
+  // Calculate the internal viewMode based on the prop
+  // This maps the MonthlyReport viewMode to the internal viewMode
+  const [internalViewMode, setInternalViewMode] = useState<"daily" | "weekly" | "monthly">(
+    viewMode === "day" ? "daily" : viewMode === "week" ? "weekly" : "monthly"
+  );
+  
+  // Set internal view mode when prop changes
+  useEffect(() => {
+    if (viewMode === "day") setInternalViewMode("daily");
+    else if (viewMode === "week") setInternalViewMode("weekly");
+    else if (viewMode === "month") setInternalViewMode("monthly");
+  }, [viewMode]);
   
   // Time period reviews data
   const [timeReviewsData, setTimeReviewsData] = useState<{
@@ -154,11 +167,11 @@ export function useMonthlySummaryData({ reviews, dateRange }: UseMonthlySummaryD
     });
     
     generateTimeBasedData(filteredReviews);
-  }, [viewMode]);
+  }, [internalViewMode]);
 
   // Helper function to generate time-based data
   const generateTimeBasedData = (filteredReviews: Review[]) => {
-    if (viewMode === "daily") {
+    if (internalViewMode === "daily") {
       // Generate all days in the range
       const allDays = eachDayOfInterval({
         start: dateRange.from,
@@ -186,7 +199,7 @@ export function useMonthlySummaryData({ reviews, dateRange }: UseMonthlySummaryD
       });
 
       setTimeReviewsData(dailyCounts);
-    } else {
+    } else if (internalViewMode === "weekly") {
       // Weekly view
       // Generate all weeks in the range
       const allWeeks = eachWeekOfInterval({
@@ -219,14 +232,52 @@ export function useMonthlySummaryData({ reviews, dateRange }: UseMonthlySummaryD
       });
 
       setTimeReviewsData(weeklyCounts);
+    } else {
+      // Monthly view
+      // Generate all months in the range
+      const allMonths = eachMonthOfInterval({
+        start: dateRange.from,
+        end: dateRange.to!
+      });
+
+      // Initialize counts for each month
+      const monthlyCounts = allMonths.map(monthStart => {
+        const monthEnd = endOfMonth(monthStart);
+        return {
+          date: format(monthStart, 'MMM yyyy'),
+          day: `${format(monthStart, 'MMM')}`, // Just the month name
+          count: 0
+        };
+      });
+
+      // Count reviews for each month
+      filteredReviews.forEach(review => {
+        const reviewDate = parseISO(review.publishedAtDate);
+        const monthIndex = allMonths.findIndex(monthStart => 
+          reviewDate.getMonth() === monthStart.getMonth() && 
+          reviewDate.getFullYear() === monthStart.getFullYear()
+        );
+        if (monthIndex !== -1) {
+          monthlyCounts[monthIndex].count += 1;
+        }
+      });
+
+      setTimeReviewsData(monthlyCounts);
     }
+  };
+
+  // Function to map MonthlyReport viewMode to internal viewMode
+  const setViewMode = (mode: "day" | "week" | "month") => {
+    if (mode === "day") setInternalViewMode("daily");
+    else if (mode === "week") setInternalViewMode("weekly");
+    else if (mode === "month") setInternalViewMode("monthly");
   };
 
   return {
     selectedReviews,
     summaryData,
     timeReviewsData,
-    viewMode,
+    viewMode: internalViewMode,
     setViewMode,
     setSelectedReviews,
     setSummaryData,

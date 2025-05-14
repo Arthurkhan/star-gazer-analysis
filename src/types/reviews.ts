@@ -3,7 +3,7 @@
 export type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
 
 export interface Review {
-  star: number;
+  stars: number; // Fixed: was 'star', now matches database schema
   name: string;
   text: string;
   textTranslated?: string;

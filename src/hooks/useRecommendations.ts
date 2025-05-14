@@ -1,0 +1,140 @@
+import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { type Recommendations } from '@/types/recommendations';
+import { type BusinessType } from '@/types/businessTypes';
+import { type AIProvider } from '@/components/AIProviderToggle';
+import { RecommendationService } from '@/services/recommendationService';
+
+interface UseRecommendationsProps {
+  businessData: any;
+  selectedBusiness: string;
+  businessType: BusinessType;
+}
+
+export const useRecommendations = ({ 
+  businessData, 
+  selectedBusiness,
+  businessType 
+}: UseRecommendationsProps) => {
+  const [recommendations, setRecommendations] = useState<Recommendations | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const generateRecommendations = useCallback(async (provider: AIProvider) => {
+    if (!selectedBusiness || !businessData) {
+      toast({
+        title: "Error",
+        description: "Please select a business first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const service = new RecommendationService();
+      service.setProvider(provider);
+
+      // Prepare analysis data
+      const analysisData = {
+        business: selectedBusiness,
+        businessType,
+        reviews: businessData.reviews,
+        metrics: {
+          totalReviews: businessData.reviews.length,
+          avgRating: businessData.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / businessData.reviews.length,
+          responseRate: businessData.reviews.filter((r: any) => r.owner_response).length / businessData.reviews.length,
+        },
+        patterns: businessData.patterns || {},
+        sentiment: businessData.sentiment || {},
+      };
+
+      const result = await service.generateRecommendations(analysisData);
+      setRecommendations(result);
+      
+      toast({
+        title: "Success",
+        description: "Recommendations generated successfully",
+      });
+    } catch (err) {
+      console.error('Error generating recommendations:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate recommendations');
+      
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : 'Failed to generate recommendations',
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedBusiness, businessData, businessType, toast]);
+
+  const exportRecommendations = useCallback(() => {
+    if (!recommendations) return;
+
+    const exportData = {
+      business: selectedBusiness,
+      businessType,
+      generatedAt: new Date().toISOString(),
+      recommendations,
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recommendations-${selectedBusiness}-${new Date().toISOString()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Exported",
+      description: "Recommendations exported successfully",
+    });
+  }, [recommendations, selectedBusiness, businessType, toast]);
+
+  const saveRecommendations = useCallback(async () => {
+    if (!recommendations || !selectedBusiness) return;
+
+    try {
+      const { error } = await supabase
+        .from('saved_recommendations')
+        .insert({
+          business_name: selectedBusiness,
+          business_type: businessType,
+          recommendations: recommendations,
+          created_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Saved",
+        description: "Recommendations saved successfully",
+      });
+    } catch (err) {
+      console.error('Error saving recommendations:', err);
+      toast({
+        title: "Error",
+        description: "Failed to save recommendations",
+        variant: "destructive",
+      });
+    }
+  }, [recommendations, selectedBusiness, businessType, toast]);
+
+  return {
+    recommendations,
+    loading,
+    error,
+    generateRecommendations,
+    exportRecommendations,
+    saveRecommendations,
+  };
+};

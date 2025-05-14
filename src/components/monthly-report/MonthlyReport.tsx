@@ -7,6 +7,7 @@ import { TimeReviewsChart } from "./TimeReviewsChart";
 import ReviewsTable from "@/components/ReviewsTable";
 import { useSelectedDateRange } from "./hooks/useSelectedDateRange";
 import { useMonthlySummaryData } from "./hooks/useMonthlySummaryData";
+import AIAnalysisReport from "@/components/review-analysis/AIAnalysisReport";
 
 interface MonthlyReportProps {
   reviews: Review[];
@@ -76,6 +77,15 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     />
   ), [timeReviewsData, viewMode, setViewMode]);
 
+  const aiAnalysis = useMemo(() => (
+    <AIAnalysisReport 
+      reviews={selectedReviews} 
+      dateRange={dateRange} 
+      title="Monthly AI Analysis"
+      className="mb-6"
+    />
+  ), [selectedReviews, dateRange]);
+
   return (
     <div className="space-y-6">
       {/* Date range selector */}
@@ -83,6 +93,9 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
 
       {/* Summary Cards */}
       {summaryCards}
+
+      {/* AI Analysis Report */}
+      {aiAnalysis}
 
       {/* Time Reviews Chart */}
       {timeChart}

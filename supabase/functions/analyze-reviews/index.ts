@@ -43,7 +43,13 @@ serve(async (req) => {
     }
     
     // Standard analysis mode
-    const { reviews, provider: analysisProvider, fullAnalysis = true, dateRange } = requestData;
+    const { 
+      reviews, 
+      provider: analysisProvider, 
+      fullAnalysis = true, 
+      dateRange,
+      reportType = 'standard' // New parameter for report type
+    } = requestData;
     
     // Get the appropriate API key and model
     const { apiKey, model } = getApiKeyAndModel(analysisProvider);
@@ -55,7 +61,7 @@ serve(async (req) => {
       const endDate = new Date(dateRange.endDate);
       
       filteredReviews = reviews.filter(review => {
-        const reviewDate = new Date(review.publishedAtDate);
+        const reviewDate = new Date(review.date);
         return reviewDate >= startDate && reviewDate <= endDate;
       });
       
@@ -64,10 +70,12 @@ serve(async (req) => {
     
     // Create a cache key based on the request parameters
     const cacheKey = JSON.stringify({
-      reviewIds: filteredReviews.map(r => r.reviewUrl || r.publishedAtDate).sort(),
+      reviewIds: filteredReviews.map(r => r.date || r.reviewUrl).sort(),
       provider: analysisProvider,
       model,
-      fullAnalysis
+      fullAnalysis,
+      reportType,
+      dateRange
     });
     
     // Check if we have a cached result
@@ -86,10 +94,10 @@ serve(async (req) => {
     const customPrompt = Deno.env.get("OPENAI_CUSTOM_PROMPT");
     
     // Create the prompt for AI with the review data
-    const prompt = generatePrompt(filteredReviews, fullAnalysis, customPrompt);
+    const prompt = generatePrompt(filteredReviews, fullAnalysis, reportType, dateRange, customPrompt);
     
     // Get system message
-    const systemMessage = getSystemMessage(fullAnalysis);
+    const systemMessage = getSystemMessage(fullAnalysis, reportType);
 
     // Use background task to avoid timeout for large analysis jobs
     let analysisPromise;
@@ -134,7 +142,8 @@ serve(async (req) => {
       ratingBreakdown,
       languageDistribution,
       provider: analysisProvider,
-      model
+      model,
+      reportType
     };
     
     // Save to cache

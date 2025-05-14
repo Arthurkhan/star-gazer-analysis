@@ -2,19 +2,85 @@
 // This file handles generating prompts and formatting responses
 
 // Get custom prompt if available or return default prompt
-export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, customPrompt?: string) {
+export function generatePrompt(
+  reviews: any[], 
+  fullAnalysis: boolean = true, 
+  reportType: string = 'standard', 
+  dateRange?: any, 
+  customPrompt?: string
+) {
   const reviewsJSON = JSON.stringify(reviews);
   
   if (customPrompt && customPrompt.includes("[REVIEWS]")) {
     // Use custom prompt with reviews inserted
     return customPrompt.replace("[REVIEWS]", reviewsJSON);
   } else {
-    // Use default structured prompt
+    // Comprehensive analysis focuses on the 4 key columns
+    const isComprehensive = reportType === 'comprehensive';
+    
+    // Date range information (if provided)
+    const dateRangeInfo = dateRange ? 
+      `for the period ${new Date(dateRange.startDate).toLocaleDateString()} to ${new Date(dateRange.endDate).toLocaleDateString()}` : 
+      '';
+    
+    // Basic prompt structure
     return `
-      Analyze these ${reviews.length} customer reviews:
+      Analyze these ${reviews.length} customer reviews ${dateRangeInfo}:
       ${reviewsJSON}
       
       ${fullAnalysis ? `
+      ${isComprehensive ? `
+      Please provide a COMPREHENSIVE analysis that specifically focuses on these 4 key columns from the reviews:
+      1. sentiment - analyze the overall sentiment patterns
+      2. staffMentioned - identify staff impact and trends
+      3. mainThemes - extract and categorize the main themes
+      4. commonTerms - identify frequently mentioned terms and group them by category
+      
+      FOCUS on creating an in-depth, executive-level report that follows this EXACT structure:
+      
+      📊 PERFORMANCE SNAPSHOT
+      - Average Rating: [X]/5 ⭐
+      - Total Reviews: [number]
+      - Review Period: [dates from earliest to latest review]
+      - Monthly Average: [number of reviews per month]
+      
+      📈 TREND ANALYSIS
+      - Current Period: [X reviews]
+      - Previous Period: [Y reviews]
+      - Change: [+/- percentage]
+      - Momentum: [Increasing/Decreasing/Stable]
+      
+      🗣️ CUSTOMER HIGHLIGHTS
+      Top Mentioned Categories:
+      1. [Category 1]
+      2. [Category 2]
+      3. [Category 3]
+      
+      Key Sentiments:
+      - Positive: [percentage]%
+      - Neutral: [percentage]%
+      - Negative: [percentage]%
+      
+      Frequently Mentioned:
+      - [Top 3 from common terms with counts]
+      
+      Staff Impact: [Include specific staff members that are frequently mentioned and their impact]
+      
+      💬 SAMPLE REVIEWS
+      - [Include 2-3 actual customer quotes that represent the overall sentiment]
+      
+      🌍 AUDIENCE INSIGHTS
+      - Languages: [List main languages with percentages]
+      - International Appeal: [Strong/Moderate/Limited]
+      - Peak Review Times: [Analyze publishedAtDate patterns]
+      
+      🎯 RECOMMENDATIONS
+      - [Specific action item 1 based on sentiment patterns]
+      - [Improvement suggestion based on common complaints]
+      - [Opportunity based on positive trends]
+      - [Targeted recommendation about staff if applicable]
+      - [Seasonal or timing recommendation if patterns exist]
+      ` : `
       Please provide a detailed analysis following this exact structure:
       
       📊 PERFORMANCE SNAPSHOT
@@ -47,9 +113,12 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       - [Specific action item 1]
       - [Specific action item 2]
       - [Specific action item 3]
+      `}
       
-      Focus primarily on analyzing the "Sentiment", "Staff Mentioned", "Main Themes", and "Common terms" columns 
-      from the reviews to create this comprehensive analysis.
+      ${isComprehensive ? 
+        `Focus PRIMARILY on analyzing the "sentiment", "staffMentioned", "mainThemes", and "common terms" columns from the reviews to create this comprehensive analysis.` : 
+        `Focus primarily on analyzing the "Sentiment", "Staff Mentioned", "Main Themes", and "Common terms" columns from the reviews to create this comprehensive analysis.`
+      }
       ` : `
       FOCUS ONLY ON STAFF MENTIONS in these reviews. Please identify:
       - The exact name of each staff member mentioned in reviews (combine similar names like Anna/Ana/Anne to the most common version)
@@ -76,10 +145,16 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
 }
 
 // System message that instructs the AI about the task
-export function getSystemMessage(fullAnalysis: boolean) {
-  return fullAnalysis
-    ? "You are an AI assistant that analyzes customer reviews and extracts insights. Focus specifically on analyzing the 'Sentiment', 'Staff Mentioned', 'Main Themes', and 'Common terms' columns to create a comprehensive analysis. Format your analysis with clear section headers, emojis, bullet points, and specific metrics to make it easy to read. Follow the EXACT format specified in the prompt. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
-    : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name, consolidating variations of the same name. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
+export function getSystemMessage(fullAnalysis: boolean, reportType: string = 'standard') {
+  const isComprehensive = reportType === 'comprehensive';
+  
+  if (isComprehensive) {
+    return "You are an AI business intelligence expert specialized in analyzing customer reviews data. Your task is to create a comprehensive, executive-level report based on the reviews provided, focusing SPECIFICALLY on the 'sentiment', 'staffMentioned', 'mainThemes', and 'common terms' columns. Your analysis must include detailed insights on sentiment patterns, staff impact, customer themes, and actionable recommendations. Your report must follow the EXACT format specified with proper section headers, emojis for readability, and data-driven insights. Focus on being specific, insightful, and actionable. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
+  } else if (fullAnalysis) {
+    return "You are an AI assistant that analyzes customer reviews and extracts insights. Focus specifically on analyzing the 'Sentiment', 'Staff Mentioned', 'Main Themes', and 'Common terms' columns to create a comprehensive analysis. Format your analysis with clear section headers, emojis, bullet points, and specific metrics to make it easy to read. Follow the EXACT format specified in the prompt. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
+  } else {
+    return "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name, consolidating variations of the same name. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
+  }
 }
 
 // Parse the AI response according to provider

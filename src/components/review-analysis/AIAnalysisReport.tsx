@@ -3,16 +3,30 @@ import React, { useState, useEffect } from "react";
 import { Review } from "@/types/reviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, FileText, ClipboardCopy } from "lucide-react";
+import { RefreshCw, FileText, ClipboardCopy, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAnalysis, clearCache } from "@/utils/ai/analysisService";
+import { generatePDF } from "@/utils/pdfExport";
 
-interface AllReviewsAiAnalysisProps {
-  reviews: Review[];
+interface DateRange {
+  from: Date;
+  to: Date | undefined;
 }
 
-const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) => {
+interface AIAnalysisReportProps {
+  reviews: Review[];
+  dateRange?: DateRange;
+  title?: string;
+  className?: string;
+}
+
+const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({ 
+  reviews,
+  dateRange,
+  title = "AI Analysis Report", 
+  className = ""
+}) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
@@ -34,7 +48,11 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
       }
 
       // Get analysis from the service
-      const result = await getAnalysis(reviews);
+      const result = await getAnalysis(reviews, dateRange ? {
+        startDate: dateRange.from.toISOString(),
+        endDate: dateRange.to ? dateRange.to.toISOString() : new Date().toISOString()
+      } : undefined);
+      
       setAnalysis(result);
     } catch (err) {
       console.error("Analysis error:", err);
@@ -54,7 +72,7 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
     if (reviews.length > 0 && !analysis && !loading) {
       fetchAnalysis();
     }
-  }, [reviews]);
+  }, [reviews, dateRange]);
 
   const copyToClipboard = () => {
     if (analysis?.overallAnalysis) {
@@ -62,6 +80,21 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
       toast({
         title: "Copied to clipboard",
         description: "Analysis copied to clipboard",
+      });
+    }
+  };
+
+  const downloadPDF = () => {
+    if (analysis?.overallAnalysis) {
+      generatePDF({
+        title: `${title} - ${new Date().toLocaleDateString()}`,
+        content: analysis.overallAnalysis,
+        filename: `review-analysis-${new Date().toISOString().split('T')[0]}.pdf`
+      });
+      
+      toast({
+        title: "PDF downloaded",
+        description: "Analysis report has been downloaded",
       });
     }
   };
@@ -91,9 +124,9 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
   };
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl font-bold">Review Summary</CardTitle>
+        <CardTitle className="text-xl font-bold">{title}</CardTitle>
         <div className="flex space-x-2">
           <TooltipProvider>
             <Tooltip>
@@ -109,6 +142,24 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
               </TooltipTrigger>
               <TooltipContent>
                 <p>Copy analysis to clipboard</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => downloadPDF()}
+                  disabled={!analysis?.overallAnalysis || loading}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Download as PDF</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -159,4 +210,4 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
   );
 };
 
-export default AllReviewsAiAnalysis;
+export default AIAnalysisReport;

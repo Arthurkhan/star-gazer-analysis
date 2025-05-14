@@ -2,12 +2,20 @@
 // This file combines all the AI analysis functionality
 import { Review } from "@/types/reviews";
 import { getSelectedModel } from "./aiProviders";
-import { generateCacheKey, getFromCache, storeInCache } from "./analysisCache";
+import { generateCacheKey, getFromCache, storeInCache, clearCache } from "./analysisCache";
 import { supabase } from "@/integrations/supabase/client";
+
+export { clearCache };
+
+interface DateRange {
+  startDate: string;
+  endDate: string;
+}
 
 // Main function to analyze reviews using AI
 export const analyzeReviewsWithAI = async (
-  reviews: Review[]
+  reviews: Review[],
+  dateRange?: DateRange
 ): Promise<{
   sentimentAnalysis: { name: string; value: number }[];
   staffMentions: { name: string; count: number; sentiment: "positive" | "negative" | "neutral"; examples?: string[] }[];
@@ -58,7 +66,9 @@ export const analyzeReviewsWithAI = async (
         reviews: reviewTexts,
         provider: provider,
         model: model,
-        fullAnalysis: true
+        fullAnalysis: true,
+        reportType: 'comprehensive', // Add this new parameter
+        dateRange: dateRange // Pass date range if provided
       }
     });
 
@@ -135,12 +145,13 @@ function calculateLanguageDistribution(reviews: Review[]) {
 }
 
 // Function to get or create analysis
-export const getAnalysis = async (reviews: Review[]): Promise<any> => {
+export const getAnalysis = async (reviews: Review[], dateRange?: DateRange): Promise<any> => {
   // Get the AI provider
   const provider = localStorage.getItem("AI_PROVIDER") || "openai";
   
   // Create a cache key
-  const cacheKey = generateCacheKey(reviews, provider);
+  const dateRangeKey = dateRange ? `_${dateRange.startDate}_${dateRange.endDate}` : '';
+  const cacheKey = generateCacheKey(reviews, provider) + dateRangeKey;
   
   // Check if we have a cached result
   const cachedResult = getFromCache(cacheKey);
@@ -149,7 +160,7 @@ export const getAnalysis = async (reviews: Review[]): Promise<any> => {
   }
   
   console.log("No cached result found, performing fresh analysis");
-  const analysis = await analyzeReviewsWithAI(reviews);
+  const analysis = await analyzeReviewsWithAI(reviews, dateRange);
   
   // Store in cache
   storeInCache(cacheKey, analysis);

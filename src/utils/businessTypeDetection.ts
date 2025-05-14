@@ -5,8 +5,14 @@ export function detectBusinessType(businessData: any): BusinessType {
     return BusinessType.OTHER;
   }
 
-  const reviews = businessData.reviews;
-  const reviewTexts = reviews.map((r: any) => (r.text || '').toLowerCase()).join(' ');
+  const reviews = businessData.reviews || [];
+  
+  // Safely handle the review texts
+  const reviewTexts = reviews
+    .map((r: any) => (r?.text || r?.comment || '').toLowerCase())
+    .filter((text: string) => text.length > 0)
+    .join(' ');
+    
   const businessName = (businessData.name || '').toLowerCase();
 
   // Define keywords for each business type
@@ -40,10 +46,12 @@ export function detectBusinessType(businessData: any): BusinessType {
   }
 
   // Then check review content
-  for (const [type, keywords] of Object.entries(businessTypeKeywords)) {
-    for (const keyword of keywords) {
-      const occurrences = (reviewTexts.match(new RegExp(keyword, 'g')) || []).length;
-      keywordCounts[type as BusinessType] += occurrences;
+  if (reviewTexts.length > 0) {
+    for (const [type, keywords] of Object.entries(businessTypeKeywords)) {
+      for (const keyword of keywords) {
+        const occurrences = (reviewTexts.match(new RegExp(keyword, 'g')) || []).length;
+        keywordCounts[type as BusinessType] += occurrences;
+      }
     }
   }
 

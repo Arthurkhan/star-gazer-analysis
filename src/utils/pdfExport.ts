@@ -319,3 +319,90 @@ export const exportToPDF = async (
   const dateRangeSuffix = dateRangeText ? `_${dateRangeText.replace(/\//g, '-').replace(/ to /g, '_to_')}` : '';
   doc.save(`${businessName.replace(/\s+/g, '_')}_Dashboard${dateRangeSuffix}_${today.replace(/\//g, '-')}.pdf`);
 };
+
+// New function for generating PDF from AI analysis
+export const generatePDF = async (options: {
+  title: string;
+  content: string;
+  filename: string;
+}): Promise<void> => {
+  const { title, content, filename } = options;
+  
+  // Create a new PDF document
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  // Add title
+  doc.setFontSize(18);
+  doc.text(title, pageWidth / 2, 20, { align: 'center' });
+  
+  // Add generation date
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth / 2, 30, { align: 'center' });
+  doc.setTextColor(0);
+  
+  // Start Y position for content
+  let yPos = 40;
+  
+  // Split content by sections (each section starts with an emoji)
+  const sections = content.split(/(?=📊|📈|🗣️|💬|🌍|🎯)/g);
+  
+  // Process each section
+  sections.forEach((section) => {
+    // Check if we need a new page
+    if (yPos > doc.internal.pageSize.getHeight() - 20) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    // Add section header (extract first line)
+    const lines = section.split('\n');
+    const header = lines[0];
+    
+    doc.setFontSize(14);
+    doc.text(header, 14, yPos);
+    yPos += 10;
+    
+    // Add section content
+    if (lines.length > 1) {
+      doc.setFontSize(12);
+      const contentLines = lines.slice(1).filter(line => line.trim() !== '');
+      
+      contentLines.forEach(line => {
+        // Check if we need a new page
+        if (yPos > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        // Add bullet point for non-empty lines
+        if (line.trim()) {
+          const processedLine = line.trim().startsWith('-') ? line : `• ${line}`;
+          doc.text(processedLine, 20, yPos);
+          yPos += 8;
+        }
+      });
+      
+      // Add extra space after each section
+      yPos += 10;
+    }
+  });
+  
+  // Add footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text(
+      `Page ${i} of ${pageCount}`,
+      pageWidth / 2,
+      doc.internal.pageSize.getHeight() - 10,
+      { align: 'center' }
+    );
+  }
+  
+  // Save the PDF
+  doc.save(filename);
+};

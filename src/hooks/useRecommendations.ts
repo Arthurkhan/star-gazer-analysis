@@ -49,23 +49,43 @@ export const useRecommendations = ({
       const service = new RecommendationService();
       service.setProvider(provider);
 
+      // Map the review data to match what the service expects
+      const mappedReviews = businessData.reviews.map((review: any) => ({
+        rating: review.stars || 0,
+        stars: review.stars || 0,
+        text: review.text || review.comment || '',
+        owner_response: review.responseFromOwnerText || null,
+        sentiment: review.sentiment || 'neutral',
+        mainThemes: review.mainThemes || '',
+        staffMentioned: review.staffMentioned || '',
+        // Keep other properties
+        ...review
+      }));
+
+      // Calculate metrics properly
+      const totalReviews = mappedReviews.length;
+      const avgRating = totalReviews > 0 
+        ? mappedReviews.reduce((sum: number, r: any) => sum + (r.stars || 0), 0) / totalReviews
+        : 0;
+      const responseRate = totalReviews > 0
+        ? mappedReviews.filter((r: any) => r.owner_response).length / totalReviews
+        : 0;
+
       // Prepare analysis data
       const analysisData = {
         business: selectedBusiness,
         businessType,
-        reviews: businessData.reviews || [],
+        reviews: mappedReviews,
         metrics: {
-          totalReviews: businessData.reviews?.length || 0,
-          avgRating: businessData.reviews?.length > 0 
-            ? businessData.reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / businessData.reviews.length
-            : 0,
-          responseRate: businessData.reviews?.length > 0
-            ? businessData.reviews.filter((r: any) => r.owner_response).length / businessData.reviews.length
-            : 0,
+          totalReviews,
+          avgRating,
+          responseRate,
         },
         patterns: businessData.patterns || {},
         sentiment: businessData.sentiment || {},
       };
+
+      console.log('Analysis Data:', analysisData); // Debug log
 
       const result = await service.generateRecommendations(analysisData);
       setRecommendations(result);

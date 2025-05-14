@@ -29,7 +29,7 @@ export const analyzeReviewsWithAI = async (
     // Get the AI provider
     const provider = localStorage.getItem("AI_PROVIDER") || "openai";
     
-    // Check if the API key exists in localStorage (needed for UI only)
+    // Check if the API key exists in localStorage
     const apiKey = localStorage.getItem(`${provider.toUpperCase()}_API_KEY`);
     
     if (!apiKey) {
@@ -44,7 +44,7 @@ export const analyzeReviewsWithAI = async (
     // Prepare all reviews for API
     const reviewTexts = reviews.map(review => ({
       text: review.text,
-      rating: review.star,
+      rating: review.stars, // Fixed: was review.star
       date: review.publishedAtDate,
       language: review.originalLanguage || "unknown",
       sentiment: review.sentiment,
@@ -67,12 +67,13 @@ export const analyzeReviewsWithAI = async (
       comparisonData = calculateComparisonPeriod(reviews, dateRange);
     }
     
-    // Call the Edge Function to analyze the reviews
+    // Call the Edge Function to analyze the reviews - NOW INCLUDING API KEY
     const { data, error } = await supabase.functions.invoke("analyze-reviews", {
       body: {
         reviews: reviewTexts,
         provider: provider,
         model: model,
+        apiKey: apiKey, // IMPORTANT: Send API key with request
         fullAnalysis: true,
         reportType: 'comprehensive',
         dateRange: dateRange,
@@ -100,9 +101,9 @@ export const analyzeReviewsWithAI = async (
     
     return {
       sentimentAnalysis: [
-        { name: "Positive", value: reviews.filter(r => r.star >= 4).length },
-        { name: "Neutral", value: reviews.filter(r => r.star === 3).length },
-        { name: "Negative", value: reviews.filter(r => r.star <= 2).length },
+        { name: "Positive", value: reviews.filter(r => r.stars >= 4).length },
+        { name: "Neutral", value: reviews.filter(r => r.stars === 3).length },
+        { name: "Negative", value: reviews.filter(r => r.stars <= 2).length },
       ],
       staffMentions: [],
       commonTerms: [],
@@ -196,11 +197,11 @@ function calculateComparisonPeriod(reviews: Review[], dateRange: DateRange) {
 function calculateRatingBreakdown(reviews: Review[]) {
   const totalReviews = reviews.length;
   const counts = {
-    1: reviews.filter(r => r.star === 1).length,
-    2: reviews.filter(r => r.star === 2).length,
-    3: reviews.filter(r => r.star === 3).length,
-    4: reviews.filter(r => r.star === 4).length,
-    5: reviews.filter(r => r.star === 5).length
+    1: reviews.filter(r => r.stars === 1).length,
+    2: reviews.filter(r => r.stars === 2).length,
+    3: reviews.filter(r => r.stars === 3).length,
+    4: reviews.filter(r => r.stars === 4).length,
+    5: reviews.filter(r => r.stars === 5).length
   };
   
   return [

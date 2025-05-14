@@ -73,6 +73,20 @@ export const industryBenchmarks: Record<BusinessType, IndustryBenchmark> = {
   }
 };
 
+// Analysis result interface for recommendations
+export interface AnalysisResult {
+  business: string;
+  businessType: BusinessType;
+  reviews: any[];
+  metrics: {
+    totalReviews: number;
+    avgRating: number;
+    responseRate: number;
+  };
+  patterns: any;
+  sentiment: any;
+}
+
 // Recommendation types
 export interface UrgentAction {
   id: string;

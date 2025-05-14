@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
-import { AIProviderToggle } from "@/components/AIProviderToggle";
 import { BusinessTypeBadge } from "@/components/BusinessTypeBadge";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 import { RecommendationsDashboard } from "@/components/recommendations/RecommendationsDashboard";
@@ -54,7 +53,7 @@ const Dashboard = () => {
   }, [generateRecommendations, aiProvider]);
 
   return (
-    <DashboardLayout>
+    <DashboardLayout onProviderChange={setAiProvider}>
       <div className="flex justify-between items-center mb-6 w-full">
         <div className="flex items-center gap-4">
           <BusinessSelector
@@ -64,17 +63,15 @@ const Dashboard = () => {
           />
           {businessType && <BusinessTypeBadge businessType={businessType} />}
         </div>
-        <div className="flex items-center gap-4">
-          <AIProviderToggle onProviderChange={setAiProvider} />
-          <Button
-            onClick={handleGenerateRecommendations}
-            disabled={!selectedBusiness || recommendationsLoading}
-            className="flex items-center gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            Generate Recommendations
-          </Button>
-        </div>
+        <Button
+          onClick={handleGenerateRecommendations}
+          disabled={!selectedBusiness || recommendationsLoading}
+          size="icon"
+          className="w-10 h-10"
+          title="Generate Recommendations"
+        >
+          <Sparkles className="w-5 h-5" />
+        </Button>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

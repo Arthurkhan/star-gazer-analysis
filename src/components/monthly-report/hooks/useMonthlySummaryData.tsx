@@ -21,12 +21,14 @@ interface UseMonthlySummaryDataProps {
     from: Date;
     to: Date | undefined;
   };
-  viewMode: "daily" | "weekly";
 }
 
-export function useMonthlySummaryData({ reviews, dateRange, viewMode }: UseMonthlySummaryDataProps) {
+export function useMonthlySummaryData({ reviews, dateRange }: UseMonthlySummaryDataProps) {
   // Selected reviews (for the date range)
   const [selectedReviews, setSelectedReviews] = useState<Review[]>([]);
+  
+  // View mode state (daily or weekly)
+  const [viewMode, setViewMode] = useState<"daily" | "weekly">("daily");
   
   // Time period reviews data
   const [timeReviewsData, setTimeReviewsData] = useState<{
@@ -138,12 +140,29 @@ export function useMonthlySummaryData({ reviews, dateRange, viewMode }: UseMonth
       }
     });
 
-    // Generate time-based data (daily or weekly)
+    // Generate time-based data based on the current viewMode
+    generateTimeBasedData(filteredReviews);
+  }, [reviews, dateRange]);
+
+  // Update time-based data when viewMode changes
+  useEffect(() => {
+    if (!reviews.length || !dateRange.to) return;
+    
+    const filteredReviews = reviews.filter(review => {
+      const reviewDate = parseISO(review.publishedAtDate);
+      return isWithinInterval(reviewDate, { start: dateRange.from, end: dateRange.to });
+    });
+    
+    generateTimeBasedData(filteredReviews);
+  }, [viewMode]);
+
+  // Helper function to generate time-based data
+  const generateTimeBasedData = (filteredReviews: Review[]) => {
     if (viewMode === "daily") {
       // Generate all days in the range
       const allDays = eachDayOfInterval({
         start: dateRange.from,
-        end: dateRange.to
+        end: dateRange.to!
       });
 
       // Initialize counts for each day
@@ -172,7 +191,7 @@ export function useMonthlySummaryData({ reviews, dateRange, viewMode }: UseMonth
       // Generate all weeks in the range
       const allWeeks = eachWeekOfInterval({
         start: dateRange.from,
-        end: dateRange.to
+        end: dateRange.to!
       });
 
       // Initialize counts for each week
@@ -201,12 +220,14 @@ export function useMonthlySummaryData({ reviews, dateRange, viewMode }: UseMonth
 
       setTimeReviewsData(weeklyCounts);
     }
-  }, [reviews, dateRange, viewMode]);
+  };
 
   return {
     selectedReviews,
     summaryData,
     timeReviewsData,
+    viewMode,
+    setViewMode,
     setSelectedReviews,
     setSummaryData,
     setTimeReviewsData

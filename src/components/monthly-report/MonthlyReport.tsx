@@ -1,5 +1,5 @@
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Review } from "@/types/reviews";
 import { DateRangeSelector } from "./DateRangeSelector";
 import { SummaryCards } from "./SummaryCards";
@@ -38,9 +38,12 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     selectedReviews,
     summaryData,
     timeReviewsData,
-    viewMode, 
+    viewMode,
     setViewMode
-  } = useMonthlySummaryData({ reviews, dateRange });
+  } = useMonthlySummaryData({ 
+    reviews, 
+    dateRange
+  });
 
   // Memoize the rendered components for better performance
   const dateSelector = useMemo(() => (

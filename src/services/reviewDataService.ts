@@ -2,8 +2,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Review, TableName } from "@/types/reviews";
 
+// Define a proper cache entry type
+interface TableCacheEntry {
+  timestamp: number;
+  data: any[];
+}
+
 // Cache for table data to reduce database load
-const tableDataCache = new Map<string, any[]>();
+const tableDataCache = new Map<string, TableCacheEntry>();
 const TABLE_CACHE_TTL = 1000 * 60 * 5; // 5 minute cache TTL
 
 /**
@@ -68,7 +74,7 @@ export const fetchTableDataWithPagination = async (tableName: TableName) => {
   
   console.log(`Total rows fetched from ${tableName}: ${allData.length}`);
   
-  // Cache the result
+  // Cache the result with the proper structure
   tableDataCache.set(tableName, {
     timestamp: Date.now(),
     data: allData

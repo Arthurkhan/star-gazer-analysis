@@ -7,7 +7,8 @@ import {
   parseAIResponse, 
   createCompleteAnalysis,
   extractIndividualReviewAnalysis,
-  formatOverallAnalysis 
+  formatOverallAnalysis,
+  getDefaultPrompt
 } from "./prompt-utils.ts";
 import { testApiKey, getApiKeyAndModel } from "./api-key-manager.ts";
 
@@ -73,7 +74,8 @@ serve(async (req) => {
       provider: analysisProvider, 
       fullAnalysis = true, 
       dateRange,
-      reportType = 'standard' // New parameter for report type
+      reportType = 'standard', // New parameter for report type
+      comparisonData
     } = requestData;
     
     // Get the appropriate API key and model
@@ -100,7 +102,8 @@ serve(async (req) => {
       model,
       fullAnalysis,
       reportType,
-      dateRange
+      dateRange,
+      customPrompt
     });
     
     // Check if we have a cached result
@@ -119,7 +122,7 @@ serve(async (req) => {
     const currentCustomPrompt = customPrompt || Deno.env.get("OPENAI_CUSTOM_PROMPT");
     
     // Create the prompt for AI with the review data
-    const prompt = generatePrompt(filteredReviews, fullAnalysis, reportType, dateRange, currentCustomPrompt);
+    const prompt = generatePrompt(filteredReviews, fullAnalysis, reportType, dateRange, currentCustomPrompt, comparisonData);
     
     // Get system message
     const systemMessage = getSystemMessage(fullAnalysis, reportType);
@@ -168,7 +171,8 @@ serve(async (req) => {
       languageDistribution,
       provider: analysisProvider,
       model,
-      reportType
+      reportType,
+      usingCustomPrompt: !!currentCustomPrompt
     };
     
     // Save to cache

@@ -7,6 +7,7 @@ import { RefreshCw, FileText, ClipboardCopy, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAnalysis, clearCache } from "@/utils/ai/analysisService";
+import { CustomPromptDialog } from "@/components/CustomPromptDialog";
 import { generatePDF } from "@/utils/pdfExport";
 
 interface DateRange {
@@ -31,6 +32,7 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [usingCustomPrompt, setUsingCustomPrompt] = useState(false);
 
   const fetchAnalysis = async (forceRefresh = false) => {
     if (reviews.length === 0) {
@@ -54,6 +56,8 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
       } : undefined);
       
       setAnalysis(result);
+      // Check if custom prompt was used
+      setUsingCustomPrompt(result.usingCustomPrompt || false);
     } catch (err) {
       console.error("Analysis error:", err);
       setError("Failed to generate analysis. Please try again later.");
@@ -126,7 +130,14 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
   return (
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl font-bold">{title}</CardTitle>
+        <div className="flex items-center space-x-2">
+          <CardTitle className="text-xl font-bold">{title}</CardTitle>
+          {usingCustomPrompt && (
+            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
+              Custom Prompt
+            </span>
+          )}
+        </div>
         <div className="flex space-x-2">
           <TooltipProvider>
             <Tooltip>
@@ -163,6 +174,8 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          
+          <CustomPromptDialog />
           
           <TooltipProvider>
             <Tooltip>

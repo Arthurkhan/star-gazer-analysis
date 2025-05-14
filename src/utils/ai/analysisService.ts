@@ -23,6 +23,7 @@ export const analyzeReviewsWithAI = async (
   overallAnalysis: string;
   ratingBreakdown?: { rating: number; count: number; percentage: number }[];
   languageDistribution?: { language: string; count: number; percentage: number }[];
+  usingCustomPrompt?: boolean;
 }> => {
   try {
     // Get the AI provider
@@ -73,9 +74,9 @@ export const analyzeReviewsWithAI = async (
         provider: provider,
         model: model,
         fullAnalysis: true,
-        reportType: 'comprehensive', // Add this new parameter
-        dateRange: dateRange, // Pass date range if provided
-        comparisonData: comparisonData // Pass comparison data if available
+        reportType: 'comprehensive',
+        dateRange: dateRange,
+        comparisonData: comparisonData
       }
     });
 

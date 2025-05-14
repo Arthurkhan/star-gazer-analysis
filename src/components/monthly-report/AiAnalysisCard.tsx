@@ -51,9 +51,9 @@ export function AiAnalysisCard({
       // Check if we have a structured response with additional data
       if (analysisData && typeof analysisData === 'object' && 'overallAnalysis' in analysisData) {
         // Use optional chaining and nullish coalescing for safer property access
-        setAiAnalysis(analysisData.overallAnalysis || "");
-        setRatingBreakdown(analysisData.ratingBreakdown || []);
-        setLanguageDistribution(analysisData.languageDistribution || []);
+        setAiAnalysis(analysisData?.overallAnalysis || "");
+        setRatingBreakdown(analysisData?.ratingBreakdown || []);
+        setLanguageDistribution(analysisData?.languageDistribution || []);
       } else if (analysisData) {
         // If we just got a string, set it as the analysis
         setAiAnalysis(typeof analysisData === 'string' ? analysisData : "");

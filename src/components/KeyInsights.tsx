@@ -1,11 +1,9 @@
-
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Review } from "@/types/reviews";
 import { analyzeReviewInsights } from "@/utils/dataUtils";
 import { ArrowUp, ArrowDown, TrendingUp, TrendingDown, Lightbulb, AlertTriangle, Star, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
-import { getAnalysis } from "@/utils/openaiAnalysis";
 
 interface KeyInsightsProps {
   reviews: Review[];
@@ -48,41 +46,40 @@ const KeyInsights = ({ reviews }: KeyInsightsProps) => {
     ? ((needAttention.length / reviews.length) * 100).toFixed(1) 
     : '0';
 
-  // Use AI to generate recommendations when the component mounts or reviews change
+  // Replace AI recommendation generation with static insights
   useEffect(() => {
-    const generateRecommendations = async () => {
-      if (reviews.length < 5) return; // Need enough reviews to make meaningful recommendations
-      
-      setLoading(true);
-      try {
-        const analysis = await getAnalysis(reviews);
-        
-        // Extract recommendations from analysis if available
-        if (analysis.overallAnalysis) {
-          const recommendationsList = analysis.overallAnalysis
-            .split(/\n|\./)
-            .filter((item: string) => 
-              item.trim().length > 10 && 
-              (item.includes("recommend") || 
-               item.includes("suggest") || 
-               item.includes("should") || 
-               item.includes("could") || 
-               item.includes("improve"))
-            )
-            .map((item: string) => item.trim())
-            .slice(0, 4); // Limit to 4 recommendations
-            
-          setAiRecommendations(recommendationsList);
-        }
-      } catch (error) {
-        console.error("Error generating AI recommendations:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (reviews.length < 5) return;
     
-    generateRecommendations();
-  }, [reviews]);
+    setLoading(true);
+    try {
+      // Generate simple recommendations based on review data
+      const recommendations = [];
+      
+      if (ratingTrend === "down") {
+        recommendations.push("Focus on improving customer satisfaction in areas mentioned in low-rated reviews.");
+      }
+      
+      if (needAttention.length > 0) {
+        recommendations.push("Address critical feedback from customers promptly to prevent negative trends.");
+      }
+      
+      const negativeThemes = commonThemes.filter(theme => theme.sentiment === "negative");
+      if (negativeThemes.length > 0) {
+        recommendations.push(`Improve service quality in areas related to: ${negativeThemes.map(t => t.text).join(", ")}.`);
+      }
+      
+      const positiveThemes = commonThemes.filter(theme => theme.sentiment === "positive");
+      if (positiveThemes.length > 0) {
+        recommendations.push(`Continue to excel in highly praised areas: ${positiveThemes.map(t => t.text).join(", ")}.`);
+      }
+      
+      setAiRecommendations(recommendations.slice(0, 4));
+    } catch (error) {
+      console.error("Error generating recommendations:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [reviews, ratingTrend, needAttention.length, commonThemes]);
 
   return (
     <Card className="shadow-md dark:bg-gray-800 border-0">
@@ -147,7 +144,7 @@ const KeyInsights = ({ reviews }: KeyInsightsProps) => {
           </div>
         </div>
         
-        {/* Reviews Needing Attention with improved visualization */}
+        {/* Reviews Needing Attention */}
         <div className="p-4 border border-border rounded-lg bg-background/50">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
@@ -188,7 +185,7 @@ const KeyInsights = ({ reviews }: KeyInsightsProps) => {
           )}
         </div>
         
-        {/* Common Themes with better categorization */}
+        {/* Common Themes */}
         <div className="p-4 border border-border rounded-lg bg-background/50">
           <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white">
             Customer Experience Themes
@@ -241,11 +238,11 @@ const KeyInsights = ({ reviews }: KeyInsightsProps) => {
           </div>
         </div>
         
-        {/* AI-powered Recommendations */}
+        {/* Recommendations Section (now data-driven instead of AI) */}
         <div className="p-4 border border-border rounded-lg bg-background/50">
           <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-white flex items-center">
             <Lightbulb className="h-5 w-5 text-amber-400 mr-2" />
-            AI-Powered Recommendations
+            Recommendations
           </h3>
           
           {loading ? (
@@ -266,7 +263,7 @@ const KeyInsights = ({ reviews }: KeyInsightsProps) => {
             </ul>
           ) : (
             <p className="text-gray-600 dark:text-gray-300 italic">
-              Insufficient data to generate recommendations. Add more reviews to get AI-powered insights.
+              Insufficient data to generate recommendations. Add more reviews to get insights.
             </p>
           )}
           

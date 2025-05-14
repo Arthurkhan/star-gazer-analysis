@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
 import { AIProviderToggle } from "@/components/AIProviderToggle";
+import { BusinessTypeBadge } from "@/components/BusinessTypeBadge";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 import { RecommendationsDashboard } from "@/components/recommendations/RecommendationsDashboard";
 import { Button } from "@/components/ui/button";
@@ -55,11 +56,14 @@ const Dashboard = () => {
   return (
     <DashboardLayout>
       <div className="flex justify-between items-center mb-6 w-full">
-        <BusinessSelector
-          selectedBusiness={selectedBusiness}
-          onBusinessChange={handleBusinessChange}
-          businessData={businessData}
-        />
+        <div className="flex items-center gap-4">
+          <BusinessSelector
+            selectedBusiness={selectedBusiness}
+            onBusinessChange={handleBusinessChange}
+            businessData={businessData}
+          />
+          {businessType && <BusinessTypeBadge businessType={businessType} />}
+        </div>
         <div className="flex items-center gap-4">
           <AIProviderToggle onProviderChange={setAiProvider} />
           <Button

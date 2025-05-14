@@ -30,9 +30,6 @@ const Dashboard = () => {
         />
       </div>
       
-      {/* Add API Key Status Alert */}
-      <ApiKeyStatus />
-      
       <DashboardContent
         loading={loading}
         reviews={filteredReviews}

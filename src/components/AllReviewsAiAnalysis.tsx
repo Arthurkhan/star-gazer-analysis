@@ -1,125 +1,22 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Review } from "@/types/reviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCcw } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { getAnalysis } from "@/utils/ai/analysisService";
-import AnalysisAlertSection from "./review-analysis/AnalysisAlertSection";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface AllReviewsAiAnalysisProps {
   reviews: Review[];
 }
 
 const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) => {
-  const { toast } = useToast();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [overallAnalysis, setOverallAnalysis] = useState<string>("");
-  const [aiProvider, setAiProvider] = useState<string>("gemini");
-  const [aiModel, setAiModel] = useState<string>("pro");
-  const [previousReviewCount, setPreviousReviewCount] = useState(0);
-  const [ratingBreakdown, setRatingBreakdown] = useState<{ rating: number; count: number; percentage: number }[]>([]);
-  const [languageDistribution, setLanguageDistribution] = useState<{ language: string; count: number; percentage: number }[]>([]);
-
-  // Fetch analysis when reviews change
-  useEffect(() => {
-    if (
-      (reviews.length > 0 && Math.abs(reviews.length - previousReviewCount) > 5) || 
-      (reviews.length > 0 && !overallAnalysis && !isAnalyzing)
-    ) {
-      setPreviousReviewCount(reviews.length);
-      refreshAnalysis();
-    } else if (reviews.length === 0) {
-      setOverallAnalysis("");
-      setPreviousReviewCount(0);
-      setRatingBreakdown([]);
-      setLanguageDistribution([]);
-    }
-  }, [reviews.length]);
-
-  const refreshAnalysis = async () => {
-    if (reviews.length === 0) {
-      setError("No reviews available to analyze");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setError(null);
-
-    try {
-      const analysisResponse = await getAnalysis(reviews);
-      
-      if (analysisResponse.error) {
-        setError(analysisResponse.error);
-        toast({
-          title: "Analysis Error",
-          description: analysisResponse.error,
-          variant: "destructive",
-        });
-      } else {
-        setOverallAnalysis(analysisResponse.overallAnalysis || "");
-        setAiProvider(analysisResponse.provider || "gemini");
-        setAiModel(analysisResponse.model || "pro");
-        setRatingBreakdown(analysisResponse.ratingBreakdown || []);
-        setLanguageDistribution(analysisResponse.languageDistribution || []);
-        
-        toast({
-          title: "Analysis Complete",
-          description: "Review analysis has been updated",
-        });
-      }
-    } catch (err) {
-      console.error("Error analyzing reviews:", err);
-      setError("Failed to analyze reviews. Please try again later.");
-      toast({
-        title: "Analysis Error",
-        description: "Failed to analyze reviews. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl font-bold">AI Summary Analysis</CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={refreshAnalysis}
-          disabled={isAnalyzing || reviews.length === 0}
-        >
-          <RefreshCcw
-            className={`h-4 w-4 mr-2 ${isAnalyzing ? "animate-spin" : ""}`}
-          />
-          {isAnalyzing ? "Analyzing..." : "Refresh Analysis"}
-        </Button>
+        <CardTitle className="text-xl font-bold">Review Summary</CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
-        {isAnalyzing ? (
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-[90%]" />
-            <Skeleton className="h-4 w-[80%]" />
-            <Skeleton className="h-4 w-[85%]" />
-            <Skeleton className="h-4 w-[70%]" />
-          </div>
-        ) : (
-          <AnalysisAlertSection 
-            overallAnalysis={overallAnalysis} 
-            loading={isAnalyzing} 
-            error={error}
-            aiProvider={aiProvider}
-            aiModel={aiModel}
-            ratingBreakdown={ratingBreakdown}
-            languageDistribution={languageDistribution}
-          />
-        )}
+        <div className="text-center text-muted-foreground py-4">
+          AI analysis has been disabled.
+        </div>
       </CardContent>
     </Card>
   );

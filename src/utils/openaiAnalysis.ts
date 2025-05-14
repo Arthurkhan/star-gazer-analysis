@@ -1,14 +1,19 @@
 
-// This file re-exports everything from the new files to maintain backward compatibility
-import { getSelectedModel, testApiKey } from "./ai/aiProviders";
-import { analyzeReviewsWithAI, getAnalysis } from "./ai/analysisService";
-import { clearCache } from "./ai/analysisCache";
+// This file maintains backward compatibility but with empty implementations
 
-// Re-export the functions to maintain backward compatibility
-export { 
-  getSelectedModel,
-  testApiKey,
-  analyzeReviewsWithAI as analyzeReviewsWithOpenAI,
-  getAnalysis,
-  clearCache
-};
+// Stub functions that do nothing
+export const getSelectedModel = () => "";
+export const testApiKey = () => Promise.resolve(false);
+export const analyzeReviewsWithOpenAI = () => Promise.resolve({
+  sentimentAnalysis: [],
+  staffMentions: [],
+  commonTerms: [],
+  overallAnalysis: "",
+});
+export const getAnalysis = () => Promise.resolve({
+  sentimentAnalysis: [],
+  staffMentions: [],
+  commonTerms: [],
+  overallAnalysis: "",
+});
+export const clearCache = () => {};

@@ -4,7 +4,6 @@ import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, star
 import { Review } from "@/types/reviews";
 import { DateRangeSelector } from "./DateRangeSelector";
 import { SummaryCards } from "./SummaryCards";
-import { AiAnalysisCard } from "./AiAnalysisCard";
 import { TimeReviewsChart } from "./TimeReviewsChart";
 import ReviewsTable from "@/components/ReviewsTable";
 import { useSelectedDateRange } from "./hooks/useSelectedDateRange";
@@ -49,11 +48,6 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
     setTimeReviewsData
   } = useMonthlySummaryData({ reviews, dateRange, viewMode });
 
-  // AI Analysis state
-  const [aiAnalysis, setAiAnalysis] = useState<string>("");
-  const [isAnalysisLoading, setIsAnalysisLoading] = useState<boolean>(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
-
   return (
     <div className="space-y-6">
       {/* Date range selector */}
@@ -75,17 +69,6 @@ const MonthlyReport = ({ reviews }: MonthlyReportProps) => {
 
       {/* Summary Cards */}
       <SummaryCards summaryData={summaryData} />
-
-      {/* AI Analysis Card */}
-      <AiAnalysisCard
-        selectedReviews={selectedReviews}
-        aiAnalysis={aiAnalysis}
-        setAiAnalysis={setAiAnalysis}
-        isAnalysisLoading={isAnalysisLoading}
-        setIsAnalysisLoading={setIsAnalysisLoading}
-        analysisError={analysisError}
-        setAnalysisError={setAnalysisError}
-      />
 
       {/* Time Reviews Chart */}
       <TimeReviewsChart

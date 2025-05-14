@@ -9,8 +9,7 @@ import {
   analyzeReviewSentiment_sync, 
   countReviewsByLanguage, 
   extractStaffMentions_sync,
-  extractCommonTerms_sync,
-  getOverallAnalysis
+  extractCommonTerms_sync
 } from '@/utils/dataUtils';
 
 // Function to count ratings by star count
@@ -89,38 +88,10 @@ interface AutoTableOutput {
   [key: string]: any;
 }
 
-// Format the AI Analysis to fit well in the PDF report
-const formatAIAnalysisForPDF = (analysis: string): string[] => {
-  if (!analysis) return ["No AI analysis available."];
-  
-  // Split by section headers
-  const sections = analysis.split(/\n\n(?:📊|📈|🗣️|🌍|🎯)/g);
-  const headers = analysis.match(/(?:📊|📈|🗣️|🌍|🎯)[^\n]*/g) || [];
-  
-  let formattedSections: string[] = [];
-  
-  // Add formatted sections
-  headers.forEach((header, index) => {
-    if (index < sections.length) {
-      const content = sections[index + 1]?.trim() || "";
-      formattedSections.push(`${header.trim()}\n${content}`);
-    }
-  });
-  
-  // If no sections were extracted properly, return the original text
-  if (formattedSections.length === 0) {
-    // Split into paragraphs
-    formattedSections = analysis.split(/\n\n+/).filter(p => p.trim().length > 0);
-  }
-  
-  return formattedSections;
-};
-
-// Main export function - now with AI report option
+// Main export function - now without AI report option
 export const exportToPDF = async (
   reviews: Review[], 
   businessName: string = "All Businesses", 
-  isAIReport: boolean = false,
   dateRange?: { startDate: Date; endDate: Date }
 ): Promise<void> => {
   // Create a new PDF document
@@ -143,9 +114,9 @@ export const exportToPDF = async (
     dateRangeText = `${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`;
   }
   
-  // Add title with appropriate type
+  // Add title
   doc.setFontSize(20);
-  doc.text(`Google Maps Review ${isAIReport ? 'AI Report' : 'Analysis'}`, pageWidth / 2, 20, { align: 'center' });
+  doc.text(`Google Maps Review Analysis`, pageWidth / 2, 20, { align: 'center' });
   
   // Add business name
   doc.setFontSize(16);
@@ -165,55 +136,6 @@ export const exportToPDF = async (
   
   // Keep track of the last Y position
   let currentY = dateRangeText ? 58 : 50;
-  
-  // For AI reports, prioritize getting the AI-generated overall analysis
-  if (isAIReport) {
-    try {
-      // Clear cache to force fresh analysis
-      localStorage.removeItem("analysis_cache_key");
-      
-      const overallAnalysis = await getOverallAnalysis(filteredReviews);
-      if (overallAnalysis) {
-        doc.setFontSize(14);
-        doc.setTextColor(0, 102, 204);
-        doc.text('AI-Generated Analysis:', 14, currentY);
-        currentY += 10;
-        doc.setTextColor(0);
-        
-        // Format the analysis into sections
-        const sections = formatAIAnalysisForPDF(overallAnalysis);
-        
-        doc.setFontSize(12);
-        
-        // Add each section with proper spacing
-        for (const section of sections) {
-          // Check if we need a page break
-          if (currentY > doc.internal.pageSize.getHeight() - 20) {
-            doc.addPage();
-            currentY = 20;
-          }
-          
-          // Split the section into lines that fit the page width
-          const textLines = doc.splitTextToSize(section, pageWidth - 28);
-          doc.text(textLines, 14, currentY);
-          currentY += textLines.length * 7 + 15;
-        }
-        
-        // Add a separator
-        doc.setDrawColor(200, 200, 200);
-        doc.line(14, currentY - 10, pageWidth - 14, currentY - 10);
-      }
-    } catch (error) {
-      console.error("Error getting AI analysis for PDF:", error);
-      // Continue without AI analysis
-      
-      doc.setFontSize(12);
-      doc.setTextColor(255, 0, 0);
-      doc.text('AI analysis could not be generated. Showing standard report instead.', 14, currentY);
-      currentY += 10;
-      doc.setTextColor(0);
-    }
-  }
   
   // ----- OVERVIEW SECTION -----
   doc.setFontSize(16);
@@ -386,7 +308,7 @@ export const exportToPDF = async (
     doc.setFontSize(10);
     doc.setTextColor(150);
     doc.text(
-      `Google Maps Review ${isAIReport ? 'AI Report' : 'Analysis'} - Page ${i} of ${pageCount}`,
+      `Google Maps Review Analysis - Page ${i} of ${pageCount}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 10,
       { align: 'center' }
@@ -394,7 +316,6 @@ export const exportToPDF = async (
   }
   
   // Save the PDF with appropriate filename
-  const reportType = isAIReport ? 'AI_Report' : 'Dashboard';
   const dateRangeSuffix = dateRangeText ? `_${dateRangeText.replace(/\//g, '-').replace(/ to /g, '_to_')}` : '';
-  doc.save(`${businessName.replace(/\s+/g, '_')}_${reportType}${dateRangeSuffix}_${today.replace(/\//g, '-')}.pdf`);
+  doc.save(`${businessName.replace(/\s+/g, '_')}_Dashboard${dateRangeSuffix}_${today.replace(/\//g, '-')}.pdf`);
 };

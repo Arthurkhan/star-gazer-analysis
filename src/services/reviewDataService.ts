@@ -165,7 +165,7 @@ export const fetchAllReviewData = async (tables: TableName[]): Promise<Review[]>
         return tableData.map((item: any) => ({
           name: item.name,
           title: item.title || tableName, // Use table name if title is missing
-          star: item.stars || item.star, // Handle both column names
+          stars: item.stars || item.star, // Handle both column names
           originalLanguage: item.originalLanguage,
           text: item.text,
           textTranslated: item.textTranslated,

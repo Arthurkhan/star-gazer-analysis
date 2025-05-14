@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -71,7 +70,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
     // Apply rating filter
     if (filterRating !== "all") {
       results = results.filter(
-        (review) => review.star === parseInt(filterRating)
+        (review) => review.stars === parseInt(filterRating)
       );
     }
     
@@ -122,7 +121,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
         const dateB = new Date(b.publishedAtDate).getTime();
         return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
       } else if (sortBy === "rating") {
-        return sortOrder === "desc" ? b.star - a.star : a.star - b.star;
+        return sortOrder === "desc" ? b.stars - a.stars : a.stars - b.stars;
       } else {
         // Default to date sorting
         const dateA = new Date(a.publishedAtDate).getTime();
@@ -269,7 +268,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                             {review.name}
                           </div>
                           <div className="flex items-center">
-                            <span className="text-yellow-500 font-medium">{review.star} ★</span>
+                            <span className="text-yellow-500 font-medium">{review.stars} ★</span>
                           </div>
                         </div>
                       </TableCell>
@@ -365,7 +364,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span className="text-yellow-500 font-medium">
-                {selectedReview?.star} ★
+                {selectedReview?.stars} ★
               </span>
               {selectedReview?.name}'s Review
             </DialogTitle>

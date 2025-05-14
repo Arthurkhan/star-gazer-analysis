@@ -70,25 +70,25 @@ const generateMockReviews = (): Review[] => {
     const business = businesses[businessIndex];
     
     // Weight ratings to be more realistic (more 4-5 star than 1-2 star)
-    let star: number;
+    let stars: number;
     const ratingRandom = Math.random();
     if (ratingRandom < 0.45) {
-      star = 5;
+      stars = 5;
     } else if (ratingRandom < 0.70) {
-      star = 4;
+      stars = 4;
     } else if (ratingRandom < 0.85) {
-      star = 3;
+      stars = 3;
     } else if (ratingRandom < 0.95) {
-      star = 2;
+      stars = 2;
     } else {
-      star = 1;
+      stars = 1;
     }
     
     // Select review text based on rating
     let text = "";
-    if (star >= 4) {
+    if (stars >= 4) {
       text = positiveReviews[Math.floor(Math.random() * positiveReviews.length)];
-    } else if (star === 3) {
+    } else if (stars === 3) {
       text = neutralReviews[Math.floor(Math.random() * neutralReviews.length)];
     } else {
       text = negativeReviews[Math.floor(Math.random() * negativeReviews.length)];
@@ -110,7 +110,7 @@ const generateMockReviews = (): Review[] => {
     
     // Generate dates, with more recent reviews for higher ratings
     let publishedDate;
-    if (star >= 4) {
+    if (stars >= 4) {
       // More recent dates for positive reviews
       const now = new Date();
       const sixMonthsAgo = new Date();
@@ -125,7 +125,7 @@ const generateMockReviews = (): Review[] => {
     mockReviews.push({
       name: `Reviewer ${i + 1}`,
       title: business,
-      star,
+      stars,
       originalLanguage: language,
       text,
       textTranslated,

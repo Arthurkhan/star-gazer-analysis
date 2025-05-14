@@ -162,7 +162,7 @@ const KeyInsights = ({ reviews }: KeyInsightsProps) => {
               {needAttention.map((review, index) => (
                 <li key={index} className="border-l-4 border-red-400 dark:border-red-500 pl-3 py-2 bg-red-50 dark:bg-red-900/10 rounded-r-md">
                   <div className="flex justify-between items-center">
-                    <div className="text-amber-500 text-sm">{"★".repeat(review.star)}</div>
+                    <div className="text-amber-500 text-sm">{"★".repeat(review.stars)}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(review.publishedAtDate).toLocaleDateString()}
                     </div>

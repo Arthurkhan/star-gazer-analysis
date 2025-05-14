@@ -13,7 +13,7 @@ import {
 export const calculateAverageRating = (reviews: Review[]): number => {
   if (reviews.length === 0) return 0;
   
-  const sum = reviews.reduce((total, review) => total + review.star, 0);
+  const sum = reviews.reduce((total, review) => total + review.stars, 0);
   return sum / reviews.length;
 };
 
@@ -22,8 +22,8 @@ export const countReviewsByRating = (
   reviews: Review[]
 ): Record<number, number> => {
   return reviews.reduce((counts, review) => {
-    const star = review.star;
-    counts[star] = (counts[star] || 0) + 1;
+    const stars = review.stars;
+    counts[stars] = (counts[stars] || 0) + 1;
     return counts;
   }, {} as Record<number, number>);
 };
@@ -603,7 +603,7 @@ export const getOverallAnalysis = async (reviews: Review[]): Promise<string> => 
     .map(([category]) => category.toLowerCase());
   
   // Enhanced comprehensive analysis with more detailed breakdown
-  let analysis = `Based on a comprehensive analysis of ${totalReviews} customer reviews, ${reviews[0].name} has achieved an average rating of ${avgRating.toFixed(1)}/5 stars, with ${positivePercentage}% of reviews expressing positive sentiment. `;
+  let analysis = `Based on a comprehensive analysis of ${reviews.length} customer reviews, your business has achieved an average rating of ${avgRating.toFixed(1)}/5 stars, with ${positivePercentage}% of reviews expressing positive sentiment. `;
   
   // Frequency analysis
   const oldestReviewDate = new Date(Math.min(...reviews.map(r => new Date(r.publishedAtDate).getTime())));
@@ -746,7 +746,7 @@ export const analyzeReviewInsights = (reviews: Review[]): InsightsData => {
     }
     
     const current = quarters.get(quarter)!;
-    current.sum += review.star;
+    current.sum += review.stars;
     current.count += 1;
   });
   
@@ -793,7 +793,7 @@ export const analyzeReviewInsights = (reviews: Review[]): InsightsData => {
   
   // Find reviews needing attention (low rating, no response)
   const needAttention = reviews
-    .filter(review => review.star <= 2 && !review.responseFromOwnerText?.trim())
+    .filter(review => review.stars <= 2 && !review.responseFromOwnerText?.trim())
     .slice(0, 3);
   
   // Extract common themes from the database with enhanced categorization
@@ -820,11 +820,11 @@ export const analyzeReviewInsights = (reviews: Review[]): InsightsData => {
     // Calculate sentiment score based on these reviews
     if (mentioningReviews.length > 0) {
       const positiveCount = mentioningReviews.filter(r => 
-        r.sentiment?.toLowerCase().includes('positive') || r.star >= 4
+        r.sentiment?.toLowerCase().includes('positive') || r.stars >= 4
       ).length;
       
       const negativeCount = mentioningReviews.filter(r => 
-        r.sentiment?.toLowerCase().includes('negative') || r.star <= 2
+        r.sentiment?.toLowerCase().includes('negative') || r.stars <= 2
       ).length;
       
       const ratio = mentioningReviews.length > 0 ? 

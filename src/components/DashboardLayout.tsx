@@ -1,11 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Sun, Moon, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { SetupApiKeyDialog } from "@/components/SetupApiKeyDialog";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -60,9 +58,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </h1>
           </div>
           <div className="flex items-center space-x-4">
-            {/* Add Setup API Key Button */}
-            <SetupApiKeyDialog />
-            
             <Button
               variant="ghost"
               size="icon"

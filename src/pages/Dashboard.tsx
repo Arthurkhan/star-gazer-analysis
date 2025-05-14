@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useRecommendations } from "@/hooks/useRecommendations";
-import { BusinessType } from "@/types/businessTypes";
+import { detectBusinessType } from "@/utils/businessTypeDetection";
 import { type AIProvider } from "@/components/AIProviderToggle";
 import { Sparkles, Download, Save } from "lucide-react";
 
@@ -27,6 +27,12 @@ const Dashboard = () => {
     handleBusinessChange 
   } = useDashboardData();
 
+  // Detect business type based on business data
+  const businessType = useMemo(() => {
+    if (!businessData) return null;
+    return detectBusinessType(businessData);
+  }, [businessData]);
+
   const {
     recommendations,
     loading: recommendationsLoading,
@@ -37,7 +43,7 @@ const Dashboard = () => {
   } = useRecommendations({
     businessData,
     selectedBusiness,
-    businessType: BusinessType.RESTAURANT, // This should be dynamic based on business
+    businessType: businessType || detectBusinessType({}), // Use a default if not detected
   });
 
   const filteredReviews = getFilteredReviews();

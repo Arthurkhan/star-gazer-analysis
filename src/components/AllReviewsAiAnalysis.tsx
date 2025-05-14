@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Review } from "@/types/reviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,32 +15,36 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchAnalysis = async (forceRefresh = false) => {
     if (reviews.length === 0) {
-      setError("No reviews to analyze");
+      toast({
+        title: "No reviews",
+        description: "No reviews available to analyze",
+        variant: "default",
+      });
       return;
     }
 
     setLoading(true);
-    setError(null);
 
     try {
-      // Clear cache if forcing refresh
       if (forceRefresh) {
         clearCache();
       }
 
-      // Get analysis from the service
       const result = await getAnalysis(reviews);
       setAnalysis(result);
+      
+      toast({
+        title: "Analysis complete",
+        description: "Review analysis has been generated",
+      });
     } catch (err) {
       console.error("Analysis error:", err);
-      setError("Failed to generate analysis. Please try again later.");
       toast({
         title: "Analysis failed",
-        description: "Could not generate AI analysis",
+        description: "Could not generate analysis",
         variant: "destructive",
       });
     } finally {
@@ -49,7 +52,6 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
     }
   };
 
-  // Initialize analysis on first load
   useEffect(() => {
     if (reviews.length > 0 && !analysis && !loading) {
       fetchAnalysis();
@@ -138,11 +140,7 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
             <div className="inline-block w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
             <p className="mt-2 text-sm text-muted-foreground">Analyzing reviews...</p>
           </div>
-        ) : error ? (
-          <div className="text-center text-muted-foreground py-4">
-            {error}
-          </div>
-        ) : !analysis?.overallAnalysis ? (
+        ) : !analysis ? (
           <div className="text-center text-muted-foreground py-4">
             <Button variant="outline" onClick={() => fetchAnalysis()}>
               <FileText className="mr-2 h-4 w-4" />
@@ -152,6 +150,45 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
         ) : (
           <div className="space-y-4">
             {renderFormattedAnalysis()}
+            
+            {/* Additional visualizations */}
+            {analysis.mainThemes && analysis.mainThemes.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-semibold mb-2">Main Themes</h3>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.mainThemes.slice(0, 10).map((theme: any, idx: number) => (
+                    <span key={idx} className="px-3 py-1 bg-primary/10 rounded-full text-sm">
+                      {theme.theme} ({theme.count})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {analysis.staffMentions && analysis.staffMentions.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-semibold mb-2">Staff Performance</h3>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {analysis.staffMentions.slice(0, 6).map((staff: any, idx: number) => (
+                    <Card key={idx} className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium">{staff.name}</span>
+                        <span className="text-sm text-muted-foreground">{staff.count} mentions</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className={`text-sm font-medium ${
+                          staff.sentiment === 'positive' ? 'text-green-600' :
+                          staff.sentiment === 'negative' ? 'text-red-600' :
+                          'text-yellow-600'
+                        }`}>
+                          {staff.sentiment.charAt(0).toUpperCase() + staff.sentiment.slice(1)}
+                        </span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

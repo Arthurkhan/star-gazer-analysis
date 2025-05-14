@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { AIProviderToggle } from "@/components/AIProviderToggle";
 import { useToast } from "@/hooks/use-toast";
 import { Sun, Moon, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  onProviderChange?: (provider: any) => void;
 }
 
-const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+const DashboardLayout = ({ children, onProviderChange }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [theme, setTheme] = useState<"light" | "dark">(
@@ -52,12 +54,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <header className="bg-white dark:bg-gray-800 shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Google Maps Review Analyzer
-            </h1>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Google Maps Review Analyzer
+          </h1>
           <div className="flex items-center space-x-4">
+            <AIProviderToggle onProviderChange={onProviderChange} />
             <Button
               variant="ghost"
               size="icon"

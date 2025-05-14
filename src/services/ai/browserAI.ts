@@ -1,8 +1,6 @@
 import { 
   Recommendations, 
   BusinessHealth,
-  BusinessType,
-  industryBenchmarks,
   UrgentAction,
   GrowthStrategy,
   PatternInsight,
@@ -11,6 +9,7 @@ import {
   BusinessScenario,
   Strategy
 } from '@/types/recommendations';
+import { BusinessType, industryBenchmarks } from '@/types/businessTypes';
 import { Review } from '@/types/reviews';
 
 interface AnalysisResult {
@@ -588,10 +587,9 @@ export class BrowserAIService {
   }
 
   private calculatePercentile(value: number, benchmark: number, stdDev: number): number {
-    // Simplified percentile calculation
     const zScore = (value - benchmark) / stdDev;
-    const percentile = (1 + Math.erf(zScore / Math.sqrt(2))) / 2 * 100;
-    return Math.max(0, Math.min(100, percentile));
+    const percentile = (1 + this.erf(zScore / Math.sqrt(2))) / 2 * 100;
+    return Math.min(Math.max(percentile, 0), 100);
   }
 
   private identifyStrengths(
@@ -688,17 +686,19 @@ export class BrowserAIService {
   }
 
   private erf(x: number): number {
-    // Error function approximation for normal distribution
-    const a1 =  0.254829592;
+    // Constants
+    const a1 = 0.254829592;
     const a2 = -0.284496736;
-    const a3 =  1.421413741;
+    const a3 = 1.421413741;
     const a4 = -1.453152027;
-    const a5 =  1.061405429;
-    const p  =  0.3275911;
+    const a5 = 1.061405429;
+    const p = 0.3275911;
 
-    const sign = x >= 0 ? 1 : -1;
+    // Save the sign of x
+    const sign = x < 0 ? -1 : 1;
     x = Math.abs(x);
 
+    // A&S formula 7.1.26
     const t = 1.0 / (1.0 + p * x);
     const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
 

@@ -27,11 +27,13 @@ const Dashboard = () => {
     handleBusinessChange 
   } = useDashboardData();
 
+  const filteredReviews = getFilteredReviews();
+
   // Detect business type based on business data
   const businessType = useMemo(() => {
-    if (!businessData) return null;
-    return detectBusinessType(businessData);
-  }, [businessData]);
+    if (!businessData || !filteredReviews) return null;
+    return detectBusinessType({ ...businessData, reviews: filteredReviews });
+  }, [businessData, filteredReviews]);
 
   const {
     recommendations,
@@ -41,12 +43,10 @@ const Dashboard = () => {
     exportRecommendations,
     saveRecommendations,
   } = useRecommendations({
-    businessData,
+    businessData: { ...businessData, reviews: filteredReviews },
     selectedBusiness,
-    businessType: businessType || detectBusinessType({}), // Use a default if not detected
+    businessType: businessType || detectBusinessType({}),
   });
-
-  const filteredReviews = getFilteredReviews();
   
   const handleGenerateRecommendations = useCallback(() => {
     generateRecommendations(aiProvider);

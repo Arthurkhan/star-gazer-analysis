@@ -37,7 +37,11 @@ export const analyzeReviewsWithAI = async (
       text: review.text,
       rating: review.star,
       date: review.publishedAtDate,
-      language: review.originalLanguage || "unknown"
+      language: review.originalLanguage || "unknown",
+      sentiment: review.sentiment,
+      staffMentioned: review.staffMentioned,
+      mainThemes: review.mainThemes,
+      commonTerms: review["common terms"]
     }));
 
     console.log(`Processing ${reviewTexts.length} reviews with ${provider}...`);

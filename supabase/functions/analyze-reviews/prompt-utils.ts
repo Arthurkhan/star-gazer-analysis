@@ -15,32 +15,41 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
       ${reviewsJSON}
       
       ${fullAnalysis ? `
-      Please provide:
-      1. A sentiment breakdown with exact counts for positive, neutral, and negative reviews
-      2. A detailed list of staff members mentioned in the reviews with:
-         - The exact name of each staff member as mentioned in reviews (combine similar names like Anna/Ana/Anne to the most common version)
-         - The count of distinct mentions
-         - Overall sentiment toward each staff member (positive/neutral/negative)
-         - 2-3 exact quotes from reviews that mention each staff member
-      3. Common terms/themes mentioned in reviews with their frequency, grouped into these categories:
-         - Service (staff behavior, customer service, waiting time)
-         - Ambiance (atmosphere, decor, environment, music, lighting)
-         - Food & Drinks (taste, menu options, presentation, quality)
-         - Value (pricing, portion size, value for money)
-         - Cleanliness (hygiene, tidiness)
-         - Location (accessibility, parking, area)
-         - Special Features (unique offerings, events, art, exhibitions)
-         - Little Prince Theme (book references, characters, story elements)
-         - Art Gallery (exhibitions, artwork, installations)
-         - Overall Experience (satisfaction, return likelihood)
-      4. A comprehensive analysis of the review trends including:
-         - How reviews have evolved over time (improving/declining/steady)
-         - Key strengths consistently mentioned
-         - Areas that might need improvement
-         - Any seasonal patterns if visible
-         - Impact of specific staff members on customer satisfaction
-      5. Include a detailed star rating breakdown showing the count and percentage for 5-star, 4-star, 3-star, 2-star, and 1-star reviews
-      6. Include a language distribution analysis showing which languages reviews are written in and their percentages
+      Please provide a detailed analysis following this exact structure:
+      
+      📊 PERFORMANCE SNAPSHOT
+      - Average Rating: [X]/5 ⭐
+      - Total Reviews: [number]
+      - Review Period: [dates from earliest to latest review]
+      - Monthly Average: [number of reviews per month]
+      
+      📈 TREND ANALYSIS
+      - Current Period: [X reviews]
+      - Previous Period: [Y reviews]
+      - Change: [+/- percentage]
+      
+      🗣️ CUSTOMER HIGHLIGHTS
+      Top Mentioned Categories:
+      1. [Category 1]
+      2. [Category 2]
+      3. [Category 3]
+      
+      Staff Impact: [Mention any key staff that significantly impact experiences]
+      
+      💬 SAMPLE REVIEWS
+      - [Include 2-3 actual customer quotes that represent the overall sentiment]
+      
+      🌍 AUDIENCE INSIGHTS
+      - Languages: [List main languages with percentages]
+      - International Appeal: [Strong/Moderate/Limited]
+      
+      🎯 RECOMMENDATIONS
+      - [Specific action item 1]
+      - [Specific action item 2]
+      - [Specific action item 3]
+      
+      Focus primarily on analyzing the "Sentiment", "Staff Mentioned", "Main Themes", and "Common terms" columns 
+      from the reviews to create this comprehensive analysis.
       ` : `
       FOCUS ONLY ON STAFF MENTIONS in these reviews. Please identify:
       - The exact name of each staff member mentioned in reviews (combine similar names like Anna/Ana/Anne to the most common version)
@@ -55,65 +64,13 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
         "sentimentAnalysis": [{"name": "Positive", "value": number}, {"name": "Neutral", "value": number}, {"name": "Negative", "value": number}],
         "staffMentions": [{"name": "staff name", "count": number, "sentiment": "positive"|"neutral"|"negative", "examples": ["example quote 1", "example quote 2"]}, ...],
         "commonTerms": [{"text": "term", "count": number, "category": "Service|Ambiance|Food & Drinks|Value|Cleanliness|Location|Special Features|Little Prince Theme|Art Gallery|Overall Experience"}, ...],
-        "overallAnalysis": "text analysis"
+        "overallAnalysis": "text analysis that follows the EXACTLY the format specified"
       }
       ` : `
       {
         "staffMentions": [{"name": "staff name", "count": number, "sentiment": "positive"|"neutral"|"negative", "examples": ["example quote 1", "example quote 2"]}, ...]
       }
       `}
-      
-      IMPORTANT GUIDELINES FOR STAFF EXTRACTION:
-      - Only include actual staff members (people working at the business), not generic mentions like "staff" or "server"
-      - Consolidate variations of the same name using these guidelines:
-        * Arnaud/Armand/The Boss/Artist/Mr. Arnaud/Owner/Arnoud → Arnaud
-        * Anna/Ana/Anne/Nong Ana/Nong Ena → Anna
-        * Sam/Sammy/Samuel/Samantha → Sam
-        * Dave/David/Davey → Dave
-        * Mike/Michael/Mikey/Michel → Mike
-        * Alex/Alexander/Alexandra/Alexa → Alex
-        * Peps/Pepsi/Pep → Peps
-      - For each staff member, include exact quotes from reviews where they are mentioned
-      - If someone seems to be a customer rather than staff, do not include them
-      - If no staff are mentioned by name in any review, return an empty array for staffMentions
-      - Look very carefully for names of individual staff members in the review text
-      - Pay special attention to sentences that mention service, employees, or contain phrases like "our waiter", "our server", etc.
-      
-      IMPORTANT GUIDELINES FOR TERM CATEGORIZATION:
-      - Group similar terms together (e.g., "great food", "delicious food", "tasty dishes" should be grouped under a common term)
-      - Be specific with categories - don't use "Others" category
-      - For Little Prince Theme category, include any terms related to the book, characters, or story elements
-      - For Art Gallery category, include terms related to exhibitions, artwork, installations
-      - Ensure terms are evenly distributed across categories rather than having one dominant category
-      
-      IMPORTANT GUIDELINES FOR OVERALL ANALYSIS:
-      - Format your analysis into these clear sections with emojis:
-        * 📊 PERFORMANCE SNAPSHOT
-          - Average Rating: X/5 ⭐
-          - Total Reviews: [number]
-          - Review Period: [dates from earliest to latest review]
-          - Star Breakdown: 5★: X (X%), 4★: X (X%), 3★: X (X%), 2★: X (X%), 1★: X (X%)
-        * 📈 TREND ANALYSIS
-          - Current Period: [X reviews]
-          - Previous Period: [Y reviews]
-          - Change: [+/- percentage]
-        * 🗣️ CUSTOMER HIGHLIGHTS
-          - Top Mentioned Categories (list the top 3-5 categories with highest mentions)
-          - Staff Impact: Mention any key staff that significantly impact experiences
-        * 💬 SAMPLE REVIEWS
-          - Include 2-3 actual customer quotes that represent the overall sentiment
-        * 🌍 AUDIENCE INSIGHTS
-          - Languages breakdown with percentages (e.g., English (70%), French (15%), Thai (10%), Other (5%))
-          - International appeal assessment
-        * 🎯 RECOMMENDATIONS
-          - 3-5 specific and actionable suggestions based on review data
-          - Prioritize by potential impact
-      - Use bullet points for all lists to enhance readability
-      - Use specific percentages and numbers when available (e.g., "70% of reviews mention...")
-      - Avoid vague terms like "others" - always be specific about categories
-      - Provide specific, actionable recommendations rather than generic advice
-      - Organize information in a logical flow
-      - Highlight insights that can directly impact business decisions
     `;
   }
 }
@@ -121,7 +78,7 @@ export function generatePrompt(reviews: any[], fullAnalysis: boolean = true, cus
 // System message that instructs the AI about the task
 export function getSystemMessage(fullAnalysis: boolean) {
   return fullAnalysis
-    ? "You are an AI assistant that analyzes customer reviews and extracts insights. You're particularly good at identifying staff members mentioned by name, consolidating variations of the same name, and analyzing sentiment about them. You're also skilled at categorizing review themes into meaningful groups and providing actionable business intelligence. Format your analysis with clear section headers, emojis, bullet points, and specific metrics to make it easy to read. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
+    ? "You are an AI assistant that analyzes customer reviews and extracts insights. Focus specifically on analyzing the 'Sentiment', 'Staff Mentioned', 'Main Themes', and 'Common terms' columns to create a comprehensive analysis. Format your analysis with clear section headers, emojis, bullet points, and specific metrics to make it easy to read. Follow the EXACT format specified in the prompt. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks."
     : "You are an AI assistant that identifies staff members mentioned in customer reviews. Your only task is to extract mentions of individual staff members by name, consolidating variations of the same name. Respond ONLY with the requested JSON format without any markdown formatting, code blocks, or backticks.";
 }
 
@@ -180,7 +137,17 @@ export function createCompleteAnalysis(analysis: any, fullAnalysis: boolean) {
 }
 
 // Format the overall analysis for better readability
-export function formatOverallAnalysis(analysis: string): string {
+export function formatOverallAnalysis(analysis: string | any): string {
+  // Check if analysis is a string
+  if (typeof analysis !== 'string') {
+    // Try to convert it to a string if it's not already
+    try {
+      analysis = analysis?.toString() || "";
+    } catch (e) {
+      return "Error formatting analysis";
+    }
+  }
+  
   if (!analysis) return "";
   
   // The AI now includes formatting in its response based on the prompt,

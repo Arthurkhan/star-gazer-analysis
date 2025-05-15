@@ -1,14 +1,15 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
+import BusinessTypeSelector from "@/components/BusinessTypeSelector";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 import { RecommendationsDashboard } from "@/components/recommendations/RecommendationsDashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useRecommendations } from "@/hooks/useRecommendations";
-import { detectBusinessType } from "@/utils/businessTypeDetection";
+import { BusinessType } from "@/types/businessTypes";
 import { type AIProvider } from "@/components/AIProviderToggle";
 import { Sparkles, Download, Save } from "lucide-react";
 
@@ -16,6 +17,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [aiProvider, setAiProvider] = useState<AIProvider>("browser");
+  const [selectedBusinessType, setSelectedBusinessType] = useState<BusinessType>(BusinessType.OTHER);
   
   const { 
     loading, 
@@ -28,12 +30,6 @@ const Dashboard = () => {
 
   const filteredReviews = getFilteredReviews();
 
-  // Detect business type based on business data
-  const businessType = useMemo(() => {
-    if (!businessData || !filteredReviews) return null;
-    return detectBusinessType({ ...businessData, reviews: filteredReviews });
-  }, [businessData, filteredReviews]);
-
   const {
     recommendations,
     loading: recommendationsLoading,
@@ -44,7 +40,7 @@ const Dashboard = () => {
   } = useRecommendations({
     businessData: { ...businessData, reviews: filteredReviews },
     selectedBusiness,
-    businessType: businessType || detectBusinessType({}),
+    businessType: selectedBusinessType,
   });
   
   const handleGenerateRecommendations = useCallback(() => {
@@ -58,18 +54,25 @@ const Dashboard = () => {
           selectedBusiness={selectedBusiness}
           onBusinessChange={handleBusinessChange}
           businessData={businessData}
-          businessType={businessType}
+          businessType={selectedBusinessType}
           className="flex-1"
         />
-        <Button
-          onClick={handleGenerateRecommendations}
-          disabled={!selectedBusiness || recommendationsLoading}
-          size="icon"
-          className="w-10 h-10"
-          title="Generate Recommendations"
-        >
-          <Sparkles className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <BusinessTypeSelector
+            selectedBusinessType={selectedBusinessType}
+            onBusinessTypeChange={setSelectedBusinessType}
+            disabled={selectedBusiness === "all"}
+          />
+          <Button
+            onClick={handleGenerateRecommendations}
+            disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading}
+            size="icon"
+            className="w-10 h-10"
+            title="Generate Recommendations"
+          >
+            <Sparkles className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

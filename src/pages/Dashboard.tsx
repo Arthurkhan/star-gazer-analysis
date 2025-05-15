@@ -111,6 +111,7 @@ const Dashboard = () => {
             loading={recommendationsLoading}
             error={recommendationsError || undefined}
             generatingMessage={generatingMessage}
+            businessName={selectedBusiness}
           />
         </TabsContent>
       </Tabs>

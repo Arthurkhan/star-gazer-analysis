@@ -2,7 +2,6 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
-import BusinessTypeSelector from "@/components/BusinessTypeSelector";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 import { RecommendationsDashboard } from "@/components/recommendations/RecommendationsDashboard";
 import { Button } from "@/components/ui/button";
@@ -55,24 +54,18 @@ const Dashboard = () => {
           onBusinessChange={handleBusinessChange}
           businessData={businessData}
           businessType={selectedBusinessType}
+          onBusinessTypeChange={setSelectedBusinessType}
           className="flex-1"
         />
-        <div className="flex items-center gap-2">
-          <BusinessTypeSelector
-            selectedBusinessType={selectedBusinessType}
-            onBusinessTypeChange={setSelectedBusinessType}
-            disabled={selectedBusiness === "all"}
-          />
-          <Button
-            onClick={handleGenerateRecommendations}
-            disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading}
-            size="icon"
-            className="w-10 h-10"
-            title="Generate Recommendations"
-          >
-            <Sparkles className="w-5 h-5" />
-          </Button>
-        </div>
+        <Button
+          onClick={handleGenerateRecommendations}
+          disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading}
+          size="icon"
+          className="w-10 h-10"
+          title="Generate Recommendations"
+        >
+          <Sparkles className="w-5 h-5" />
+        </Button>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -40,6 +40,17 @@ export interface ReviewAnalysis {
     percentage: number;
     characteristics: string[];
   }[];
+  temporalPatterns?: {
+    dailyTrends: any[];
+    weeklyTrends: any[];
+    monthlyTrends: any[];
+    seasonalPatterns: any[];
+    peakPeriods: any;
+  };
+  clusters?: {
+    mainClusters: any[];
+    insights: string[];
+  };
 }
 
 export interface BusinessContext {
@@ -58,6 +69,8 @@ export interface BusinessContext {
     volumeTrend: 'increasing' | 'stable' | 'decreasing';
     sentimentTrend: 'improving' | 'stable' | 'declining';
   };
+  temporalInsights?: any;
+  clusteringResults?: any;
 }
 
 export interface AIResponse {

@@ -6,6 +6,7 @@ import { GrowthStrategiesView } from "./GrowthStrategiesView";
 import { PatternAnalysisView } from "./PatternAnalysisView";
 import { CompetitiveAnalysisView } from "./CompetitiveAnalysisView";
 import { ScenariosView } from "./ScenariosView";
+import { EnhancedAnalysisDisplay } from "@/components/analysis/EnhancedAnalysisDisplay";
 import { type Recommendations } from "@/types/recommendations";
 
 interface RecommendationsDashboardProps {
@@ -70,13 +71,25 @@ export const RecommendationsDashboard = ({
         </Alert>
       )}
       
-      <Tabs defaultValue="growth" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="enhanced" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="enhanced">Enhanced Analysis</TabsTrigger>
           <TabsTrigger value="growth">Growth Strategies</TabsTrigger>
           <TabsTrigger value="patterns">Pattern Analysis</TabsTrigger>
           <TabsTrigger value="competitive">Competitive Position</TabsTrigger>
           <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="enhanced">
+          <EnhancedAnalysisDisplay 
+            temporalPatterns={recommendations.enhancedAnalysis?.temporalPatterns || null}
+            historicalTrends={recommendations.enhancedAnalysis?.historicalTrends || null}
+            reviewClusters={recommendations.enhancedAnalysis?.reviewClusters || null}
+            seasonalAnalysis={recommendations.enhancedAnalysis?.seasonalAnalysis || null}
+            insights={recommendations.enhancedAnalysis?.insights || null}
+            loading={false}
+          />
+        </TabsContent>
         
         <TabsContent value="growth">
           <GrowthStrategiesView 

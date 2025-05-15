@@ -81,10 +81,10 @@ export const useRecommendations = ({
         return acc;
       }, { positive: 0, neutral: 0, negative: 0 });
 
-      // Extract staff mentions
+      // Extract staff mentions with null checks
       const staffMentions: any[] = [];
       mappedReviews.forEach((review: any) => {
-        if (review.staffMentioned) {
+        if (review.staffMentioned && typeof review.staffMentioned === 'string') {
           const staffNames = review.staffMentioned.split(',').map((name: string) => name.trim());
           staffNames.forEach((name: string) => {
             if (name) {
@@ -105,11 +105,11 @@ export const useRecommendations = ({
         }
       });
 
-      // Extract common terms from themes
+      // Extract common terms from themes with null checks
       const commonTerms: any[] = [];
       const themeFrequency: any = {};
       mappedReviews.forEach((review: any) => {
-        if (review.mainThemes) {
+        if (review.mainThemes && typeof review.mainThemes === 'string') {
           const themes = review.mainThemes.split(',').map((theme: string) => theme.trim());
           themes.forEach((theme: string) => {
             if (theme) {
@@ -120,7 +120,9 @@ export const useRecommendations = ({
       });
 
       Object.entries(themeFrequency).forEach(([theme, count]) => {
-        commonTerms.push({ text: theme, count: count as number });
+        if (theme) {
+          commonTerms.push({ text: theme, count: count as number });
+        }
       });
 
       // Sort common terms by frequency

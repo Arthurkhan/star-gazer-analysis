@@ -2,7 +2,8 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { type Recommendations, type BusinessType } from '@/types/recommendations';
+import { type Recommendations, type AnalysisResult } from '@/types/recommendations';
+import { type BusinessType } from '@/types/businessTypes';
 import { type AIProvider } from '@/components/AIProviderToggle';
 import { RecommendationService } from '@/services/recommendationService';
 
@@ -58,6 +59,8 @@ export const useRecommendations = ({
         sentiment: review.sentiment || 'neutral',
         mainThemes: review.mainThemes || '',
         staffMentioned: review.staffMentioned || '',
+        publishedAtDate: review.publishedAtDate || new Date().toISOString(),
+        reviewUrl: review.reviewUrl || '',
         // Keep other properties
         ...review
       }));
@@ -71,8 +74,88 @@ export const useRecommendations = ({
         ? mappedReviews.filter((r: any) => r.owner_response).length / totalReviews
         : 0;
 
-      // Prepare analysis data
-      const analysisData = {
+      // Calculate sentiment analysis from the reviews
+      const sentimentCounts = mappedReviews.reduce((acc: any, review: any) => {
+        const sentiment = review.sentiment || 'neutral';
+        acc[sentiment] = (acc[sentiment] || 0) + 1;
+        return acc;
+      }, { positive: 0, neutral: 0, negative: 0 });
+
+      // Extract staff mentions
+      const staffMentions: any[] = [];
+      mappedReviews.forEach((review: any) => {
+        if (review.staffMentioned) {
+          const staffNames = review.staffMentioned.split(',').map((name: string) => name.trim());
+          staffNames.forEach((name: string) => {
+            if (name) {
+              const existing = staffMentions.find(s => s.name === name);
+              if (existing) {
+                existing.count++;
+                if (review.sentiment === 'negative') existing.sentiment = 'negative';
+                else if (review.sentiment === 'positive' && existing.sentiment !== 'negative') existing.sentiment = 'positive';
+              } else {
+                staffMentions.push({
+                  name,
+                  count: 1,
+                  sentiment: review.sentiment || 'neutral'
+                });
+              }
+            }
+          });
+        }
+      });
+
+      // Extract common terms from themes
+      const commonTerms: any[] = [];
+      const themeFrequency: any = {};
+      mappedReviews.forEach((review: any) => {
+        if (review.mainThemes) {
+          const themes = review.mainThemes.split(',').map((theme: string) => theme.trim());
+          themes.forEach((theme: string) => {
+            if (theme) {
+              themeFrequency[theme] = (themeFrequency[theme] || 0) + 1;
+            }
+          });
+        }
+      });
+
+      Object.entries(themeFrequency).forEach(([theme, count]) => {
+        commonTerms.push({ text: theme, count: count as number });
+      });
+
+      // Sort common terms by frequency
+      commonTerms.sort((a, b) => b.count - a.count);
+
+      // Prepare analysis data with the correct structure
+      const analysisData: AnalysisResult = {
+        sentimentAnalysis: [
+          { name: 'Positive', value: sentimentCounts.positive },
+          { name: 'Neutral', value: sentimentCounts.neutral },
+          { name: 'Negative', value: sentimentCounts.negative }
+        ],
+        staffMentions: staffMentions,
+        commonTerms: commonTerms.slice(0, 20), // Top 20 terms
+        overallAnalysis: `Analysis of ${totalReviews} reviews for ${selectedBusiness} with an average rating of ${avgRating.toFixed(1)} stars.`,
+        mainThemes: commonTerms.slice(0, 10).map(term => ({
+          theme: term.text,
+          count: term.count,
+          percentage: (term.count / totalReviews) * 100
+        })),
+        ratingBreakdown: [1, 2, 3, 4, 5].map(rating => {
+          const count = mappedReviews.filter((r: any) => r.stars === rating).length;
+          return {
+            rating,
+            count,
+            percentage: (count / totalReviews) * 100
+          };
+        })
+      };
+
+      console.log('Analysis Data Structure:', analysisData); // Debug log
+
+      // Get actual recommendations from the service
+      const result = await service.generateRecommendations({
+        ...analysisData,
         business: selectedBusiness,
         businessType,
         reviews: mappedReviews,
@@ -83,85 +166,8 @@ export const useRecommendations = ({
         },
         patterns: businessData.patterns || {},
         sentiment: businessData.sentiment || {},
-      };
-
-      console.log('Analysis Data:', analysisData); // Debug log
-
-      // Create a placeholder for expected result structure that matches our defined types
-      const mockResult: Recommendations = {
-        analysis: {
-          sentimentAnalysis: [
-            { name: 'Positive', value: mappedReviews.filter((r: any) => r.sentiment === 'positive').length },
-            { name: 'Neutral', value: mappedReviews.filter((r: any) => r.sentiment === 'neutral').length },
-            { name: 'Negative', value: mappedReviews.filter((r: any) => r.sentiment === 'negative').length }
-          ],
-          staffMentions: [],
-          commonTerms: [],
-          overallAnalysis: "Analysis in progress...",
-        },
-        suggestions: [],
-        actionPlan: {
-          title: "Initial Action Plan",
-          description: "This is an automatically generated action plan based on your reviews.",
-          steps: [],
-          expectedResults: "Improved customer satisfaction and business growth",
-          timeframe: "short_term"
-        },
-        urgentActions: [],
-        patternInsights: [],
-        longTermStrategies: [],
-        competitivePosition: {
-          overview: "Competitive analysis in progress...",
-          competitors: [],
-          strengthsWeaknesses: {
-            strengths: [],
-            weaknesses: [],
-            opportunities: [],
-            threats: []
-          },
-          recommendations: [],
-          position: "average",
-          metrics: {
-            rating: { value: avgRating, benchmark: 4.0, percentile: 50 },
-            reviewVolume: { value: totalReviews, benchmark: 100, percentile: 50 },
-            sentiment: { value: 0.5, benchmark: 0.5, percentile: 50 }
-          },
-          strengths: [],
-          weaknesses: [],
-          opportunities: []
-        },
-        customerAttractionPlan: {
-          overview: "Marketing plan in development...",
-          objectives: [],
-          tactics: [],
-          budget: {
-            total: "$0",
-            breakdown: {}
-          },
-          timeline: {
-            start: new Date().toISOString(),
-            end: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-            milestones: []
-          },
-          targetAudiences: {
-            primary: [],
-            secondary: [],
-            untapped: []
-          },
-          channels: [],
-          messaging: {
-            uniqueValue: "",
-            keyPoints: [],
-            callToAction: ""
-          }
-        }
-      };
-
-      // Get actual recommendations if service is available
-      const serviceResult = await service.generateRecommendations(analysisData);
+      });
       
-      // Merge the received results with our placeholder structure to ensure all properties exist
-      const result = { ...mockResult, ...serviceResult };
       setRecommendations(result);
       
       toast({

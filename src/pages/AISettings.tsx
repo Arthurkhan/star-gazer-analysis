@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -121,101 +122,103 @@ const AISettings = () => {
   ];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">AI Provider Settings</h1>
+    <DashboardLayout>
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">AI Provider Settings</h1>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Default AI Provider</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="provider">Select Provider</Label>
-              <Select value={selectedProvider} onValueChange={(value) => setSelectedProvider(value as AIProviderType)}>
-                <SelectTrigger id="provider">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {providers.map(provider => (
-                    <SelectItem key={provider.value} value={provider.value}>
-                      {provider.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground mt-1">
-                {providers.find(p => p.value === selectedProvider)?.description}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {providers.map(provider => (
-        <Card key={provider.value} className="mb-4">
+        <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>{provider.label}</span>
-              {testResults[provider.value] !== null && (
-                <span className={`text-sm ${testResults[provider.value] ? 'text-green-600' : 'text-red-600'}`}>
-                  {testResults[provider.value] ? (
-                    <div className="flex items-center gap-1">
-                      <Check className="w-4 h-4" />
-                      Connected
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <X className="w-4 h-4" />
-                      Failed
-                    </div>
-                  )}
-                </span>
-              )}
-            </CardTitle>
+            <CardTitle>Default AI Provider</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <Label htmlFor={`${provider.value}-key`}>API Key</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id={`${provider.value}-key`}
-                    type="password"
-                    placeholder={`Enter your ${provider.label} API key`}
-                    value={apiKeys[provider.value]}
-                    onChange={(e) => setApiKeys(prev => ({ ...prev, [provider.value]: e.target.value }))}
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => testConnection(provider.value)}
-                    disabled={testing || !apiKeys[provider.value]}
-                  >
-                    {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Test'}
-                  </Button>
-                </div>
+                <Label htmlFor="provider">Select Provider</Label>
+                <Select value={selectedProvider} onValueChange={(value) => setSelectedProvider(value as AIProviderType)}>
+                  <SelectTrigger id="provider">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {providers.map(provider => (
+                      <SelectItem key={provider.value} value={provider.value}>
+                        {provider.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {provider.value === 'openai' && 'Get your API key from platform.openai.com'}
-                  {provider.value === 'claude' && 'Get your API key from console.anthropic.com'}
-                  {provider.value === 'gemini' && 'Get your API key from makersuite.google.com'}
+                  {providers.find(p => p.value === selectedProvider)?.description}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-      ))}
 
-      <Alert className="mb-6">
-        <AlertDescription>
-          API keys are stored locally in your browser and never sent to our servers. 
-          Make sure to keep them secure and don't share them with others.
-        </AlertDescription>
-      </Alert>
+        {providers.map(provider => (
+          <Card key={provider.value} className="mb-4">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>{provider.label}</span>
+                {testResults[provider.value] !== null && (
+                  <span className={`text-sm ${testResults[provider.value] ? 'text-green-600' : 'text-red-600'}`}>
+                    {testResults[provider.value] ? (
+                      <div className="flex items-center gap-1">
+                        <Check className="w-4 h-4" />
+                        Connected
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <X className="w-4 h-4" />
+                        Failed
+                      </div>
+                    )}
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor={`${provider.value}-key`}>API Key</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id={`${provider.value}-key`}
+                      type="password"
+                      placeholder={`Enter your ${provider.label} API key`}
+                      value={apiKeys[provider.value]}
+                      onChange={(e) => setApiKeys(prev => ({ ...prev, [provider.value]: e.target.value }))}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => testConnection(provider.value)}
+                      disabled={testing || !apiKeys[provider.value]}
+                    >
+                      {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Test'}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {provider.value === 'openai' && 'Get your API key from platform.openai.com'}
+                    {provider.value === 'claude' && 'Get your API key from console.anthropic.com'}
+                    {provider.value === 'gemini' && 'Get your API key from makersuite.google.com'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
 
-      <div className="flex justify-end">
-        <Button onClick={saveSettings}>Save Settings</Button>
+        <Alert className="mb-6">
+          <AlertDescription>
+            API keys are stored locally in your browser and never sent to our servers. 
+            Make sure to keep them secure and don't share them with others.
+          </AlertDescription>
+        </Alert>
+
+        <div className="flex justify-end">
+          <Button onClick={saveSettings}>Save Settings</Button>
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

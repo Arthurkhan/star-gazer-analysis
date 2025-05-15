@@ -69,9 +69,9 @@ export const useRecommendations = ({
         ...review
       }));
 
-      // Perform enhanced data analysis
+      // Perform enhanced data analysis with business context
       setGeneratingMessage('Analyzing temporal patterns...');
-      const enhancedAnalysis = await enhancedDataAnalysisService.analyzeData(mappedReviews);
+      const enhancedAnalysis = await enhancedDataAnalysisService.analyzeData(mappedReviews, selectedBusiness);
 
       // Calculate metrics properly
       const totalReviews = mappedReviews.length;

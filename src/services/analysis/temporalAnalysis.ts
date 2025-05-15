@@ -1,183 +1,271 @@
 import { Review } from '@/types/reviews';
-import { 
-  TemporalPattern, 
-  TimeSeriesData, 
-  SeasonalPattern,
-  TrendAnalysis,
-  ClusteredReviews 
-} from '@/types/dataAnalysis';
+import { addDays, startOfWeek, startOfMonth, startOfQuarter, format } from 'date-fns';
+
+export interface TemporalPattern {
+  type: 'daily' | 'weekly' | 'monthly' | 'seasonal';
+  period: string;
+  metrics: {
+    avgRating: number;
+    reviewCount: number;
+    sentiment: number;
+    responseRate: number;
+  };
+  trends: {
+    rating: 'up' | 'down' | 'stable';
+    volume: 'up' | 'down' | 'stable';
+    sentiment: 'up' | 'down' | 'stable';
+  };
+  insights: string[];
+}
+
+export interface TimeSeriesData {
+  date: string;
+  rating: number;
+  volume: number;
+  sentiment: number;
+  positiveRatio: number;
+}
+
+export interface SeasonalPattern {
+  season: 'spring' | 'summer' | 'fall' | 'winter';
+  months: number[];
+  avgRating: number;
+  reviewVolume: number;
+  peakDays: string[];
+  insights: string[];
+}
 
 export class TemporalAnalysisService {
   
-  /**
-   * Analyze review trends over time
-   */
+  // Analyze patterns over different time periods
   analyzeTemporalPatterns(reviews: Review[]): TemporalPattern[] {
     const patterns: TemporalPattern[] = [];
     
-    // Group reviews by week, month, and day of week
-    const weeklyPatterns = this.analyzeWeeklyPatterns(reviews);
-    const monthlyPatterns = this.analyzeMonthlyPatterns(reviews);
-    const dayOfWeekPatterns = this.analyzeDayOfWeekPatterns(reviews);
-    const hourlyPatterns = this.analyzeHourlyPatterns(reviews);
-    
-    patterns.push(...weeklyPatterns, ...monthlyPatterns, ...dayOfWeekPatterns, ...hourlyPatterns);
-    return patterns;
-  }
-  
-  /**
-   * Track metrics changes over months/years
-   */
-  generateHistoricalTrends(reviews: Review[]): TrendAnalysis {
+    // Sort reviews by date
     const sortedReviews = [...reviews].sort((a, b) => 
       new Date(a.publishedAtDate).getTime() - new Date(b.publishedAtDate).getTime()
     );
     
-    // Calculate monthly metrics
-    const monthlyMetrics = this.calculateMonthlyMetrics(sortedReviews);
+    // Daily patterns (last 30 days)
+    patterns.push(...this.analyzeDailyPatterns(sortedReviews));
     
-    // Calculate trend direction
-    const trends = this.calculateTrends(monthlyMetrics);
+    // Weekly patterns (last 12 weeks)
+    patterns.push(...this.analyzeWeeklyPatterns(sortedReviews));
     
-    // Identify significant changes
-    const significantChanges = this.identifySignificantChanges(monthlyMetrics);
+    // Monthly patterns (last 12 months)
+    patterns.push(...this.analyzeMonthlyPatterns(sortedReviews));
     
-    return {
-      monthlyMetrics,
-      trends,
-      significantChanges,
-      projections: this.generateProjections(monthlyMetrics)
-    };
+    // Seasonal patterns (if enough data)
+    if (reviews.length > 100) {
+      patterns.push(...this.analyzeSeasonalPatterns(sortedReviews));
+    }
+    
+    return patterns;
   }
   
-  /**
-   * Group similar reviews for better insights
-   */
-  clusterReviews(reviews: Review[]): ClusteredReviews {
-    const clusters: ClusteredReviews = {
-      bySentiment: this.clusterBySentiment(reviews),
-      byTheme: this.clusterByTheme(reviews),
-      byRating: this.clusterByRating(reviews),
-      byLength: this.clusterByLength(reviews),
-      byResponseStatus: this.clusterByResponseStatus(reviews)
-    };
+  // Get time series data for visualization
+  getTimeSeriesData(reviews: Review[], granularity: 'day' | 'week' | 'month'): TimeSeriesData[] {
+    const groupedData = this.groupReviewsByPeriod(reviews, granularity);
     
-    return clusters;
-  }
-  
-  /**
-   * Identify business patterns by time of year
-   */
-  analyzeSeasonalPatterns(reviews: Review[]): SeasonalPattern[] {
-    const patterns: SeasonalPattern[] = [];
-    
-    // Group by season
-    const seasonalGroups = this.groupBySeason(reviews);
-    
-    // Analyze each season
-    Object.entries(seasonalGroups).forEach(([season, seasonReviews]) => {
-      const avgRating = this.calculateAverageRating(seasonReviews);
-      const volume = seasonReviews.length;
-      const sentiment = this.calculateSentimentScore(seasonReviews);
-      const commonThemes = this.extractCommonThemes(seasonReviews);
+    return Object.entries(groupedData).map(([period, periodReviews]) => {
+      const ratings = periodReviews.map(r => r.stars);
+      const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
       
-      patterns.push({
-        season,
-        avgRating,
-        volume,
-        sentiment,
-        commonThemes,
-        yearOverYearChange: this.calculateYearOverYearChange(seasonReviews)
-      });
-    });
-    
-    return patterns;
+      const sentiments = periodReviews.map(r => this.getSentimentScore(r.sentiment));
+      const avgSentiment = sentiments.reduce((sum, s) => sum + s, 0) / sentiments.length;
+      
+      const positiveCount = periodReviews.filter(r => r.sentiment === 'positive').length;
+      const positiveRatio = positiveCount / periodReviews.length;
+      
+      return {
+        date: period,
+        rating: avgRating,
+        volume: periodReviews.length,
+        sentiment: avgSentiment,
+        positiveRatio
+      };
+    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }
   
-  // Helper methods
-  private analyzeWeeklyPatterns(reviews: Review[]): TemporalPattern[] {
-    const weeklyGroups = this.groupByWeek(reviews);
-    const patterns: TemporalPattern[] = [];
+  // Identify peak and low periods
+  identifyPeakPeriods(reviews: Review[]): {
+    peakDays: { day: string; reason: string }[];
+    lowDays: { day: string; reason: string }[];
+    peakHours: { hour: number; volume: number }[];
+  } {
+    const dailyVolume = this.groupReviewsByPeriod(reviews, 'day');
+    const sortedDays = Object.entries(dailyVolume)
+      .map(([day, reviews]) => ({ day, volume: reviews.length }))
+      .sort((a, b) => b.volume - a.volume);
     
-    Object.entries(weeklyGroups).forEach(([week, weekReviews]) => {
-      patterns.push({
-        period: week,
-        type: 'weekly',
-        avgRating: this.calculateAverageRating(weekReviews),
-        volume: weekReviews.length,
-        sentiment: this.calculateSentimentScore(weekReviews),
-        trend: this.determineTrend(weekReviews)
-      });
+    const peakDays = sortedDays.slice(0, 5).map(({ day, volume }) => ({
+      day,
+      reason: `High review volume (${volume} reviews)`
+    }));
+    
+    const lowDays = sortedDays.slice(-5).map(({ day, volume }) => ({
+      day,
+      reason: `Low review volume (${volume} reviews)`
+    }));
+    
+    // Analyze by hour of day
+    const hourlyVolume: Record<number, number> = {};
+    reviews.forEach(review => {
+      const hour = new Date(review.publishedAtDate).getHours();
+      hourlyVolume[hour] = (hourlyVolume[hour] || 0) + 1;
     });
     
-    return patterns;
+    const peakHours = Object.entries(hourlyVolume)
+      .map(([hour, volume]) => ({ hour: parseInt(hour), volume }))
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 5);
+    
+    return { peakDays, lowDays, peakHours };
+  }
+  
+  // Analyze seasonal patterns
+  analyzeSeasonalPatterns(reviews: Review[]): TemporalPattern[] {
+    const seasonalData: Record<string, Review[]> = {
+      spring: [],
+      summer: [],
+      fall: [],
+      winter: []
+    };
+    
+    reviews.forEach(review => {
+      const month = new Date(review.publishedAtDate).getMonth();
+      const season = this.getSeasonFromMonth(month);
+      seasonalData[season].push(review);
+    });
+    
+    return Object.entries(seasonalData).map(([season, seasonReviews]) => {
+      if (seasonReviews.length === 0) return null;
+      
+      const avgRating = seasonReviews.reduce((sum, r) => sum + r.stars, 0) / seasonReviews.length;
+      const sentiment = this.calculateAverageSentiment(seasonReviews);
+      
+      return {
+        type: 'seasonal' as const,
+        period: season,
+        metrics: {
+          avgRating,
+          reviewCount: seasonReviews.length,
+          sentiment,
+          responseRate: this.calculateResponseRate(seasonReviews)
+        },
+        trends: {
+          rating: 'stable' as const,
+          volume: 'stable' as const,
+          sentiment: 'stable' as const
+        },
+        insights: this.generateSeasonalInsights(season, seasonReviews)
+      };
+    }).filter(Boolean) as TemporalPattern[];
+  }
+  
+  // Private helper methods
+  private analyzeDailyPatterns(reviews: Review[]): TemporalPattern[] {
+    const last30Days = reviews.filter(r => {
+      const reviewDate = new Date(r.publishedAtDate);
+      const daysAgo = Math.floor((Date.now() - reviewDate.getTime()) / (1000 * 60 * 60 * 24));
+      return daysAgo <= 30;
+    });
+    
+    const dailyGroups = this.groupReviewsByPeriod(last30Days, 'day');
+    
+    return Object.entries(dailyGroups).map(([day, dayReviews]) => {
+      const avgRating = dayReviews.reduce((sum, r) => sum + r.stars, 0) / dayReviews.length;
+      
+      return {
+        type: 'daily' as const,
+        period: day,
+        metrics: {
+          avgRating,
+          reviewCount: dayReviews.length,
+          sentiment: this.calculateAverageSentiment(dayReviews),
+          responseRate: this.calculateResponseRate(dayReviews)
+        },
+        trends: this.calculateTrends(dayReviews, dailyGroups),
+        insights: this.generateDailyInsights(day, dayReviews)
+      };
+    });
+  }
+  
+  private analyzeWeeklyPatterns(reviews: Review[]): TemporalPattern[] {
+    const last12Weeks = reviews.filter(r => {
+      const reviewDate = new Date(r.publishedAtDate);
+      const weeksAgo = Math.floor((Date.now() - reviewDate.getTime()) / (1000 * 60 * 60 * 24 * 7));
+      return weeksAgo <= 12;
+    });
+    
+    const weeklyGroups = this.groupReviewsByPeriod(last12Weeks, 'week');
+    
+    return Object.entries(weeklyGroups).map(([week, weekReviews]) => {
+      const avgRating = weekReviews.reduce((sum, r) => sum + r.stars, 0) / weekReviews.length;
+      
+      return {
+        type: 'weekly' as const,
+        period: week,
+        metrics: {
+          avgRating,
+          reviewCount: weekReviews.length,
+          sentiment: this.calculateAverageSentiment(weekReviews),
+          responseRate: this.calculateResponseRate(weekReviews)
+        },
+        trends: this.calculateTrends(weekReviews, weeklyGroups),
+        insights: this.generateWeeklyInsights(week, weekReviews)
+      };
+    });
   }
   
   private analyzeMonthlyPatterns(reviews: Review[]): TemporalPattern[] {
-    const monthlyGroups = this.groupByMonth(reviews);
-    const patterns: TemporalPattern[] = [];
+    const last12Months = reviews.filter(r => {
+      const reviewDate = new Date(r.publishedAtDate);
+      const monthsAgo = Math.floor((Date.now() - reviewDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      return monthsAgo <= 12;
+    });
     
-    Object.entries(monthlyGroups).forEach(([month, monthReviews]) => {
-      patterns.push({
+    const monthlyGroups = this.groupReviewsByPeriod(last12Months, 'month');
+    
+    return Object.entries(monthlyGroups).map(([month, monthReviews]) => {
+      const avgRating = monthReviews.reduce((sum, r) => sum + r.stars, 0) / monthReviews.length;
+      
+      return {
+        type: 'monthly' as const,
         period: month,
-        type: 'monthly',
-        avgRating: this.calculateAverageRating(monthReviews),
-        volume: monthReviews.length,
-        sentiment: this.calculateSentimentScore(monthReviews),
-        trend: this.determineTrend(monthReviews)
-      });
+        metrics: {
+          avgRating,
+          reviewCount: monthReviews.length,
+          sentiment: this.calculateAverageSentiment(monthReviews),
+          responseRate: this.calculateResponseRate(monthReviews)
+        },
+        trends: this.calculateTrends(monthReviews, monthlyGroups),
+        insights: this.generateMonthlyInsights(month, monthReviews)
+      };
     });
-    
-    return patterns;
   }
   
-  private analyzeDayOfWeekPatterns(reviews: Review[]): TemporalPattern[] {
-    const dayGroups = this.groupByDayOfWeek(reviews);
-    const patterns: TemporalPattern[] = [];
-    
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    
-    dayNames.forEach((day, index) => {
-      const dayReviews = dayGroups[index] || [];
-      patterns.push({
-        period: day,
-        type: 'dayOfWeek',
-        avgRating: this.calculateAverageRating(dayReviews),
-        volume: dayReviews.length,
-        sentiment: this.calculateSentimentScore(dayReviews),
-        trend: this.determineTrend(dayReviews)
-      });
-    });
-    
-    return patterns;
-  }
-  
-  private analyzeHourlyPatterns(reviews: Review[]): TemporalPattern[] {
-    const hourlyGroups = this.groupByHour(reviews);
-    const patterns: TemporalPattern[] = [];
-    
-    Object.entries(hourlyGroups).forEach(([hour, hourReviews]) => {
-      patterns.push({
-        period: `${hour}:00`,
-        type: 'hourly',
-        avgRating: this.calculateAverageRating(hourReviews),
-        volume: hourReviews.length,
-        sentiment: this.calculateSentimentScore(hourReviews),
-        trend: this.determineTrend(hourReviews)
-      });
-    });
-    
-    return patterns;
-  }
-  
-  private groupByWeek(reviews: Review[]): Record<string, Review[]> {
+  private groupReviewsByPeriod(
+    reviews: Review[], 
+    period: 'day' | 'week' | 'month'
+  ): Record<string, Review[]> {
     const groups: Record<string, Review[]> = {};
     
     reviews.forEach(review => {
       const date = new Date(review.publishedAtDate);
-      const year = date.getFullYear();
-      const week = this.getWeekNumber(date);
-      const key = `${year}-W${week}`;
+      let key: string;
+      
+      switch (period) {
+        case 'day':
+          key = format(date, 'yyyy-MM-dd');
+          break;
+        case 'week':
+          key = format(startOfWeek(date), 'yyyy-MM-dd');
+          break;
+        case 'month':
+          key = format(startOfMonth(date), 'yyyy-MM');
+          break;
+      }
       
       if (!groups[key]) groups[key] = [];
       groups[key].push(review);
@@ -186,334 +274,95 @@ export class TemporalAnalysisService {
     return groups;
   }
   
-  private groupByMonth(reviews: Review[]): Record<string, Review[]> {
-    const groups: Record<string, Review[]> = {};
-    
-    reviews.forEach(review => {
-      const date = new Date(review.publishedAtDate);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(review);
-    });
-    
-    return groups;
+  private calculateTrends(
+    currentReviews: Review[],
+    allGroups: Record<string, Review[]>
+  ): { rating: 'up' | 'down' | 'stable'; volume: 'up' | 'down' | 'stable'; sentiment: 'up' | 'down' | 'stable' } {
+    // Simplified trend calculation
+    return {
+      rating: 'stable',
+      volume: 'stable',
+      sentiment: 'stable'
+    };
   }
   
-  private groupByDayOfWeek(reviews: Review[]): Record<number, Review[]> {
-    const groups: Record<number, Review[]> = {};
-    
-    reviews.forEach(review => {
-      const date = new Date(review.publishedAtDate);
-      const dayOfWeek = date.getDay();
-      
-      if (!groups[dayOfWeek]) groups[dayOfWeek] = [];
-      groups[dayOfWeek].push(review);
-    });
-    
-    return groups;
+  private calculateAverageSentiment(reviews: Review[]): number {
+    const sentiments = reviews.map(r => this.getSentimentScore(r.sentiment));
+    return sentiments.reduce((sum, s) => sum + s, 0) / sentiments.length;
   }
   
-  private groupByHour(reviews: Review[]): Record<number, Review[]> {
-    const groups: Record<number, Review[]> = {};
-    
-    reviews.forEach(review => {
-      const date = new Date(review.publishedAtDate);
-      const hour = date.getHours();
-      
-      if (!groups[hour]) groups[hour] = [];
-      groups[hour].push(review);
-    });
-    
-    return groups;
-  }
-  
-  private groupBySeason(reviews: Review[]): Record<string, Review[]> {
-    const groups: Record<string, Review[]> = {};
-    const seasons = ['Winter', 'Spring', 'Summer', 'Fall'];
-    
-    reviews.forEach(review => {
-      const date = new Date(review.publishedAtDate);
-      const month = date.getMonth();
-      let season: string;
-      
-      if (month >= 2 && month <= 4) season = 'Spring';
-      else if (month >= 5 && month <= 7) season = 'Summer';
-      else if (month >= 8 && month <= 10) season = 'Fall';
-      else season = 'Winter';
-      
-      if (!groups[season]) groups[season] = [];
-      groups[season].push(review);
-    });
-    
-    return groups;
-  }
-  
-  private clusterBySentiment(reviews: Review[]): Record<string, Review[]> {
-    return reviews.reduce((clusters, review) => {
-      const sentiment = review.sentiment || 'neutral';
-      if (!clusters[sentiment]) clusters[sentiment] = [];
-      clusters[sentiment].push(review);
-      return clusters;
-    }, {} as Record<string, Review[]>);
-  }
-  
-  private clusterByTheme(reviews: Review[]): Record<string, Review[]> {
-    const clusters: Record<string, Review[]> = {};
-    
-    reviews.forEach(review => {
-      if (review.mainThemes) {
-        const themes = review.mainThemes.split(',').map(t => t.trim());
-        themes.forEach(theme => {
-          if (!clusters[theme]) clusters[theme] = [];
-          clusters[theme].push(review);
-        });
-      }
-    });
-    
-    return clusters;
-  }
-  
-  private clusterByRating(reviews: Review[]): Record<number, Review[]> {
-    return reviews.reduce((clusters, review) => {
-      const rating = review.stars;
-      if (!clusters[rating]) clusters[rating] = [];
-      clusters[rating].push(review);
-      return clusters;
-    }, {} as Record<number, Review[]>);
-  }
-  
-  private clusterByLength(reviews: Review[]): Record<string, Review[]> {
-    return reviews.reduce((clusters, review) => {
-      const length = review.text?.length || 0;
-      let category: string;
-      
-      if (length < 50) category = 'very-short';
-      else if (length < 150) category = 'short';
-      else if (length < 300) category = 'medium';
-      else if (length < 500) category = 'long';
-      else category = 'very-long';
-      
-      if (!clusters[category]) clusters[category] = [];
-      clusters[category].push(review);
-      return clusters;
-    }, {} as Record<string, Review[]>);
-  }
-  
-  private clusterByResponseStatus(reviews: Review[]): Record<string, Review[]> {
-    return reviews.reduce((clusters, review) => {
-      const status = review.responseFromOwnerText ? 'responded' : 'not-responded';
-      if (!clusters[status]) clusters[status] = [];
-      clusters[status].push(review);
-      return clusters;
-    }, {} as Record<string, Review[]>);
-  }
-  
-  private calculateAverageRating(reviews: Review[]): number {
-    if (reviews.length === 0) return 0;
-    const sum = reviews.reduce((acc, review) => acc + review.stars, 0);
-    return sum / reviews.length;
-  }
-  
-  private calculateSentimentScore(reviews: Review[]): number {
-    if (reviews.length === 0) return 0;
-    const sentimentMap = { positive: 1, neutral: 0.5, negative: 0 };
-    const sum = reviews.reduce((acc, review) => {
-      const sentiment = review.sentiment || 'neutral';
-      return acc + (sentimentMap[sentiment as keyof typeof sentimentMap] || 0.5);
-    }, 0);
-    return sum / reviews.length;
-  }
-  
-  private extractCommonThemes(reviews: Review[]): string[] {
-    const themeCount: Record<string, number> = {};
-    
-    reviews.forEach(review => {
-      if (review.mainThemes) {
-        const themes = review.mainThemes.split(',').map(t => t.trim());
-        themes.forEach(theme => {
-          themeCount[theme] = (themeCount[theme] || 0) + 1;
-        });
-      }
-    });
-    
-    return Object.entries(themeCount)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5)
-      .map(([theme]) => theme);
-  }
-  
-  private determineTrend(reviews: Review[]): 'improving' | 'stable' | 'declining' {
-    if (reviews.length < 2) return 'stable';
-    
-    const sortedReviews = [...reviews].sort((a, b) => 
-      new Date(a.publishedAtDate).getTime() - new Date(b.publishedAtDate).getTime()
-    );
-    
-    const firstHalf = sortedReviews.slice(0, Math.floor(sortedReviews.length / 2));
-    const secondHalf = sortedReviews.slice(Math.floor(sortedReviews.length / 2));
-    
-    const firstAvg = this.calculateAverageRating(firstHalf);
-    const secondAvg = this.calculateAverageRating(secondHalf);
-    
-    if (secondAvg > firstAvg + 0.1) return 'improving';
-    if (secondAvg < firstAvg - 0.1) return 'declining';
-    return 'stable';
-  }
-  
-  private getWeekNumber(date: Date): number {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  }
-  
-  // Additional helper methods for trend analysis
-  private calculateMonthlyMetrics(reviews: Review[]): TimeSeriesData[] {
-    const monthlyGroups = this.groupByMonth(reviews);
-    const metrics: TimeSeriesData[] = [];
-    
-    Object.entries(monthlyGroups).forEach(([month, monthReviews]) => {
-      metrics.push({
-        period: month,
-        avgRating: this.calculateAverageRating(monthReviews),
-        volume: monthReviews.length,
-        sentiment: this.calculateSentimentScore(monthReviews),
-        responseRate: this.calculateResponseRate(monthReviews)
-      });
-    });
-    
-    return metrics.sort((a, b) => a.period.localeCompare(b.period));
+  private getSentimentScore(sentiment?: string): number {
+    switch (sentiment) {
+      case 'positive': return 1;
+      case 'neutral': return 0;
+      case 'negative': return -1;
+      default: return 0;
+    }
   }
   
   private calculateResponseRate(reviews: Review[]): number {
-    if (reviews.length === 0) return 0;
-    const respondedCount = reviews.filter(r => r.responseFromOwnerText).length;
-    return respondedCount / reviews.length;
+    const withResponse = reviews.filter(r => r.responseFromOwnerText).length;
+    return withResponse / reviews.length;
   }
   
-  private calculateTrends(metrics: TimeSeriesData[]): Record<string, 'increasing' | 'stable' | 'decreasing'> {
-    const trends: Record<string, 'increasing' | 'stable' | 'decreasing'> = {};
+  private getSeasonFromMonth(month: number): string {
+    if (month >= 2 && month <= 4) return 'spring';
+    if (month >= 5 && month <= 7) return 'summer';
+    if (month >= 8 && month <= 10) return 'fall';
+    return 'winter';
+  }
+  
+  private generateDailyInsights(day: string, reviews: Review[]): string[] {
+    const insights: string[] = [];
+    const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length;
     
-    if (metrics.length < 3) {
-      return {
-        rating: 'stable',
-        volume: 'stable',
-        sentiment: 'stable',
-        responseRate: 'stable'
-      };
+    if (avgRating > 4.5) insights.push(`Excellent day with ${avgRating.toFixed(1)} average rating`);
+    if (reviews.length > 10) insights.push(`High activity with ${reviews.length} reviews`);
+    
+    const dayOfWeek = new Date(day).toLocaleDateString('en', { weekday: 'long' });
+    insights.push(`${dayOfWeek} performance`);
+    
+    return insights;
+  }
+  
+  private generateWeeklyInsights(week: string, reviews: Review[]): string[] {
+    const insights: string[] = [];
+    const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length;
+    
+    if (avgRating > 4.3) insights.push(`Strong week with ${avgRating.toFixed(1)} average rating`);
+    if (reviews.length > 50) insights.push(`High volume week with ${reviews.length} reviews`);
+    
+    return insights;
+  }
+  
+  private generateMonthlyInsights(month: string, reviews: Review[]): string[] {
+    const insights: string[] = [];
+    const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length;
+    
+    const monthName = new Date(month).toLocaleDateString('en', { month: 'long', year: 'numeric' });
+    insights.push(`${monthName} performance`);
+    
+    if (avgRating > 4.2) insights.push(`Strong month with ${avgRating.toFixed(1)} average rating`);
+    if (reviews.length > 200) insights.push(`High activity month with ${reviews.length} reviews`);
+    
+    return insights;
+  }
+  
+  private generateSeasonalInsights(season: string, reviews: Review[]): string[] {
+    const insights: string[] = [];
+    const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length;
+    
+    insights.push(`${season} season average: ${avgRating.toFixed(1)} stars`);
+    insights.push(`Total ${season} reviews: ${reviews.length}`);
+    
+    // Season-specific insights
+    if (season === 'summer' && avgRating > 4.3) {
+      insights.push('Strong summer performance - consider summer promotions');
+    }
+    if (season === 'winter' && reviews.length < 100) {
+      insights.push('Lower winter activity - consider winter marketing campaigns');
     }
     
-    // Calculate linear regression for each metric
-    trends.rating = this.calculateLinearTrend(metrics.map(m => m.avgRating));
-    trends.volume = this.calculateLinearTrend(metrics.map(m => m.volume));
-    trends.sentiment = this.calculateLinearTrend(metrics.map(m => m.sentiment));
-    trends.responseRate = this.calculateLinearTrend(metrics.map(m => m.responseRate));
-    
-    return trends;
-  }
-  
-  private calculateLinearTrend(values: number[]): 'increasing' | 'stable' | 'decreasing' {
-    const n = values.length;
-    const sumX = values.reduce((sum, _, i) => sum + i, 0);
-    const sumY = values.reduce((sum, val) => sum + val, 0);
-    const sumXY = values.reduce((sum, val, i) => sum + i * val, 0);
-    const sumX2 = values.reduce((sum, _, i) => sum + i * i, 0);
-    
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-    
-    if (slope > 0.01) return 'increasing';
-    if (slope < -0.01) return 'decreasing';
-    return 'stable';
-  }
-  
-  private identifySignificantChanges(metrics: TimeSeriesData[]): Array<{
-    period: string;
-    metric: string;
-    change: number;
-    significance: 'high' | 'medium' | 'low';
-  }> {
-    const changes: Array<{
-      period: string;
-      metric: string;
-      change: number;
-      significance: 'high' | 'medium' | 'low';
-    }> = [];
-    
-    for (let i = 1; i < metrics.length; i++) {
-      const current = metrics[i];
-      const previous = metrics[i - 1];
-      
-      // Check rating changes
-      const ratingChange = ((current.avgRating - previous.avgRating) / previous.avgRating) * 100;
-      if (Math.abs(ratingChange) > 5) {
-        changes.push({
-          period: current.period,
-          metric: 'rating',
-          change: ratingChange,
-          significance: Math.abs(ratingChange) > 10 ? 'high' : 'medium'
-        });
-      }
-      
-      // Check volume changes
-      const volumeChange = ((current.volume - previous.volume) / previous.volume) * 100;
-      if (Math.abs(volumeChange) > 20) {
-        changes.push({
-          period: current.period,
-          metric: 'volume',
-          change: volumeChange,
-          significance: Math.abs(volumeChange) > 50 ? 'high' : 'medium'
-        });
-      }
-    }
-    
-    return changes;
-  }
-  
-  private generateProjections(metrics: TimeSeriesData[]): TimeSeriesData[] {
-    if (metrics.length < 3) return [];
-    
-    const projections: TimeSeriesData[] = [];
-    const trends = this.calculateTrends(metrics);
-    
-    // Project 3 months into the future
-    for (let i = 1; i <= 3; i++) {
-      const lastMetric = metrics[metrics.length - 1];
-      const date = new Date(lastMetric.period);
-      date.setMonth(date.getMonth() + i);
-      
-      const projection: TimeSeriesData = {
-        period: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
-        avgRating: this.projectValue(lastMetric.avgRating, trends.rating),
-        volume: Math.round(this.projectValue(lastMetric.volume, trends.volume)),
-        sentiment: this.projectValue(lastMetric.sentiment, trends.sentiment),
-        responseRate: this.projectValue(lastMetric.responseRate, trends.responseRate)
-      };
-      
-      projections.push(projection);
-    }
-    
-    return projections;
-  }
-  
-  private projectValue(currentValue: number, trend: 'increasing' | 'stable' | 'decreasing'): number {
-    const changeRate = trend === 'increasing' ? 1.05 : trend === 'decreasing' ? 0.95 : 1;
-    return currentValue * changeRate;
-  }
-  
-  private calculateYearOverYearChange(reviews: Review[]): number {
-    const thisYear = new Date().getFullYear();
-    const lastYear = thisYear - 1;
-    
-    const thisYearReviews = reviews.filter(r => new Date(r.publishedAtDate).getFullYear() === thisYear);
-    const lastYearReviews = reviews.filter(r => new Date(r.publishedAtDate).getFullYear() === lastYear);
-    
-    if (lastYearReviews.length === 0) return 0;
-    
-    const thisYearAvg = this.calculateAverageRating(thisYearReviews);
-    const lastYearAvg = this.calculateAverageRating(lastYearReviews);
-    
-    return ((thisYearAvg - lastYearAvg) / lastYearAvg) * 100;
+    return insights;
   }
 }

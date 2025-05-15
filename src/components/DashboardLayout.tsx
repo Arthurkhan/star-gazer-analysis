@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AIProviderToggle } from "@/components/AIProviderToggle";
 import { useToast } from "@/hooks/use-toast";
-import { Sun, Moon, LogOut } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sun, Moon, LogOut, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardLayoutProps {
@@ -13,10 +14,12 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children, onProviderChange }: DashboardLayoutProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [theme, setTheme] = useState<"light" | "dark">(
     localStorage.getItem("theme") as "light" | "dark" || "light"
   );
+  const [currentProvider, setCurrentProvider] = useState<string>("browser");
 
   useEffect(() => {
     // Apply theme to document
@@ -27,6 +30,18 @@ const DashboardLayout = ({ children, onProviderChange }: DashboardLayoutProps) =
     }
     localStorage.setItem("theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    // Check which AI provider is configured
+    const savedProvider = localStorage.getItem('AI_PROVIDER');
+    const apiKey = savedProvider ? localStorage.getItem(`${savedProvider.toUpperCase()}_API_KEY`) : null;
+    
+    if (savedProvider && apiKey) {
+      setCurrentProvider(savedProvider);
+    } else {
+      setCurrentProvider("browser");
+    }
+  }, [location]);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
@@ -50,15 +65,35 @@ const DashboardLayout = ({ children, onProviderChange }: DashboardLayoutProps) =
     }
   };
 
+  const navigateToSettings = () => {
+    navigate("/ai-settings");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <header className="bg-white dark:bg-gray-800 shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Google Maps Review Analyzer
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Google Maps Review Analyzer
+            </h1>
+            {currentProvider !== "browser" && (
+              <Badge variant="secondary" className="text-xs">
+                AI: {currentProvider.toUpperCase()}
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center space-x-4">
             <AIProviderToggle onProviderChange={onProviderChange} />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={navigateToSettings}
+              aria-label="AI Settings"
+              title="AI Settings"
+            >
+              <Settings size={20} />
+            </Button>
             <Button
               variant="ghost"
               size="icon"

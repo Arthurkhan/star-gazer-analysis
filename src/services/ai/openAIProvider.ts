@@ -17,16 +17,34 @@ export class OpenAIProvider extends BaseAIProvider {
       const prompts = getPromptsForBusinessType(businessType as BusinessType);
       const reviewTexts = reviews.map(r => `Rating: ${r.stars}/5 - ${r.text}`).join('\n\n');
       
+      // Perform enhanced analysis
+      const enhancedAnalysis = await this.performEnhancedAnalysis(reviews);
+      
+      // Enrich the prompt with enhanced analysis insights
+      const enrichedPrompt = this.enrichPromptWithAnalysis(
+        this.buildPrompt(prompts.analysis.user, { reviews: reviewTexts }),
+        enhancedAnalysis
+      );
+      
       const response = await this.callOpenAI({
         messages: [
           { role: 'system', content: prompts.analysis.system },
-          { role: 'user', content: this.buildPrompt(prompts.analysis.user, { reviews: reviewTexts }) }
+          { role: 'user', content: enrichedPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 2000
+        max_tokens: 3000
       });
       
-      return this.parseAnalysisResponse(response);
+      const analysis = this.parseAnalysisResponse(response);
+      
+      // Merge enhanced analysis data into the response
+      return {
+        ...analysis,
+        temporalPatterns: enhancedAnalysis.temporalPatterns,
+        historicalTrends: enhancedAnalysis.historicalTrends,
+        reviewClusters: enhancedAnalysis.reviewClusters,
+        seasonalAnalysis: enhancedAnalysis.seasonalAnalysis
+      };
     } catch (error) {
       console.error('OpenAI analysis error:', error);
       throw new Error('Failed to analyze reviews with OpenAI');
@@ -37,6 +55,20 @@ export class OpenAIProvider extends BaseAIProvider {
     try {
       const prompts = getPromptsForBusinessType(context.businessType as BusinessType);
       
+      // Get enhanced analysis data if available
+      const enhancedAnalysis = context.reviews ? await this.performEnhancedAnalysis(context.reviews) : null;
+      
+      let enrichedContext = JSON.stringify(context.analysis);
+      if (enhancedAnalysis) {
+        enrichedContext += `\n\nEnhanced Analysis Insights:\n${JSON.stringify({
+          temporalPatterns: enhancedAnalysis.temporalPatterns,
+          historicalTrends: enhancedAnalysis.historicalTrends,
+          reviewClusters: enhancedAnalysis.reviewClusters,
+          seasonalAnalysis: enhancedAnalysis.seasonalAnalysis,
+          insights: enhancedAnalysis.insights
+        }, null, 2)}`;
+      }
+      
       const response = await this.callOpenAI({
         messages: [
           { role: 'system', content: prompts.recommendations.system },
@@ -44,13 +76,13 @@ export class OpenAIProvider extends BaseAIProvider {
             role: 'user', 
             content: this.buildPrompt(prompts.recommendations.user, {
               businessName: context.businessName,
-              analysis: JSON.stringify(context.analysis),
+              analysis: enrichedContext,
               metrics: JSON.stringify(context.metrics)
             })
           }
         ],
         temperature: 0.8,
-        max_tokens: 3000
+        max_tokens: 4000
       });
       
       return this.parseRecommendationsResponse(response);
@@ -64,6 +96,13 @@ export class OpenAIProvider extends BaseAIProvider {
     try {
       const prompts = getPromptsForBusinessType(context.businessType as BusinessType);
       
+      // Include seasonal and cluster insights in marketing plan
+      const enhancedData = {
+        customerSegments: context.analysis.reviewClusters || [],
+        seasonalOpportunities: context.analysis.seasonalAnalysis || [],
+        temporalPatterns: context.analysis.temporalPatterns || []
+      };
+      
       const response = await this.callOpenAI({
         messages: [
           { role: 'system', content: prompts.marketing.system },
@@ -73,12 +112,13 @@ export class OpenAIProvider extends BaseAIProvider {
               businessName: context.businessName,
               analysis: JSON.stringify(context.analysis),
               strengths: JSON.stringify(context.analysis.strengths),
-              demographics: JSON.stringify(context.analysis.customerSegments)
+              demographics: JSON.stringify(enhancedData.customerSegments),
+              seasonalData: JSON.stringify(enhancedData.seasonalOpportunities)
             })
           }
         ],
         temperature: 0.7,
-        max_tokens: 2500
+        max_tokens: 3000
       });
       
       return this.parseMarketingResponse(response);
@@ -92,6 +132,13 @@ export class OpenAIProvider extends BaseAIProvider {
     try {
       const prompts = getPromptsForBusinessType(context.businessType as BusinessType);
       
+      // Use historical trends for more accurate scenario planning
+      const trendData = {
+        historicalTrends: context.analysis.historicalTrends || [],
+        temporalPatterns: context.analysis.temporalPatterns || [],
+        insights: context.analysis.insights || {}
+      };
+      
       const response = await this.callOpenAI({
         messages: [
           { role: 'system', content: prompts.scenarios.system },
@@ -100,13 +147,13 @@ export class OpenAIProvider extends BaseAIProvider {
             content: this.buildPrompt(prompts.scenarios.user, {
               businessName: context.businessName,
               currentMetrics: JSON.stringify(context.metrics),
-              trends: JSON.stringify(context.historicalTrends || {}),
+              trends: JSON.stringify(trendData),
               opportunities: JSON.stringify(context.analysis.strengths)
             })
           }
         ],
         temperature: 0.8,
-        max_tokens: 2000
+        max_tokens: 2500
       });
       
       return this.parseScenariosResponse(response);

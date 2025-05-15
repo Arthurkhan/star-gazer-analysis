@@ -12,18 +12,25 @@ interface RecommendationsDashboardProps {
   recommendations: Recommendations | null;
   loading: boolean;
   error?: string;
+  generatingMessage?: string;
 }
 
 export const RecommendationsDashboard = ({ 
   recommendations, 
   loading, 
-  error 
+  error,
+  generatingMessage 
 }: RecommendationsDashboardProps) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Generating recommendations...</span>
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+          <p className="text-lg font-medium">Generating recommendations...</p>
+          {generatingMessage && (
+            <p className="text-sm text-muted-foreground mt-2">{generatingMessage}</p>
+          )}
+        </div>
       </div>
     );
   }

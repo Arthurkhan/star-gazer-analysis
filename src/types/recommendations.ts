@@ -1,6 +1,8 @@
 
 export type BusinessType = "cafe" | "restaurant" | "bar" | "hotel" | "retail" | "art_gallery" | "other";
 
+import { EnhancedAnalysis } from "./dataAnalysis";
+
 export interface Recommendations {
   analysis: AnalysisResult;
   suggestions: Suggestion[];
@@ -8,6 +10,9 @@ export interface Recommendations {
   competitiveAnalysis?: CompetitiveAnalysis;
   growthStrategies?: GrowthStrategy[];
   scenarios?: Scenario[];
+  
+  // Enhanced Analysis data
+  enhancedAnalysis?: EnhancedAnalysis;
   
   // Add missing properties referenced in components
   urgentActions: UrgentAction[];

@@ -9,6 +9,8 @@ import { BusinessType } from '@/types/businessTypes';
 import { AIProviderType, BusinessContext, ReviewAnalysis } from '@/types/aiService';
 import { Review } from '@/types/reviews';
 import { type AIProvider } from '@/components/AIProviderToggle';
+import { enhancedDataAnalysisService } from '@/services/dataAnalysis/enhancedDataAnalysisService';
+import { EnhancedAnalysis } from '@/types/dataAnalysis';
 
 export class RecommendationService {
   private browserService: BrowserAIService;
@@ -23,17 +25,35 @@ export class RecommendationService {
     this.provider = provider;
   }
   
-  async generateRecommendations(analysisData: AnalysisResult): Promise<Recommendations> {
+  async generateRecommendations(params: {
+    business: string;
+    businessType: BusinessType;
+    reviews: Review[];
+    metrics: any;
+    patterns?: any;
+    sentiment?: any;
+    [key: string]: any;
+  }): Promise<Recommendations> {
     try {
+      // Perform enhanced data analysis first
+      const enhancedAnalysis = await enhancedDataAnalysisService.analyzeData(params.reviews);
+      
+      let recommendations: Recommendations;
+      
       if (this.provider === 'api') {
-        return await this.generateApiRecommendations(analysisData);
+        recommendations = await this.generateApiRecommendations(params);
       } else {
-        return await this.browserService.generateRecommendations(
-          analysisData,
-          analysisData.reviews,
-          analysisData.businessType
+        recommendations = await this.browserService.generateRecommendations(
+          params,
+          params.reviews,
+          params.businessType
         );
       }
+      
+      // Add enhanced analysis to the recommendations
+      recommendations.enhancedAnalysis = enhancedAnalysis;
+      
+      return recommendations;
     } catch (error) {
       console.error('Primary AI failed, falling back to browser AI', error);
       
@@ -41,9 +61,9 @@ export class RecommendationService {
       if (this.provider === 'api') {
         try {
           return await this.browserService.generateRecommendations(
-            analysisData,
-            analysisData.reviews,
-            analysisData.businessType
+            params,
+            params.reviews,
+            params.businessType
           );
         } catch (fallbackError) {
           console.error('Fallback to browser AI also failed', fallbackError);
@@ -55,7 +75,7 @@ export class RecommendationService {
     }
   }
   
-  private async generateApiRecommendations(analysisData: AnalysisResult): Promise<Recommendations> {
+  private async generateApiRecommendations(params: any): Promise<Recommendations> {
     // Get the API provider and key
     const apiProvider = localStorage.getItem('AI_PROVIDER') as AIProviderType || 'openai';
     const apiKey = localStorage.getItem(`${apiProvider.toUpperCase()}_API_KEY`);
@@ -73,12 +93,12 @@ export class RecommendationService {
     
     // Convert analysis data to business context
     const businessContext: BusinessContext = {
-      businessName: analysisData.business,
-      businessType: analysisData.businessType,
-      reviews: analysisData.reviews,
-      metrics: analysisData.metrics,
-      analysis: await this.convertToReviewAnalysis(analysisData),
-      historicalTrends: analysisData.patterns
+      businessName: params.business,
+      businessType: params.businessType,
+      reviews: params.reviews,
+      metrics: params.metrics,
+      analysis: await this.convertToReviewAnalysis(params),
+      historicalTrends: params.patterns
     };
     
     // Generate recommendations using the AI provider
@@ -96,21 +116,21 @@ export class RecommendationService {
     return recommendations;
   }
   
-  private async convertToReviewAnalysis(analysisData: AnalysisResult): Promise<ReviewAnalysis> {
+  private async convertToReviewAnalysis(params: any): Promise<ReviewAnalysis> {
     // Convert the existing analysis format to the new ReviewAnalysis format
-    const sentiment = analysisData.sentimentAnalysis || [];
-    const totalSentiment = sentiment.reduce((sum, s) => sum + s.value, 0) || 1;
+    const sentiment = params.sentimentAnalysis || [];
+    const totalSentiment = sentiment.reduce((sum: number, s: any) => sum + s.value, 0) || 1;
     
     return {
       sentiment: {
-        overall: sentiment.find(s => s.name === 'Positive')?.value / totalSentiment || 0.5,
+        overall: sentiment.find((s: any) => s.name === 'Positive')?.value / totalSentiment || 0.5,
         breakdown: {
-          positive: sentiment.find(s => s.name === 'Positive')?.value || 0,
-          neutral: sentiment.find(s => s.name === 'Neutral')?.value || 0,
-          negative: sentiment.find(s => s.name === 'Negative')?.value || 0
+          positive: sentiment.find((s: any) => s.name === 'Positive')?.value || 0,
+          neutral: sentiment.find((s: any) => s.name === 'Neutral')?.value || 0,
+          negative: sentiment.find((s: any) => s.name === 'Negative')?.value || 0
         }
       },
-      themes: (analysisData.commonTerms || []).map(term => ({
+      themes: (params.commonTerms || []).map((term: any) => ({
         name: term.text,
         frequency: term.count,
         sentiment: 'neutral' as const,

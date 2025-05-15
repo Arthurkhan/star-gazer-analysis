@@ -7,15 +7,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { BusinessTypeBadge } from "@/components/BusinessTypeBadge";
 import { BusinessData } from "@/types/reviews";
-import { BusinessType } from "@/types/businessTypes";
 
 interface BusinessSelectorProps {
   selectedBusiness: string;
   onBusinessChange: (business: string) => void;
   businessData: BusinessData;
-  businessType?: BusinessType | null;
   className?: string;
 }
 
@@ -23,7 +20,6 @@ const BusinessSelector = ({
   selectedBusiness,
   onBusinessChange,
   businessData,
-  businessType,
   className = "",
 }: BusinessSelectorProps) => {
   // Generate business options dynamically from the businessData
@@ -41,14 +37,9 @@ const BusinessSelector = ({
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Business Dashboard
-                </h2>
-                {businessType && selectedBusiness !== "all" && (
-                  <BusinessTypeBadge businessType={businessType} />
-                )}
-              </div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Business Dashboard
+              </h2>
               <p className="text-gray-600 dark:text-gray-300 text-sm">
                 {selectedBusiness === "all"
                   ? `Viewing all businesses (${businessData.allBusinesses.count} reviews)`

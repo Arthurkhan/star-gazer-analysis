@@ -212,7 +212,7 @@ function renderTemporalPatterns(patterns: TemporalPattern[] | null, selectedPatt
       <div className="p-4 border rounded-lg bg-muted/20">
         <h3 className="font-medium mb-2">{pattern.description}</h3>
         <div className="flex items-center">
-          <Badge className="mr-2" variant={pattern.strength > 0.7 ? "default" : "secondary"}>
+          <Badge variant={pattern.strength > 0.7 ? "success" : "info"} className="mr-2">
             {pattern.strength > 0.7 ? 'Strong Pattern' : pattern.strength > 0.4 ? 'Moderate Pattern' : 'Weak Pattern'}
           </Badge>
           <span className="text-sm text-muted-foreground">Confidence: {(pattern.strength * 100).toFixed(0)}%</span>
@@ -237,9 +237,9 @@ function renderTemporalPatterns(patterns: TemporalPattern[] | null, selectedPatt
           <div key={index} className="border rounded-md p-3">
             <span className="text-sm text-muted-foreground">{item.period}</span>
             <p className="text-lg font-medium">{item.value}</p>
-            <span className={`text-sm ${getTrendColor(item.trend)}`}>
+            <Badge variant={getTrendVariant(item.trend)}>
               {item.trend.charAt(0).toUpperCase() + item.trend.slice(1)}
-            </span>
+            </Badge>
           </div>
         ))}
       </div>
@@ -262,7 +262,7 @@ function renderHistoricalTrends(trends: HistoricalTrend[] | null) {
               variant={
                 trend.trend === 'improving' ? "success" : 
                 trend.trend === 'declining' ? "destructive" : 
-                "secondary"
+                "neutral"
               }
             >
               {trend.trend.charAt(0).toUpperCase() + trend.trend.slice(1)}
@@ -333,7 +333,7 @@ function renderClusters(clusters: ReviewCluster[] | null) {
               variant={
                 cluster.sentiment === 'positive' ? "success" : 
                 cluster.sentiment === 'negative' ? "destructive" : 
-                "secondary"
+                "neutral"
               }
             >
               {cluster.sentiment.charAt(0).toUpperCase() + cluster.sentiment.slice(1)}
@@ -444,15 +444,19 @@ function renderSeasonalPatterns(patterns: SeasonalPattern[] | null) {
 }
 
 // Helper functions
-function getTrendColor(trend: string) {
+function getTrendVariant(trend: string): "success" | "destructive" | "neutral" | "warning" | "info" {
   switch (trend) {
     case 'increasing':
     case 'improving':
-      return 'text-green-600';
+      return 'success';
     case 'decreasing':
     case 'declining':
-      return 'text-red-600';
+      return 'destructive';
+    case 'stable':
+      return 'neutral';
+    case 'volatile':
+      return 'warning';
     default:
-      return 'text-gray-500';
+      return 'info';
   }
 }

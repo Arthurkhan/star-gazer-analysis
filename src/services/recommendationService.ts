@@ -1,10 +1,13 @@
 import { BrowserAIService } from '@/services/ai/browserAI';
+import { AIServiceFactory, defaultConfigs } from '@/services/ai/aiServiceFactory';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Recommendations, 
   AnalysisResult 
 } from '@/types/recommendations';
 import { BusinessType } from '@/types/businessTypes';
+import { AIProviderType, BusinessContext, ReviewAnalysis } from '@/types/aiService';
+import { Review } from '@/types/reviews';
 import { type AIProvider } from '@/components/AIProviderToggle';
 
 export class RecommendationService {
@@ -54,28 +57,69 @@ export class RecommendationService {
   
   private async generateApiRecommendations(analysisData: AnalysisResult): Promise<Recommendations> {
     // Get the API provider and key
-    const apiProvider = localStorage.getItem('AI_PROVIDER') || 'openai';
+    const apiProvider = localStorage.getItem('AI_PROVIDER') as AIProviderType || 'openai';
     const apiKey = localStorage.getItem(`${apiProvider.toUpperCase()}_API_KEY`);
     
     if (!apiKey) {
       throw new Error(`No API key found for ${apiProvider}`);
     }
     
-    const { data, error } = await supabase.functions.invoke('generate-recommendations', {
-      body: {
-        analysisData,
-        businessType: analysisData.businessType,
-        provider: apiProvider,
-        apiKey
-      }
+    // Create AI provider instance
+    const aiService = AIServiceFactory.createProvider({
+      provider: apiProvider,
+      apiKey,
+      ...defaultConfigs[apiProvider]
     });
     
-    if (error) {
-      console.error('Edge function error:', error);
-      throw new Error(`Failed to generate recommendations: ${error.message}`);
+    // Convert analysis data to business context
+    const businessContext: BusinessContext = {
+      businessName: analysisData.business,
+      businessType: analysisData.businessType,
+      reviews: analysisData.reviews,
+      metrics: analysisData.metrics,
+      analysis: await this.convertToReviewAnalysis(analysisData),
+      historicalTrends: analysisData.patterns
+    };
+    
+    // Generate recommendations using the AI provider
+    const recommendations = await aiService.generateRecommendations(businessContext);
+    
+    // Generate additional components if not provided
+    if (!recommendations.customerAttractionPlan) {
+      recommendations.customerAttractionPlan = await aiService.generateMarketingPlan(businessContext);
     }
     
-    return data;
+    if (!recommendations.scenarios || recommendations.scenarios.length === 0) {
+      recommendations.scenarios = await aiService.generateScenarios(businessContext);
+    }
+    
+    return recommendations;
+  }
+  
+  private async convertToReviewAnalysis(analysisData: AnalysisResult): Promise<ReviewAnalysis> {
+    // Convert the existing analysis format to the new ReviewAnalysis format
+    const sentiment = analysisData.sentimentAnalysis || [];
+    const totalSentiment = sentiment.reduce((sum, s) => sum + s.value, 0) || 1;
+    
+    return {
+      sentiment: {
+        overall: sentiment.find(s => s.name === 'Positive')?.value / totalSentiment || 0.5,
+        breakdown: {
+          positive: sentiment.find(s => s.name === 'Positive')?.value || 0,
+          neutral: sentiment.find(s => s.name === 'Neutral')?.value || 0,
+          negative: sentiment.find(s => s.name === 'Negative')?.value || 0
+        }
+      },
+      themes: (analysisData.commonTerms || []).map(term => ({
+        name: term.text,
+        frequency: term.count,
+        sentiment: 'neutral' as const,
+        examples: []
+      })),
+      painPoints: [],
+      strengths: [],
+      customerSegments: []
+    };
   }
   
   // Check if API provider is configured

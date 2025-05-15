@@ -7,6 +7,7 @@ import { PatternAnalysisView } from "./PatternAnalysisView";
 import { CompetitiveAnalysisView } from "./CompetitiveAnalysisView";
 import { ScenariosView } from "./ScenariosView";
 import { EnhancedAnalysisDisplay } from "@/components/analysis/EnhancedAnalysisDisplay";
+import { BusinessContextDisplay } from "@/components/BusinessContextDisplay";
 import { type Recommendations } from "@/types/recommendations";
 
 interface RecommendationsDashboardProps {
@@ -14,13 +15,15 @@ interface RecommendationsDashboardProps {
   loading: boolean;
   error?: string;
   generatingMessage?: string;
+  businessName: string;
 }
 
 export const RecommendationsDashboard = ({ 
   recommendations, 
   loading, 
   error,
-  generatingMessage 
+  generatingMessage,
+  businessName 
 }: RecommendationsDashboardProps) => {
   if (loading) {
     return (
@@ -57,6 +60,9 @@ export const RecommendationsDashboard = ({
 
   return (
     <div className="space-y-6">
+      {/* Business Context Display */}
+      <BusinessContextDisplay businessName={businessName} />
+      
       {/* Urgent Actions Alert */}
       {recommendations.urgentActions.length > 0 && (
         <Alert variant="destructive">

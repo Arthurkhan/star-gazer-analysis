@@ -33,6 +33,7 @@ const Dashboard = () => {
     recommendations,
     loading: recommendationsLoading,
     error: recommendationsError,
+    generatingMessage,
     generateRecommendations,
     exportRecommendations,
     saveRecommendations,
@@ -109,6 +110,7 @@ const Dashboard = () => {
             recommendations={recommendations}
             loading={recommendationsLoading}
             error={recommendationsError || undefined}
+            generatingMessage={generatingMessage}
           />
         </TabsContent>
       </Tabs>

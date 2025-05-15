@@ -70,8 +70,8 @@ const BusinessSelector = ({
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="w-full">
+          <div className="flex gap-4">
+            <div className="flex-1">
               <Select
                 value={selectedBusiness}
                 onValueChange={onBusinessChange}
@@ -89,13 +89,13 @@ const BusinessSelector = ({
               </Select>
             </div>
             {selectedBusiness !== "all" && (
-              <div className="w-full">
+              <div className="w-1/3">
                 <Select
                   value={businessType}
                   onValueChange={(value) => onBusinessTypeChange(value as BusinessType)}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select business type" />
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
                     {businessTypes.map((type) => (

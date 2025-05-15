@@ -238,6 +238,7 @@ export class BrowserAIService {
     // Analyze common terms
     data.commonTerms.forEach(term => {
       const relatedReviews = reviews.filter(r => 
+        r.text && typeof r.text === 'string' && 
         r.text.toLowerCase().includes(term.text.toLowerCase())
       );
       
@@ -251,7 +252,7 @@ export class BrowserAIService {
           frequency: frequency,
           sentiment: sentiment,
           recommendation: this.getRecommendationForPattern(term.text, sentiment, frequency),
-          examples: relatedReviews.slice(0, 3).map(r => r.text.substring(0, 100) + '...')
+          examples: relatedReviews.slice(0, 3).map(r => (r.text || '').substring(0, 100) + '...')
         });
       }
     });
@@ -298,6 +299,7 @@ export class BrowserAIService {
     // Opportunities based on benchmark comparison
     benchmark.commonThemes.forEach(theme => {
       const hasTheme = data.commonTerms.some(term => 
+        term.text && theme &&
         term.text.toLowerCase().includes(theme.toLowerCase())
       );
       if (!hasTheme) {
@@ -553,6 +555,7 @@ export class BrowserAIService {
   }
 
   private isPositiveTheme(theme: string): boolean {
+    if (!theme || typeof theme !== 'string') return false;
     const positiveWords = [
       'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'delicious',
       'friendly', 'clean', 'comfortable', 'beautiful', 'perfect', 'love'

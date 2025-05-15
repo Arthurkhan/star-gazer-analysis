@@ -21,6 +21,7 @@ export const useRecommendations = ({
   const [recommendations, setRecommendations] = useState<Recommendations | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generatingMessage, setGeneratingMessage] = useState<string>('');
   const { toast } = useToast();
 
   const generateRecommendations = useCallback(async (provider: AIProvider) => {
@@ -45,12 +46,14 @@ export const useRecommendations = ({
 
     setLoading(true);
     setError(null);
+    setGeneratingMessage('Preparing data for analysis...');
 
     try {
       const service = new RecommendationService();
       service.setProvider(provider);
 
       // Map the review data to match what the service expects
+      setGeneratingMessage('Processing reviews...');
       const mappedReviews = businessData.reviews.map((review: any) => ({
         rating: review.stars || 0,
         stars: review.stars || 0,
@@ -75,6 +78,7 @@ export const useRecommendations = ({
         : 0;
 
       // Calculate sentiment analysis from the reviews
+      setGeneratingMessage('Analyzing sentiment...');
       const sentimentCounts = mappedReviews.reduce((acc: any, review: any) => {
         const sentiment = review.sentiment || 'neutral';
         acc[sentiment] = (acc[sentiment] || 0) + 1;
@@ -106,6 +110,7 @@ export const useRecommendations = ({
       });
 
       // Extract common terms from themes with null checks
+      setGeneratingMessage('Identifying patterns and themes...');
       const commonTerms: any[] = [];
       const themeFrequency: any = {};
       mappedReviews.forEach((review: any) => {
@@ -156,6 +161,7 @@ export const useRecommendations = ({
       console.log('Analysis Data Structure:', analysisData); // Debug log
 
       // Get actual recommendations from the service
+      setGeneratingMessage(provider === 'api' ? 'Generating recommendations with AI...' : 'Generating recommendations...');
       const result = await service.generateRecommendations({
         ...analysisData,
         business: selectedBusiness,
@@ -171,6 +177,7 @@ export const useRecommendations = ({
       });
       
       setRecommendations(result);
+      setGeneratingMessage('');
       
       toast({
         title: "Success",
@@ -179,6 +186,7 @@ export const useRecommendations = ({
     } catch (err) {
       console.error('Error generating recommendations:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate recommendations');
+      setGeneratingMessage('');
       
       toast({
         title: "Error",
@@ -250,6 +258,7 @@ export const useRecommendations = ({
     recommendations,
     loading,
     error,
+    generatingMessage,
     generateRecommendations,
     exportRecommendations,
     saveRecommendations,

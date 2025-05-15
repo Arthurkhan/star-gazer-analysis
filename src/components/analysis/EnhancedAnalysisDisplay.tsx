@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   TemporalPattern, 
   HistoricalTrend,
@@ -9,7 +10,7 @@ import {
   SeasonalPattern 
 } from '@/types/dataAnalysis';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 
 interface EnhancedAnalysisDisplayProps {
   temporalPatterns: TemporalPattern[] | null;
@@ -33,6 +34,7 @@ export function EnhancedAnalysisDisplay({
   loading
 }: EnhancedAnalysisDisplayProps) {
   const [selectedPattern, setSelectedPattern] = useState<string>('daily');
+  const [showAllClusters, setShowAllClusters] = useState(false);
   
   if (loading) {
     return (
@@ -79,35 +81,50 @@ export function EnhancedAnalysisDisplay({
           </CardHeader>
           <CardContent>
             {insights ? (
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {insights.keyFindings.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Key Findings</h3>
-                    <ul className="list-disc pl-5 space-y-1">
+                  <div className="rounded-lg border p-4 bg-muted/5">
+                    <h3 className="text-lg font-semibold mb-2 flex items-center">
+                      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                      Key Findings
+                    </h3>
+                    <ul className="space-y-2">
                       {insights.keyFindings.map((finding, index) => (
-                        <li key={index}>{finding}</li>
+                        <li key={index} className="pl-4 border-l-2 border-blue-200">
+                          {finding}
+                        </li>
                       ))}
                     </ul>
                   </div>
                 )}
                 
                 {insights.opportunities.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Opportunities</h3>
-                    <ul className="list-disc pl-5 space-y-1">
+                  <div className="rounded-lg border p-4 bg-muted/5">
+                    <h3 className="text-lg font-semibold mb-2 flex items-center">
+                      <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                      Opportunities
+                    </h3>
+                    <ul className="space-y-2">
                       {insights.opportunities.map((opportunity, index) => (
-                        <li key={index} className="text-green-700 dark:text-green-400">{opportunity}</li>
+                        <li key={index} className="pl-4 border-l-2 border-green-200 text-green-700 dark:text-green-400">
+                          {opportunity}
+                        </li>
                       ))}
                     </ul>
                   </div>
                 )}
                 
                 {insights.risks.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Risks</h3>
-                    <ul className="list-disc pl-5 space-y-1">
+                  <div className="rounded-lg border p-4 bg-muted/5">
+                    <h3 className="text-lg font-semibold mb-2 flex items-center">
+                      <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                      Risks
+                    </h3>
+                    <ul className="space-y-2">
                       {insights.risks.map((risk, index) => (
-                        <li key={index} className="text-red-700 dark:text-red-400">{risk}</li>
+                        <li key={index} className="pl-4 border-l-2 border-red-200 text-red-700 dark:text-red-400">
+                          {risk}
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -176,7 +193,7 @@ export function EnhancedAnalysisDisplay({
             <CardDescription>Groups of similar reviews and common themes</CardDescription>
           </CardHeader>
           <CardContent>
-            {renderClusters(reviewClusters)}
+            {renderClusters(reviewClusters, showAllClusters, () => setShowAllClusters(!showAllClusters))}
           </CardContent>
         </Card>
       </TabsContent>
@@ -232,12 +249,12 @@ function renderTemporalPatterns(patterns: TemporalPattern[] | null, selectedPatt
         </ResponsiveContainer>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
         {pattern.data.map((item, index) => (
-          <div key={index} className="border rounded-md p-3">
-            <span className="text-sm text-muted-foreground">{item.period}</span>
-            <p className="text-lg font-medium">{item.value}</p>
-            <Badge variant={getTrendVariant(item.trend)}>
+          <div key={index} className="border rounded-md p-2 flex flex-col items-center text-center">
+            <span className="text-xs text-muted-foreground truncate w-full">{item.period}</span>
+            <p className="text-base font-medium">{item.value}</p>
+            <Badge variant={getTrendVariant(item.trend)} className="text-xs mt-1 px-1 py-0">
               {item.trend.charAt(0).toUpperCase() + item.trend.slice(1)}
             </Badge>
           </div>
@@ -254,75 +271,111 @@ function renderHistoricalTrends(trends: HistoricalTrend[] | null) {
   
   return (
     <div className="space-y-8">
-      {trends.map((trend, index) => (
-        <div key={index} className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">{trend.metric}</h3>
-            <Badge 
-              variant={
-                trend.trend === 'improving' ? "success" : 
-                trend.trend === 'declining' ? "destructive" : 
-                "neutral"
-              }
-            >
-              {trend.trend.charAt(0).toUpperCase() + trend.trend.slice(1)}
-            </Badge>
-          </div>
-          
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trend.data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="period" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  name={trend.metric} 
-                  stroke="#8884d8" 
-                  activeDot={{ r: 8 }} 
-                />
-                {trend.forecast && (
-                  <Line
-                    type="monotone"
-                    dataKey="forecast"
-                    name="Forecast"
-                    stroke="#82ca9d"
-                    strokeDasharray="5 5"
-                    connectNulls
-                  />
-                )}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {trend.forecast && (
-            <div className="p-4 border rounded-lg bg-muted/20">
-              <h4 className="font-medium mb-2">Forecast</h4>
-              <p>
-                Next period ({trend.forecast.nextPeriod}): {trend.forecast.predictedValue.toFixed(2)}
-                <span className="text-sm text-muted-foreground ml-2">
-                  (Confidence: {(trend.forecast.confidence * 100).toFixed(0)}%)
-                </span>
-              </p>
+      {trends.map((trend, index) => {
+        // Determine Y-axis domain settings based on the metric
+        let yAxisDomain: [number, number] | undefined;
+        
+        if (trend.metric.toLowerCase().includes('rating')) {
+          yAxisDomain = [0, 5]; // Max vertical axis at 5 for ratings
+        } else if (trend.metric.toLowerCase().includes('sentiment') || trend.metric.toLowerCase().includes('positive')) {
+          // Calculate dynamic domain with minimum 10 units below lowest value
+          const minValue = Math.min(...trend.data.map(d => d.value));
+          const floorValue = Math.max(0, minValue - 10); // Ensure we don't go below 0
+          yAxisDomain = [floorValue, 100];
+        }
+        
+        return (
+          <div key={index} className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">{trend.metric}</h3>
+              <Badge 
+                variant={
+                  trend.trend === 'improving' ? "success" : 
+                  trend.trend === 'declining' ? "destructive" : 
+                  "neutral"
+                }
+              >
+                {trend.trend.charAt(0).toUpperCase() + trend.trend.slice(1)}
+              </Badge>
             </div>
-          )}
-        </div>
-      ))}
+            
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trend.data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="period" />
+                  <YAxis domain={yAxisDomain} />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="value" 
+                    name={trend.metric} 
+                    stroke="#8884d8" 
+                    activeDot={{ r: 8 }} 
+                  />
+                  {trend.forecast && (
+                    <Line
+                      type="monotone"
+                      dataKey="forecast"
+                      name="Forecast"
+                      stroke="#82ca9d"
+                      strokeDasharray="5 5"
+                      connectNulls
+                    />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {trend.forecast && (
+              <div className="p-4 border rounded-lg bg-muted/20">
+                <h4 className="font-medium mb-2">Forecast</h4>
+                <p>
+                  Next period ({trend.forecast.nextPeriod}): {trend.forecast.predictedValue.toFixed(2)}
+                  <span className="text-sm text-muted-foreground ml-2">
+                    (Confidence: {(trend.forecast.confidence * 100).toFixed(0)}%)
+                  </span>
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function renderClusters(clusters: ReviewCluster[] | null) {
+function renderClusters(clusters: ReviewCluster[] | null, showAll: boolean, toggleShowAll: () => void) {
   if (!clusters || clusters.length === 0) {
     return <p>No cluster data available.</p>;
   }
   
+  // Keep special clusters (delighted and dissatisfied customers)
+  const delightedCluster = clusters.find(c => c.id === 'cluster-5star');
+  const dissatisfiedCluster = clusters.find(c => c.id === 'cluster-negative');
+  
+  // Get remaining clusters and sort by review count
+  const remainingClusters = clusters
+    .filter(c => c.id !== 'cluster-5star' && c.id !== 'cluster-negative')
+    .sort((a, b) => b.reviewCount - a.reviewCount);
+  
+  // Build the final clusters array with special clusters first, then sorted by size
+  let displayClusters: ReviewCluster[] = [];
+  
+  if (delightedCluster) displayClusters.push(delightedCluster);
+  if (dissatisfiedCluster) displayClusters.push(dissatisfiedCluster);
+  
+  // Add sorted remaining clusters
+  displayClusters = [...displayClusters, ...remainingClusters];
+  
+  // Limit to 10 clusters unless showAll is true
+  const hasMoreClusters = displayClusters.length > 10;
+  const visibleClusters = showAll ? displayClusters : displayClusters.slice(0, 10);
+  
   return (
     <div className="space-y-6">
-      {clusters.map(cluster => (
+      {visibleClusters.map(cluster => (
         <div key={cluster.id} className="border rounded-lg p-4">
           <div className="flex justify-between items-start mb-3">
             <div>
@@ -382,6 +435,28 @@ function renderClusters(clusters: ReviewCluster[] | null) {
           )}
         </div>
       ))}
+      
+      {hasMoreClusters && (
+        <div className="flex justify-center">
+          <Button 
+            variant="outline" 
+            onClick={toggleShowAll}
+            className="mt-2"
+          >
+            {showAll ? (
+              <>
+                <ChevronUp className="h-4 w-4 mr-1" />
+                Show Less
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4 mr-1" />
+                Show All Clusters ({displayClusters.length})
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

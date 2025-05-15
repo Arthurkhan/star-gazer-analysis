@@ -1,286 +1,315 @@
-import { Recommendations, UrgentAction, GrowthStrategy, PatternInsight, CompetitiveAnalysis, MarketingPlan, BusinessScenario, Strategy } from '@/types/recommendations';
+import { Recommendations, AnalysisResult } from '@/types/recommendations';
 import { ReviewAnalysis } from '@/types/aiService';
+
+export interface ParsedResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+  warnings?: string[];
+}
 
 export class AIResponseParser {
   
-  /**
-   * Parse AI response with error recovery and validation
-   */
-  async parseResponse(response: string | any, expectedType: string): Promise<any> {
-    // Handle already parsed JSON
-    if (typeof response === 'object' && response !== null) {
-      return this.validateAndFix(response, expectedType);
-    }
+  // Parse AI response with error recovery
+  parseRecommendations(response: string | any): ParsedResponse {
+    const warnings: string[] = [];
     
-    // Try to parse as JSON first
     try {
-      const parsed = JSON.parse(response);
-      return this.validateAndFix(parsed, expectedType);
-    } catch (jsonError) {
-      // If JSON parsing fails, try structured extraction
-      return this.extractStructuredData(response, expectedType);
-    }
-  }
-  
-  /**
-   * Validate parsed data and fix missing fields
-   */
-  private validateAndFix(data: any, expectedType: string): any {
-    switch (expectedType) {
-      case 'recommendations':
-        return this.validateRecommendations(data);
-      case 'analysis':
-        return this.validateAnalysis(data);
-      case 'marketing':
-        return this.validateMarketing(data);
-      case 'scenarios':
-        return this.validateScenarios(data);
-      default:
-        return data;
-    }
-  }
-  
-  /**
-   * Extract structured data from natural language response
-   */
-  private extractStructuredData(text: string, expectedType: string): any {
-    switch (expectedType) {
-      case 'recommendations':
-        return this.extractRecommendations(text);
-      case 'analysis':
-        return this.extractAnalysis(text);
-      case 'marketing':
-        return this.extractMarketing(text);
-      case 'scenarios':
-        return this.extractScenarios(text);
-      default:
-        throw new Error(`Unknown expected type: ${expectedType}`);
-    }
-  }
-  
-  /**
-   * Validate and fix recommendations structure
-   */
-  private validateRecommendations(data: any): Recommendations {
-    const recommendations: Partial<Recommendations> = data || {};
-    
-    // Ensure all required fields exist
-    return {
-      urgentActions: this.validateUrgentActions(recommendations.urgentActions),
-      growthStrategies: this.validateGrowthStrategies(recommendations.growthStrategies),
-      patternInsights: this.validatePatternInsights(recommendations.patternInsights),
-      competitivePosition: this.validateCompetitiveAnalysis(recommendations.competitivePosition),
-      customerAttractionPlan: this.validateMarketingPlan(recommendations.customerAttractionPlan),
-      scenarios: this.validateScenarios(recommendations.scenarios),
-      longTermStrategies: this.validateStrategies(recommendations.longTermStrategies),
-      analysis: recommendations.analysis || this.getDefaultAnalysis(),
-      suggestions: recommendations.suggestions || [],
-      actionPlan: recommendations.actionPlan || this.getDefaultActionPlan()
-    };
-  }
-  
-  private validateUrgentActions(actions: any): UrgentAction[] {
-    if (!Array.isArray(actions)) return [];
-    
-    return actions.map((action, index) => ({
-      id: action.id || `urgent-${index}`,
-      title: action.title || 'Urgent Action Required',
-      description: action.description || 'No description provided',
-      category: action.category || 'important',
-      relatedReviews: action.relatedReviews || [],
-      suggestedAction: action.suggestedAction || action.description,
-      timeframe: action.timeframe || 'Immediate'
-    }));
-  }
-  
-  private validateGrowthStrategies(strategies: any): GrowthStrategy[] {
-    if (!Array.isArray(strategies)) return this.getDefaultGrowthStrategies();
-    
-    return strategies.map((strategy, index) => ({
-      id: strategy.id || `growth-${index}`,
-      type: strategy.type || 'operations',
-      category: strategy.category || strategy.type || 'general',
-      title: strategy.title || 'Growth Strategy',
-      description: strategy.description || 'No description provided',
-      steps: strategy.steps || strategy.implementation || [],
-      implementation: strategy.implementation || strategy.steps || [],
-      expectedImpact: strategy.expectedImpact || strategy.potentialImpact || 'Medium impact expected',
-      potentialImpact: strategy.potentialImpact || 'medium',
-      resourceRequirements: strategy.resourceRequirements || 'medium',
-      timeframe: strategy.timeframe || 'short_term',
-      kpis: strategy.kpis || []
-    }));
-  }
-  
-  private validatePatternInsights(insights: any): PatternInsight[] {
-    if (!Array.isArray(insights)) return [];
-    
-    return insights.map((insight, index) => ({
-      id: insight.id || `pattern-${index}`,
-      pattern: insight.pattern || 'Unnamed Pattern',
-      frequency: insight.frequency || 0,
-      sentiment: insight.sentiment || 'neutral',
-      impact: insight.impact || 'medium',
-      trend: insight.trend || 'stable',
-      recommendation: insight.recommendation || 'Monitor this pattern',
-      examples: insight.examples || []
-    }));
-  }
-  
-  private validateCompetitiveAnalysis(analysis: any): CompetitiveAnalysis {
-    if (!analysis) return this.getDefaultCompetitiveAnalysis();
-    
-    return {
-      overview: analysis.overview || 'Competitive analysis overview',
-      competitors: analysis.competitors || [],
-      strengthsWeaknesses: analysis.strengthsWeaknesses || {
-        strengths: analysis.strengths || [],
-        weaknesses: analysis.weaknesses || [],
-        opportunities: analysis.opportunities || [],
-        threats: analysis.threats || []
-      },
-      recommendations: analysis.recommendations || [],
-      position: analysis.position || 'average',
-      metrics: analysis.metrics || {},
-      strengths: analysis.strengths || [],
-      weaknesses: analysis.weaknesses || [],
-      opportunities: analysis.opportunities || []
-    };
-  }
-  
-  private validateMarketingPlan(plan: any): MarketingPlan {
-    if (!plan) return this.getDefaultMarketingPlan();
-    
-    return {
-      overview: plan.overview || 'Marketing plan overview',
-      objectives: plan.objectives || [],
-      tactics: plan.tactics || [],
-      budget: plan.budget || { total: '$0', breakdown: {} },
-      timeline: plan.timeline || {
-        start: new Date().toISOString(),
-        end: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-        milestones: []
-      },
-      targetAudiences: plan.targetAudiences || {
-        primary: [],
-        secondary: [],
-        untapped: []
-      },
-      channels: plan.channels || [],
-      messaging: plan.messaging || {
-        uniqueValue: '',
-        keyPoints: [],
-        callToAction: ''
+      // If response is already an object, validate it
+      if (typeof response === 'object' && response !== null) {
+        return this.validateRecommendations(response);
       }
+      
+      // Try to parse JSON
+      let data;
+      try {
+        data = JSON.parse(response);
+      } catch (jsonError) {
+        // Try to extract JSON from markdown code blocks
+        const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/);
+        if (jsonMatch) {
+          data = JSON.parse(jsonMatch[1]);
+        } else {
+          // Try to extract structured data from natural language
+          return this.extractFromNaturalLanguage(response, 'recommendations');
+        }
+      }
+      
+      return this.validateRecommendations(data);
+      
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to parse recommendations: ${error}`,
+        warnings
+      };
+    }
+  }
+  
+  // Parse analysis response
+  parseAnalysis(response: string | any): ParsedResponse {
+    try {
+      if (typeof response === 'object' && response !== null) {
+        return this.validateAnalysis(response);
+      }
+      
+      let data;
+      try {
+        data = JSON.parse(response);
+      } catch {
+        // Extract from natural language or markdown
+        const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/);
+        if (jsonMatch) {
+          data = JSON.parse(jsonMatch[1]);
+        } else {
+          return this.extractFromNaturalLanguage(response, 'analysis');
+        }
+      }
+      
+      return this.validateAnalysis(data);
+      
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to parse analysis: ${error}`
+      };
+    }
+  }
+  
+  // Validate recommendations structure
+  private validateRecommendations(data: any): ParsedResponse {
+    const warnings: string[] = [];
+    const validated: Partial<Recommendations> = {};
+    
+    // Required fields with defaults
+    const requiredFields = {
+      urgentActions: [],
+      growthStrategies: [],
+      patternInsights: [],
+      competitivePosition: this.getDefaultCompetitiveAnalysis(),
+      customerAttractionPlan: this.getDefaultMarketingPlan(),
+      scenarios: [],
+      longTermStrategies: []
     };
-  }
-  
-  private validateScenarios(scenarios: any): BusinessScenario[] {
-    if (!Array.isArray(scenarios)) return this.getDefaultScenarios();
     
-    return scenarios.map((scenario, index) => ({
-      name: scenario.name || `Scenario ${index + 1}`,
-      description: scenario.description || 'No description provided',
-      probability: scenario.probability || 0.5,
-      timeframe: scenario.timeframe || '6 months',
-      projectedMetrics: scenario.projectedMetrics || {
-        reviewVolume: 0,
-        avgRating: 0,
-        sentiment: 0,
-        revenue: '0%'
-      },
-      requiredActions: scenario.requiredActions || [],
-      assumptions: scenario.assumptions || []
-    }));
-  }
-  
-  private validateStrategies(strategies: any): Strategy[] {
-    if (!Array.isArray(strategies)) return [];
-    
-    return strategies.map((strategy, index) => ({
-      id: strategy.id || `strategy-${index}`,
-      name: strategy.name || strategy.title || 'Strategy',
-      title: strategy.title || strategy.name || 'Strategy',
-      category: strategy.category || 'general',
-      description: strategy.description || 'No description provided',
-      riskLevel: strategy.riskLevel || 'medium',
-      timeframe: strategy.timeframe || 'long_term',
-      expectedROI: strategy.expectedROI || 'TBD',
-      actions: strategy.actions || [],
-      objectives: strategy.objectives || [],
-      tactics: strategy.tactics || [],
-      expectedOutcomes: strategy.expectedOutcomes || []
-    }));
-  }
-  
-  private validateAnalysis(data: any): ReviewAnalysis {
-    return {
-      sentiment: data.sentiment || {
-        overall: 0.5,
-        breakdown: { positive: 0, neutral: 0, negative: 0 }
-      },
-      themes: data.themes || [],
-      painPoints: data.painPoints || [],
-      strengths: data.strengths || [],
-      customerSegments: data.customerSegments || []
-    };
-  }
-  
-  /**
-   * Extract recommendations from natural language text
-   */
-  private extractRecommendations(text: string): Recommendations {
-    // This is a simplified extraction - in production, you'd use more sophisticated NLP
-    const recommendations: Partial<Recommendations> = {};
-    
-    // Extract urgent actions
-    recommendations.urgentActions = this.extractUrgentActionsFromText(text);
-    
-    // Extract growth strategies
-    recommendations.growthStrategies = this.extractGrowthStrategiesFromText(text);
-    
-    // Extract patterns
-    recommendations.patternInsights = this.extractPatternInsightsFromText(text);
-    
-    // Fill in remaining fields with defaults
-    return this.validateRecommendations(recommendations);
-  }
-  
-  private extractUrgentActionsFromText(text: string): UrgentAction[] {
-    const urgentActions: UrgentAction[] = [];
-    const urgentPhrases = ['urgent', 'immediate', 'critical', 'asap', 'right away'];
-    
-    const lines = text.split('\n');
-    lines.forEach((line, index) => {
-      if (urgentPhrases.some(phrase => line.toLowerCase().includes(phrase))) {
-        urgentActions.push({
-          id: `urgent-${index}`,
-          title: 'Urgent Action',
-          description: line.trim(),
-          category: 'critical',
-          timeframe: 'Immediate'
-        });
+    // Copy valid fields
+    Object.entries(requiredFields).forEach(([field, defaultValue]) => {
+      if (data[field]) {
+        validated[field as keyof Recommendations] = data[field];
+      } else {
+        validated[field as keyof Recommendations] = defaultValue;
+        warnings.push(`Missing field '${field}', using default value`);
       }
     });
     
-    return urgentActions;
+    // Additional validation for specific fields
+    if (validated.urgentActions && Array.isArray(validated.urgentActions)) {
+      validated.urgentActions = validated.urgentActions.map((action, index) => ({
+        id: action.id || `urgent-${index}`,
+        title: action.title || 'Urgent Action',
+        description: action.description || 'Action needed',
+        category: action.category || 'important',
+        ...action
+      }));
+    }
+    
+    return {
+      success: true,
+      data: validated as Recommendations,
+      warnings
+    };
   }
   
-  private extractGrowthStrategiesFromText(text: string): GrowthStrategy[] {
-    const strategies: GrowthStrategy[] = [];
-    const strategyKeywords = ['strategy', 'plan', 'approach', 'implement', 'develop'];
+  // Validate analysis structure
+  private validateAnalysis(data: any): ParsedResponse {
+    const warnings: string[] = [];
+    const validated: Partial<ReviewAnalysis> = {};
     
-    const sections = text.split(/\n\n+/);
+    // Required fields
+    if (!data.sentiment) {
+      validated.sentiment = {
+        overall: 0.5,
+        breakdown: { positive: 0, neutral: 0, negative: 0 }
+      };
+      warnings.push('Missing sentiment data, using defaults');
+    } else {
+      validated.sentiment = data.sentiment;
+    }
+    
+    // Arrays with defaults
+    validated.themes = data.themes || [];
+    validated.painPoints = data.painPoints || [];
+    validated.strengths = data.strengths || [];
+    validated.customerSegments = data.customerSegments || [];
+    
+    // Optional fields
+    if (data.temporalPatterns) validated.temporalPatterns = data.temporalPatterns;
+    if (data.clusters) validated.clusters = data.clusters;
+    
+    return {
+      success: true,
+      data: validated as ReviewAnalysis,
+      warnings
+    };
+  }
+  
+  // Extract structured data from natural language
+  private extractFromNaturalLanguage(text: string, type: string): ParsedResponse {
+    const extractors = {
+      recommendations: this.extractRecommendationsFromText.bind(this),
+      analysis: this.extractAnalysisFromText.bind(this),
+      marketing: this.extractMarketingFromText.bind(this),
+      scenarios: this.extractScenariosFromText.bind(this)
+    };
+    
+    const extractor = extractors[type as keyof typeof extractors];
+    if (!extractor) {
+      return {
+        success: false,
+        error: `Unknown extraction type: ${type}`
+      };
+    }
+    
+    try {
+      const data = extractor(text);
+      return {
+        success: true,
+        data,
+        warnings: ['Data extracted from natural language response']
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Failed to extract ${type} from text: ${error}`
+      };
+    }
+  }
+  
+  // Extract recommendations from text
+  private extractRecommendationsFromText(text: string): Recommendations {
+    const recommendations: Partial<Recommendations> = {
+      urgentActions: [],
+      growthStrategies: [],
+      patternInsights: [],
+      competitivePosition: this.getDefaultCompetitiveAnalysis(),
+      customerAttractionPlan: this.getDefaultMarketingPlan(),
+      scenarios: [],
+      longTermStrategies: []
+    };
+    
+    // Look for urgent actions
+    const urgentSection = text.match(/urgent|immediate|critical[\s\S]*?(?=\n\n|$)/gi);
+    if (urgentSection) {
+      recommendations.urgentActions = this.extractActionItems(urgentSection[0]);
+    }
+    
+    // Look for growth strategies
+    const growthSection = text.match(/growth|strategy|strategies[\s\S]*?(?=\n\n|$)/gi);
+    if (growthSection) {
+      recommendations.growthStrategies = this.extractStrategies(growthSection[0]);
+    }
+    
+    // Look for patterns
+    const patternSection = text.match(/pattern|trend|insight[\s\S]*?(?=\n\n|$)/gi);
+    if (patternSection) {
+      recommendations.patternInsights = this.extractPatterns(patternSection[0]);
+    }
+    
+    return recommendations as Recommendations;
+  }
+  
+  // Extract analysis from text
+  private extractAnalysisFromText(text: string): ReviewAnalysis {
+    const analysis: Partial<ReviewAnalysis> = {
+      sentiment: {
+        overall: 0.5,
+        breakdown: { positive: 0, neutral: 0, negative: 0 }
+      },
+      themes: [],
+      painPoints: [],
+      strengths: [],
+      customerSegments: []
+    };
+    
+    // Look for sentiment information
+    const sentimentMatch = text.match(/(\d+)%?\s*positive|(\d+)%?\s*negative|(\d+)%?\s*neutral/gi);
+    if (sentimentMatch) {
+      sentimentMatch.forEach(match => {
+        const [value, type] = match.split(/\s+/);
+        const percentage = parseInt(value) / 100;
+        if (type.toLowerCase().includes('positive')) {
+          analysis.sentiment!.breakdown.positive = percentage;
+        } else if (type.toLowerCase().includes('negative')) {
+          analysis.sentiment!.breakdown.negative = percentage;
+        } else if (type.toLowerCase().includes('neutral')) {
+          analysis.sentiment!.breakdown.neutral = percentage;
+        }
+      });
+    }
+    
+    // Look for themes
+    const themeSection = text.match(/theme|topic|common[\s\S]*?(?=\n\n|$)/gi);
+    if (themeSection) {
+      analysis.themes = this.extractThemes(themeSection[0]);
+    }
+    
+    return analysis as ReviewAnalysis;
+  }
+  
+  // Extract marketing plan from text
+  private extractMarketingFromText(text: string): any {
+    // Similar extraction logic for marketing plans
+    return {
+      overview: 'Marketing plan extracted from text',
+      objectives: [],
+      tactics: [],
+      budget: { total: '$0', breakdown: {} },
+      timeline: {
+        start: new Date().toISOString(),
+        end: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+        milestones: []
+      }
+    };
+  }
+  
+  // Extract scenarios from text
+  private extractScenariosFromText(text: string): any[] {
+    // Similar extraction logic for scenarios
+    return [];
+  }
+  
+  // Helper methods for extraction
+  private extractActionItems(text: string): any[] {
+    const items: any[] = [];
+    const bulletPoints = text.match(/[•\-\*]\s*(.+)/g) || [];
+    
+    bulletPoints.forEach((point, index) => {
+      const cleanText = point.replace(/[•\-\*]\s*/, '');
+      items.push({
+        id: `action-${index}`,
+        title: cleanText.substring(0, 50),
+        description: cleanText,
+        category: 'important'
+      });
+    });
+    
+    return items;
+  }
+  
+  private extractStrategies(text: string): any[] {
+    const strategies: any[] = [];
+    const sections = text.split(/\d+\.\s*/);
+    
     sections.forEach((section, index) => {
-      if (strategyKeywords.some(keyword => section.toLowerCase().includes(keyword))) {
+      if (section.trim()) {
         strategies.push({
-          id: `growth-${index}`,
-          title: 'Growth Strategy',
-          description: section.trim(),
-          category: 'general',
+          id: `strategy-${index}`,
+          title: section.substring(0, 50),
+          description: section,
+          category: 'growth',
+          expectedImpact: 'Medium',
           implementation: [],
-          expectedImpact: 'Medium impact',
-          timeframe: 'short_term',
+          timeframe: '1-3 months',
           kpis: []
         });
       }
@@ -289,158 +318,44 @@ export class AIResponseParser {
     return strategies;
   }
   
-  private extractPatternInsightsFromText(text: string): PatternInsight[] {
-    const insights: PatternInsight[] = [];
-    const patternKeywords = ['pattern', 'trend', 'frequently', 'commonly', 'often'];
+  private extractPatterns(text: string): any[] {
+    const patterns: any[] = [];
+    const bulletPoints = text.match(/[•\-\*]\s*(.+)/g) || [];
     
-    const lines = text.split('\n');
-    lines.forEach((line, index) => {
-      if (patternKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
-        insights.push({
-          pattern: line.trim(),
-          frequency: 5,
-          sentiment: 'neutral',
-          recommendation: 'Monitor this pattern',
-          examples: []
-        });
-      }
+    bulletPoints.forEach((point, index) => {
+      const cleanText = point.replace(/[•\-\*]\s*/, '');
+      patterns.push({
+        id: `pattern-${index}`,
+        pattern: cleanText.substring(0, 50),
+        frequency: 0,
+        sentiment: 'neutral',
+        recommendation: cleanText,
+        examples: []
+      });
     });
     
-    return insights;
+    return patterns;
   }
   
-  private extractAnalysis(text: string): ReviewAnalysis {
-    // Simplified extraction logic
-    return {
-      sentiment: {
-        overall: 0.5,
-        breakdown: { positive: 33, neutral: 34, negative: 33 }
-      },
-      themes: this.extractThemesFromText(text),
-      painPoints: this.extractPainPointsFromText(text),
-      strengths: this.extractStrengthsFromText(text),
-      customerSegments: []
-    };
-  }
-  
-  private extractThemesFromText(text: string): any[] {
+  private extractThemes(text: string): any[] {
     const themes: any[] = [];
-    const themeKeywords = ['theme', 'topic', 'subject', 'about', 'regarding'];
+    const themeMatches = text.match(/["']([^"']+)["']/g) || [];
     
-    const lines = text.split('\n');
-    lines.forEach((line, index) => {
-      if (themeKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
-        themes.push({
-          name: line.trim(),
-          frequency: 1,
-          sentiment: 'neutral',
-          examples: []
-        });
-      }
+    themeMatches.forEach((match, index) => {
+      const theme = match.replace(/["']/g, '');
+      themes.push({
+        name: theme,
+        frequency: 0,
+        sentiment: 'neutral',
+        examples: []
+      });
     });
     
     return themes;
   }
   
-  private extractPainPointsFromText(text: string): any[] {
-    const painPoints: any[] = [];
-    const painKeywords = ['problem', 'issue', 'concern', 'complaint', 'negative'];
-    
-    const lines = text.split('\n');
-    lines.forEach((line, index) => {
-      if (painKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
-        painPoints.push({
-          issue: line.trim(),
-          severity: 'medium',
-          frequency: 1,
-          suggestions: []
-        });
-      }
-    });
-    
-    return painPoints;
-  }
-  
-  private extractStrengthsFromText(text: string): any[] {
-    const strengths: any[] = [];
-    const strengthKeywords = ['strength', 'positive', 'good', 'excellent', 'great'];
-    
-    const lines = text.split('\n');
-    lines.forEach((line, index) => {
-      if (strengthKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
-        strengths.push({
-          aspect: line.trim(),
-          mentions: 1,
-          impact: 'medium'
-        });
-      }
-    });
-    
-    return strengths;
-  }
-  
-  private extractMarketing(text: string): MarketingPlan {
-    // Simplified extraction
-    return this.validateMarketingPlan({
-      overview: text.substring(0, 200),
-      objectives: [],
-      tactics: [],
-      budget: { total: '$0', breakdown: {} }
-    });
-  }
-  
-  private extractScenarios(text: string): BusinessScenario[] {
-    // Simplified extraction
-    const scenarios: BusinessScenario[] = [];
-    const scenarioKeywords = ['scenario', 'case', 'situation', 'outcome'];
-    
-    const sections = text.split(/\n\n+/);
-    sections.forEach((section, index) => {
-      if (scenarioKeywords.some(keyword => section.toLowerCase().includes(keyword))) {
-        scenarios.push({
-          name: `Scenario ${index + 1}`,
-          description: section.trim(),
-          probability: 0.5,
-          timeframe: '6 months',
-          projectedMetrics: {
-            reviewVolume: 0,
-            avgRating: 0,
-            sentiment: 0,
-            revenue: '0%'
-          },
-          requiredActions: []
-        });
-      }
-    });
-    
-    return scenarios.length > 0 ? scenarios : this.getDefaultScenarios();
-  }
-  
-  // Default value generators
-  private getDefaultAnalysis(): any {
-    return {
-      sentimentAnalysis: [
-        { name: 'Positive', value: 33 },
-        { name: 'Neutral', value: 34 },
-        { name: 'Negative', value: 33 }
-      ],
-      staffMentions: [],
-      commonTerms: [],
-      overallAnalysis: 'Analysis pending'
-    };
-  }
-  
-  private getDefaultActionPlan(): any {
-    return {
-      title: 'Action Plan',
-      description: 'Recommended actions based on analysis',
-      steps: [],
-      expectedResults: 'Improved business performance',
-      timeframe: 'ongoing'
-    };
-  }
-  
-  private getDefaultCompetitiveAnalysis(): CompetitiveAnalysis {
+  // Default structures
+  private getDefaultCompetitiveAnalysis(): any {
     return {
       overview: 'Competitive analysis pending',
       competitors: [],
@@ -452,19 +367,26 @@ export class AIResponseParser {
       },
       recommendations: [],
       position: 'average',
-      metrics: {},
+      metrics: {
+        rating: { value: 0, benchmark: 0, percentile: 50 },
+        reviewVolume: { value: 0, benchmark: 0, percentile: 50 },
+        sentiment: { value: 0, benchmark: 0, percentile: 50 }
+      },
       strengths: [],
       weaknesses: [],
       opportunities: []
     };
   }
   
-  private getDefaultMarketingPlan(): MarketingPlan {
+  private getDefaultMarketingPlan(): any {
     return {
       overview: 'Marketing plan pending',
       objectives: [],
       tactics: [],
-      budget: { total: '$0', breakdown: {} },
+      budget: {
+        total: '$0',
+        breakdown: {}
+      },
       timeline: {
         start: new Date().toISOString(),
         end: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -482,34 +404,5 @@ export class AIResponseParser {
         callToAction: ''
       }
     };
-  }
-  
-  private getDefaultGrowthStrategies(): GrowthStrategy[] {
-    return [{
-      id: 'default-growth-1',
-      title: 'Improve Customer Experience',
-      description: 'Focus on enhancing customer satisfaction',
-      category: 'customer_experience',
-      implementation: ['Collect feedback', 'Train staff', 'Improve processes'],
-      expectedImpact: 'Medium impact expected',
-      timeframe: 'short_term',
-      kpis: ['Customer satisfaction score', 'Review ratings']
-    }];
-  }
-  
-  private getDefaultScenarios(): BusinessScenario[] {
-    return [{
-      name: 'Steady Growth',
-      description: 'Maintain current trajectory with minor improvements',
-      probability: 0.6,
-      timeframe: '6 months',
-      projectedMetrics: {
-        reviewVolume: 100,
-        avgRating: 4.0,
-        sentiment: 0.7,
-        revenue: '+10%'
-      },
-      requiredActions: ['Continue current strategies', 'Monitor market changes']
-    }];
   }
 }

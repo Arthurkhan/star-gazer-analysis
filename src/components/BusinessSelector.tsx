@@ -7,9 +7,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BusinessData } from "@/types/reviews";
 import { BusinessType } from "@/types/businessTypes";
 import { BusinessTypeBadge } from "@/components/BusinessTypeBadge";
+import { Settings } from "lucide-react";
+import { useState } from "react";
+import { BusinessDetailsDialog } from "./BusinessDetailsDialog";
 
 interface BusinessSelectorProps {
   selectedBusiness: string;
@@ -28,6 +32,8 @@ const BusinessSelector = ({
   onBusinessTypeChange,
   className = "",
 }: BusinessSelectorProps) => {
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+
   // Generate business options dynamically from the businessData
   const businessOptions = [
     { id: "all", name: "All Businesses" },
@@ -89,26 +95,47 @@ const BusinessSelector = ({
               </Select>
             </div>
             {selectedBusiness !== "all" && (
-              <div className="w-1/3">
-                <Select
-                  value={businessType}
-                  onValueChange={(value) => onBusinessTypeChange(value as BusinessType)}
+              <div className="flex items-center gap-2">
+                <div className="w-full">
+                  <Select
+                    value={businessType}
+                    onValueChange={(value) => onBusinessTypeChange(value as BusinessType)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {businessTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Add details button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDetailsDialogOpen(true)}
+                  className="ml-1 h-10 w-10"
+                  title="Business Details"
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {businessTypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Settings className="h-4 w-4" />
+                </Button>
               </div>
             )}
           </div>
         </div>
+        
+        {/* Business Details Dialog */}
+        <BusinessDetailsDialog
+          businessName={selectedBusiness}
+          businessType={businessType}
+          isOpen={detailsDialogOpen}
+          onOpenChange={setDetailsDialogOpen}
+        />
       </CardContent>
     </Card>
   );

@@ -1,54 +1,85 @@
-import { Review } from './reviews';
-
 export interface TemporalPattern {
-  period: string;
-  type: 'weekly' | 'monthly' | 'dayOfWeek' | 'hourly';
-  avgRating: number;
-  volume: number;
-  sentiment: number;
-  trend: 'improving' | 'stable' | 'declining';
+  pattern: 'daily' | 'weekly' | 'monthly' | 'seasonal';
+  description: string;
+  strength: number; // 0-1 confidence score
+  data: {
+    period: string;
+    metric: string;
+    value: number;
+    trend: 'increasing' | 'decreasing' | 'stable';
+  }[];
 }
 
-export interface TimeSeriesData {
-  period: string;
-  avgRating: number;
-  volume: number;
-  sentiment: number;
-  responseRate: number;
+export interface HistoricalTrend {
+  metric: string;
+  timeframe: 'month' | 'quarter' | 'year';
+  data: {
+    period: string;
+    value: number;
+    percentageChange: number;
+  }[];
+  trend: 'improving' | 'declining' | 'stable' | 'volatile';
+  forecast?: {
+    nextPeriod: string;
+    predictedValue: number;
+    confidence: number;
+  };
+}
+
+export interface ReviewCluster {
+  id: string;
+  name: string;
+  description: string;
+  reviewCount: number;
+  averageRating: number;
+  sentiment: 'positive' | 'negative' | 'neutral' | 'mixed';
+  keywords: string[];
+  examples: string[];
+  insights: string[];
 }
 
 export interface SeasonalPattern {
-  season: string;
-  avgRating: number;
-  volume: number;
-  sentiment: number;
-  commonThemes: string[];
-  yearOverYearChange: number;
+  season: 'spring' | 'summer' | 'fall' | 'winter' | 'holiday' | 'custom';
+  name: string;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  metrics: {
+    avgRating: number;
+    reviewVolume: number;
+    sentiment: number;
+    topThemes: string[];
+  };
+  comparison: {
+    vsYearAverage: number;
+    vsPreviousYear: number;
+  };
+  recommendations: string[];
 }
 
-export interface TrendAnalysis {
-  monthlyMetrics: TimeSeriesData[];
-  trends: Record<string, 'increasing' | 'stable' | 'decreasing'>;
-  significantChanges: Array<{
-    period: string;
-    metric: string;
-    change: number;
-    significance: 'high' | 'medium' | 'low';
-  }>;
-  projections: TimeSeriesData[];
-}
-
-export interface ClusteredReviews {
-  bySentiment: Record<string, Review[]>;
-  byTheme: Record<string, Review[]>;
-  byRating: Record<number, Review[]>;
-  byLength: Record<string, Review[]>;
-  byResponseStatus: Record<string, Review[]>;
-}
-
-export interface EnhancedAnalysisResult {
+export interface EnhancedAnalysis {
   temporalPatterns: TemporalPattern[];
-  historicalTrends: TrendAnalysis;
-  clusteredReviews: ClusteredReviews;
-  seasonalPatterns: SeasonalPattern[];
+  historicalTrends: HistoricalTrend[];
+  reviewClusters: ReviewCluster[];
+  seasonalAnalysis: SeasonalPattern[];
+  insights: {
+    keyFindings: string[];
+    opportunities: string[];
+    risks: string[];
+  };
+}
+
+export interface TimeSeriesData {
+  date: string;
+  value: number;
+  label?: string;
+}
+
+export interface PatternRecognitionResult {
+  patternType: string;
+  confidence: number;
+  description: string;
+  actionableInsight: string;
+  affectedMetrics: string[];
 }

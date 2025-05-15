@@ -6,6 +6,7 @@ import { type Recommendations, type AnalysisResult } from '@/types/recommendatio
 import { type BusinessType } from '@/types/businessTypes';
 import { type AIProvider } from '@/components/AIProviderToggle';
 import { RecommendationService } from '@/services/recommendationService';
+import { enhancedDataAnalysisService } from '@/services/dataAnalysis/enhancedDataAnalysisService';
 
 interface UseRecommendationsProps {
   businessData: any;
@@ -67,6 +68,10 @@ export const useRecommendations = ({
         // Keep other properties
         ...review
       }));
+
+      // Perform enhanced data analysis
+      setGeneratingMessage('Analyzing temporal patterns...');
+      const enhancedAnalysis = await enhancedDataAnalysisService.analyzeData(mappedReviews);
 
       // Calculate metrics properly
       const totalReviews = mappedReviews.length;
@@ -133,7 +138,7 @@ export const useRecommendations = ({
       // Sort common terms by frequency
       commonTerms.sort((a, b) => b.count - a.count);
 
-      // Prepare analysis data with the correct structure
+      // Prepare analysis data with the correct structure including enhanced analysis
       const analysisData: AnalysisResult = {
         sentimentAnalysis: [
           { name: 'Positive', value: sentimentCounts.positive },
@@ -155,7 +160,13 @@ export const useRecommendations = ({
             count,
             percentage: (count / totalReviews) * 100
           };
-        })
+        }),
+        // Add enhanced analysis data
+        temporalPatterns: enhancedAnalysis.temporalPatterns,
+        historicalTrends: enhancedAnalysis.historicalTrends,
+        reviewClusters: enhancedAnalysis.reviewClusters,
+        seasonalAnalysis: enhancedAnalysis.seasonalAnalysis,
+        insights: enhancedAnalysis.insights
       };
 
       console.log('Analysis Data Structure:', analysisData); // Debug log
@@ -181,7 +192,7 @@ export const useRecommendations = ({
       
       toast({
         title: "Success",
-        description: "Recommendations generated successfully",
+        description: "Recommendations generated successfully with enhanced analysis",
       });
     } catch (err) {
       console.error('Error generating recommendations:', err);

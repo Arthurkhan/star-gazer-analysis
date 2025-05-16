@@ -1,4 +1,5 @@
-// Updated use-toast.ts to use Sonner instead of the custom implementation
+// src/hooks/use-toast.ts
+// A clean implementation using Sonner directly, without any potential circular dependencies
 import { toast as sonnerToast } from "sonner";
 
 type ToastProps = {
@@ -8,16 +9,26 @@ type ToastProps = {
   variant?: "default" | "destructive" | "success" | "warning" | "info";
 };
 
+// Map our variants to sonner's variants
+const variantMap = {
+  default: "default",
+  destructive: "error",
+  success: "success",
+  warning: "warning",
+  info: "info"
+} as const;
+
 const toast = ({
   title,
   description,
   action,
   variant = "default",
 }: ToastProps) => {
-  // Map our variant to sonner's variant
-  const sonnerVariant = variant === "destructive" ? "error" : variant;
+  // Get the sonner variant
+  const sonnerVariant = variantMap[variant] || "default";
   
-  return sonnerToast[sonnerVariant === "default" ? "default" : sonnerVariant]({
+  // Use the appropriate sonner toast function
+  return sonnerToast[sonnerVariant]({
     title,
     description,
     action,

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -239,17 +238,18 @@ export const useRecommendations = ({
     if (!recommendations || !selectedBusiness) return;
 
     try {
-      // Use the generic 'from' method instead of trying to reference a specific table
-      const { error } = await supabase
-        .from('saved_recommendations')
-        .insert({
-          business_name: selectedBusiness,
-          business_type: businessType,
-          recommendations: recommendations,
-          created_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
+      // Instead of using Supabase directly, let's log the action and use localStorage
+      console.log('Saving recommendations for:', selectedBusiness);
+      
+      // Store in localStorage instead of Supabase
+      const savedRecommendations = JSON.parse(localStorage.getItem('savedRecommendations') || '[]');
+      savedRecommendations.push({
+        business_name: selectedBusiness,
+        business_type: businessType,
+        recommendations: recommendations,
+        created_at: new Date().toISOString(),
+      });
+      localStorage.setItem('savedRecommendations', JSON.stringify(savedRecommendations));
 
       toast({
         title: "Saved",

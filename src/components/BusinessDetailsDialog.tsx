@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -25,6 +26,12 @@ interface BusinessDetailsDialogProps {
   businessType: BusinessType;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+// Update the interface for location to match the expected structure
+interface BusinessLocation {
+  country: string;
+  city: string;
 }
 
 export function BusinessDetailsDialog({
@@ -89,6 +96,17 @@ export function BusinessDetailsDialog({
     });
   };
 
+  // Ensure both properties are always present - fix for the type errors
+  const updateLocationProperty = (property: 'country' | 'city', value: string) => {
+    setContext({
+      ...context,
+      location: {
+        ...context.location,
+        [property]: value
+      }
+    });
+  };
+
   if (businessName === 'all') {
     return null; // Don't render for "All Businesses"
   }
@@ -110,10 +128,7 @@ export function BusinessDetailsDialog({
               <Input 
                 id="country"
                 value={context.location?.country || ''} 
-                onChange={(e) => setContext({
-                  ...context, 
-                  location: {...(context.location || {}), country: e.target.value}
-                })}
+                onChange={(e) => updateLocationProperty('country', e.target.value)}
                 placeholder="e.g. United States" 
               />
             </div>
@@ -123,10 +138,7 @@ export function BusinessDetailsDialog({
               <Input 
                 id="city"
                 value={context.location?.city || ''} 
-                onChange={(e) => setContext({
-                  ...context, 
-                  location: {...(context.location || {}), city: e.target.value}
-                })}
+                onChange={(e) => updateLocationProperty('city', e.target.value)}
                 placeholder="e.g. New York" 
               />
             </div>

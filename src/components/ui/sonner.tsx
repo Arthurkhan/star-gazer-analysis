@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Toaster as Sonner } from "sonner";
 
@@ -48,14 +49,8 @@ const Toaster = ({
       theme={currentTheme}
       className={className}
       toastOptions={{
-        classNames: {
-          toast: "group border-border font-sans",
-          title: "text-foreground font-medium",
-          description: "text-muted-foreground font-normal",
-          actionButton: "bg-primary text-primary-foreground",
-          cancelButton: "bg-muted text-muted-foreground",
-          closeButton: "text-foreground/50 hover:text-foreground",
-        },
+        className: "group border-border font-sans",
+        // Fix the error by using className instead of classNames
       }}
       {...props}
     />

@@ -1,4 +1,3 @@
-
 export type BusinessType = "cafe" | "restaurant" | "bar" | "hotel" | "retail" | "art_gallery" | "other";
 
 import { EnhancedAnalysis } from "./dataAnalysis";
@@ -30,6 +29,16 @@ export interface AnalysisResult {
   languageDistribution?: { language: string; count: number; percentage: number }[];
   ratingBreakdown?: { rating: number; count: number; percentage: number }[];
   mainThemes?: { theme: string; count: number; percentage: number }[];
+  // Add missing properties
+  temporalPatterns?: any[];
+  historicalTrends?: any[];
+  reviewClusters?: any[];
+  seasonalAnalysis?: any[];
+  insights?: {
+    keyFindings: string[];
+    opportunities: string[];
+    risks: string[];
+  };
 }
 
 export interface Suggestion {
@@ -118,6 +127,33 @@ export interface Scenario {
   impact: "positive" | "negative" | "neutral";
   responseStrategy: string;
   triggers: string[];
+  // Add missing properties from BusinessScenario to make them compatible
+  projectedMetrics?: {
+    reviewVolume: number;
+    avgRating: number;
+    sentiment: number;
+    revenue: string;
+    [key: string]: number | string;
+  };
+  requiredActions?: string[];
+  timeframe?: string;
+  assumptions?: string[];
+}
+
+export interface BusinessScenario {
+  name: string;
+  description: string;
+  probability: number;
+  timeframe?: string;
+  projectedMetrics: {
+    reviewVolume: number;
+    avgRating: number;
+    sentiment: number;
+    revenue: string;
+    [key: string]: number | string;
+  };
+  requiredActions: string[];
+  assumptions?: string[];
 }
 
 export interface MarketingPlan {
@@ -207,22 +243,6 @@ export interface PatternInsight {
   trend?: string;
   recommendation: string;
   examples: string[];
-}
-
-export interface BusinessScenario {
-  name: string;
-  description: string;
-  probability: number;
-  timeframe?: string;
-  projectedMetrics: {
-    reviewVolume: number;
-    avgRating: number;
-    sentiment: number;
-    revenue: string;
-    [key: string]: number | string;
-  };
-  requiredActions: string[];
-  assumptions?: string[];
 }
 
 export interface CompetitiveInsight {

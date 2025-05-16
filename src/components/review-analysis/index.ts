@@ -1,24 +1,26 @@
+// src/components/review-analysis/index.ts
+// Export all review analysis components for easier imports
 
-import AIAnalysisReport from "./AIAnalysisReport";
-import AnalysisAlertSection from "./AnalysisAlertSection";
-import CommonTerms from "./CommonTerms";
-import LanguageDistribution from "./LanguageDistribution";
-import MonthlyReviewsChart from "./MonthlyReviewsChart";
-import ReviewAnalysis from "./ReviewAnalysis";
-import SentimentBreakdown from "./SentimentBreakdown";
-import StaffMentions from "./StaffMentions";
-import { PieChartRenderer as PieChart } from "./PieChartRenderer";
+import { ReviewAnalytics } from './ReviewAnalytics';
+import { ReviewList } from './ReviewList';
+import { ReviewStats } from './ReviewStats';
+import { ReviewFilters } from './ReviewFilters';
+import { ReviewSentiment } from './ReviewSentiment';
+import { ReviewThemes } from './ReviewThemes';
+import { ReviewTrends } from './ReviewTrends';
+import { ReviewStaffMentions } from './ReviewStaffMentions';
+import { PieChart } from '@/components/ui/chart';
+import { ReviewTimeDistribution } from './ReviewTimeDistribution';
 
 export {
-  AIAnalysisReport,
-  AnalysisAlertSection,
-  CommonTerms,
-  LanguageDistribution,
-  MonthlyReviewsChart,
-  ReviewAnalysis,
-  SentimentBreakdown,
-  StaffMentions,
-  PieChart as PieChartRenderer
+  ReviewAnalytics,
+  ReviewList,
+  ReviewStats,
+  ReviewFilters,
+  ReviewSentiment,
+  ReviewThemes,
+  ReviewTrends,
+  ReviewStaffMentions,
+  PieChart as PieChartRenderer,
+  ReviewTimeDistribution
 };
-
-export default AIAnalysisReport;

@@ -1,126 +1,86 @@
-# Star-Gazer Analysis
+# Star-Gazer-Analysis
 
-A sophisticated Google Maps review analysis tool with AI-powered recommendations for businesses. This application helps business owners gain insights from their customer reviews, identify trends, and receive actionable recommendations.
+A Google Maps review analysis tool with AI-powered recommendations for three businesses.
 
-## Features
+## Recent Fixes (May 16, 2025)
 
-### Core Features
-- 📊 Review analytics dashboard with visualizations
-- 🤖 AI-powered recommendations using OpenAI GPT-4 or browser-based models
-- 📈 Detailed trend analysis and pattern recognition
-- 🌟 Staff performance tracking
-- 🔍 Sentiment analysis and theme extraction
+### Fixed White Screen Issue
+We've resolved an issue where the application was showing only a white screen with no errors. The problem was caused by:
 
-### Enhanced Features (New)
-- 📧 **Email Notification System** - Receive weekly summaries, monthly reports, and urgent alerts
-- 📱 **Advanced PDF/CSV Exports** - Generate professional reports with custom branding
-- 📆 **Period Comparison** - Compare metrics across different time periods
-- 📊 **Enhanced Analysis Display** - Advanced visualization of review clusters, trends, and patterns
-- 🔄 **Improved UI Components** - Better user experience across all features
+1. **Circular Dependencies in Toast Components**
+   - `toaster.tsx` imported from `hooks/use-toast.ts`
+   - `hooks/use-toast.ts` imported from `components/ui/toast.tsx`
+   - Both toast systems were used simultaneously in `App.tsx`
 
-## Technology Stack
+2. **Toast System Consolidation**
+   - We've consolidated to use only Sonner for toast notifications
+   - Deprecated the old custom toast implementation
+   - Simplified the `use-toast.ts` hook to work with Sonner
+   - Retained backward compatibility for existing code
 
-- **Frontend**: React, TypeScript, TailwindCSS
-- **Backend**: Supabase (PostgreSQL + Edge Functions)
-- **AI**: Transformers.js (browser) + OpenAI API (cloud)
-- **Data Visualization**: Recharts
-- **PDF Generation**: jsPDF
-- **Email Service**: Resend API
+3. **Authentication Flow Enhancement**
+   - Added proper loading state for authentication
+   - Improved error handling and logging
+   - Resolved potential redirect loops in the auth flow
 
-## Getting Started
+## Development Setup
 
-### Prerequisites
-- Node.js (v16+)
-- npm or bun
-- Supabase account (for database and edge functions)
-- OpenAI API key (optional, for cloud AI)
-
-### Installation
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/Arthurkhan/star-gazer-analysis.git
+git clone https://github.com/Arthurkhan/star-gazer-analysis
 cd star-gazer-analysis
-```
-
-2. Install dependencies:
-```bash
 npm install
-# or
-bun install
 ```
 
-3. Create a `.env.local` file with your API keys:
+### Environment Variables (.env.local)
 ```
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-OPENAI_API_KEY=your_openai_key (optional)
-RESEND_API_KEY=your_resend_key (for email notifications)
+OPENAI_API_KEY=your_openai_key (for testing)
 ```
 
-4. Start the development server:
+### Run Development Server
 ```bash
 npm run dev
-# or
-bun run dev
+```
+
+### Build for Production
+```bash
+npm run build
 ```
 
 ## Project Structure
 
+### Frontend
 - `/src/components` - React components
 - `/src/hooks` - Custom React hooks
 - `/src/services` - API and service layers
 - `/src/types` - TypeScript type definitions
 - `/src/utils` - Utility functions
-- `/supabase/functions` - Supabase Edge Functions
 
-## Key Components
+### Backend
+- Supabase PostgreSQL database
+- Edge Functions for AI processing
+- n8n automation for daily review updates
 
-### Analysis Dashboard
-The main dashboard displays review analytics with filters and visualizations for different metrics.
+## Toast System Usage
 
-### Enhanced Analysis
-Advanced data analysis including:
-- Review clusters (grouped by sentiment and themes)
-- Historical trends (with forecasting)
-- Temporal patterns (daily, weekly, monthly)
-- Seasonal analysis
+We're now using Sonner for toast notifications. Import and use the toast hook like this:
 
-### Period Comparison
-Compare metrics across different time periods to identify trends, improvements, and areas of concern.
+```tsx
+import { useToast } from "@/hooks/use-toast";
 
-### Email Notifications
-Configure and manage email notifications with different schedules:
-- Weekly summaries
-- Monthly comprehensive reports
-- Urgent alerts for critical issues
-
-### Export System
-Generate custom reports in PDF or CSV format with:
-- Business branding
-- Customizable content sections
-- Interactive charts and visualizations
-- Data tables for deeper analysis
-
-## Deployment
-
-Build the project for production:
-```bash
-npm run build
-# or
-bun run build
+function YourComponent() {
+  const { toast } = useToast();
+  
+  // Usage:
+  const showToast = () => {
+    toast({
+      title: "Success",
+      description: "Your action was successful",
+      variant: "success", // "default", "destructive", "success", "warning", "info"
+    });
+  };
+  
+  return <button onClick={showToast}>Show Toast</button>;
+}
 ```
-
-The build artifacts will be stored in the `dist/` directory, ready to be deployed to any static hosting service.
-
-## Upcoming Features
-
-- Mobile application
-- Multi-user support with role-based access
-- Custom AI provider integration
-- Advanced competitor tracking
-- API integration with other business tools
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.

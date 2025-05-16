@@ -1,5 +1,4 @@
 
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import AISettings from "./pages/AISettings";
 import NotFound from "./pages/NotFound";
 
+// Create a global query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -23,9 +23,12 @@ const queryClient = new QueryClient({
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   
   // Check system preference for dark mode and auth state
   useEffect(() => {
+    console.log("App component mounted");
+    
     // Dark mode handling
     const theme = localStorage.getItem("theme");
     if (theme === "dark" || 
@@ -39,24 +42,40 @@ const App = () => {
     
     // Check authentication
     const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setIsAuthenticated(!!data.session);
-      
-      // Listen for auth changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_, session) => {
-          setIsAuthenticated(!!session);
+      try {
+        console.log("Checking authentication...");
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Auth error:", error);
+          setIsAuthenticated(false);
+        } else {
+          console.log("Auth session:", data.session ? "Found" : "Not found");
+          setIsAuthenticated(!!data.session);
         }
-      );
-      
-      return () => subscription.unsubscribe();
+        
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (event, session) => {
+            console.log("Auth state changed:", event);
+            setIsAuthenticated(!!session);
+          }
+        );
+        
+        setAuthLoading(false);
+        return () => subscription.unsubscribe();
+      } catch (err) {
+        console.error("Error in authentication check:", err);
+        setIsAuthenticated(false);
+        setAuthLoading(false);
+      }
     };
     
     checkAuth();
   }, []);
   
   // Wait until we've checked auth before rendering
-  if (isAuthenticated === null) {
+  if (authLoading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center gap-4">
@@ -71,8 +90,9 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 antialiased text-gray-900 dark:text-gray-100">
-          <Toaster />
+          {/* Using only Sonner for toast notifications to avoid conflicts */}
           <Sonner position="top-right" closeButton expand={false} />
+          
           <BrowserRouter>
             <Routes>
               <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/auth" />} />

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { 
-  BarChart3 as ChartBarIcon, 
+  BarChart3,
   Mail, 
   Save, 
   Bell, 

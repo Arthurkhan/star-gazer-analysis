@@ -513,7 +513,7 @@ export class EnhancedDataAnalysisService {
         averageRating: 5,
         sentiment: 'positive',
         keywords: this.extractKeywords(fiveStarReviews),
-        examples: fiveStarReviews.slice(0, 3).map(r => r.text),
+        examples: fiveStarReviews.slice(0, 3).map(r => r.text || ''),
         insights: [
           `${fiveStarReviews.length} customers (${(fiveStarReviews.length / reviews.length * 100).toFixed(1)}%) gave 5-star ratings`,
           `Key satisfaction drivers: ${this.extractKeywords(fiveStarReviews).slice(0, 3).join(', ')}`
@@ -549,7 +549,7 @@ export class EnhancedDataAnalysisService {
         averageRating: negativeReviews.reduce((sum, r) => sum + r.stars, 0) / negativeReviews.length,
         sentiment: 'negative',
         keywords: this.extractKeywords(negativeReviews),
-        examples: negativeReviews.slice(0, 3).map(r => r.text),
+        examples: negativeReviews.slice(0, 3).map(r => r.text || ''),
         insights: [
           `${negativeReviews.length} customers (${(negativeReviews.length / reviews.length * 100).toFixed(1)}%) gave 1-2 star ratings`,
           `Main complaints: ${this.extractKeywords(negativeReviews).slice(0, 3).join(', ')}`
@@ -606,7 +606,7 @@ export class EnhancedDataAnalysisService {
           averageRating: avgRating,
           sentiment: avgRating >= 4 ? 'positive' : avgRating <= 2 ? 'negative' : 'neutral',
           keywords: [theme, ...this.extractKeywords(themeReviews).filter(k => k !== theme)],
-          examples: themeReviews.slice(0, 3).map(r => r.text),
+          examples: themeReviews.slice(0, 3).map(r => r.text || ''),
           insights: [
             `${themeReviews.length} reviews mention ${theme}`,
             `Average rating when ${theme} is mentioned: ${avgRating.toFixed(1)}`,
@@ -624,7 +624,7 @@ export class EnhancedDataAnalysisService {
     specialties.forEach(specialty => {
       // Find reviews that mention this specialty
       const specialtyReviews = reviews.filter(review => 
-        review.text.toLowerCase().includes(specialty.toLowerCase())
+        review.text && review.text.toLowerCase().includes(specialty.toLowerCase())
       );
       
       if (specialtyReviews.length >= 3) { // Only create clusters with at least 3 reviews
@@ -638,7 +638,7 @@ export class EnhancedDataAnalysisService {
           averageRating: avgRating,
           sentiment: avgRating >= 4 ? 'positive' : avgRating <= 2 ? 'negative' : 'neutral',
           keywords: this.extractKeywords(specialtyReviews),
-          examples: specialtyReviews.slice(0, 3).map(r => r.text),
+          examples: specialtyReviews.slice(0, 3).map(r => r.text || ''),
           insights: [
             `${specialtyReviews.length} reviews mention your specialty: ${specialty}`,
             `Average rating for ${specialty}: ${avgRating.toFixed(1)}`
@@ -790,9 +790,13 @@ export class EnhancedDataAnalysisService {
     const wordFrequency: { [word: string]: number } = {};
     
     reviews.forEach(review => {
-      const words = review.text.toLowerCase().split(/\s+/);
+      // Add null check for review.text before processing
+      const text = review.text || '';
+      if (!text) return; // Skip if text is null, undefined, or empty
+      
+      const words = text.toLowerCase().split(/\s+/);
       words.forEach(word => {
-        if (word.length > 3 && !this.isStopWord(word)) {
+        if (word && word.length > 3 && !this.isStopWord(word)) {
           wordFrequency[word] = (wordFrequency[word] || 0) + 1;
         }
       });

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { appDebugger, setupGlobalErrorHandling } from "@/utils/debugger";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -22,6 +23,9 @@ const queryClient = new QueryClient({
   },
 });
 
+// Initialize global error handling
+setupGlobalErrorHandling();
+
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -29,7 +33,7 @@ const App = () => {
   
   // Check system preference for dark mode and auth state
   useEffect(() => {
-    console.log("App component mounted");
+    appDebugger.info("App component mounted");
     
     // Dark mode handling
     const theme = localStorage.getItem("theme");
@@ -45,11 +49,11 @@ const App = () => {
     // Check authentication with improved error handling
     const checkAuth = async () => {
       try {
-        console.log("Checking authentication...");
+        appDebugger.info("Checking authentication...");
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error("Auth error:", error);
+          appDebugger.error("Auth error:", error);
           setAuthError(`Authentication error: ${error.message}`);
           setIsAuthenticated(false);
           toast({
@@ -58,7 +62,7 @@ const App = () => {
             variant: "destructive",
           });
         } else {
-          console.log("Auth session:", data.session ? "Found" : "Not found");
+          appDebugger.info("Auth session:", data.session ? "Found" : "Not found");
           setIsAuthenticated(!!data.session);
           setAuthError(null);
         }
@@ -66,7 +70,7 @@ const App = () => {
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event, session) => {
-            console.log("Auth state changed:", event);
+            appDebugger.info("Auth state changed:", { event, sessionExists: !!session });
             setIsAuthenticated(!!session);
             if (!session && event === "SIGNED_OUT") {
               toast({
@@ -81,7 +85,7 @@ const App = () => {
         setAuthLoading(false);
         return () => subscription.unsubscribe();
       } catch (err) {
-        console.error("Error in authentication check:", err);
+        appDebugger.error("Error in authentication check:", err);
         const errorMessage = err instanceof Error ? err.message : "Unknown authentication error";
         setAuthError(`Authentication error: ${errorMessage}`);
         setIsAuthenticated(false);
@@ -95,6 +99,38 @@ const App = () => {
     };
     
     checkAuth();
+  }, []);
+  
+  // Add debug drawer toggle on keyboard shortcut (Ctrl+Shift+D)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        
+        // Toggle debug mode
+        if (localStorage.getItem('DEBUG_MODE') === 'true') {
+          appDebugger.disable();
+          toast({
+            title: "Debug Mode Disabled",
+            description: "Application debugging has been turned off.",
+            variant: "info",
+          });
+        } else {
+          appDebugger.enable();
+          toast({
+            title: "Debug Mode Enabled",
+            description: "Application debugging has been turned on. Check console for logs.",
+            variant: "info",
+          });
+          
+          // Export current logs to console
+          appDebugger.exportLogs();
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
   
   // Wait until we've checked auth before rendering

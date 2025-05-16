@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import {
   SeasonalPattern 
 } from '@/types/dataAnalysis';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, CheckCircleIcon, XCircleIcon, InformationCircleIcon } from 'lucide-react';
 
 interface EnhancedAnalysisDisplayProps {
   temporalPatterns: TemporalPattern[] | null;
@@ -82,53 +82,7 @@ export function EnhancedAnalysisDisplay({
           <CardContent>
             {insights ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {insights.keyFindings.length > 0 && (
-                  <div className="rounded-lg border p-4 bg-muted/5">
-                    <h3 className="text-lg font-semibold mb-2 flex items-center">
-                      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                      Key Findings
-                    </h3>
-                    <ul className="space-y-2">
-                      {insights.keyFindings.map((finding, index) => (
-                        <li key={index} className="pl-4 border-l-2 border-blue-200">
-                          {finding}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                {insights.opportunities.length > 0 && (
-                  <div className="rounded-lg border p-4 bg-muted/5">
-                    <h3 className="text-lg font-semibold mb-2 flex items-center">
-                      <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      Opportunities
-                    </h3>
-                    <ul className="space-y-2">
-                      {insights.opportunities.map((opportunity, index) => (
-                        <li key={index} className="pl-4 border-l-2 border-green-200 text-green-700 dark:text-green-400">
-                          {opportunity}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                {insights.risks.length > 0 && (
-                  <div className="rounded-lg border p-4 bg-muted/5">
-                    <h3 className="text-lg font-semibold mb-2 flex items-center">
-                      <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                      Risks
-                    </h3>
-                    <ul className="space-y-2">
-                      {insights.risks.map((risk, index) => (
-                        <li key={index} className="pl-4 border-l-2 border-red-200 text-red-700 dark:text-red-400">
-                          {risk}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {renderKeyInsights(insights)}
               </div>
             ) : (
               <p>No insights available.</p>
@@ -213,6 +167,69 @@ export function EnhancedAnalysisDisplay({
   );
 }
 
+function renderKeyInsights(insights: { keyFindings: string[]; opportunities: string[]; risks: string[] }) {
+  return (
+    <>
+      {insights.keyFindings.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="rounded-full p-2 bg-blue-100 dark:bg-blue-900">
+              <InformationCircleIcon className="h-6 w-6 text-blue-500" />
+            </div>
+            <h3 className="font-semibold text-lg">Key Findings</h3>
+          </div>
+          
+          <ul className="space-y-2">
+            {insights.keyFindings.map((finding, index) => (
+              <li key={index} className="text-gray-600 dark:text-gray-300">
+                {finding}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      {insights.opportunities.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="rounded-full p-2 bg-green-100 dark:bg-green-900">
+              <CheckCircleIcon className="h-6 w-6 text-green-500" />
+            </div>
+            <h3 className="font-semibold text-lg">Opportunities</h3>
+          </div>
+          
+          <ul className="space-y-2">
+            {insights.opportunities.map((opportunity, index) => (
+              <li key={index} className="text-gray-600 dark:text-gray-300">
+                {opportunity}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      {insights.risks.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="rounded-full p-2 bg-red-100 dark:bg-red-900">
+              <XCircleIcon className="h-6 w-6 text-red-500" />
+            </div>
+            <h3 className="font-semibold text-lg">Risks</h3>
+          </div>
+          
+          <ul className="space-y-2">
+            {insights.risks.map((risk, index) => (
+              <li key={index} className="text-gray-600 dark:text-gray-300">
+                {risk}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
 function renderTemporalPatterns(patterns: TemporalPattern[] | null, selectedPattern: string) {
   if (!patterns || patterns.length === 0) {
     return <p>No temporal pattern data available.</p>;
@@ -249,9 +266,9 @@ function renderTemporalPatterns(patterns: TemporalPattern[] | null, selectedPatt
         </ResponsiveContainer>
       </div>
       
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
         {pattern.data.map((item, index) => (
-          <div key={index} className="border rounded-md p-2 flex flex-col items-center text-center">
+          <div key={index} className="border rounded-md p-2 flex flex-col items-center text-center w-12 h-12">
             <span className="text-xs text-muted-foreground truncate w-full">{item.period}</span>
             <p className="text-base font-medium">{item.value}</p>
             <Badge variant={getTrendVariant(item.trend)} className="text-xs mt-1 px-1 py-0">
@@ -375,66 +392,68 @@ function renderClusters(clusters: ReviewCluster[] | null, showAll: boolean, togg
   
   return (
     <div className="space-y-6">
-      {visibleClusters.map(cluster => (
-        <div key={cluster.id} className="border rounded-lg p-4">
-          <div className="flex justify-between items-start mb-3">
-            <div>
-              <h3 className="text-lg font-medium">{cluster.name}</h3>
-              <p className="text-sm text-muted-foreground">{cluster.description}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {visibleClusters.map(cluster => (
+          <div key={cluster.id} className="border rounded-lg p-4">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h3 className="text-lg font-medium">{cluster.name}</h3>
+                <p className="text-sm text-muted-foreground">{cluster.description}</p>
+              </div>
+              <Badge 
+                variant={
+                  cluster.sentiment === 'positive' ? "success" : 
+                  cluster.sentiment === 'negative' ? "destructive" : 
+                  "neutral"
+                }
+              >
+                {cluster.sentiment.charAt(0).toUpperCase() + cluster.sentiment.slice(1)}
+              </Badge>
             </div>
-            <Badge 
-              variant={
-                cluster.sentiment === 'positive' ? "success" : 
-                cluster.sentiment === 'negative' ? "destructive" : 
-                "neutral"
-              }
-            >
-              {cluster.sentiment.charAt(0).toUpperCase() + cluster.sentiment.slice(1)}
-            </Badge>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Review Count</p>
-              <p className="text-lg font-medium">{cluster.reviewCount}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Average Rating</p>
-              <p className="text-lg font-medium">{cluster.averageRating.toFixed(1)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Keywords</p>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {cluster.keywords.slice(0, 5).map((keyword, i) => (
-                  <Badge key={i} variant="outline" className="text-xs">
-                    {keyword}
-                  </Badge>
-                ))}
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Review Count</p>
+                <p className="text-lg font-medium">{cluster.reviewCount}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Average Rating</p>
+                <p className="text-lg font-medium">{cluster.averageRating.toFixed(1)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Keywords</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {cluster.keywords.slice(0, 5).map((keyword, i) => (
+                    <Badge key={i} variant="outline" className="text-xs">
+                      {keyword}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-          
-          {cluster.insights.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium mb-1">Insights</h4>
-              <ul className="list-disc pl-5 text-sm space-y-1">
-                {cluster.insights.map((insight, i) => (
-                  <li key={i}>{insight}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
-          {cluster.examples.length > 0 && (
-            <div className="mt-3">
-              <h4 className="text-sm font-medium mb-1">Sample Review</h4>
-              <div className="text-sm italic bg-muted/30 p-2 rounded">
-                "{cluster.examples[0]}"
+            
+            {cluster.insights.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-1">Insights</h4>
+                <ul className="list-disc pl-5 text-sm space-y-1">
+                  {cluster.insights.map((insight, i) => (
+                    <li key={i}>{insight}</li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          )}
-        </div>
-      ))}
+            )}
+            
+            {cluster.examples.length > 0 && (
+              <div className="mt-3">
+                <h4 className="text-sm font-medium mb-1">Sample Review</h4>
+                <div className="text-sm italic bg-muted/30 p-2 rounded">
+                  "{cluster.examples[0]}"
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
       
       {hasMoreClusters && (
         <div className="flex justify-center">
@@ -451,7 +470,7 @@ function renderClusters(clusters: ReviewCluster[] | null, showAll: boolean, togg
             ) : (
               <>
                 <ChevronDown className="h-4 w-4 mr-1" />
-                Show All Clusters ({displayClusters.length})
+                Show More
               </>
             )}
           </Button>

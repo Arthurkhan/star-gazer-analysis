@@ -1,73 +1,126 @@
-# Welcome to your Lovable project
+# Star-Gazer Analysis
 
-## Project info
+A sophisticated Google Maps review analysis tool with AI-powered recommendations for businesses. This application helps business owners gain insights from their customer reviews, identify trends, and receive actionable recommendations.
 
-**URL**: https://lovable.dev/projects/29ca86ea-f7df-4841-8d3a-7652c91f5173
+## Features
 
-## How can I edit this code?
+### Core Features
+- 📊 Review analytics dashboard with visualizations
+- 🤖 AI-powered recommendations using OpenAI GPT-4 or browser-based models
+- 📈 Detailed trend analysis and pattern recognition
+- 🌟 Staff performance tracking
+- 🔍 Sentiment analysis and theme extraction
 
-There are several ways of editing your application.
+### Enhanced Features (New)
+- 📧 **Email Notification System** - Receive weekly summaries, monthly reports, and urgent alerts
+- 📱 **Advanced PDF/CSV Exports** - Generate professional reports with custom branding
+- 📆 **Period Comparison** - Compare metrics across different time periods
+- 📊 **Enhanced Analysis Display** - Advanced visualization of review clusters, trends, and patterns
+- 🔄 **Improved UI Components** - Better user experience across all features
 
-**Use Lovable**
+## Technology Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/29ca86ea-f7df-4841-8d3a-7652c91f5173) and start prompting.
+- **Frontend**: React, TypeScript, TailwindCSS
+- **Backend**: Supabase (PostgreSQL + Edge Functions)
+- **AI**: Transformers.js (browser) + OpenAI API (cloud)
+- **Data Visualization**: Recharts
+- **PDF Generation**: jsPDF
+- **Email Service**: Resend API
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
+- Node.js (v16+)
+- npm or bun
+- Supabase account (for database and edge functions)
+- OpenAI API key (optional, for cloud AI)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+1. Clone the repository:
+```bash
+git clone https://github.com/Arthurkhan/star-gazer-analysis.git
+cd star-gazer-analysis
 ```
 
-**Edit a file directly in GitHub**
+2. Install dependencies:
+```bash
+npm install
+# or
+bun install
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+3. Create a `.env.local` file with your API keys:
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+OPENAI_API_KEY=your_openai_key (optional)
+RESEND_API_KEY=your_resend_key (for email notifications)
+```
 
-**Use GitHub Codespaces**
+4. Start the development server:
+```bash
+npm run dev
+# or
+bun run dev
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project Structure
 
-## What technologies are used for this project?
+- `/src/components` - React components
+- `/src/hooks` - Custom React hooks
+- `/src/services` - API and service layers
+- `/src/types` - TypeScript type definitions
+- `/src/utils` - Utility functions
+- `/supabase/functions` - Supabase Edge Functions
 
-This project is built with:
+## Key Components
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Analysis Dashboard
+The main dashboard displays review analytics with filters and visualizations for different metrics.
 
-## How can I deploy this project?
+### Enhanced Analysis
+Advanced data analysis including:
+- Review clusters (grouped by sentiment and themes)
+- Historical trends (with forecasting)
+- Temporal patterns (daily, weekly, monthly)
+- Seasonal analysis
 
-Simply open [Lovable](https://lovable.dev/projects/29ca86ea-f7df-4841-8d3a-7652c91f5173) and click on Share -> Publish.
+### Period Comparison
+Compare metrics across different time periods to identify trends, improvements, and areas of concern.
 
-## Can I connect a custom domain to my Lovable project?
+### Email Notifications
+Configure and manage email notifications with different schedules:
+- Weekly summaries
+- Monthly comprehensive reports
+- Urgent alerts for critical issues
 
-Yes, you can!
+### Export System
+Generate custom reports in PDF or CSV format with:
+- Business branding
+- Customizable content sections
+- Interactive charts and visualizations
+- Data tables for deeper analysis
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Deployment
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Build the project for production:
+```bash
+npm run build
+# or
+bun run build
+```
+
+The build artifacts will be stored in the `dist/` directory, ready to be deployed to any static hosting service.
+
+## Upcoming Features
+
+- Mobile application
+- Multi-user support with role-based access
+- Custom AI provider integration
+- Advanced competitor tracking
+- API integration with other business tools
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

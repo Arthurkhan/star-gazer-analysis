@@ -5,12 +5,13 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AreaChart, BarChart, PieChart } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Info, BarChart2, Loader2, Search, TrendingUp, AlertTriangle } from "lucide-react";
 import { TemporalPattern, HistoricalTrend, ReviewCluster, SeasonalPattern } from "@/types/dataAnalysis";
+import { ResponsiveContainer, AreaChart as RechartsAreaChart, BarChart as RechartsBarChart, PieChart as RechartsPieChart, Area, Bar, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 interface EnhancedAnalysisDisplayProps {
   temporalPatterns: TemporalPattern[] | null;
@@ -44,7 +45,7 @@ export const EnhancedAnalysisDisplay = ({
 
   if (!temporalPatterns && !historicalTrends && !reviewClusters && !seasonalAnalysis && !insights) {
     return (
-      <Alert variant="info">
+      <Alert variant="default">
         <Info className="h-4 w-4" />
         <AlertTitle>No Enhanced Analysis Available</AlertTitle>
         <AlertDescription>
@@ -53,6 +54,19 @@ export const EnhancedAnalysisDisplay = ({
       </Alert>
     );
   }
+
+  // Chart rendering functions
+  const renderAreaChart = (data: any[]) => (
+    <ResponsiveContainer width="100%" height={200}>
+      <RechartsAreaChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="period" />
+        <YAxis />
+        <Tooltip />
+        <Area type="monotone" dataKey="value" stroke="#8884d8" fill="#8884d8" />
+      </RechartsAreaChart>
+    </ResponsiveContainer>
+  );
 
   return (
     <div className="space-y-6">
@@ -96,11 +110,9 @@ export const EnhancedAnalysisDisplay = ({
         <Card>
           <CardHeader>
             <CardTitle>Temporal Patterns</CardTitle>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Understand how review activity changes over time.
-              </p>
-            </CardContent>
+            <p className="text-sm text-muted-foreground">
+              Understand how review activity changes over time.
+            </p>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px] w-full">
@@ -112,7 +124,7 @@ export const EnhancedAnalysisDisplay = ({
                       <Badge variant="secondary">Strength: {(pattern.strength * 100).toFixed(0)}%</Badge>
                     </div>
                     <p className="text-muted-foreground">{pattern.description}</p>
-                    <AreaChart data={pattern.data} />
+                    {renderAreaChart(pattern.data)}
                   </div>
                 ))}
               </div>
@@ -126,11 +138,9 @@ export const EnhancedAnalysisDisplay = ({
         <Card>
           <CardHeader>
             <CardTitle>Historical Trends</CardTitle>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Track key metrics over time to identify trends.
-              </p>
-            </CardContent>
+            <p className="text-sm text-muted-foreground">
+              Track key metrics over time to identify trends.
+            </p>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[300px] w-full">
@@ -141,7 +151,7 @@ export const EnhancedAnalysisDisplay = ({
                       <h4 className="text-sm font-medium">{trend.metric}</h4>
                       <Badge variant="secondary">Trend: {trend.trend}</Badge>
                     </div>
-                    <AreaChart data={trend.data} />
+                    {renderAreaChart(trend.data)}
                   </div>
                 ))}
               </div>

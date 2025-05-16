@@ -29,6 +29,7 @@ export interface AnalysisResult {
   languageDistribution?: { language: string; count: number; percentage: number }[];
   ratingBreakdown?: { rating: number; count: number; percentage: number }[];
   mainThemes?: { theme: string; count: number; percentage: number }[];
+  
   // Add missing properties
   temporalPatterns?: any[];
   historicalTrends?: any[];
@@ -120,14 +121,15 @@ export interface GrowthStrategy {
   kpis: string[];
 }
 
+// Update Scenario to be compatible with BusinessScenario
 export interface Scenario {
   name: string;
   description: string;
-  probability: "high" | "medium" | "low";
+  probability: string | number; // Allow both string and number
   impact: "positive" | "negative" | "neutral";
   responseStrategy: string;
   triggers: string[];
-  // Add missing properties from BusinessScenario to make them compatible
+  // Add properties to make it compatible with BusinessScenario
   projectedMetrics?: {
     reviewVolume: number;
     avgRating: number;
@@ -154,6 +156,10 @@ export interface BusinessScenario {
   };
   requiredActions: string[];
   assumptions?: string[];
+  // Add these to make it compatible with Scenario
+  impact?: "positive" | "negative" | "neutral";
+  responseStrategy?: string;
+  triggers?: string[];
 }
 
 export interface MarketingPlan {

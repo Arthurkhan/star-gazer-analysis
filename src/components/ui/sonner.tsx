@@ -50,7 +50,7 @@ const Toaster = ({
       className={className}
       toastOptions={{
         className: "group border-border font-sans",
-        // Fix the error by using className instead of classNames
+        // Fix the property name to className instead of classNames
       }}
       {...props}
     />

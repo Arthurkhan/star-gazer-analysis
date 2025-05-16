@@ -1,3 +1,4 @@
+
 // src/components/review-analysis/index.ts
 // Export all review analysis components for easier imports
 
@@ -9,7 +10,7 @@ import { ReviewSentiment } from './ReviewSentiment';
 import { ReviewThemes } from './ReviewThemes';
 import { ReviewTrends } from './ReviewTrends';
 import { ReviewStaffMentions } from './ReviewStaffMentions';
-import { PieChart } from '@/components/ui/chart';
+import { PieChartRenderer } from './PieChartRenderer';
 import { ReviewTimeDistribution } from './ReviewTimeDistribution';
 
 export {
@@ -21,6 +22,6 @@ export {
   ReviewThemes,
   ReviewTrends,
   ReviewStaffMentions,
-  PieChart as PieChartRenderer,
+  PieChartRenderer,
   ReviewTimeDistribution
 };

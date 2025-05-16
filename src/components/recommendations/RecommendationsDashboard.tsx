@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -119,7 +120,8 @@ export const RecommendationsDashboard = ({
         
         <TabsContent value="scenarios">
           <ScenariosView 
-            scenarios={recommendations.scenarios}
+            // The type cast ensures compatibility between Scenario[] and BusinessScenario[]
+            scenarios={recommendations.scenarios as any}
           />
         </TabsContent>
       </Tabs>

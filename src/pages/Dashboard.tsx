@@ -14,7 +14,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { BusinessType } from "@/types/businessTypes";
 import { type AIProvider } from "@/components/AIProviderToggle";
-import { Sparkles, Download, Save, BarChart3, CompareIcon, MailIcon } from "lucide-react";
+import { Sparkles, Download, Save, BarChart3, GitCompare as CompareIcon, MailIcon } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();

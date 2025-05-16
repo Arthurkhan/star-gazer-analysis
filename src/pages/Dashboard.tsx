@@ -14,7 +14,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { BusinessType } from "@/types/businessTypes";
 import { type AIProvider } from "@/components/AIProviderToggle";
-import { Sparkles, Download, Save, BarChart3, GitCompare as CompareIcon, MailIcon } from "lucide-react";
+import { Sparkles, Download, Save, BarChart3, GitCompare, Mail as MailIcon } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -144,7 +144,7 @@ const Dashboard = () => {
             />
           ) : (
             <div className="text-center p-10 space-y-4">
-              <CompareIcon className="w-12 h-12 text-muted-foreground mx-auto" />
+              <GitCompare className="w-12 h-12 text-muted-foreground mx-auto" />
               <h3 className="text-lg font-medium">Select a Business</h3>
               <p className="text-muted-foreground max-w-md mx-auto">
                 Please select a specific business to compare data across different time periods.

@@ -11,6 +11,7 @@ import { Review } from '@/types/reviews';
 import { type AIProvider } from '@/components/AIProviderToggle';
 import { enhancedDataAnalysisService } from '@/services/dataAnalysis/enhancedDataAnalysisService';
 import { EnhancedAnalysis } from '@/types/dataAnalysis';
+import { toast } from '@/hooks/use-toast';
 
 export class RecommendationService {
   private browserService: BrowserAIService;
@@ -35,8 +36,27 @@ export class RecommendationService {
     [key: string]: any;
   }): Promise<Recommendations> {
     try {
+      // Validate inputs before processing
+      if (!params.business || !params.businessType || !Array.isArray(params.reviews)) {
+        throw new Error('Invalid input parameters: business, businessType, and reviews array are required');
+      }
+      
+      // Log for debugging
+      console.log('Generating recommendations with params:', {
+        business: params.business,
+        businessType: params.businessType,
+        reviewCount: params.reviews?.length || 0,
+        provider: this.provider
+      });
+      
       // Perform enhanced data analysis first
-      const enhancedAnalysis = await enhancedDataAnalysisService.analyzeData(params.reviews);
+      let enhancedAnalysis;
+      try {
+        enhancedAnalysis = await enhancedDataAnalysisService.analyzeData(params.reviews);
+      } catch (analysisError) {
+        console.error('Enhanced analysis failed, continuing with basic analysis', analysisError);
+        enhancedAnalysis = null;
+      }
       
       let recommendations: Recommendations;
       
@@ -50,12 +70,19 @@ export class RecommendationService {
         );
       }
       
-      // Add enhanced analysis to the recommendations
-      recommendations.enhancedAnalysis = enhancedAnalysis;
+      // Add enhanced analysis to the recommendations if available
+      if (enhancedAnalysis) {
+        recommendations.enhancedAnalysis = enhancedAnalysis;
+      }
       
       return recommendations;
     } catch (error) {
-      console.error('Primary AI failed, falling back to browser AI', error);
+      console.error('Primary AI failed, attempting fallback', error);
+      toast({
+        title: 'AI Processing Warning',
+        description: error instanceof Error ? error.message : 'An error occurred during AI processing, attempting fallback method.',
+        variant: 'warning'
+      });
       
       // Fallback to browser AI if API fails
       if (this.provider === 'api') {
@@ -67,20 +94,30 @@ export class RecommendationService {
           );
         } catch (fallbackError) {
           console.error('Fallback to browser AI also failed', fallbackError);
-          throw fallbackError;
+          toast({
+            title: 'AI Processing Failed',
+            description: 'Both primary and fallback AI processing methods failed. Please try again later.',
+            variant: 'destructive'
+          });
+          throw new Error(`AI processing failed: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`);
         }
       }
       
-      throw error;
+      throw new Error(`AI processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
   
   private async generateApiRecommendations(params: any): Promise<Recommendations> {
-    // Get the API provider and key
+    // Get the API provider and key with additional validation
     const apiProvider = localStorage.getItem('AI_PROVIDER') as AIProviderType || 'openai';
     const apiKey = localStorage.getItem(`${apiProvider.toUpperCase()}_API_KEY`);
     
     if (!apiKey) {
+      toast({
+        title: 'API Configuration Error',
+        description: `No API key found for ${apiProvider}. Please configure your API key in the settings.`,
+        variant: 'destructive'
+      });
       throw new Error(`No API key found for ${apiProvider}`);
     }
     
@@ -95,10 +132,10 @@ export class RecommendationService {
     const businessContext: BusinessContext = {
       businessName: params.business,
       businessType: params.businessType,
-      reviews: params.reviews,
-      metrics: params.metrics,
+      reviews: params.reviews || [],
+      metrics: params.metrics || {},
       analysis: await this.convertToReviewAnalysis(params),
-      historicalTrends: params.patterns
+      historicalTrends: params.patterns || {}
     };
     
     // Generate recommendations using the AI provider
@@ -106,11 +143,25 @@ export class RecommendationService {
     
     // Generate additional components if not provided
     if (!recommendations.customerAttractionPlan) {
-      recommendations.customerAttractionPlan = await aiService.generateMarketingPlan(businessContext);
+      try {
+        recommendations.customerAttractionPlan = await aiService.generateMarketingPlan(businessContext);
+      } catch (error) {
+        console.error('Failed to generate marketing plan', error);
+        recommendations.customerAttractionPlan = {
+          title: 'Marketing Plan Generation Failed',
+          description: 'Unable to generate marketing plan at this time.',
+          strategies: []
+        };
+      }
     }
     
     if (!recommendations.scenarios || recommendations.scenarios.length === 0) {
-      recommendations.scenarios = await aiService.generateScenarios(businessContext);
+      try {
+        recommendations.scenarios = await aiService.generateScenarios(businessContext);
+      } catch (error) {
+        console.error('Failed to generate scenarios', error);
+        recommendations.scenarios = [];
+      }
     }
     
     return recommendations;
@@ -118,21 +169,27 @@ export class RecommendationService {
   
   private async convertToReviewAnalysis(params: any): Promise<ReviewAnalysis> {
     // Convert the existing analysis format to the new ReviewAnalysis format
+    // with defensive programming to handle potential undefined values
     const sentiment = params.sentimentAnalysis || [];
-    const totalSentiment = sentiment.reduce((sum: number, s: any) => sum + s.value, 0) || 1;
+    const totalSentiment = sentiment.reduce((sum: number, s: any) => sum + (s?.value || 0), 0) || 1;
+    
+    const findSentiment = (name: string) => {
+      const found = sentiment.find((s: any) => s?.name === name);
+      return found?.value || 0;
+    };
     
     return {
       sentiment: {
-        overall: sentiment.find((s: any) => s.name === 'Positive')?.value / totalSentiment || 0.5,
+        overall: findSentiment('Positive') / totalSentiment || 0.5,
         breakdown: {
-          positive: sentiment.find((s: any) => s.name === 'Positive')?.value || 0,
-          neutral: sentiment.find((s: any) => s.name === 'Neutral')?.value || 0,
-          negative: sentiment.find((s: any) => s.name === 'Negative')?.value || 0
+          positive: findSentiment('Positive'),
+          neutral: findSentiment('Neutral'),
+          negative: findSentiment('Negative')
         }
       },
       themes: (params.commonTerms || []).map((term: any) => ({
-        name: term.text,
-        frequency: term.count,
+        name: term?.text || 'Unknown',
+        frequency: term?.count || 0,
         sentiment: 'neutral' as const,
         examples: []
       })),
@@ -158,15 +215,26 @@ export class RecommendationService {
   }
 }
 
-// Singleton instance
+// Singleton instance with error handling
 let recommendationService: RecommendationService | null = null;
 
 export function getRecommendationService(provider?: AIProvider): RecommendationService {
-  if (!recommendationService) {
-    recommendationService = new RecommendationService(provider);
-  } else if (provider && recommendationService.getCurrentProvider() !== provider) {
-    recommendationService.setProvider(provider);
+  try {
+    if (!recommendationService) {
+      recommendationService = new RecommendationService(provider);
+    } else if (provider && recommendationService.getCurrentProvider() !== provider) {
+      recommendationService.setProvider(provider);
+    }
+    
+    return recommendationService;
+  } catch (error) {
+    console.error('Failed to initialize recommendation service', error);
+    toast({
+      title: 'Service Initialization Error',
+      description: 'Failed to initialize the AI recommendation service. Please refresh the page and try again.',
+      variant: 'destructive'
+    });
+    // Return a new instance as fallback
+    return new RecommendationService('browser');
   }
-  
-  return recommendationService;
 }

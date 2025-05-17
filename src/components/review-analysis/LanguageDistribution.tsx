@@ -1,10 +1,10 @@
 
 import React, { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { renderActiveShape } from "./PieChartRenderer";
 import { CustomPieTooltip } from "./CustomTooltips";
 import { Review } from "@/types/reviews";
 import { countReviewsByLanguage } from "@/utils/dataUtils";
+import { renderActiveShape } from "./PieChartRenderer";
 
 // Enhanced colors for pie chart with better contrast
 const COLORS = [

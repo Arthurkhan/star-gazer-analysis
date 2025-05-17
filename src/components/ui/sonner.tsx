@@ -1,60 +1,23 @@
 
-import { useEffect, useState } from "react";
-import { Toaster as Sonner } from "sonner";
+"use client"
 
-interface ToasterProps {
-  className?: string;
-  closeButton?: boolean;
-  duration?: number;
-  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "top-center" | "bottom-center";
-  theme?: "light" | "dark" | "system";
-  richColors?: boolean;
-  expand?: boolean;
-  visibleToasts?: number;
-  [key: string]: any;
-}
+import { useTheme } from "next-themes"
+import { Toaster as Sonner } from "sonner"
+import { type ToasterProps } from "sonner"
 
-const Toaster = ({ 
-  className = "",
-  theme = "system", 
-  ...props 
-}: ToasterProps) => {
-  const [currentTheme, setCurrentTheme] = useState<"light" | "dark">("light");
-  
-  useEffect(() => {
-    // Check for dark mode preference in the DOM
-    const isDarkMode = document.documentElement.classList.contains("dark");
-    
-    if (theme === "system") {
-      // Check system preference
-      const systemPreference = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      setCurrentTheme(systemPreference);
-      
-      // Add listener for system preference changes
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const handleChange = (e: MediaQueryListEvent) => {
-        setCurrentTheme(e.matches ? "dark" : "light");
-      };
-      
-      mediaQuery.addEventListener("change", handleChange);
-      return () => mediaQuery.removeEventListener("change", handleChange);
-    } else {
-      // Use the explicitly set theme
-      setCurrentTheme(theme === "dark" ? "dark" : "light");
-    }
-  }, [theme]);
-  
+function Toaster({ ...props }: ToasterProps) {
+  const { theme = "system" } = useTheme()
+
   return (
     <Sonner
-      theme={currentTheme}
-      className={className}
+      theme={theme as ToasterProps["theme"]}
+      className="toaster group"
       toastOptions={{
-        className: "group border-border font-sans",
-        // Fix the property name to className instead of classNames
+        className: "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
       }}
       {...props}
     />
-  );
-};
+  )
+}
 
-export { Toaster };
+export { Toaster }

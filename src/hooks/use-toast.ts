@@ -1,3 +1,4 @@
+
 // src/hooks/use-toast.ts
 // A clean implementation using Sonner directly, without any potential circular dependencies
 import { toast as sonnerToast } from "sonner";
@@ -27,26 +28,21 @@ const toast = ({
   // Get the sonner variant
   const sonnerVariant = variantMap[variant] || "default";
   
+  // Construct toast data
+  const toastData = {
+    description,
+    action,
+    id: Math.random().toString(36).substring(2, 9),
+  };
+  
   // Properly call the sonner toast API
   if (sonnerVariant === "default") {
-    return sonnerToast(title || "", {
-      description,
-      action,
-      id: Math.random().toString(36).substring(2, 9),
-    });
+    return sonnerToast(title || "", toastData);
   } else if (typeof sonnerToast[sonnerVariant] === "function") {
-    return sonnerToast[sonnerVariant](title || "", {
-      description,
-      action,
-      id: Math.random().toString(36).substring(2, 9),
-    });
+    return sonnerToast[sonnerVariant](title || "", toastData);
   } else {
     // Fallback to default if variant not found
-    return sonnerToast(title || "", {
-      description,
-      action,
-      id: Math.random().toString(36).substring(2, 9),
-    });
+    return sonnerToast(title || "", toastData);
   }
 };
 

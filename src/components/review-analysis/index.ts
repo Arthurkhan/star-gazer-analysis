@@ -2,26 +2,19 @@
 // src/components/review-analysis/index.ts
 // Export all review analysis components for easier imports
 
-import { ReviewAnalytics } from './ReviewAnalytics';
-import { ReviewList } from './ReviewList';
-import { ReviewStats } from './ReviewStats';
-import { ReviewFilters } from './ReviewFilters';
-import { ReviewSentiment } from './ReviewSentiment';
-import { ReviewThemes } from './ReviewThemes';
-import { ReviewTrends } from './ReviewTrends';
-import { ReviewStaffMentions } from './ReviewStaffMentions';
-import { PieChartRenderer } from './PieChartRenderer';
-import { ReviewTimeDistribution } from './ReviewTimeDistribution';
+import PieChartRenderer from './PieChartRenderer';
 
 export {
-  ReviewAnalytics,
-  ReviewList,
-  ReviewStats,
-  ReviewFilters,
-  ReviewSentiment,
-  ReviewThemes,
-  ReviewTrends,
-  ReviewStaffMentions,
-  PieChartRenderer,
-  ReviewTimeDistribution
+  PieChartRenderer
 };
+
+// Export placeholder for components that will be implemented later
+export const ReviewAnalytics = () => null;
+export const ReviewList = () => null;
+export const ReviewStats = () => null;
+export const ReviewFilters = () => null;
+export const ReviewSentiment = () => null;
+export const ReviewThemes = () => null;
+export const ReviewTrends = () => null;
+export const ReviewStaffMentions = () => null;
+export const ReviewTimeDistribution = () => null;

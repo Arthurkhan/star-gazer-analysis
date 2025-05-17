@@ -123,3 +123,5 @@ export const PieChartRenderer: React.FC<PieChartRendererProps> = ({
     </div>
   );
 };
+
+export default PieChartRenderer;

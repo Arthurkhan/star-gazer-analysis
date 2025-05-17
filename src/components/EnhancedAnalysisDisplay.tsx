@@ -1,6 +1,7 @@
+
 // src/components/EnhancedAnalysisDisplay.tsx
 import React from 'react';
-import { Info } from 'lucide-react'; // Changed from InformationCircleIcon to Info
+import { Info } from 'lucide-react'; 
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { EnhancedAnalysis } from '@/types/dataAnalysis';

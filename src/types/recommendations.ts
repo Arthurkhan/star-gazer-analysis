@@ -3,6 +3,10 @@ export type BusinessType = "cafe" | "restaurant" | "bar" | "hotel" | "retail" | 
 import { EnhancedAnalysis } from "./dataAnalysis";
 
 export interface Recommendations {
+  // Business information
+  businessId?: string;
+  businessName?: string;
+  
   analysis: AnalysisResult;
   suggestions: Suggestion[];
   actionPlan: ActionPlan;

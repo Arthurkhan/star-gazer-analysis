@@ -56,21 +56,7 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
     return data || [];
   } catch (error) {
     console.error("Failed to fetch businesses:", error);
-    
-    // Create fallback businesses if no data
-    if (businessCache.data.length === 0) {
-      const fallbackBusinesses = Object.entries(BUSINESS_TYPE_MAPPINGS).map(([name, type], index) => ({
-        id: `fallback-${index + 1}`,
-        name,
-        business_type: type,
-        created_at: new Date().toISOString()
-      }));
-      
-      businessCache.data = fallbackBusinesses;
-      businessCache.timestamp = Date.now();
-    }
-    
-    return businessCache.data;
+    return [];
   }
 };
 
@@ -90,16 +76,16 @@ export const fetchReviewsByBusinessId = async (
       .from('reviews')
       .select('*')
       .eq('business_id', businessId)
-      .order('publishedAtDate', { ascending: false })
+      .order('publishedatdate', { ascending: false })
       .limit(limit);
     
     // Add date filters if provided
     if (startDate) {
-      query = query.gte('publishedAtDate', startDate.toISOString());
+      query = query.gte('publishedatdate', startDate.toISOString());
     }
     
     if (endDate) {
-      query = query.lte('publishedAtDate', endDate.toISOString());
+      query = query.lte('publishedatdate', endDate.toISOString());
     }
     
     const { data, error } = await query;
@@ -137,20 +123,21 @@ export const fetchAllReviews = async (
       .select(`
         *,
         businesses:business_id (
+          id,
           name,
           business_type
         )
       `)
-      .order('publishedAtDate', { ascending: false })
+      .order('publishedatdate', { ascending: false })
       .limit(1000); // Reasonable limit to prevent performance issues
     
     // Add date filters if provided
     if (startDate) {
-      query = query.gte('publishedAtDate', startDate.toISOString());
+      query = query.gte('publishedatdate', startDate.toISOString());
     }
     
     if (endDate) {
-      query = query.lte('publishedAtDate', endDate.toISOString());
+      query = query.lte('publishedatdate', endDate.toISOString());
     }
     
     const { data, error } = await query;
@@ -177,7 +164,7 @@ export const fetchAllReviews = async (
     return processedReviews;
   } catch (error) {
     console.error("Failed to fetch all reviews:", error);
-    return reviewsCache.data; // Return cached data as fallback
+    return [];
   }
 };
 
@@ -190,13 +177,21 @@ export const fetchAvailableTables = async (): Promise<TableName[]> => {
     const businesses = await fetchBusinesses();
     
     // Return only the business names that match our TableName type
-    return businesses
-      .map(business => business.name as TableName)
+    const businessNames = businesses
+      .map(business => business.name)
       .filter(name => 
         name === "L'Envol Art Space" || 
         name === "The Little Prince Cafe" || 
         name === "Vol de Nuit, The Hidden Bar"
-      );
+      ) as TableName[];
+    
+    // If we don't find any businesses matching our expected names,
+    // use the first three business names instead
+    if (businessNames.length === 0 && businesses.length > 0) {
+      return businesses.slice(0, 3).map(b => b.name) as TableName[];
+    }
+    
+    return businessNames;
   } catch (error) {
     console.error("Failed to fetch tables:", error);
     

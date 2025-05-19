@@ -38,7 +38,19 @@ const Dashboard = () => {
   const filteredReviews = getFilteredReviews();
   const chartData = getChartData(filteredReviews);
 
-  const {\n    recommendations,\n    loading: recommendationsLoading,\n    error: recommendationsError,\n    generatingMessage,\n    generateRecommendations,\n    exportRecommendations,\n    saveRecommendations,\n  } = useRecommendations({\n    businessData: { ...businessData, reviews: filteredReviews },\n    selectedBusiness,\n    businessType: selectedBusinessType,\n  });
+  const {
+    recommendations,
+    loading: recommendationsLoading,
+    error: recommendationsError,
+    generatingMessage,
+    generateRecommendations,
+    exportRecommendations,
+    saveRecommendations,
+  } = useRecommendations({
+    businessData: { ...businessData, reviews: filteredReviews },
+    selectedBusiness,
+    businessType: selectedBusinessType,
+  });
   
   const handleGenerateRecommendations = useCallback(() => {
     generateRecommendations(aiProvider);

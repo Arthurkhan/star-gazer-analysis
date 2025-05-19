@@ -14,13 +14,15 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { BusinessType } from "@/types/businessTypes";
 import { type AIProvider } from "@/components/AIProviderToggle";
-import { Sparkles, Download, Save, BarChart3, GitCompare, Mail as MailIcon } from "lucide-react";
+import { Sparkles, Download, Save, BarChart3, GitCompare, Mail as MailIcon, RefreshCw } from "lucide-react";
+import { DebugPanel } from "@/components/debug/DebugPanel";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [aiProvider, setAiProvider] = useState<AIProvider>("browser");
   const [selectedBusinessType, setSelectedBusinessType] = useState<BusinessType>(BusinessType.OTHER);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const { 
     loading, 
@@ -29,28 +31,27 @@ const Dashboard = () => {
     getFilteredReviews, 
     getChartData,
     enhancedAnalysis,
-    handleBusinessChange 
+    handleBusinessChange,
+    refreshData 
   } = useDashboardData();
 
   const filteredReviews = getFilteredReviews();
+  const chartData = getChartData(filteredReviews);
 
-  const {
-    recommendations,
-    loading: recommendationsLoading,
-    error: recommendationsError,
-    generatingMessage,
-    generateRecommendations,
-    exportRecommendations,
-    saveRecommendations,
-  } = useRecommendations({
-    businessData: { ...businessData, reviews: filteredReviews },
-    selectedBusiness,
-    businessType: selectedBusinessType,
-  });
+  const {\n    recommendations,\n    loading: recommendationsLoading,\n    error: recommendationsError,\n    generatingMessage,\n    generateRecommendations,\n    exportRecommendations,\n    saveRecommendations,\n  } = useRecommendations({\n    businessData: { ...businessData, reviews: filteredReviews },\n    selectedBusiness,\n    businessType: selectedBusinessType,\n  });
   
   const handleGenerateRecommendations = useCallback(() => {
     generateRecommendations(aiProvider);
   }, [generateRecommendations, aiProvider]);
+
+  const handleRefreshData = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [refreshData]);
 
   // Date range for export
   const today = new Date();
@@ -70,6 +71,16 @@ const Dashboard = () => {
           className="flex-1"
         />
         <div className="flex gap-2">
+          <Button
+            onClick={handleRefreshData}
+            disabled={isRefreshing}
+            size="icon"
+            variant="outline"
+            className="w-10 h-10"
+            title="Refresh Data"
+          >
+            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
           {enhancedAnalysis && (
             <ExportButton
               businessName={selectedBusiness}
@@ -100,11 +111,16 @@ const Dashboard = () => {
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview" className="mt-6">
+        <TabsContent value="overview" className="mt-6 relative">
+          <DebugPanel 
+            reviews={filteredReviews} 
+            chartData={chartData} 
+            businessName={selectedBusiness}
+          />
           <DashboardContent
             loading={loading}
             reviews={filteredReviews}
-            chartData={getChartData(filteredReviews)}
+            chartData={chartData}
           />
         </TabsContent>
         

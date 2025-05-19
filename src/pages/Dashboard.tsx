@@ -16,6 +16,7 @@ import { BusinessType } from "@/types/businessTypes";
 import { type AIProvider } from "@/components/AIProviderToggle";
 import { Sparkles, Download, Save, BarChart3, GitCompare, Mail as MailIcon, RefreshCw } from "lucide-react";
 import { DebugPanel } from "@/components/debug/DebugPanel";
+import { DatabaseStatus } from "@/components/diagnostic/DatabaseStatus";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -73,6 +74,12 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout onProviderChange={setAiProvider}>
+      {/* Database Status Check */}
+      <DatabaseStatus 
+        onRefresh={handleRefreshData}
+        isRefreshing={isRefreshing}
+      />
+
       <div className="flex justify-between items-center gap-4 mb-6 w-full">
         <BusinessSelector
           selectedBusiness={selectedBusiness}

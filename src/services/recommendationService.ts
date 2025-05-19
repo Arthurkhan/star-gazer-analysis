@@ -7,11 +7,13 @@ import {
 } from '@/types/recommendations';
 import { BusinessType } from '@/types/businessTypes';
 import { AIProviderType, BusinessContext, ReviewAnalysis } from '@/types/aiService';
-import { Review } from '@/types/reviews';
+import { Review, Business } from '@/types/reviews';
 import { type AIProvider } from '@/components/AIProviderToggle';
 import { enhancedDataAnalysisService } from '@/services/dataAnalysis/enhancedDataAnalysisService';
 import { EnhancedAnalysis } from '@/types/dataAnalysis';
 import { toast } from '@/hooks/use-toast';
+import { getBusinessTypeFromName } from '@/types/BusinessMappings';
+import { fetchBusinesses, getLatestRecommendation, saveRecommendation } from '@/services/reviewDataService';
 
 export class RecommendationService {
   private browserService: BrowserAIService;
@@ -27,8 +29,8 @@ export class RecommendationService {
   }
   
   async generateRecommendations(params: {
-    business: string;
-    businessType: BusinessType;
+    business: string | Business;
+    businessType?: BusinessType;
     reviews: Review[];
     metrics: any;
     patterns?: any;
@@ -36,15 +38,46 @@ export class RecommendationService {
     [key: string]: any;
   }): Promise<Recommendations> {
     try {
+      // Extract business information
+      let businessId: string;
+      let businessName: string;
+      let businessType: BusinessType;
+      
+      if (typeof params.business === 'string') {
+        // If business is a string (name), get the business ID and type
+        businessName = params.business;
+        const businesses = await fetchBusinesses();
+        const business = businesses.find(b => b.name === businessName);
+        
+        if (!business) {
+          throw new Error(`Business not found: ${businessName}`);
+        }
+        
+        businessId = business.id;
+        businessType = params.businessType || getBusinessTypeFromName(businessName);
+      } else {
+        // If business is an object, extract properties
+        businessId = params.business.id;
+        businessName = params.business.name;
+        businessType = params.businessType || params.business.business_type as BusinessType || BusinessType.OTHER;
+      }
+      
       // Validate inputs before processing
-      if (!params.business || !params.businessType || !Array.isArray(params.reviews)) {
+      if (!businessId || !businessType || !Array.isArray(params.reviews)) {
         throw new Error('Invalid input parameters: business, businessType, and reviews array are required');
+      }
+      
+      // Check for cached recommendations
+      const cachedRecommendation = await getLatestRecommendation(businessId);
+      if (cachedRecommendation && (Date.now() - new Date(cachedRecommendation.created_at).getTime() < 24 * 60 * 60 * 1000)) {
+        return cachedRecommendation.recommendations;
       }
       
       // Log for debugging
       console.log('Generating recommendations with params:', {
-        business: params.business,
-        businessType: params.businessType,
+        businessId,
+        businessName,
+        businessType,
         reviewCount: params.reviews?.length || 0,
         provider: this.provider
       });
@@ -61,12 +94,22 @@ export class RecommendationService {
       let recommendations: Recommendations;
       
       if (this.provider === 'api') {
-        recommendations = await this.generateApiRecommendations(params);
+        recommendations = await this.generateApiRecommendations({
+          ...params,
+          businessId,
+          businessName,
+          businessType
+        });
       } else {
         recommendations = await this.browserService.generateRecommendations(
-          params,
+          {
+            ...params,
+            businessId,
+            businessName,
+            businessType
+          },
           params.reviews,
-          params.businessType
+          businessType
         );
       }
       
@@ -74,6 +117,9 @@ export class RecommendationService {
       if (enhancedAnalysis) {
         recommendations.enhancedAnalysis = enhancedAnalysis;
       }
+      
+      // Save the recommendations to the database
+      await saveRecommendation(businessId, recommendations);
       
       return recommendations;
     } catch (error) {
@@ -87,11 +133,45 @@ export class RecommendationService {
       // Fallback to browser AI if API fails
       if (this.provider === 'api') {
         try {
-          return await this.browserService.generateRecommendations(
-            params,
+          // Extract business information
+          let businessId: string;
+          let businessName: string;
+          let businessType: BusinessType;
+          
+          if (typeof params.business === 'string') {
+            // If business is a string (name), get the business ID and type
+            businessName = params.business;
+            const businesses = await fetchBusinesses();
+            const business = businesses.find(b => b.name === businessName);
+            
+            if (!business) {
+              throw new Error(`Business not found: ${businessName}`);
+            }
+            
+            businessId = business.id;
+            businessType = params.businessType || getBusinessTypeFromName(businessName);
+          } else {
+            // If business is an object, extract properties
+            businessId = params.business.id;
+            businessName = params.business.name;
+            businessType = params.businessType || params.business.business_type as BusinessType || BusinessType.OTHER;
+          }
+          
+          const recommendations = await this.browserService.generateRecommendations(
+            {
+              ...params,
+              businessId,
+              businessName,
+              businessType
+            },
             params.reviews,
-            params.businessType
+            businessType
           );
+          
+          // Save the recommendations to the database
+          await saveRecommendation(businessId, recommendations);
+          
+          return recommendations;
         } catch (fallbackError) {
           console.error('Fallback to browser AI also failed', fallbackError);
           toast({
@@ -121,50 +201,80 @@ export class RecommendationService {
       throw new Error(`No API key found for ${apiProvider}`);
     }
     
-    // Create AI provider instance
-    const aiService = AIServiceFactory.createProvider({
-      provider: apiProvider,
-      apiKey,
-      ...defaultConfigs[apiProvider]
-    });
+    const { businessId, businessName, businessType } = params;
     
-    // Convert analysis data to business context
-    const businessContext: BusinessContext = {
-      businessName: params.business,
-      businessType: params.businessType,
-      reviews: params.reviews || [],
-      metrics: params.metrics || {},
-      analysis: await this.convertToReviewAnalysis(params),
-      historicalTrends: params.patterns || {}
-    };
-    
-    // Generate recommendations using the AI provider
-    const recommendations = await aiService.generateRecommendations(businessContext);
-    
-    // Generate additional components if not provided
-    if (!recommendations.customerAttractionPlan) {
-      try {
-        recommendations.customerAttractionPlan = await aiService.generateMarketingPlan(businessContext);
-      } catch (error) {
-        console.error('Failed to generate marketing plan', error);
-        recommendations.customerAttractionPlan = {
-          title: 'Marketing Plan Generation Failed',
-          description: 'Unable to generate marketing plan at this time.',
-          strategies: []
-        };
+    try {
+      // Call the edge function with the new parameters
+      const { data, error } = await supabase.functions.invoke('generate-recommendations', {
+        body: {
+          businessId,
+          analysisData: {
+            businessName,
+            businessType,
+            reviews: params.reviews || [],
+            metrics: params.metrics || {},
+            patterns: params.patterns || {},
+            sentiment: params.sentiment || {}
+          },
+          businessType,
+          provider: apiProvider,
+          apiKey
+        }
+      });
+      
+      if (error) {
+        throw new Error(`Edge function error: ${error.message}`);
       }
-    }
-    
-    if (!recommendations.scenarios || recommendations.scenarios.length === 0) {
-      try {
-        recommendations.scenarios = await aiService.generateScenarios(businessContext);
-      } catch (error) {
-        console.error('Failed to generate scenarios', error);
-        recommendations.scenarios = [];
+      
+      return data as Recommendations;
+    } catch (error) {
+      console.error('Failed to generate API recommendations', error);
+      
+      // Create AI provider as fallback
+      const aiService = AIServiceFactory.createProvider({
+        provider: apiProvider,
+        apiKey,
+        ...defaultConfigs[apiProvider]
+      });
+      
+      // Convert analysis data to business context
+      const businessContext: BusinessContext = {
+        businessName,
+        businessType,
+        reviews: params.reviews || [],
+        metrics: params.metrics || {},
+        analysis: await this.convertToReviewAnalysis(params),
+        historicalTrends: params.patterns || {}
+      };
+      
+      // Generate recommendations using the AI provider
+      const recommendations = await aiService.generateRecommendations(businessContext);
+      
+      // Generate additional components if not provided
+      if (!recommendations.customerAttractionPlan) {
+        try {
+          recommendations.customerAttractionPlan = await aiService.generateMarketingPlan(businessContext);
+        } catch (error) {
+          console.error('Failed to generate marketing plan', error);
+          recommendations.customerAttractionPlan = {
+            title: 'Marketing Plan Generation Failed',
+            description: 'Unable to generate marketing plan at this time.',
+            strategies: []
+          };
+        }
       }
+      
+      if (!recommendations.scenarios || recommendations.scenarios.length === 0) {
+        try {
+          recommendations.scenarios = await aiService.generateScenarios(businessContext);
+        } catch (error) {
+          console.error('Failed to generate scenarios', error);
+          recommendations.scenarios = [];
+        }
+      }
+      
+      return recommendations;
     }
-    
-    return recommendations;
   }
   
   private async convertToReviewAnalysis(params: any): Promise<ReviewAnalysis> {

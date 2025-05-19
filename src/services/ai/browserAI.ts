@@ -20,6 +20,9 @@ interface AnalysisResult {
   overallAnalysis: string;
   ratingBreakdown?: { rating: number; count: number; percentage: number }[];
   languageDistribution?: { language: string; count: number; percentage: number }[];
+  businessId?: string;
+  businessName?: string;
+  businessType?: BusinessType;
 }
 
 export class BrowserAIService {
@@ -29,9 +32,15 @@ export class BrowserAIService {
     reviews: Review[],
     businessType: BusinessType = BusinessType.OTHER
   ): Promise<Recommendations> {
+    // Extract business information
+    const businessId = analysisData.businessId;
+    const businessName = analysisData.businessName || "Unknown Business";
+    
     const businessHealth = this.analyzeBusinessHealth(analysisData, reviews, businessType);
     
     return {
+      businessId,
+      businessName,
       urgentActions: this.identifyUrgentActions(analysisData, reviews, businessHealth),
       growthStrategies: this.generateGrowthStrategies(analysisData, reviews, businessType, businessHealth),
       patternInsights: this.extractPatternInsights(analysisData, reviews),
@@ -48,6 +57,17 @@ export class BrowserAIService {
     reviews: Review[],
     businessType: BusinessType
   ): BusinessHealth {
+    if (!reviews || reviews.length === 0) {
+      return {
+        score: 50,
+        trend: 'stable',
+        strengths: ['Insufficient data for detailed analysis'],
+        weaknesses: ['Insufficient data for detailed analysis'],
+        opportunities: ['Increase review volume to enable detailed analysis'],
+        threats: ['Inability to track performance trends due to low data volume']
+      };
+    }
+    
     const totalReviews = reviews.length;
     const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / totalReviews;
     const benchmark = industryBenchmarks[businessType];
@@ -78,9 +98,13 @@ export class BrowserAIService {
       return date > threeMonthsAgo;
     });
     
-    const recentAvgRating = recentReviews.reduce((sum, r) => sum + r.stars, 0) / recentReviews.length;
+    // Prevent division by zero
+    const recentAvgRating = recentReviews.length > 0 
+      ? recentReviews.reduce((sum, r) => sum + r.stars, 0) / recentReviews.length
+      : avgRating;
+    
     const trend = recentAvgRating > avgRating ? 'improving' : 
-                  recentAvgRating < avgRating ? 'declining' : 'stable';
+                recentAvgRating < avgRating ? 'declining' : 'stable';
     
     // Identify SWOT
     const strengths = this.identifyStrengths(data, avgRating, benchmark);
@@ -97,6 +121,20 @@ export class BrowserAIService {
     reviews: Review[],
     health: BusinessHealth
   ): UrgentAction[] {
+    if (!reviews || reviews.length === 0) {
+      return [
+        {
+          id: 'urgent-no-data',
+          title: 'Insufficient Review Data',
+          description: 'There are too few reviews to generate detailed urgent actions',
+          category: 'critical',
+          relatedReviews: [],
+          suggestedAction: 'Implement review collection campaign immediately',
+          timeframe: 'Within 1 week'
+        }
+      ];
+    }
+    
     const actions: UrgentAction[] = [];
     const recentReviews = reviews.filter(r => {
       const date = new Date(r.publishedAtDate);
@@ -107,7 +145,7 @@ export class BrowserAIService {
     
     // Check for critical negative patterns
     const negativeReviews = recentReviews.filter(r => r.stars <= 2);
-    if (negativeReviews.length / recentReviews.length > 0.2) {
+    if (recentReviews.length > 0 && negativeReviews.length / recentReviews.length > 0.2) {
       actions.push({
         id: 'urgent-1',
         title: 'High Negative Review Rate',
@@ -120,7 +158,7 @@ export class BrowserAIService {
     }
     
     // Check for staff issues
-    const negativeStaffMentions = data.staffMentions.filter(s => s.sentiment === 'negative');
+    const negativeStaffMentions = data.staffMentions && data.staffMentions.filter(s => s.sentiment === 'negative') || [];
     if (negativeStaffMentions.length > 0) {
       negativeStaffMentions.forEach(staff => {
         if (staff.count >= 3) {
@@ -184,9 +222,9 @@ export class BrowserAIService {
     }
     
     // Leverage positive themes
-    const positiveThemes = data.commonTerms
+    const positiveThemes = data.commonTerms && data.commonTerms
       .filter(term => this.isPositiveTheme(term.text))
-      .slice(0, 3);
+      .slice(0, 3) || [];
     
     if (positiveThemes.length > 0) {
       strategies.push({
@@ -233,6 +271,19 @@ export class BrowserAIService {
     data: AnalysisResult,
     reviews: Review[]
   ): PatternInsight[] {
+    if (!reviews || reviews.length === 0 || !data.commonTerms) {
+      return [
+        {
+          id: 'pattern-no-data',
+          pattern: 'Insufficient data for pattern analysis',
+          frequency: 0,
+          sentiment: 'neutral',
+          recommendation: 'Collect more reviews to enable pattern analysis',
+          examples: []
+        }
+      ];
+    }
+    
     const insights: PatternInsight[] = [];
     
     // Analyze common terms
@@ -270,10 +321,24 @@ export class BrowserAIService {
     reviews: Review[],
     businessType: BusinessType
   ): CompetitiveAnalysis {
+    if (!reviews || reviews.length === 0) {
+      return {
+        position: 'average',
+        metrics: {
+          rating: { value: 0, benchmark: 0, percentile: 50 },
+          reviewVolume: { value: 0, benchmark: 0, percentile: 50 },
+          sentiment: { value: 0, benchmark: 0, percentile: 50 }
+        },
+        strengths: ['Insufficient data for competitive analysis'],
+        weaknesses: ['Insufficient data for competitive analysis'],
+        opportunities: ['Increase review volume to enable competitive analysis']
+      };
+    }
+    
     const benchmark = industryBenchmarks[businessType];
     const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length;
     const monthlyReviews = this.calculateMonthlyReviews(reviews);
-    const sentimentScore = this.calculateSentimentScore(data.sentimentAnalysis);
+    const sentimentScore = this.calculateSentimentScore(data.sentimentAnalysis || []);
     
     const ratingPercentile = this.calculatePercentile(avgRating, benchmark.avgRating, 0.5);
     const volumePercentile = this.calculatePercentile(monthlyReviews, benchmark.monthlyReviews, 50);
@@ -298,6 +363,8 @@ export class BrowserAIService {
     
     // Opportunities based on benchmark comparison
     benchmark.commonThemes.forEach(theme => {
+      if (!data.commonTerms) return;
+      
       const hasTheme = data.commonTerms.some(term => 
         term.text && theme &&
         term.text.toLowerCase().includes(theme.toLowerCase())
@@ -360,10 +427,10 @@ export class BrowserAIService {
     ];
     
     // Craft messaging
-    const topStrengths = data.commonTerms
+    const topStrengths = data.commonTerms && data.commonTerms
       .filter(term => this.isPositiveTheme(term.text))
       .slice(0, 3)
-      .map(t => t.text);
+      .map(t => t.text) || ['quality', 'service', 'value'];
     
     const messaging = {
       keyPoints: topStrengths,
@@ -542,6 +609,8 @@ export class BrowserAIService {
 
   // Helper methods
   private calculateMonthlyReviews(reviews: Review[]): number {
+    if (!reviews || reviews.length === 0) return 0;
+    
     const now = new Date();
     const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
     const recentReviews = reviews.filter(r => new Date(r.publishedAtDate) > oneYearAgo);
@@ -549,7 +618,11 @@ export class BrowserAIService {
   }
 
   private calculateSentimentScore(sentimentData: { name: string; value: number }[]): number {
+    if (!sentimentData || sentimentData.length === 0) return 0.5;
+    
     const total = sentimentData.reduce((sum, s) => sum + s.value, 0);
+    if (total === 0) return 0.5;
+    
     const positive = sentimentData.find(s => s.name === 'Positive')?.value || 0;
     return positive / total;
   }
@@ -564,6 +637,8 @@ export class BrowserAIService {
   }
 
   private analyzeSentimentForTerm(reviews: Review[]): 'positive' | 'negative' | 'neutral' {
+    if (!reviews || reviews.length === 0) return 'neutral';
+    
     const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length;
     return avgRating >= 4 ? 'positive' : avgRating <= 2 ? 'negative' : 'neutral';
   }
@@ -590,6 +665,8 @@ export class BrowserAIService {
   }
 
   private calculatePercentile(value: number, benchmark: number, stdDev: number): number {
+    if (stdDev === 0) return 50; // Avoid division by zero
+    
     const zScore = (value - benchmark) / stdDev;
     const percentile = (1 + this.erf(zScore / Math.sqrt(2))) / 2 * 100;
     return Math.min(Math.max(percentile, 0), 100);
@@ -603,9 +680,13 @@ export class BrowserAIService {
     const strengths = [];
     if (avgRating > benchmark.avgRating) strengths.push('Above-average rating');
     
-    const positiveThemes = data.commonTerms.filter(t => this.isPositiveTheme(t.text));
+    const positiveThemes = data.commonTerms && data.commonTerms.filter(t => this.isPositiveTheme(t.text)) || [];
     if (positiveThemes.length > 0) {
       strengths.push(`Strong in: ${positiveThemes.slice(0, 3).map(t => t.text).join(', ')}`);
+    }
+    
+    if (strengths.length === 0) {
+      strengths.push('Need more data to identify strengths');
     }
     
     return strengths;
@@ -619,9 +700,13 @@ export class BrowserAIService {
     const weaknesses = [];
     if (avgRating < benchmark.avgRating) weaknesses.push('Below-average rating');
     
-    const negativeStaff = data.staffMentions.filter(s => s.sentiment === 'negative');
+    const negativeStaff = data.staffMentions && data.staffMentions.filter(s => s.sentiment === 'negative') || [];
     if (negativeStaff.length > 0) {
       weaknesses.push('Staff performance issues');
+    }
+    
+    if (weaknesses.length === 0) {
+      weaknesses.push('Need more data to identify weaknesses');
     }
     
     return weaknesses;
@@ -652,6 +737,12 @@ export class BrowserAIService {
     businessType: BusinessType
   ): string[] {
     const threats = [];
+    
+    if (!reviews || reviews.length === 0) {
+      threats.push('Insufficient data to identify specific threats');
+      threats.push('Lack of review data affects online visibility');
+      return threats;
+    }
     
     const negativeReviews = reviews.filter(r => r.stars <= 2);
     if (negativeReviews.length / reviews.length > 0.15) {

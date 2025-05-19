@@ -61,7 +61,7 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
 };
 
 /**
- * Fetch reviews by business ID with pagination to handle large datasets
+ * Fetch reviews by business ID with robust pagination to handle large datasets
  */
 export const fetchReviewsByBusinessId = async (
   businessId: string,
@@ -73,22 +73,23 @@ export const fetchReviewsByBusinessId = async (
   try {
     let allReviews: Review[] = [];
     let page = 0;
-    const pageSize = 1000;
+    const pageSize = 1000; // Use a large page size to reduce round trips
     let hasMore = true;
     
     // Use pagination to fetch all reviews
     while (hasMore) {
       const from = page * pageSize;
-      const to = from + pageSize - 1;
       
-      console.log(`Fetching page ${page+1} (${from}-${to}) for business ID ${businessId}`);
+      console.log(`Fetching page ${page+1} (from=${from}, limit=${pageSize}) for business ID ${businessId}`);
       
+      // Use .range() is unreliable with larger datasets, so using limit/offset instead
       let query = supabase
         .from('reviews')
         .select('*', { count: 'exact' })
         .eq('business_id', businessId)
         .order('publishedatdate', { ascending: false })
-        .range(from, to);
+        .limit(pageSize)
+        .offset(from);
       
       // Add date filters if provided
       if (startDate) {
@@ -107,18 +108,20 @@ export const fetchReviewsByBusinessId = async (
       }
       
       if (!data || data.length === 0) {
+        console.log(`No more reviews found for business ID ${businessId} at page ${page+1}`);
         break;
       }
       
+      console.log(`Fetched ${data.length} reviews for page ${page+1}`);
       allReviews = [...allReviews, ...data];
       page++;
       
-      // Check if we've reached the end
+      // Check if we've reached the end - only if we got fewer results than requested
       hasMore = data.length === pageSize;
       
-      // If we have the count, we can be more precise
-      if (count !== null && allReviews.length >= count) {
-        hasMore = false;
+      // Log progress
+      if (count !== null) {
+        console.log(`Progress: ${allReviews.length}/${count} reviews (${Math.round(allReviews.length/count*100)}%)`);
       }
     }
     
@@ -137,8 +140,11 @@ export const fetchAllReviews = async (
   startDate?: Date, 
   endDate?: Date
 ): Promise<Review[]> => {
+  // For cache busting during debugging
+  const bypassCache = true;
+  
   // Return cached reviews if available and not expired
-  if (reviewsCache.timestamp > Date.now() - CACHE_TTL) {
+  if (!bypassCache && reviewsCache.timestamp > Date.now() - CACHE_TTL) {
     console.log("Using cached reviews");
     return reviewsCache.data;
   }
@@ -151,12 +157,18 @@ export const fetchAllReviews = async (
     const pageSize = 1000;
     let hasMore = true;
     
+    // First, get total count to track progress
+    const { count: totalCount } = await supabase
+      .from('reviews')
+      .select('*', { count: 'exact', head: true });
+    
+    console.log(`Total reviews in database: ${totalCount}`);
+    
     // Use pagination to fetch all reviews
     while (hasMore) {
       const from = page * pageSize;
-      const to = from + pageSize - 1;
       
-      console.log(`Fetching page ${page+1} (${from}-${to}) of all reviews`);
+      console.log(`Fetching page ${page+1} (from=${from}, limit=${pageSize}) of all reviews`);
       
       let query = supabase
         .from('reviews')
@@ -169,7 +181,8 @@ export const fetchAllReviews = async (
           )
         `, { count: 'exact' })
         .order('publishedatdate', { ascending: false })
-        .range(from, to);
+        .limit(pageSize)
+        .offset(from);
       
       // Add date filters if provided
       if (startDate) {
@@ -188,8 +201,11 @@ export const fetchAllReviews = async (
       }
       
       if (!data || data.length === 0) {
+        console.log(`No more reviews found at page ${page+1}`);
         break;
       }
+      
+      console.log(`Fetched ${data.length} reviews for page ${page+1}`);
       
       // Process and transform the data
       const processedReviews = data.map(review => {
@@ -204,12 +220,12 @@ export const fetchAllReviews = async (
       allReviews = [...allReviews, ...processedReviews];
       page++;
       
-      // Check if we've reached the end
+      // Check if we've reached the end - only if we got fewer results than requested
       hasMore = data.length === pageSize;
       
-      // If we have the count, we can be more precise
-      if (count !== null && allReviews.length >= count) {
-        hasMore = false;
+      // Log progress
+      if (totalCount !== null) {
+        console.log(`Progress: ${allReviews.length}/${totalCount} reviews (${Math.round(allReviews.length/totalCount*100)}%)`);
       }
     }
     
@@ -243,10 +259,14 @@ export const fetchAvailableTables = async (): Promise<TableName[]> => {
         name === "Vol de Nuit, The Hidden Bar"
       ) as TableName[];
     
+    console.log(`Found business names matching our expected tables: ${businessNames.join(', ')}`);
+    
     // If we don't find any businesses matching our expected names,
     // use the first three business names instead
     if (businessNames.length === 0 && businesses.length > 0) {
-      return businesses.slice(0, 3).map(b => b.name) as TableName[];
+      const fallbackNames = businesses.slice(0, 3).map(b => b.name) as TableName[];
+      console.log(`Using fallback business names: ${fallbackNames.join(', ')}`);
+      return fallbackNames;
     }
     
     return businessNames;
@@ -260,6 +280,7 @@ export const fetchAvailableTables = async (): Promise<TableName[]> => {
       "Vol de Nuit, The Hidden Bar"
     ];
     
+    console.log(`Using hardcoded table names: ${knownTables.join(', ')}`);
     return knownTables;
   }
 };
@@ -279,12 +300,14 @@ export const fetchAllReviewData = async (
     
     // If we have specific table names to filter by
     if (tables && tables.length > 0) {
+      console.log(`Filtering reviews for specific tables: ${tables.join(', ')}`);
+      
       // Get businesses for the table names
       const businesses = await fetchBusinesses();
       const businessMap = new Map(businesses.map(b => [b.name, b.id]));
       
       // Filter reviews to only include those for the specified tables/businesses
-      return allReviews.filter(review => {
+      const filteredReviews = allReviews.filter(review => {
         // Get the business from the joined data
         const business = (review as any).businesses;
         if (!business) return false;
@@ -292,6 +315,9 @@ export const fetchAllReviewData = async (
         // Check if the business name is in our tables list
         return tables.includes(business.name as TableName);
       });
+      
+      console.log(`Filtered down to ${filteredReviews.length} reviews for the specified tables`);
+      return filteredReviews;
     }
     
     return allReviews;

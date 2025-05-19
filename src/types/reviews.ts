@@ -1,22 +1,34 @@
+// Define types for the new normalized database schema
+export interface Business {
+  id: string;
+  name: string;
+  business_type: string;
+  created_at: string;
+}
 
-// Define allowed table names explicitly to match Supabase structure
-export type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
-
+// Define a type for review data
 export interface Review {
-  stars: number; // Fixed: was 'star', now matches database schema
+  id: string;
+  business_id: string;
+  stars: number;
   name: string;
   text: string;
   textTranslated?: string;
-  title?: string;
   publishedAtDate: string;
   reviewUrl: string;
-  originalLanguage?: string;
   responseFromOwnerText?: string;
   sentiment?: string; 
   staffMentioned?: string;
   mainThemes?: string;
   "common terms"?: string;
+  created_at: string;
+  // Computed field during fetch for backwards compatibility
+  title?: string;
+  originalLanguage?: string;
 }
+
+// Legacy table name type - kept for backwards compatibility
+export type TableName = "L'Envol Art Space" | "The Little Prince Cafe" | "Vol de Nuit, The Hidden Bar";
 
 export interface BusinessData {
   id?: string;

@@ -43,22 +43,37 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
         clearCaches();
       }
       
-      // Fetch both businesses and available tables in parallel
-      const [businessesResult, tablesResult] = await Promise.all([
-        fetchBusinesses(),
-        fetchAvailableTables()
-      ]);
-      
+      // Get all businesses
+      const businessesResult = await fetchBusinesses();
+      console.log('Fetched businesses:', businessesResult);
       setBusinesses(businessesResult);
       
+      // Get table names (for backward compatibility)
+      let tablesResult = await fetchAvailableTables();
+      console.log('Available tables:', tablesResult);
+      
+      // If no tables found but we have businesses, generate table names from businesses
+      if (tablesResult.length === 0 && businessesResult.length > 0) {
+        tablesResult = businessesResult.slice(0, 3).map(b => b.name) as TableName[];
+        console.log('Generated table names from businesses:', tablesResult);
+      }
+      
       if (tablesResult.length === 0) {
-        throw new Error("No tables available");
+        console.warn("No business tables available");
+        setLoading(false);
+        return;
       }
       
       setAvailableTables(tablesResult);
       
-      // Use our service to fetch all reviews
+      // Fetch all reviews for all businesses
       const allReviews = await fetchAllReviewData(tablesResult, startDate, endDate);
+      console.log(`Fetched ${allReviews.length} reviews`);
+      
+      if (allReviews.length === 0) {
+        console.warn("No reviews found");
+      }
+      
       setReviewData(allReviews);
       setLastFetched(Date.now());
       

@@ -61,41 +61,69 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
 };
 
 /**
- * Get reviews by business ID with optional filters
+ * Fetch reviews by business ID with pagination to handle large datasets
  */
 export const fetchReviewsByBusinessId = async (
   businessId: string,
   startDate?: Date,
-  endDate?: Date,
-  limit = 1000
+  endDate?: Date
 ): Promise<Review[]> => {
   console.log(`Fetching reviews for business ID: ${businessId}`);
   
   try {
-    let query = supabase
-      .from('reviews')
-      .select('*')
-      .eq('business_id', businessId)
-      .order('publishedatdate', { ascending: false })
-      .limit(limit);
+    let allReviews: Review[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
     
-    // Add date filters if provided
-    if (startDate) {
-      query = query.gte('publishedatdate', startDate.toISOString());
+    // Use pagination to fetch all reviews
+    while (hasMore) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      
+      console.log(`Fetching page ${page+1} (${from}-${to}) for business ID ${businessId}`);
+      
+      let query = supabase
+        .from('reviews')
+        .select('*', { count: 'exact' })
+        .eq('business_id', businessId)
+        .order('publishedatdate', { ascending: false })
+        .range(from, to);
+      
+      // Add date filters if provided
+      if (startDate) {
+        query = query.gte('publishedatdate', startDate.toISOString());
+      }
+      
+      if (endDate) {
+        query = query.lte('publishedatdate', endDate.toISOString());
+      }
+      
+      const { data, error, count } = await query;
+      
+      if (error) {
+        console.error(`Error fetching reviews page ${page+1} for business ID ${businessId}:`, error);
+        break;
+      }
+      
+      if (!data || data.length === 0) {
+        break;
+      }
+      
+      allReviews = [...allReviews, ...data];
+      page++;
+      
+      // Check if we've reached the end
+      hasMore = data.length === pageSize;
+      
+      // If we have the count, we can be more precise
+      if (count !== null && allReviews.length >= count) {
+        hasMore = false;
+      }
     }
     
-    if (endDate) {
-      query = query.lte('publishedatdate', endDate.toISOString());
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error(`Error fetching reviews for business ID ${businessId}:`, error);
-      throw error;
-    }
-    
-    return data || [];
+    console.log(`Total ${allReviews.length} reviews fetched for business ID ${businessId}`);
+    return allReviews;
   } catch (error) {
     console.error(`Failed to fetch reviews for business ID ${businessId}:`, error);
     return [];
@@ -103,7 +131,7 @@ export const fetchReviewsByBusinessId = async (
 };
 
 /**
- * Get all reviews with business information
+ * Get all reviews with business information - using pagination to get ALL reviews
  */
 export const fetchAllReviews = async (
   startDate?: Date, 
@@ -118,50 +146,80 @@ export const fetchAllReviews = async (
   try {
     console.log("Fetching all reviews with business information");
     
-    let query = supabase
-      .from('reviews')
-      .select(`
-        *,
-        businesses:business_id (
-          id,
-          name,
-          business_type
-        )
-      `)
-      .order('publishedatdate', { ascending: false })
-      .limit(1000); // Reasonable limit to prevent performance issues
+    let allReviews: Review[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
     
-    // Add date filters if provided
-    if (startDate) {
-      query = query.gte('publishedatdate', startDate.toISOString());
+    // Use pagination to fetch all reviews
+    while (hasMore) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      
+      console.log(`Fetching page ${page+1} (${from}-${to}) of all reviews`);
+      
+      let query = supabase
+        .from('reviews')
+        .select(`
+          *,
+          businesses:business_id (
+            id,
+            name,
+            business_type
+          )
+        `, { count: 'exact' })
+        .order('publishedatdate', { ascending: false })
+        .range(from, to);
+      
+      // Add date filters if provided
+      if (startDate) {
+        query = query.gte('publishedatdate', startDate.toISOString());
+      }
+      
+      if (endDate) {
+        query = query.lte('publishedatdate', endDate.toISOString());
+      }
+      
+      const { data, error, count } = await query;
+      
+      if (error) {
+        console.error(`Error fetching reviews page ${page+1}:`, error);
+        break;
+      }
+      
+      if (!data || data.length === 0) {
+        break;
+      }
+      
+      // Process and transform the data
+      const processedReviews = data.map(review => {
+        const business = review.businesses as any;
+        return {
+          ...review,
+          // Add the business name as title for backward compatibility
+          title: business?.name || 'Unknown Business'
+        };
+      });
+      
+      allReviews = [...allReviews, ...processedReviews];
+      page++;
+      
+      // Check if we've reached the end
+      hasMore = data.length === pageSize;
+      
+      // If we have the count, we can be more precise
+      if (count !== null && allReviews.length >= count) {
+        hasMore = false;
+      }
     }
     
-    if (endDate) {
-      query = query.lte('publishedatdate', endDate.toISOString());
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error("Error fetching all reviews:", error);
-      throw error;
-    }
-    
-    // Process and transform the data
-    const processedReviews = data?.map(review => {
-      const business = review.businesses as any;
-      return {
-        ...review,
-        // Add the business name as title for backward compatibility
-        title: business?.name || 'Unknown Business'
-      };
-    }) || [];
+    console.log(`Total ${allReviews.length} reviews fetched across all businesses`);
     
     // Update cache
-    reviewsCache.data = processedReviews;
+    reviewsCache.data = allReviews;
     reviewsCache.timestamp = Date.now();
     
-    return processedReviews;
+    return allReviews;
   } catch (error) {
     console.error("Failed to fetch all reviews:", error);
     return [];

@@ -1,15 +1,25 @@
-
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Review, TableName } from "@/types/reviews";
+import { Review, Business, TableName } from "@/types/reviews";
 import { EnhancedAnalysis } from "@/types/dataAnalysis";
 import { useToast } from "@/hooks/use-toast";
-import { fetchAvailableTables, fetchAllReviewData, clearAllCaches } from "@/services/reviewDataService";
-import { filterReviewsByBusiness, getChartData, calculateBusinessStats, clearCaches } from "@/utils/reviewDataUtils";
+import { 
+  fetchAvailableTables, 
+  fetchAllReviewData, 
+  clearAllCaches,
+  fetchBusinesses
+} from "@/services/reviewDataService";
+import { 
+  filterReviewsByBusiness, 
+  getChartData, 
+  calculateBusinessStats, 
+  clearCaches 
+} from "@/utils/reviewDataUtils";
 import { useBusinessSelection } from "@/hooks/useBusinessSelection";
 
 export function useDashboardData(startDate?: Date, endDate?: Date) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
   const [availableTables, setAvailableTables] = useState<TableName[]>([]);
   const [reviewData, setReviewData] = useState<Review[]>([]);
   const [lastFetched, setLastFetched] = useState<number>(0);
@@ -33,19 +43,22 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
         clearCaches();
       }
       
-      // Use the tables we've fetched dynamically
-      const tables = availableTables.length > 0 ? availableTables : await fetchAvailableTables();
+      // Fetch both businesses and available tables in parallel
+      const [businessesResult, tablesResult] = await Promise.all([
+        fetchBusinesses(),
+        fetchAvailableTables()
+      ]);
       
-      if (tables.length === 0) {
+      setBusinesses(businessesResult);
+      
+      if (tablesResult.length === 0) {
         throw new Error("No tables available");
       }
       
-      if (availableTables.length === 0) {
-        setAvailableTables(tables);
-      }
+      setAvailableTables(tablesResult);
       
       // Use our service to fetch all reviews
-      const allReviews = await fetchAllReviewData(tables, startDate, endDate);
+      const allReviews = await fetchAllReviewData(tablesResult, startDate, endDate);
       setReviewData(allReviews);
       setLastFetched(Date.now());
       
@@ -68,26 +81,11 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     } finally {
       setLoading(false);
     }
-  }, [availableTables, toast, setBusinessData, startDate, endDate]);
+  }, [toast, setBusinessData, startDate, endDate]);
 
-  // Fetch tables first, then fetch data once we have tables
+  // Fetch data on initial load
   useEffect(() => {
-    const initialize = async () => {
-      try {
-        const tables = await fetchAvailableTables();
-        setAvailableTables(tables);
-        
-        // If we have tables, fetch the data
-        if (tables.length > 0) {
-          fetchData();
-        }
-      } catch (error) {
-        console.error("Error initializing:", error);
-        setLoading(false);
-      }
-    };
-    
-    initialize();
+    fetchData();
   }, []);
 
   // Refresh data function
@@ -325,6 +323,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
 
   return {
     loading,
+    businesses,
     selectedBusiness,
     businessData,
     getFilteredReviews: () => filteredReviews,

@@ -39,13 +39,14 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     try {
       // Clear caches if force refresh is requested
       if (forceRefresh) {
+        console.log("Forcing data refresh - clearing all caches");
         clearAllCaches();
         clearCaches();
       }
       
       // Get all businesses
       const businessesResult = await fetchBusinesses();
-      console.log('Fetched businesses:', businessesResult);
+      console.log('Fetched businesses:', businessesResult.length);
       setBusinesses(businessesResult);
       
       // Get table names (for backward compatibility)
@@ -61,24 +62,43 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       if (tablesResult.length === 0) {
         console.warn("No business tables available");
         setLoading(false);
+        toast({
+          title: "No businesses found",
+          description: "Could not find any business data in the database",
+          variant: "destructive",
+        });
         return;
       }
       
       setAvailableTables(tablesResult);
       
       // Fetch all reviews for all businesses
+      console.log("Fetching all review data...");
+      const startTime = performance.now();
       const allReviews = await fetchAllReviewData(tablesResult, startDate, endDate);
-      console.log(`Fetched ${allReviews.length} reviews`);
+      const endTime = performance.now();
+      console.log(`Fetched ${allReviews.length} reviews in ${Math.round((endTime - startTime) / 1000)} seconds`);
       
       if (allReviews.length === 0) {
         console.warn("No reviews found");
+        toast({
+          title: "No reviews found",
+          description: "Could not find any review data in the database",
+          variant: "destructive",
+        });
       }
       
       setReviewData(allReviews);
       setLastFetched(Date.now());
       
       // Calculate business statistics
+      console.log("Calculating business statistics...");
       const businessesObj = calculateBusinessStats(allReviews);
+      
+      // Log counts by business for debugging
+      Object.entries(businessesObj).forEach(([name, data]) => {
+        console.log(`Business "${name}": ${data.count} reviews`);
+      });
       
       // Update business data
       setBusinessData({
@@ -86,11 +106,16 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
         businesses: businessesObj,
       });
       
+      toast({
+        title: "Data loaded successfully",
+        description: `Loaded ${allReviews.length} reviews across ${Object.keys(businessesObj).length} businesses`,
+      });
+      
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
         title: "Error fetching data",
-        description: "Could not fetch review data from the database",
+        description: "Could not fetch review data from the database. See console for details.",
         variant: "destructive",
       });
     } finally {
@@ -101,7 +126,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
   // Fetch data on initial load
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   // Refresh data function
   const refreshData = useCallback(() => {
@@ -115,8 +140,10 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
 
   // Memoized filtered reviews
   const filteredReviews = useMemo(() => {
-    return getFilteredReviews();
-  }, [getFilteredReviews]);
+    const filtered = getFilteredReviews();
+    console.log(`Filtered to ${filtered.length} reviews for "${selectedBusiness}"`);
+    return filtered;
+  }, [getFilteredReviews, selectedBusiness]);
 
   // Generate mock enhanced analysis when recommendations are created
   // In a real implementation, this would come from your AI analysis

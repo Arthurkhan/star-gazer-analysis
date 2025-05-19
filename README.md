@@ -2,6 +2,21 @@
 
 A Google Maps review analysis tool with AI-powered recommendations for businesses.
 
+## 🔥 New: Performance Optimizations (May 20, 2025)
+
+We've completely revamped the database schema for better performance and scalability:
+
+- **Normalized Database**: Replaced the old "one table per business" approach with a proper relational structure
+- **Improved Performance**: Better query efficiency and reduced database load
+- **Scalability**: Easy to add new businesses without schema changes
+- **Maintainability**: Simpler code with proper relationships
+- **No Data Loss**: Automatic migration keeps all your existing reviews and analysis data
+
+**Getting Started with the New Schema:**
+1. Run the application and go to the Settings page
+2. Use the Database Migration tool to automatically upgrade
+3. See detailed documentation in [docs/DATABASE_MIGRATION.md](docs/DATABASE_MIGRATION.md)
+
 ## 🚀 Recent Fixes (May 16, 2025)
 
 We've implemented several fixes to resolve the white screen issue and improve the application's stability:
@@ -78,6 +93,10 @@ If you encounter issues:
 5. **Data Loading Issues**
    - The application uses defensive data loading patterns
    - If data appears missing, check the database connection
+   
+6. **Database Migration Issues**
+   - If migration fails, check the console for specific errors
+   - You can also run the migration manually (see the migration guide)
 
 ## 📋 Project Structure
 
@@ -86,6 +105,7 @@ If you encounter issues:
 - `/src/services` - API and service layers
 - `/src/types` - TypeScript type definitions
 - `/src/utils` - Utility functions including new debugging tools
+- `/docs` - Documentation including database migration guide
 
 ## 📊 Features
 
@@ -95,3 +115,4 @@ If you encounter issues:
 - Trend identification
 - AI recommendations for business improvements
 - Support for multiple business types
+- Optimized database structure for scalability

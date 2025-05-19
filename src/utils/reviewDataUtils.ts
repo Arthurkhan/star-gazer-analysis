@@ -44,47 +44,90 @@ export const filterReviewsByBusiness = (
   return result;
 };
 
+// Parse a date string and return a sortable date key (yyyy-mm)
+function getDateSortKey(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    // Handle invalid dates
+    if (isNaN(date.getTime())) return '0000-00';
+    
+    // Format as yyyy-mm for proper sorting
+    const year = date.getFullYear();
+    // Add leading zero for month if needed
+    const month = ('0' + (date.getMonth() + 1)).slice(-2);
+    return `${year}-${month}`;
+  } catch (error) {
+    console.error("Error parsing date:", dateString, error);
+    return '0000-00';
+  }
+}
+
+// Format a date key (yyyy-mm) as a display month (Jan 2025)
+function formatMonthDisplay(dateKey: string): string {
+  try {
+    const [year, month] = dateKey.split('-');
+    const dateObj = new Date(parseInt(year), parseInt(month) - 1, 1);
+    return dateObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  } catch (error) {
+    console.error("Error formatting month:", dateKey, error);
+    return 'Unknown';
+  }
+}
+
 // Cache for chart data
 const chartDataCache = new Map<string, MonthlyReviewData[]>();
 
 /**
  * Function to create the chart data with cumulative count
- * Optimized with caching
+ * Optimized with caching and proper date handling
  */
 export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
   if (!reviews || reviews.length === 0) {
+    console.log("No reviews available for chart data");
     return [];
   }
-  
-  // Create a cache key based on review dates
-  const cacheKey = reviews.map(r => r.publishedAtDate).sort().join('|');
+
+  // Create a cache key based on review dates - using a sample for performance
+  const sampleSize = Math.min(reviews.length, 10);
+  const sampleReviews = reviews.slice(0, sampleSize);
+  const cacheKey = sampleReviews.map(r => r.publishedAtDate).sort().join('|') + `-${reviews.length}`;
   
   // Return cached result if available
   if (chartDataCache.has(cacheKey)) {
+    console.log("Using cached chart data");
     return chartDataCache.get(cacheKey)!;
   }
   
-  // Group reviews by month
+  console.log(`Generating chart data for ${reviews.length} reviews`);
+  
+  // Group reviews by year-month for proper sorting
   const monthMap = new Map<string, number>();
   
   reviews.forEach(review => {
     if (!review.publishedAtDate) return;
     
-    const date = new Date(review.publishedAtDate);
-    if (isNaN(date.getTime())) return; // Skip invalid dates
+    // Get date key in sortable format (yyyy-mm)
+    const monthYearKey = getDateSortKey(review.publishedAtDate);
+    if (monthYearKey === '0000-00') return; // Skip invalid dates
     
-    const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    monthMap.set(monthYear, (monthMap.get(monthYear) || 0) + 1);
+    monthMap.set(monthYearKey, (monthMap.get(monthYearKey) || 0) + 1);
   });
   
-  // Convert to array and sort by date
-  const monthData = Array.from(monthMap.entries())
-    .map(([month, count]) => ({ month, count }))
-    .sort((a, b) => {
-      const dateA = new Date(a.month);
-      const dateB = new Date(b.month);
-      return dateA.getTime() - dateB.getTime();
-    });
+  // Debug current month
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${('0' + (now.getMonth() + 1)).slice(-2)}`;
+  console.log(`Current month key: ${currentMonthKey}, has data: ${monthMap.has(currentMonthKey)}, count: ${monthMap.get(currentMonthKey) || 0}`);
+  
+  // Convert to array and sort by date chronologically
+  const monthEntries = Array.from(monthMap.entries())
+    .sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+  
+  // Map to our data format with display-friendly month names
+  const monthData = monthEntries.map(([key, count]) => ({
+    key,
+    month: formatMonthDisplay(key),
+    count
+  }));
   
   // Add cumulative count
   let cumulative = 0;
@@ -96,6 +139,14 @@ export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
       cumulativeCount: cumulative
     };
   });
+  
+  // Log some debug info
+  console.log(`Generated ${result.length} months of chart data`);
+  if (result.length > 0) {
+    console.log(`First month: ${result[0].month}, count: ${result[0].count}`);
+    console.log(`Last month: ${result[result.length-1].month}, count: ${result[result.length-1].count}`);
+    console.log(`Total cumulative count: ${result[result.length-1].cumulativeCount}`);
+  }
   
   // Cache the result
   chartDataCache.set(cacheKey, result);
@@ -117,8 +168,15 @@ export const calculateBusinessStats = (
     return {};
   }
   
-  // Create a simpler cache key based on review length and a hash
-  const cacheKey = `stats-${reviews.length}-${Date.now()}`;
+  // Create a cache key based on review length and a hash of business IDs
+  const businessIds = new Set<string>();
+  reviews.forEach(review => {
+    if (review.business_id) {
+      businessIds.add(review.business_id);
+    }
+  });
+  const businessIdsStr = Array.from(businessIds).sort().join(',');
+  const cacheKey = `stats-${reviews.length}-${businessIdsStr}`;
   
   // Return cached result if available
   if (businessStatsCache.has(cacheKey)) {
@@ -190,4 +248,5 @@ export const clearCaches = () => {
   filterCache.clear();
   chartDataCache.clear();
   businessStatsCache.clear();
+  console.log("All utility caches cleared");
 };

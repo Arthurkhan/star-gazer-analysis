@@ -1,12 +1,15 @@
 // Supabase Edge Function for generating advanced AI recommendations
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { OpenAI } from "https://deno.land/x/openai@v4.20.1/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 interface RequestBody {
+  businessId: string;
   analysisData: any;
   businessType: string;
   provider: 'openai' | 'anthropic';
   apiKey?: string;
+  maxReviews?: number;
 }
 
 const corsHeaders = {
@@ -70,13 +73,58 @@ serve(async (req) => {
   }
 
   try {
-    const { analysisData, businessType, provider, apiKey } = await req.json() as RequestBody;
+    // Extract the request parameters
+    const { businessId, analysisData, businessType, provider, apiKey, maxReviews = 100 } = await req.json() as RequestBody;
+    
+    // Validate required parameters
+    if (!businessId) {
+      throw new Error('Business ID is required');
+    }
     
     // Use provided API key or environment variable
     const activeApiKey = apiKey || Deno.env.get('OPENAI_API_KEY');
     
     if (!activeApiKey) {
       throw new Error('API key required for advanced recommendations');
+    }
+
+    // Setup Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Check for cached recommendations
+    const { data: cachedRecs } = await supabase
+      .from('recommendations')
+      .select('*')
+      .eq('business_id', businessId)
+      .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1);
+      
+    if (cachedRecs?.length > 0) {
+      return new Response(JSON.stringify(cachedRecs[0].recommendations), {
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'max-age=3600'
+        }
+      });
+    }
+    
+    // Fetch reviews if not provided in analysis data
+    let reviewsData = analysisData?.reviews || [];
+    
+    if (reviewsData.length === 0) {
+      // Get latest reviews (paginated)
+      const { data: reviews } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('business_id', businessId)
+        .order('publishedatdate', { ascending: false })
+        .limit(maxReviews);
+        
+      reviewsData = reviews || [];
     }
 
     // Get context data
@@ -88,7 +136,7 @@ serve(async (req) => {
     
     if (provider === 'openai') {
       const aiResponse = await generateOpenAIRecommendations({
-        data: analysisData,
+        data: analysisData || { reviews: reviewsData },
         businessType,
         context: {
           industryBenchmarks,
@@ -97,10 +145,22 @@ serve(async (req) => {
       }, businessType, activeApiKey);
       
       // Parse and structure the AI response
-      recommendations = parseAIResponse(aiResponse, analysisData, industryBenchmarks);
+      recommendations = parseAIResponse(aiResponse, analysisData || { reviews: reviewsData }, industryBenchmarks);
     } else {
       // Add support for other providers here
       throw new Error(`Provider ${provider} not yet implemented`);
+    }
+    
+    // Save the recommendations to the database
+    const { error: saveError } = await supabase
+      .from('recommendations')
+      .insert({
+        business_id: businessId,
+        recommendations
+      });
+      
+    if (saveError) {
+      console.error('Error saving recommendations:', saveError);
     }
     
     return new Response(JSON.stringify(recommendations), {

@@ -14,6 +14,7 @@ import { EnhancedAnalysis } from '@/types/dataAnalysis';
 import { toast } from '@/hooks/use-toast';
 import { getBusinessTypeFromName } from '@/types/BusinessMappings';
 import { fetchBusinesses, getLatestRecommendation, saveRecommendation } from '@/services/reviewDataService';
+import { getBusinessIdFromName } from '@/utils/reviewDataUtils';
 
 export class RecommendationService {
   private browserService: BrowserAIService;
@@ -46,14 +47,22 @@ export class RecommendationService {
       if (typeof params.business === 'string') {
         // If business is a string (name), get the business ID and type
         businessName = params.business;
-        const businesses = await fetchBusinesses();
-        const business = businesses.find(b => b.name === businessName);
         
-        if (!business) {
-          throw new Error(`Business not found: ${businessName}`);
+        // First look for the business ID in the reviews
+        businessId = getBusinessIdFromName(params.reviews, businessName) || '';
+        
+        // If not found in reviews, fetch all businesses and try to find it
+        if (!businessId) {
+          const businesses = await fetchBusinesses();
+          const business = businesses.find(b => b.name === businessName);
+          
+          if (business) {
+            businessId = business.id;
+          } else {
+            businessId = ''; // Default empty if not found
+          }
         }
         
-        businessId = business.id;
         businessType = params.businessType || getBusinessTypeFromName(businessName);
       } else {
         // If business is an object, extract properties
@@ -62,15 +71,17 @@ export class RecommendationService {
         businessType = params.businessType || params.business.business_type as BusinessType || BusinessType.OTHER;
       }
       
-      // Validate inputs before processing
-      if (!businessId || !businessType || !Array.isArray(params.reviews)) {
-        throw new Error('Invalid input parameters: business, businessType, and reviews array are required');
+      // If we still don't have an ID, something is wrong
+      if (!businessId) {
+        console.warn('Could not find business ID for', businessName);
       }
       
       // Check for cached recommendations
-      const cachedRecommendation = await getLatestRecommendation(businessId);
-      if (cachedRecommendation && (Date.now() - new Date(cachedRecommendation.created_at).getTime() < 24 * 60 * 60 * 1000)) {
-        return cachedRecommendation.recommendations;
+      if (businessId) {
+        const cachedRecommendation = await getLatestRecommendation(businessId);
+        if (cachedRecommendation && (Date.now() - new Date(cachedRecommendation.created_at).getTime() < 24 * 60 * 60 * 1000)) {
+          return cachedRecommendation.recommendations;
+        }
       }
       
       // Log for debugging
@@ -118,8 +129,16 @@ export class RecommendationService {
         recommendations.enhancedAnalysis = enhancedAnalysis;
       }
       
-      // Save the recommendations to the database
-      await saveRecommendation(businessId, recommendations);
+      // Add business info to recommendations
+      recommendations.businessId = businessId;
+      recommendations.businessName = businessName;
+      
+      // Save the recommendations to the database if we have a business ID
+      if (businessId) {
+        await saveRecommendation(businessId, recommendations);
+      } else {
+        console.warn('Could not save recommendations - no business ID available');
+      }
       
       return recommendations;
     } catch (error) {
@@ -141,14 +160,7 @@ export class RecommendationService {
           if (typeof params.business === 'string') {
             // If business is a string (name), get the business ID and type
             businessName = params.business;
-            const businesses = await fetchBusinesses();
-            const business = businesses.find(b => b.name === businessName);
-            
-            if (!business) {
-              throw new Error(`Business not found: ${businessName}`);
-            }
-            
-            businessId = business.id;
+            businessId = getBusinessIdFromName(params.reviews, businessName) || '';
             businessType = params.businessType || getBusinessTypeFromName(businessName);
           } else {
             // If business is an object, extract properties
@@ -168,8 +180,14 @@ export class RecommendationService {
             businessType
           );
           
-          // Save the recommendations to the database
-          await saveRecommendation(businessId, recommendations);
+          // Add business info to recommendations
+          recommendations.businessId = businessId;
+          recommendations.businessName = businessName;
+          
+          // Save the recommendations to the database if we have a business ID
+          if (businessId) {
+            await saveRecommendation(businessId, recommendations);
+          }
           
           return recommendations;
         } catch (fallbackError) {
@@ -249,6 +267,10 @@ export class RecommendationService {
       
       // Generate recommendations using the AI provider
       const recommendations = await aiService.generateRecommendations(businessContext);
+      
+      // Add business info to recommendations
+      recommendations.businessId = businessId;
+      recommendations.businessName = businessName;
       
       // Generate additional components if not provided
       if (!recommendations.customerAttractionPlan) {

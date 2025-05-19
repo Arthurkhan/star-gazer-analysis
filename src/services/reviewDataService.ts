@@ -1,118 +1,202 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Review, TableName } from "@/types/reviews";
+import { Review, Business, TableName } from "@/types/reviews";
+import { BUSINESS_TYPE_MAPPINGS } from "@/types/BusinessMappings";
 
-// Define a proper cache entry type
-interface TableCacheEntry {
+// Cache for business data
+interface BusinessCacheEntry {
   timestamp: number;
-  data: any[];
+  data: Business[];
 }
 
-// Cache for table data to reduce database load
-const tableDataCache = new Map<string, TableCacheEntry>();
-const TABLE_CACHE_TTL = 1000 * 60 * 5; // 5 minute cache TTL
+// Cache for review data
+interface ReviewCacheEntry {
+  timestamp: number;
+  data: Review[];
+}
 
-/**
- * Fetches data from a Supabase table with pagination to handle large datasets
- * With caching for better performance
- */
-export const fetchTableDataWithPagination = async (tableName: TableName) => {
-  console.log(`Fetching data from table: ${tableName}`);
-  
-  // Check if we have a cached result
-  const cacheEntry = tableDataCache.get(tableName);
-  if (cacheEntry && cacheEntry.timestamp > Date.now() - TABLE_CACHE_TTL) {
-    console.log(`Using cached data for ${tableName}`);
-    return cacheEntry.data;
-  }
-  
-  let allData: any[] = [];
-  let hasMore = true;
-  let page = 0;
-  const pageSize = 1000; // Supabase default limit
-  
-  while (hasMore) {
-    try {
-      // Calculate the range start based on the current page
-      const rangeStart = page * pageSize;
-      const rangeEnd = rangeStart + pageSize - 1;
-      
-      console.log(`Fetching page ${page+1} (rows ${rangeStart}-${rangeEnd}) from ${tableName}`);
-      
-      const { data, error, count } = await supabase
-        .from(tableName)
-        .select('*', { count: 'exact' })
-        .range(rangeStart, rangeEnd);
-      
-      if (error) {
-        console.error(`Error fetching page ${page+1} from ${tableName}:`, error);
-        break;
-      }
-      
-      if (data && data.length > 0) {
-        console.log(`Retrieved ${data.length} rows from ${tableName}, page ${page+1}`);
-        allData = [...allData, ...data];
-        
-        // Check if we've received fewer rows than the page size, indicating we're done
-        hasMore = data.length === pageSize;
-        
-        // If count is available, we can be more precise
-        if (count !== null) {
-          hasMore = allData.length < count;
-        }
-      } else {
-        // No more data
-        hasMore = false;
-      }
-      
-      page++;
-    } catch (tableError) {
-      console.error(`Failed to query table ${tableName} at page ${page+1}:`, tableError);
-      break;
-    }
-  }
-  
-  console.log(`Total rows fetched from ${tableName}: ${allData.length}`);
-  
-  // Cache the result with the proper structure
-  tableDataCache.set(tableName, {
-    timestamp: Date.now(),
-    data: allData
-  });
-  
-  return allData;
+// Cache for tables
+const businessCache: BusinessCacheEntry = {
+  timestamp: 0,
+  data: []
 };
 
-/**
- * Cache for available tables
- */
-let availableTablesCache: TableName[] | null = null;
-let tablesLastFetched = 0;
+// Cache for reviews
+const reviewsCache: ReviewCacheEntry = {
+  timestamp: 0,
+  data: []
+};
+
+const CACHE_TTL = 1000 * 60 * 5; // 5 minute cache TTL
 
 /**
- * Fetches available tables from Supabase
+ * Get all businesses from the database
  */
-export const fetchAvailableTables = async (): Promise<TableName[]> => {
-  // Return cached tables if available and not expired
-  if (availableTablesCache && tablesLastFetched > Date.now() - (1000 * 60 * 60)) {
-    console.log("Using cached tables list");
-    return availableTablesCache;
+export const fetchBusinesses = async (): Promise<Business[]> => {
+  // Return cached businesses if available and not expired
+  if (businessCache.timestamp > Date.now() - CACHE_TTL) {
+    console.log("Using cached businesses");
+    return businessCache.data;
   }
   
   try {
-    // We'll use the predefined tables instead of querying for them
-    const knownTables: TableName[] = [
-      "L'Envol Art Space",
-      "The Little Prince Cafe", 
-      "Vol de Nuit, The Hidden Bar"
-    ];
+    console.log("Fetching businesses from database");
+    const { data, error } = await supabase
+      .from('businesses')
+      .select('*');
     
-    console.log("Using known tables:", knownTables);
+    if (error) {
+      console.error("Error fetching businesses:", error);
+      throw error;
+    }
     
     // Update cache
-    availableTablesCache = knownTables;
-    tablesLastFetched = Date.now();
+    businessCache.data = data || [];
+    businessCache.timestamp = Date.now();
     
-    return knownTables;
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch businesses:", error);
+    
+    // Create fallback businesses if no data
+    if (businessCache.data.length === 0) {
+      const fallbackBusinesses = Object.entries(BUSINESS_TYPE_MAPPINGS).map(([name, type], index) => ({
+        id: `fallback-${index + 1}`,
+        name,
+        business_type: type,
+        created_at: new Date().toISOString()
+      }));
+      
+      businessCache.data = fallbackBusinesses;
+      businessCache.timestamp = Date.now();
+    }
+    
+    return businessCache.data;
+  }
+};
+
+/**
+ * Get reviews by business ID with optional filters
+ */
+export const fetchReviewsByBusinessId = async (
+  businessId: string,
+  startDate?: Date,
+  endDate?: Date,
+  limit = 1000
+): Promise<Review[]> => {
+  console.log(`Fetching reviews for business ID: ${businessId}`);
+  
+  try {
+    let query = supabase
+      .from('reviews')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('publishedAtDate', { ascending: false })
+      .limit(limit);
+    
+    // Add date filters if provided
+    if (startDate) {
+      query = query.gte('publishedAtDate', startDate.toISOString());
+    }
+    
+    if (endDate) {
+      query = query.lte('publishedAtDate', endDate.toISOString());
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error(`Error fetching reviews for business ID ${businessId}:`, error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error(`Failed to fetch reviews for business ID ${businessId}:`, error);
+    return [];
+  }
+};
+
+/**
+ * Get all reviews with business information
+ */
+export const fetchAllReviews = async (
+  startDate?: Date, 
+  endDate?: Date
+): Promise<Review[]> => {
+  // Return cached reviews if available and not expired
+  if (reviewsCache.timestamp > Date.now() - CACHE_TTL) {
+    console.log("Using cached reviews");
+    return reviewsCache.data;
+  }
+  
+  try {
+    console.log("Fetching all reviews with business information");
+    
+    let query = supabase
+      .from('reviews')
+      .select(`
+        *,
+        businesses:business_id (
+          name,
+          business_type
+        )
+      `)
+      .order('publishedAtDate', { ascending: false })
+      .limit(1000); // Reasonable limit to prevent performance issues
+    
+    // Add date filters if provided
+    if (startDate) {
+      query = query.gte('publishedAtDate', startDate.toISOString());
+    }
+    
+    if (endDate) {
+      query = query.lte('publishedAtDate', endDate.toISOString());
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error("Error fetching all reviews:", error);
+      throw error;
+    }
+    
+    // Process and transform the data
+    const processedReviews = data?.map(review => {
+      const business = review.businesses as any;
+      return {
+        ...review,
+        // Add the business name as title for backward compatibility
+        title: business?.name || 'Unknown Business'
+      };
+    }) || [];
+    
+    // Update cache
+    reviewsCache.data = processedReviews;
+    reviewsCache.timestamp = Date.now();
+    
+    return processedReviews;
+  } catch (error) {
+    console.error("Failed to fetch all reviews:", error);
+    return reviewsCache.data; // Return cached data as fallback
+  }
+};
+
+/**
+ * Legacy method to keep backward compatibility
+ * Maps to the new schema under the hood
+ */
+export const fetchAvailableTables = async (): Promise<TableName[]> => {
+  try {
+    const businesses = await fetchBusinesses();
+    
+    // Return only the business names that match our TableName type
+    return businesses
+      .map(business => business.name as TableName)
+      .filter(name => 
+        name === "L'Envol Art Space" || 
+        name === "The Little Prince Cafe" || 
+        name === "Vol de Nuit, The Hidden Bar"
+      );
   } catch (error) {
     console.error("Failed to fetch tables:", error);
     
@@ -123,88 +207,108 @@ export const fetchAvailableTables = async (): Promise<TableName[]> => {
       "Vol de Nuit, The Hidden Bar"
     ];
     
-    // Update cache with fallback
-    availableTablesCache = knownTables;
-    tablesLastFetched = Date.now();
-    
     return knownTables;
   }
 };
 
 /**
- * Cache for all reviews data
+ * Legacy method for backward compatibility
+ * Uses the new database schema under the hood
  */
-let allReviewsCache: Review[] | null = null;
-let reviewsLastFetched = 0;
-
-/**
- * Fetches review data from all available tables
- * With caching for better performance
- */
-export const fetchAllReviewData = async (tables: TableName[]): Promise<Review[]> => {
-  // Return cached reviews if available and not expired (10 minutes TTL)
-  if (allReviewsCache && reviewsLastFetched > Date.now() - (1000 * 60 * 10)) {
-    console.log("Using cached reviews data");
-    return allReviewsCache;
-  }
-  
-  let allReviews: Review[] = [];
-  console.log("Fetching data from tables:", tables);
-  
-  // Use Promise.all to fetch data from all tables in parallel
-  const tableDataPromises = tables.map(async (tableName) => {
-    console.log(`Starting data fetch from table: ${tableName}`);
+export const fetchAllReviewData = async (
+  tables: TableName[],
+  startDate?: Date,
+  endDate?: Date
+): Promise<Review[]> => {
+  try {
+    // Get all reviews
+    const allReviews = await fetchAllReviews(startDate, endDate);
     
-    try {
-      // Use the pagination function to fetch all data
-      const tableData = await fetchTableDataWithPagination(tableName);
+    // If we have specific table names to filter by
+    if (tables && tables.length > 0) {
+      // Get businesses for the table names
+      const businesses = await fetchBusinesses();
+      const businessMap = new Map(businesses.map(b => [b.name, b.id]));
       
-      if (tableData && tableData.length > 0) {
-        // Map the data to our Review type, handling possible column name variations
-        return tableData.map((item: any) => ({
-          name: item.name,
-          title: item.title || tableName, // Use table name if title is missing
-          stars: item.stars || item.star, // Handle both column names
-          originalLanguage: item.originalLanguage,
-          text: item.text,
-          textTranslated: item.textTranslated,
-          responseFromOwnerText: item.responseFromOwnerText,
-          publishedAtDate: item.publishedAtDate,
-          reviewUrl: item.reviewUrl,
-          sentiment: item.sentiment,
-          staffMentioned: item.staffMentioned,
-          mainThemes: item.mainThemes,
-          "common terms": item["common terms"]
-        }));
-      }
-      return [];
-    } catch (tableError) {
-      console.error(`Failed to query table ${tableName}:`, tableError);
-      return [];
+      // Filter reviews to only include those for the specified tables/businesses
+      return allReviews.filter(review => {
+        // Get the business from the joined data
+        const business = (review as any).businesses;
+        if (!business) return false;
+        
+        // Check if the business name is in our tables list
+        return tables.includes(business.name as TableName);
+      });
     }
-  });
-  
-  // Wait for all table data to be fetched
-  const tableResults = await Promise.all(tableDataPromises);
-  
-  // Combine all results
-  allReviews = tableResults.flat();
-  
-  console.log(`Total reviews fetched across all tables: ${allReviews.length}`);
-  
-  // Update cache
-  allReviewsCache = allReviews;
-  reviewsLastFetched = Date.now();
-  
-  return allReviews;
+    
+    return allReviews;
+  } catch (error) {
+    console.error("Failed to fetch all review data:", error);
+    return [];
+  }
 };
 
 /**
  * Clear all caches - useful when forcing a refresh
  */
 export const clearAllCaches = () => {
-  tableDataCache.clear();
-  availableTablesCache = null;
-  allReviewsCache = null;
+  businessCache.timestamp = 0;
+  businessCache.data = [];
+  reviewsCache.timestamp = 0;
+  reviewsCache.data = [];
   console.log("All data caches cleared");
+};
+
+/**
+ * Save a recommendation to the database
+ */
+export const saveRecommendation = async (
+  businessId: string,
+  recommendations: any
+): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('recommendations')
+      .insert({
+        business_id: businessId,
+        recommendations: recommendations
+      })
+      .select('id');
+    
+    if (error) {
+      console.error("Error saving recommendation:", error);
+      throw error;
+    }
+    
+    return data?.[0]?.id || null;
+  } catch (error) {
+    console.error("Failed to save recommendation:", error);
+    return null;
+  }
+};
+
+/**
+ * Get latest recommendation for a business
+ */
+export const getLatestRecommendation = async (
+  businessId: string
+): Promise<any | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('recommendations')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (error) {
+      console.error("Error fetching latest recommendation:", error);
+      throw error;
+    }
+    
+    return data?.[0] || null;
+  } catch (error) {
+    console.error("Failed to fetch latest recommendation:", error);
+    return null;
+  }
 };

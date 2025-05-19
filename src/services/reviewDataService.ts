@@ -26,30 +26,57 @@ const reviewsCache: ReviewCacheEntry = {
   data: []
 };
 
+// Debug mode - force fresh data every time during development
+const DEBUG_MODE = true;
 const CACHE_TTL = 1000 * 60 * 5; // 5 minute cache TTL
 
 /**
  * Get all businesses from the database
  */
 export const fetchBusinesses = async (): Promise<Business[]> => {
-  // Return cached businesses if available and not expired
-  if (businessCache.timestamp > Date.now() - CACHE_TTL) {
-    console.log("Using cached businesses");
-    return businessCache.data;
-  }
+  console.log("Fetching businesses from database");
   
   try {
-    console.log("Fetching businesses from database");
+    // Directly query to check what tables exist
+    const { data: tableData, error: tableError } = await supabase
+      .rpc('list_tables');
+    
+    if (tableError) {
+      console.error("Error listing tables:", tableError);
+    } else {
+      console.log("Available tables in database:", tableData);
+    }
+    
+    // Try to query the businesses table
     const { data, error } = await supabase
       .from('businesses')
       .select('*');
     
     if (error) {
       console.error("Error fetching businesses:", error);
-      throw error;
+      
+      // If the businesses table doesn't exist, check for the original tables
+      console.log("Checking for legacy tables...");
+      
+      const knownTables: TableName[] = [
+        "L'Envol Art Space",
+        "The Little Prince Cafe", 
+        "Vol de Nuit, The Hidden Bar"
+      ];
+      
+      // Create mock business entries from the old table names
+      const mockBusinesses: Business[] = knownTables.map((name, index) => ({
+        id: `legacy-${index}`,
+        name: name,
+        business_type: BUSINESS_TYPE_MAPPINGS[name] || "OTHER",
+        created_at: new Date().toISOString()
+      }));
+      
+      console.log("Generated legacy businesses:", mockBusinesses);
+      return mockBusinesses;
     }
     
-    // Update cache
+    console.log(`Found ${data?.length || 0} businesses in database`);
     businessCache.data = data || [];
     businessCache.timestamp = Date.now();
     
@@ -61,7 +88,81 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
 };
 
 /**
- * Fetch reviews by business ID with robust pagination to handle large datasets
+ * Check if a table exists in the database
+ */
+const tableExists = async (tableName: string): Promise<boolean> => {
+  try {
+    const { count, error } = await supabase
+      .from(tableName)
+      .select('*', { count: 'exact', head: true });
+    
+    return !error;
+  } catch (error) {
+    console.error(`Error checking if table ${tableName} exists:`, error);
+    return false;
+  }
+};
+
+/**
+ * Fetch reviews from a specific table (legacy method)
+ */
+const fetchReviewsFromTable = async (
+  tableName: TableName,
+  startDate?: Date,
+  endDate?: Date
+): Promise<Review[]> => {
+  console.log(`Fetching reviews from legacy table: ${tableName}`);
+  
+  try {
+    let query = supabase
+      .from(tableName)
+      .select('*');
+    
+    // Add date filters if provided
+    if (startDate) {
+      query = query.gte('publishedAtDate', startDate.toISOString());
+    }
+    
+    if (endDate) {
+      query = query.lte('publishedAtDate', endDate.toISOString());
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error(`Error fetching reviews from table ${tableName}:`, error);
+      return [];
+    }
+    
+    console.log(`Fetched ${data?.length || 0} reviews from table ${tableName}`);
+    
+    // Transform data to match the new schema format
+    const transformedData: Review[] = (data || []).map(item => ({
+      id: item.id || `legacy-${Math.random().toString(36).substring(2, 11)}`,
+      business_id: `legacy-${tableName}`,
+      stars: item.stars,
+      name: item.name,
+      text: item.text,
+      textTranslated: item.textTranslated,
+      publishedAtDate: item.publishedAtDate,
+      reviewUrl: item.reviewUrl,
+      responseFromOwnerText: item.responseFromOwnerText,
+      sentiment: item.sentiment,
+      staffMentioned: item.staffMentioned,
+      mainThemes: item.mainThemes,
+      title: tableName,
+      created_at: item.created_at || new Date().toISOString()
+    }));
+    
+    return transformedData;
+  } catch (error) {
+    console.error(`Failed to fetch reviews from table ${tableName}:`, error);
+    return [];
+  }
+};
+
+/**
+ * Fetch reviews by business ID with robust pagination
  */
 export const fetchReviewsByBusinessId = async (
   businessId: string,
@@ -70,7 +171,21 @@ export const fetchReviewsByBusinessId = async (
 ): Promise<Review[]> => {
   console.log(`Fetching reviews for business ID: ${businessId}`);
   
+  // Handle legacy business IDs
+  if (businessId.startsWith('legacy-')) {
+    const tableName = businessId.replace('legacy-', '') as TableName;
+    console.log(`Handling legacy business ID for table: ${tableName}`);
+    return fetchReviewsFromTable(tableName as TableName, startDate, endDate);
+  }
+  
   try {
+    // Check if the reviews table exists
+    const hasReviewsTable = await tableExists('reviews');
+    if (!hasReviewsTable) {
+      console.error("Reviews table does not exist!");
+      return [];
+    }
+    
     let allReviews: Review[] = [];
     let page = 0;
     const pageSize = 1000; // Use a large page size to reduce round trips
@@ -82,7 +197,6 @@ export const fetchReviewsByBusinessId = async (
       
       console.log(`Fetching page ${page+1} (from=${from}, limit=${pageSize}) for business ID ${businessId}`);
       
-      // Use .range() is unreliable with larger datasets, so using limit/offset instead
       let query = supabase
         .from('reviews')
         .select('*', { count: 'exact' })
@@ -134,14 +248,14 @@ export const fetchReviewsByBusinessId = async (
 };
 
 /**
- * Get all reviews with business information - using pagination to get ALL reviews
+ * Get all reviews - checks both new and legacy tables
  */
 export const fetchAllReviews = async (
   startDate?: Date, 
   endDate?: Date
 ): Promise<Review[]> => {
-  // For cache busting during debugging
-  const bypassCache = true;
+  // Always bypass cache in debug mode
+  const bypassCache = DEBUG_MODE;
   
   // Return cached reviews if available and not expired
   if (!bypassCache && reviewsCache.timestamp > Date.now() - CACHE_TTL) {
@@ -150,8 +264,40 @@ export const fetchAllReviews = async (
   }
   
   try {
-    console.log("Fetching all reviews with business information");
+    console.log("Fetching all reviews...");
     
+    // Check if the reviews table exists
+    const hasReviewsTable = await tableExists('reviews');
+    
+    // If we don't have the new reviews table, try legacy tables
+    if (!hasReviewsTable) {
+      console.log("Reviews table not found, trying legacy tables...");
+      const knownTables: TableName[] = [
+        "L'Envol Art Space",
+        "The Little Prince Cafe", 
+        "Vol de Nuit, The Hidden Bar"
+      ];
+      
+      let allReviews: Review[] = [];
+      
+      // Check each legacy table
+      for (const tableName of knownTables) {
+        // Check if this table exists
+        const tableExists = await tableExists(tableName);
+        if (tableExists) {
+          console.log(`Found legacy table: ${tableName}`);
+          const reviews = await fetchReviewsFromTable(tableName, startDate, endDate);
+          allReviews = [...allReviews, ...reviews];
+        } else {
+          console.log(`Legacy table does not exist: ${tableName}`);
+        }
+      }
+      
+      console.log(`Total ${allReviews.length} reviews fetched from legacy tables`);
+      return allReviews;
+    }
+    
+    // Otherwise, use the new schema
     let allReviews: Review[] = [];
     let page = 0;
     const pageSize = 1000;
@@ -162,7 +308,7 @@ export const fetchAllReviews = async (
       .from('reviews')
       .select('*', { count: 'exact', head: true });
     
-    console.log(`Total reviews in database: ${totalCount}`);
+    console.log(`Total reviews in database: ${totalCount || 'unknown'}`);
     
     // Use pagination to fetch all reviews
     while (hasMore) {
@@ -248,28 +394,56 @@ export const fetchAllReviews = async (
  */
 export const fetchAvailableTables = async (): Promise<TableName[]> => {
   try {
+    // First check if we're using the new schema
     const businesses = await fetchBusinesses();
     
-    // Return only the business names that match our TableName type
-    const businessNames = businesses
-      .map(business => business.name)
-      .filter(name => 
-        name === "L'Envol Art Space" || 
-        name === "The Little Prince Cafe" || 
-        name === "Vol de Nuit, The Hidden Bar"
-      ) as TableName[];
-    
-    console.log(`Found business names matching our expected tables: ${businessNames.join(', ')}`);
-    
-    // If we don't find any businesses matching our expected names,
-    // use the first three business names instead
-    if (businessNames.length === 0 && businesses.length > 0) {
-      const fallbackNames = businesses.slice(0, 3).map(b => b.name) as TableName[];
-      console.log(`Using fallback business names: ${fallbackNames.join(', ')}`);
-      return fallbackNames;
+    if (businesses.length > 0) {
+      // Return only the business names that match our TableName type
+      const businessNames = businesses
+        .map(business => business.name)
+        .filter(name => 
+          name === "L'Envol Art Space" || 
+          name === "The Little Prince Cafe" || 
+          name === "Vol de Nuit, The Hidden Bar"
+        ) as TableName[];
+      
+      console.log(`Found business names matching our expected tables: ${businessNames.join(', ')}`);
+      
+      // If we don't find any businesses matching our expected names,
+      // use the first three business names instead
+      if (businessNames.length === 0 && businesses.length > 0) {
+        const fallbackNames = businesses.slice(0, 3).map(b => b.name) as TableName[];
+        console.log(`Using fallback business names: ${fallbackNames.join(', ')}`);
+        return fallbackNames;
+      }
+      
+      return businessNames;
     }
     
-    return businessNames;
+    // If no businesses were found, check for legacy tables
+    console.log("No businesses found, checking for legacy tables...");
+    const knownTables: TableName[] = [
+      "L'Envol Art Space",
+      "The Little Prince Cafe", 
+      "Vol de Nuit, The Hidden Bar"
+    ];
+    
+    // Check which of these tables exist
+    const existingTables: TableName[] = [];
+    for (const tableName of knownTables) {
+      if (await tableExists(tableName)) {
+        existingTables.push(tableName);
+      }
+    }
+    
+    if (existingTables.length > 0) {
+      console.log(`Found existing legacy tables: ${existingTables.join(', ')}`);
+      return existingTables;
+    }
+    
+    // If all else fails, return the known tables anyway
+    console.log(`Using hardcoded table names: ${knownTables.join(', ')}`);
+    return knownTables;
   } catch (error) {
     console.error("Failed to fetch tables:", error);
     
@@ -280,7 +454,7 @@ export const fetchAvailableTables = async (): Promise<TableName[]> => {
       "Vol de Nuit, The Hidden Bar"
     ];
     
-    console.log(`Using hardcoded table names: ${knownTables.join(', ')}`);
+    console.log(`Using hardcoded table names due to error: ${knownTables.join(', ')}`);
     return knownTables;
   }
 };
@@ -298,22 +472,28 @@ export const fetchAllReviewData = async (
     // Get all reviews
     const allReviews = await fetchAllReviews(startDate, endDate);
     
+    if (allReviews.length === 0) {
+      console.warn("No reviews found in fetchAllReviewData");
+    }
+    
     // If we have specific table names to filter by
     if (tables && tables.length > 0) {
       console.log(`Filtering reviews for specific tables: ${tables.join(', ')}`);
       
-      // Get businesses for the table names
-      const businesses = await fetchBusinesses();
-      const businessMap = new Map(businesses.map(b => [b.name, b.id]));
-      
       // Filter reviews to only include those for the specified tables/businesses
       const filteredReviews = allReviews.filter(review => {
-        // Get the business from the joined data
-        const business = (review as any).businesses;
-        if (!business) return false;
+        // Check title field first (for backward compatibility)
+        if (review.title && tables.includes(review.title as TableName)) {
+          return true;
+        }
         
-        // Check if the business name is in our tables list
-        return tables.includes(business.name as TableName);
+        // Then check the business from the joined data
+        const business = (review as any).businesses;
+        if (business && business.name && tables.includes(business.name as TableName)) {
+          return true;
+        }
+        
+        return false;
       });
       
       console.log(`Filtered down to ${filteredReviews.length} reviews for the specified tables`);

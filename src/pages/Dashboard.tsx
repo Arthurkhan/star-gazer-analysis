@@ -17,6 +17,7 @@ import { type AIProvider } from "@/components/AIProviderToggle";
 import { Sparkles, Download, Save, BarChart3, GitCompare, Mail as MailIcon, RefreshCw } from "lucide-react";
 import { DebugPanel } from "@/components/debug/DebugPanel";
 import { DatabaseStatus } from "@/components/diagnostic/DatabaseStatus";
+import { MissingEnvAlert } from "@/components/diagnostic/MissingEnvAlert";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const Dashboard = () => {
   
   const { 
     loading, 
+    databaseError,
     selectedBusiness, 
     businessData, 
     getFilteredReviews, 
@@ -74,11 +76,16 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout onProviderChange={setAiProvider}>
+      {/* Check for missing environment variables */}
+      <MissingEnvAlert />
+      
       {/* Database Status Check */}
-      <DatabaseStatus 
-        onRefresh={handleRefreshData}
-        isRefreshing={isRefreshing}
-      />
+      {databaseError && (
+        <DatabaseStatus 
+          onRefresh={handleRefreshData}
+          isRefreshing={isRefreshing}
+        />
+      )}
 
       <div className="flex justify-between items-center gap-4 mb-6 w-full">
         <BusinessSelector

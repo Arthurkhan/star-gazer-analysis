@@ -31,41 +31,61 @@ const DEBUG_MODE = true;
 const CACHE_TTL = 1000 * 60 * 5; // 5 minute cache TTL
 
 /**
+ * Check if a table exists in the database
+ */
+const tableExists = async (tableName: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from(tableName)
+      .select('*', { head: true })
+      .limit(1);
+    
+    // If we get a specific error about the relation not existing, the table doesn't exist
+    if (error && (error.code === '42P01' || error.message.includes('relation') && error.message.includes('does not exist'))) {
+      return false;
+    }
+    
+    // Any other error might be permissions or other issues, but we'll assume the table exists
+    return true;
+  } catch (error) {
+    console.error(`Error checking if table ${tableName} exists:`, error);
+    return false;
+  }
+};
+
+/**
  * Get all businesses from the database
  */
 export const fetchBusinesses = async (): Promise<Business[]> => {
   console.log("Fetching businesses from database");
   
   try {
-    // Directly query to check what tables exist
-    const { data: tableData, error: tableError } = await supabase
-      .rpc('list_tables');
+    // First check if the 'businesses' table exists
+    const businessesTableExists = await tableExists('businesses');
+    console.log("Businesses table exists:", businessesTableExists);
     
-    if (tableError) {
-      console.error("Error listing tables:", tableError);
-    } else {
-      console.log("Available tables in database:", tableData);
-    }
-    
-    // Try to query the businesses table
-    const { data, error } = await supabase
-      .from('businesses')
-      .select('*');
-    
-    if (error) {
-      console.error("Error fetching businesses:", error);
+    if (!businessesTableExists) {
+      console.log("Businesses table not found, using legacy approach");
       
-      // If the businesses table doesn't exist, check for the original tables
-      console.log("Checking for legacy tables...");
-      
+      // If the table doesn't exist, create mock business entries from the old table names
       const knownTables: TableName[] = [
         "L'Envol Art Space",
         "The Little Prince Cafe", 
         "Vol de Nuit, The Hidden Bar"
       ];
       
-      // Create mock business entries from the old table names
-      const mockBusinesses: Business[] = knownTables.map((name, index) => ({
+      // Check which tables actually exist
+      const existingTables: TableName[] = [];
+      for (const table of knownTables) {
+        if (await tableExists(table)) {
+          existingTables.push(table);
+        }
+      }
+      
+      console.log("Found existing legacy tables:", existingTables);
+      
+      // Create mock business entries from the existing legacy tables
+      const mockBusinesses: Business[] = existingTables.map((name, index) => ({
         id: `legacy-${index}`,
         name: name,
         business_type: BUSINESS_TYPE_MAPPINGS[name] || "OTHER",
@@ -76,6 +96,16 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
       return mockBusinesses;
     }
     
+    // Try to query the businesses table
+    const { data, error } = await supabase
+      .from('businesses')
+      .select('*');
+    
+    if (error) {
+      console.error("Error fetching businesses:", error);
+      return [];
+    }
+    
     console.log(`Found ${data?.length || 0} businesses in database`);
     businessCache.data = data || [];
     businessCache.timestamp = Date.now();
@@ -84,22 +114,6 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
   } catch (error) {
     console.error("Failed to fetch businesses:", error);
     return [];
-  }
-};
-
-/**
- * Check if a table exists in the database
- */
-const tableExists = async (tableName: string): Promise<boolean> => {
-  try {
-    const { count, error } = await supabase
-      .from(tableName)
-      .select('*', { count: 'exact', head: true });
-    
-    return !error;
-  } catch (error) {
-    console.error(`Error checking if table ${tableName} exists:`, error);
-    return false;
   }
 };
 
@@ -394,7 +408,7 @@ export const fetchAllReviews = async (
  */
 export const fetchAvailableTables = async (): Promise<TableName[]> => {
   try {
-    // First check if we're using the new schema
+    // Try to get businesses first
     const businesses = await fetchBusinesses();
     
     if (businesses.length > 0) {
@@ -526,6 +540,13 @@ export const saveRecommendation = async (
   recommendations: any
 ): Promise<string | null> => {
   try {
+    // Check if the recommendations table exists
+    const hasRecommendationsTable = await tableExists('recommendations');
+    if (!hasRecommendationsTable) {
+      console.error("Recommendations table does not exist!");
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('recommendations')
       .insert({
@@ -553,6 +574,13 @@ export const getLatestRecommendation = async (
   businessId: string
 ): Promise<any | null> => {
   try {
+    // Check if the recommendations table exists
+    const hasRecommendationsTable = await tableExists('recommendations');
+    if (!hasRecommendationsTable) {
+      console.error("Recommendations table does not exist!");
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('recommendations')
       .select('*')

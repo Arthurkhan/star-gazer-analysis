@@ -14,11 +14,13 @@ import {
   calculateBusinessStats, 
   clearCaches 
 } from "@/utils/reviewDataUtils";
+import { generateMockReviews } from "@/utils/mockDataGenerator";
 import { useBusinessSelection } from "@/hooks/useBusinessSelection";
 
 export function useDashboardData(startDate?: Date, endDate?: Date) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [databaseError, setDatabaseError] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [availableTables, setAvailableTables] = useState<TableName[]>([]);
   const [reviewData, setReviewData] = useState<Review[]>([]);
@@ -33,9 +35,41 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     setBusinessData
   } = useBusinessSelection(reviewData);
 
+  // Fallback to mock data if database connection fails
+  const useMockData = useCallback(() => {
+    console.log("Using mock data due to database issues");
+    
+    const { reviews, businesses } = generateMockReviews();
+    
+    setBusinesses(businesses);
+    setReviewData(reviews);
+    setLastFetched(Date.now());
+    
+    // Calculate business statistics from mock data
+    const businessesObj = calculateBusinessStats(reviews);
+    
+    // Update business data
+    setBusinessData({
+      allBusinesses: { name: "All Businesses", count: reviews.length },
+      businesses: businessesObj,
+    });
+    
+    // Set available tables based on mock businesses
+    const mockTables = businesses.map(b => b.name) as TableName[];
+    setAvailableTables(mockTables);
+    
+    toast({
+      title: "Using demo data",
+      description: "Database connection failed. Using demo data for preview.",
+      variant: "warning",
+    });
+  }, [setBusinessData, toast]);
+
   // Memoized function to fetch data
   const fetchData = useCallback(async (forceRefresh = false) => {
     setLoading(true);
+    setDatabaseError(false);
+    
     try {
       // Clear caches if force refresh is requested
       if (forceRefresh) {
@@ -47,6 +81,15 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       // Get all businesses
       const businessesResult = await fetchBusinesses();
       console.log('Fetched businesses:', businessesResult.length);
+      
+      if (businessesResult.length === 0) {
+        console.error("No businesses found - database may be empty or connection issue");
+        setDatabaseError(true);
+        useMockData();
+        setLoading(false);
+        return;
+      }
+      
       setBusinesses(businessesResult);
       
       // Get table names (for backward compatibility)
@@ -61,12 +104,9 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       
       if (tablesResult.length === 0) {
         console.warn("No business tables available");
+        setDatabaseError(true);
+        useMockData();
         setLoading(false);
-        toast({
-          title: "No businesses found",
-          description: "Could not find any business data in the database",
-          variant: "destructive",
-        });
         return;
       }
       
@@ -80,12 +120,11 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       console.log(`Fetched ${allReviews.length} reviews in ${Math.round((endTime - startTime) / 1000)} seconds`);
       
       if (allReviews.length === 0) {
-        console.warn("No reviews found");
-        toast({
-          title: "No reviews found",
-          description: "Could not find any review data in the database",
-          variant: "destructive",
-        });
+        console.warn("No reviews found - using mock data");
+        setDatabaseError(true);
+        useMockData();
+        setLoading(false);
+        return;
       }
       
       setReviewData(allReviews);
@@ -113,15 +152,18 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       
     } catch (error) {
       console.error("Error fetching data:", error);
+      setDatabaseError(true);
+      useMockData();
+      
       toast({
         title: "Error fetching data",
-        description: "Could not fetch review data from the database. See console for details.",
+        description: "Could not fetch review data from the database. Using mock data for preview.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  }, [toast, setBusinessData, startDate, endDate]);
+  }, [toast, setBusinessData, startDate, endDate, useMockData]);
 
   // Fetch data on initial load
   useEffect(() => {
@@ -365,6 +407,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
 
   return {
     loading,
+    databaseError,
     businesses,
     selectedBusiness,
     businessData,

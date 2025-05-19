@@ -26,72 +26,112 @@ export const DatabaseStatus = ({ onRefresh, isRefreshing }: DatabaseStatusProps)
       // Store diagnostic information
       const diagnostics: Record<string, any> = {
         timestamp: new Date().toISOString(),
-        schema: {}
+        schema: {},
+        tables: {}
       };
       
-      // Check if we can connect to Supabase
-      const { data: healthCheck, error: healthError } = await supabase.rpc('pg_stat_activity');
-      
-      if (healthError) {
-        console.error("Database health check failed:", healthError);
+      // Basic connection check - just try to get the database version
+      try {
+        const { data: versionData, error: versionError } = await supabase
+          .from('_anon_test') // This doesn't need to exist, just testing if we can connect
+          .select('*')
+          .limit(1);
+        
+        if (versionError && versionError.code === 'PGRST116') {
+          // This error is expected (relation not found) but means we can connect
+          diagnostics.connection = { status: 'ok' };
+        } else if (versionError) {
+          // Other errors might indicate connection problems
+          diagnostics.connection = { 
+            status: 'error', 
+            message: versionError.message
+          };
+          setHasIssues(true);
+        } else {
+          diagnostics.connection = { status: 'ok' };
+        }
+      } catch (error: any) {
+        console.error("Database connection check failed:", error);
         diagnostics.connection = {
           status: 'error',
-          message: healthError.message
+          message: error?.message || 'Unknown connection error'
         };
         setHasIssues(true);
-      } else {
-        diagnostics.connection = {
-          status: 'ok'
-        };
       }
       
-      // Try to list tables 
-      try {
-        const { data: tablesData } = await supabase.rpc('list_tables');
-        setTables(tablesData || []);
-        diagnostics.tables = tablesData;
-        
-        // Check for both new schema and old schema
-        const newSchemaPresent = tablesData?.includes('businesses') && tablesData?.includes('reviews');
-        const oldSchemaPresent = tablesData?.some(t => 
-          t === "L'Envol Art Space" || 
-          t === "The Little Prince Cafe" || 
-          t === "Vol de Nuit, The Hidden Bar"
-        );
-        
-        diagnostics.schema = {
-          newSchemaPresent,
-          oldSchemaPresent
-        };
-        
-        if (!newSchemaPresent && !oldSchemaPresent) {
-          setHasIssues(true);
-        }
-        
-        // Check row counts in each table
-        for (const table of tablesData || []) {
-          try {
-            const { count, error } = await supabase
-              .from(table)
-              .select('*', { count: 'exact', head: true });
-              
-            if (!error) {
-              diagnostics[table] = { rowCount: count };
-            }
-          } catch (err) {
-            console.error(`Error counting rows in ${table}:`, err);
+      // Try to detect which tables exist by directly querying them
+      const expectedTables = [
+        'businesses',
+        'reviews',
+        'recommendations',
+        "L'Envol Art Space",
+        "The Little Prince Cafe", 
+        "Vol de Nuit, The Hidden Bar"
+      ];
+      
+      const existingTables: string[] = [];
+      
+      for (const table of expectedTables) {
+        try {
+          const { count, error } = await supabase
+            .from(table)
+            .select('*', { count: 'exact', head: true });
+          
+          if (!error || error.code === 'PGRST116') {
+            existingTables.push(table);
+            diagnostics.tables[table] = { exists: true, count };
+          } else {
+            diagnostics.tables[table] = { 
+              exists: false, 
+              error: error.message 
+            };
           }
+        } catch (err) {
+          console.error(`Error checking table ${table}:`, err);
+          diagnostics.tables[table] = { 
+            exists: false, 
+            error: 'Query error' 
+          };
         }
-      } catch (error) {
-        console.error("Error listing tables:", error);
-        diagnostics.tablesError = error;
-        setHasIssues(true);
       }
+      
+      setTables(existingTables);
+      
+      // Check for both new schema and old schema
+      const newSchemaPresent = existingTables.includes('businesses') && existingTables.includes('reviews');
+      const oldSchemaPresent = existingTables.some(t => 
+        t === "L'Envol Art Space" || 
+        t === "The Little Prince Cafe" || 
+        t === "Vol de Nuit, The Hidden Bar"
+      );
+      
+      diagnostics.schema = {
+        newSchemaPresent,
+        oldSchemaPresent
+      };
+      
+      if (!newSchemaPresent && !oldSchemaPresent) {
+        setHasIssues(true);
+        diagnostics.noSchemaFound = true;
+      }
+      
+      // Check supabase URL and key (redacted for security)
+      const supabaseUrl = supabase.supabaseUrl;
+      const supabaseKey = supabase.supabaseKey;
+      
+      diagnostics.config = {
+        url: supabaseUrl ? `${supabaseUrl.substring(0, 10)}...` : 'Not set',
+        key: supabaseKey ? `${supabaseKey.substring(0, 5)}...` : 'Not set'
+      };
       
       setDiagnosticInfo(diagnostics);
     } catch (error) {
       console.error("Error checking database status:", error);
       setHasIssues(true);
+      setDiagnosticInfo({
+        timestamp: new Date().toISOString(),
+        error: 'Fatal error checking database status'
+      });
     } finally {
       setIsChecking(false);
     }
@@ -134,6 +174,17 @@ export const DatabaseStatus = ({ onRefresh, isRefreshing }: DatabaseStatusProps)
           <div className="text-xs p-2 bg-destructive/20 rounded mb-4 max-h-32 overflow-auto">
             <pre>{JSON.stringify(diagnosticInfo, null, 2)}</pre>
           </div>
+          
+          <div className="p-2 bg-yellow-900/20 rounded mb-4 text-yellow-600 dark:text-yellow-400">
+            <p className="font-medium">Possible Solutions:</p>
+            <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+              <li>Check your Supabase URL and API key in the .env file</li>
+              <li>Verify the database tables exist in your Supabase project</li>
+              <li>Check database network connectivity</li>
+              <li>Verify you're using the correct Supabase project</li>
+            </ul>
+          </div>
+          
           <div className="flex gap-2">
             <Button 
               variant="outline" 

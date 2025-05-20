@@ -16,7 +16,7 @@ import { BusinessType } from "@/types/businessTypes";
 import { type AIProvider } from "@/components/AIProviderToggle";
 import { Sparkles, Download, Save, BarChart3, GitCompare, Mail as MailIcon, RefreshCw } from "lucide-react";
 import { DebugPanel } from "@/components/debug/DebugPanel";
-import { DatabaseStatus } from "@/components/diagnostic/DatabaseStatus";
+import { DatabaseErrorDisplay } from "@/components/diagnostic/DatabaseErrorDisplay";
 import { MissingEnvAlert } from "@/components/diagnostic/MissingEnvAlert";
 
 const Dashboard = () => {
@@ -79,9 +79,9 @@ const Dashboard = () => {
       {/* Check for missing environment variables */}
       <MissingEnvAlert />
       
-      {/* Database Status Check */}
+      {/* Database Error Display */}
       {databaseError && (
-        <DatabaseStatus 
+        <DatabaseErrorDisplay 
           onRefresh={handleRefreshData}
           isRefreshing={isRefreshing}
         />

@@ -271,8 +271,12 @@ export const fetchReviewsByBusinessId = async (
         .select('*', { count: 'exact' })
         .eq('business_id', businessId)
         .order('publishedatdate', { ascending: false })
-        .limit(pageSize)
-        .offset(from);
+        .limit(pageSize);
+      
+      // Apply offset pagination
+      if (from > 0) {
+        query = query.range(from, from + pageSize - 1);
+      }
       
       // Add date filters if provided
       if (startDate) {
@@ -401,8 +405,12 @@ export const fetchAllReviews = async (
           )
         `, { count: 'exact' })
         .order('publishedatdate', { ascending: false })
-        .limit(pageSize)
-        .offset(from);
+        .limit(pageSize);
+      
+      // Apply range instead of offset for pagination
+      if (from > 0) {
+        query = query.range(from, from + pageSize - 1);
+      }
       
       // Add date filters if provided
       if (startDate) {

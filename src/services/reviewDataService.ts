@@ -45,21 +45,7 @@ const tableExists = async (tableName: string): Promise<boolean> => {
   try {
     console.log(`Checking if table '${tableName}' exists...`);
     
-    // We'll try two approaches to determine if a table exists
-    
-    // First approach: Try to get the table schema
-    const { data: schemaData, error: schemaError } = await supabase
-      .rpc('get_table_schema', { table_name: tableName })
-      .select('*');
-    
-    // If this succeeds, the table exists
-    if (!schemaError) {
-      console.log(`Table '${tableName}' exists (schema approach)`);
-      tableExistenceCache[tableName] = true;
-      return true;
-    }
-    
-    // Second approach: Try to select a row with head:true
+    // Try to select a row with head:true
     const { error } = await supabase
       .from(tableName)
       .select('*', { head: true })

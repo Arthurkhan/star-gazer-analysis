@@ -1,4 +1,4 @@
-import { BrowserAIService } from '@/services/ai/browserAI';
+import { BrowserAIService } from '@/services/ai/BrowserAIService';
 import { AIServiceFactory, defaultConfigs } from '@/services/ai/aiServiceFactory';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -13,6 +13,7 @@ import { toast } from '@/hooks/use-toast';
 import { getBusinessTypeFromName } from '@/types/BusinessMappings';
 import { fetchBusinesses, getLatestRecommendation, saveRecommendation } from '@/services/reviewDataService';
 import { getBusinessIdFromName } from '@/utils/reviewDataUtils';
+import { safeGet } from '@/utils/safeAccess';
 
 // Circuit breaker states
 enum CircuitState {
@@ -90,9 +91,11 @@ export class RecommendationService {
         businessType = params.businessType || getBusinessTypeFromName(businessName);
       } else {
         // If business is an object, extract properties
-        businessId = params.business.id;
-        businessName = params.business.name;
-        businessType = params.businessType || params.business.business_type as BusinessType || BusinessType.OTHER;
+        businessId = safeGet(params.business, 'id', '');
+        businessName = safeGet(params.business, 'name', 'Unknown Business');
+        businessType = params.businessType || 
+                      safeGet(params.business, 'business_type', BusinessType.OTHER) as BusinessType || 
+                      BusinessType.OTHER;
       }
       
       // If we still don't have an ID, something is wrong
@@ -195,9 +198,11 @@ export class RecommendationService {
             businessType = params.businessType || getBusinessTypeFromName(businessName);
           } else {
             // If business is an object, extract properties
-            businessId = params.business.id;
-            businessName = params.business.name;
-            businessType = params.businessType || params.business.business_type as BusinessType || BusinessType.OTHER;
+            businessId = safeGet(params.business, 'id', '');
+            businessName = safeGet(params.business, 'name', 'Unknown Business');
+            businessType = params.businessType || 
+                          safeGet(params.business, 'business_type', BusinessType.OTHER) as BusinessType || 
+                          BusinessType.OTHER;
           }
           
           const recommendations = await this.browserService.generateRecommendations(

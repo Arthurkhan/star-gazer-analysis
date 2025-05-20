@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { compareDataPeriods } from '@/services/comparisonService';
+import { EnhancedAnalysis } from '@/types/dataAnalysis';
+import { generateEnhancedAnalysis } from '@/utils/reviewDataUtils';
 
 export interface ComparisonResult {
   ratingChange: number;
@@ -51,20 +53,68 @@ export function PeriodComparisonDisplay({
   });
   
   const [isComparing, setIsComparing] = useState(false);
+  const [isLoadingCurrent, setIsLoadingCurrent] = useState(false);
+  const [isLoadingPrevious, setIsLoadingPrevious] = useState(false);
+  const [currentData, setCurrentData] = useState<EnhancedAnalysis | null>(null);
+  const [previousData, setPreviousData] = useState<EnhancedAnalysis | null>(null);
   
-  // Fetch data for both periods
-  const { data: currentData, isLoading: isLoadingCurrent } = useDashboardData(
-    businessName,
-    currentRange.from,
-    currentRange.to
-  );
+  const { 
+    loading: dashboardLoading, 
+    getFilteredReviews,
+    refreshData 
+  } = useDashboardData();
   
-  const { data: previousData, isLoading: isLoadingPrevious } = useDashboardData(
-    businessName,
-    previousRange.from,
-    previousRange.to,
-    !isComparing // Only fetch when comparing
-  );
+  // Load data for current period
+  useEffect(() => {
+    if (!isComparing) return;
+    
+    const loadCurrentPeriodData = async () => {
+      setIsLoadingCurrent(true);
+      try {
+        // Refresh data for the current date range
+        await refreshData(currentRange.from, currentRange.to);
+        
+        // Get filtered reviews for the business
+        const reviews = getFilteredReviews();
+        
+        // Generate enhanced analysis from the reviews
+        const enhancedAnalysis = generateEnhancedAnalysis(reviews, businessName);
+        setCurrentData(enhancedAnalysis);
+      } catch (error) {
+        console.error("Error loading current period data:", error);
+      } finally {
+        setIsLoadingCurrent(false);
+      }
+    };
+    
+    loadCurrentPeriodData();
+  }, [businessName, currentRange.from, currentRange.to, isComparing, refreshData, getFilteredReviews]);
+  
+  // Load data for previous period
+  useEffect(() => {
+    if (!isComparing) return;
+    
+    const loadPreviousPeriodData = async () => {
+      setIsLoadingPrevious(true);
+      try {
+        // Refresh data for the previous date range
+        await refreshData(previousRange.from, previousRange.to);
+        
+        // Get filtered reviews for the business
+        const reviews = getFilteredReviews();
+        
+        // Generate enhanced analysis from the reviews
+        const enhancedAnalysis = generateEnhancedAnalysis(reviews, businessName);
+        setPreviousData(enhancedAnalysis);
+      } catch (error) {
+        console.error("Error loading previous period data:", error);
+      } finally {
+        setIsLoadingPrevious(false);
+      }
+    };
+    
+    loadPreviousPeriodData();
+  }, [businessName, previousRange.from, previousRange.to, isComparing, refreshData, getFilteredReviews]);
   
   // Generate comparison result
   const comparisonResult = React.useMemo(() => {
@@ -125,13 +175,29 @@ export function PeriodComparisonDisplay({
         <CardFooter className="flex justify-center">
           <Button 
             onClick={() => setIsComparing(true)}
-            disabled={isLoadingCurrent || isLoadingPrevious}
+            disabled={isLoadingCurrent || isLoadingPrevious || dashboardLoading}
             size="lg"
           >
-            {isLoadingCurrent || isLoadingPrevious ? 'Loading...' : 'Compare Periods'}
+            {isLoadingCurrent || isLoadingPrevious ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : 'Compare Periods'}
           </Button>
         </CardFooter>
       </Card>
+      
+      {isComparing && (isLoadingCurrent || isLoadingPrevious) && (
+        <Card>
+          <CardContent className="py-6">
+            <div className="flex justify-center items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p>Loading and comparing data...</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {isComparing && comparisonResult && (
         <Card>
@@ -301,10 +367,49 @@ export function PeriodComparisonDisplay({
               </TabsContent>
               
               <TabsContent value="details" className="mt-6">
-                {/* Detailed comparison content would go here */}
-                <p className="text-center text-muted-foreground py-10">
-                  Detailed comparison view is under development
-                </p>
+                <Card>
+                  <CardContent className="py-6">
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Review Volume Details</h3>
+                        <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-md">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Previous Period</p>
+                            <p className="text-xl font-semibold">
+                              {previousData?.reviewClusters.reduce((sum, c) => sum + c.count, 0) || 0} reviews
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Current Period</p>
+                            <p className="text-xl font-semibold">
+                              {currentData?.reviewClusters.reduce((sum, c) => sum + c.count, 0) || 0} reviews
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Rating Details</h3>
+                        <div className="grid grid-cols-2 gap-4 bg-muted/20 p-4 rounded-md">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Previous Period Average</p>
+                            <p className="text-xl font-semibold">
+                              {previousData?.historicalTrends[previousData.historicalTrends.length - 1]?.avgRating.toFixed(2) || 'N/A'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Current Period Average</p>
+                            <p className="text-xl font-semibold">
+                              {currentData?.historicalTrends[currentData.historicalTrends.length - 1]?.avgRating.toFixed(2) || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </CardContent>

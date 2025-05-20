@@ -90,7 +90,12 @@ export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
   // Create a cache key based on review dates - using a sample for performance
   const sampleSize = Math.min(reviews.length, 10);
   const sampleReviews = reviews.slice(0, sampleSize);
-  const cacheKey = sampleReviews.map(r => r.publishedAtDate).sort().join('|') + `-${reviews.length}`;
+  const sampleDates = sampleReviews.map(r => {
+    // Handle both publishedAtDate and publishedatdate field names
+    const dateField = r.publishedAtDate || (r as any).publishedatdate;
+    return dateField;
+  });
+  const cacheKey = sampleDates.sort().join('|') + `-${reviews.length}`;
   
   // Return cached result if available
   if (chartDataCache.has(cacheKey)) {
@@ -104,10 +109,12 @@ export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
   const monthMap = new Map<string, number>();
   
   reviews.forEach(review => {
-    if (!review.publishedAtDate) return;
+    // Handle both publishedAtDate and publishedatdate field names
+    const dateField = review.publishedAtDate || (review as any).publishedatdate;
+    if (!dateField) return;
     
     // Get date key in sortable format (yyyy-mm)
-    const monthYearKey = getDateSortKey(review.publishedAtDate);
+    const monthYearKey = getDateSortKey(dateField);
     if (monthYearKey === '0000-00') return; // Skip invalid dates
     
     monthMap.set(monthYearKey, (monthMap.get(monthYearKey) || 0) + 1);

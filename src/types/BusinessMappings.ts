@@ -1,27 +1,47 @@
-import { BusinessType } from '@/types/businessTypes';
+import { BusinessType } from './businessTypes';
 
 /**
- * Maps business names to their business types
+ * Maps business names to their types
+ * This provides a consistent way to determine business types from names
  */
-export const BUSINESS_TYPE_MAPPINGS: Record<string, BusinessType> = {
+const businessTypeMap: Record<string, BusinessType> = {
   "The Little Prince Cafe": BusinessType.CAFE,
   "Vol de Nuit, The Hidden Bar": BusinessType.BAR,
   "L'Envol Art Space": BusinessType.GALLERY
 };
 
 /**
- * Get the business type from a business name
+ * Get business type from business name
+ * @param businessName The name of the business
+ * @returns The business type
  */
-export const getBusinessTypeFromName = (businessName: string): BusinessType => {
-  return BUSINESS_TYPE_MAPPINGS[businessName] || BusinessType.OTHER;
+export function getBusinessTypeFromName(businessName: string): BusinessType {
+  return businessTypeMap[businessName] || BusinessType.OTHER;
+}
+
+/**
+ * Maps business types to their display names
+ */
+export const businessTypeLabels: Record<BusinessType, string> = {
+  [BusinessType.CAFE]: 'Café',
+  [BusinessType.BAR]: 'Bar',
+  [BusinessType.GALLERY]: 'Art Gallery',
+  [BusinessType.OTHER]: 'Business'
 };
 
 /**
- * Get all business mappings as an array of objects
+ * Get all known business names
+ * @returns Array of known business names
  */
-export const getAllBusinessMappings = (): Array<{name: string, type: BusinessType}> => {
-  return Object.entries(BUSINESS_TYPE_MAPPINGS).map(([name, type]) => ({
-    name,
-    type
-  }));
-};
+export function getKnownBusinessNames(): string[] {
+  return Object.keys(businessTypeMap);
+}
+
+/**
+ * Check if a business name is known
+ * @param businessName The name of the business
+ * @returns True if the business name is known
+ */
+export function isKnownBusiness(businessName: string): boolean {
+  return !!businessTypeMap[businessName];
+}

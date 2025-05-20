@@ -10,6 +10,7 @@ import { appDebugger } from "@/utils/debugger";
 import { setupAdvancedErrorHandling } from "@/utils/errorHandling";
 import { safeLocalStorage } from "@/utils/storage/safeStorage";
 import loggingService from "@/services/logging/loggingService";
+import connectionManager, { ConnectionEventType } from "@/utils/network/connectionManager";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import DiagnosticPanel from "@/components/diagnostic/DiagnosticPanel";
 import Index from "./pages/Index";
@@ -49,11 +50,26 @@ const queryClient = new QueryClient({
 setupAdvancedErrorHandling();
 loggingService.initialize();
 
+// Connection state listener
+connectionManager.addListener((state, eventType) => {
+  switch (eventType) {
+    case ConnectionEventType.OFFLINE:
+      // Pause background operations when offline
+      queryClient.cancelQueries();
+      break;
+    case ConnectionEventType.ONLINE:
+      // Refresh data when back online
+      queryClient.invalidateQueries();
+      break;
+  }
+});
+
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   
   // Check system preference for dark mode and auth state
   useEffect(() => {
@@ -62,6 +78,12 @@ const App = () => {
     // Show diagnostics if debug mode is enabled
     const debugMode = safeLocalStorage.getItem('DEBUG_MODE');
     setShowDiagnostics(debugMode === 'true');
+    
+    // Set up connection monitoring
+    const handleConnectionChange = (state: any) => {
+      setIsOffline(!state.online);
+    };
+    connectionManager.addListener(handleConnectionChange);
     
     // Dark mode handling with safe storage
     const theme = safeLocalStorage.getItem("theme");
@@ -145,6 +167,11 @@ const App = () => {
     };
     
     checkAuth();
+    
+    // Cleanup
+    return () => {
+      connectionManager.removeListener(handleConnectionChange);
+    };
   }, []);
   
   // Add debug drawer toggle on keyboard shortcut (Ctrl+Shift+D)
@@ -232,6 +259,13 @@ const App = () => {
             
             {/* Diagnostic Panel (only shown in debug mode) */}
             {showDiagnostics && <DiagnosticPanel />}
+            
+            {/* Offline indicator */}
+            {isOffline && (
+              <div className="fixed top-0 left-0 right-0 bg-red-500 text-white p-2 text-center z-50">
+                You are currently offline. Some features may not be available.
+              </div>
+            )}
             
             <BrowserRouter>
               <ErrorBoundary>

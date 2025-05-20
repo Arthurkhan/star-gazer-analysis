@@ -100,12 +100,9 @@ export function compareDataPeriods(current: EnhancedAnalysis, previous: Enhanced
  */
 function extractAverageRating(data: EnhancedAnalysis): number {
   // Try to get the rating from historical trends
-  const ratingTrend = data.historicalTrends.find(
-    trend => trend.metric.toLowerCase().includes('rating')
-  );
-  
-  if (ratingTrend && ratingTrend.data.length > 0) {
-    return ratingTrend.data[ratingTrend.data.length - 1].value;
+  const latestTrend = data.historicalTrends[data.historicalTrends.length - 1];
+  if (latestTrend) {
+    return latestTrend.avgRating;
   }
   
   // Fallback to calculating from review clusters
@@ -116,24 +113,15 @@ function extractAverageRating(data: EnhancedAnalysis): number {
  * Calculate average sentiment from analysis data
  */
 function extractAverageSentiment(data: EnhancedAnalysis): number {
-  // Try to get the sentiment from historical trends
-  const sentimentTrend = data.historicalTrends.find(
-    trend => trend.metric.toLowerCase().includes('sentiment')
-  );
-  
-  if (sentimentTrend && sentimentTrend.data.length > 0) {
-    return sentimentTrend.data[sentimentTrend.data.length - 1].value;
-  }
-  
-  // Fallback to estimating from review clusters
+  // Calculate from review clusters
   const clusters = data.reviewClusters;
   let totalWeightedSentiment = 0;
   let totalReviews = 0;
   
   for (const cluster of clusters) {
     const sentimentValue = mapSentimentToNumber(cluster.sentiment);
-    totalWeightedSentiment += sentimentValue * cluster.reviewCount;
-    totalReviews += cluster.reviewCount;
+    totalWeightedSentiment += sentimentValue * cluster.count;
+    totalReviews += cluster.count;
   }
   
   return totalReviews > 0 ? totalWeightedSentiment / totalReviews : 0;
@@ -143,7 +131,7 @@ function extractAverageSentiment(data: EnhancedAnalysis): number {
  * Map sentiment text to numerical value
  */
 function mapSentimentToNumber(sentiment: string): number {
-  switch (sentiment) {
+  switch (sentiment.toLowerCase()) {
     case 'positive': return 1;
     case 'neutral': return 0;
     case 'negative': return -1;
@@ -156,35 +144,47 @@ function mapSentimentToNumber(sentiment: string): number {
  * Calculate average rating from review clusters
  */
 function calculateAverageFromClusters(clusters: ReviewCluster[]): number {
-  let totalWeightedRating = 0;
+  // We don't have average rating in our clusters, need to estimate from sentiment
+  let totalSentimentValue = 0;
   let totalReviews = 0;
   
   for (const cluster of clusters) {
-    totalWeightedRating += cluster.averageRating * cluster.reviewCount;
-    totalReviews += cluster.reviewCount;
+    // Convert sentiment to a rating approximation (1-5 scale)
+    const sentimentValue = mapSentimentToNumber(cluster.sentiment);
+    const approximateRating = 3 + (sentimentValue * 1.5); // Map -1,0,1 to 1.5,3,4.5
+    
+    totalSentimentValue += approximateRating * cluster.count;
+    totalReviews += cluster.count;
   }
   
-  return totalReviews > 0 ? totalWeightedRating / totalReviews : 0;
+  return totalReviews > 0 ? totalSentimentValue / totalReviews : 0;
 }
 
 /**
  * Calculate total number of reviews from clusters
  */
 function calculateTotalReviewCount(clusters: ReviewCluster[]): number {
-  return clusters.reduce((sum, cluster) => sum + cluster.reviewCount, 0);
+  return clusters.reduce((sum, cluster) => sum + cluster.count, 0);
 }
 
 /**
  * Extract theme information from analysis data
  */
 function extractThemes(data: EnhancedAnalysis): Array<{ name: string; sentiment: number }> {
-  // For this example, we'll extract themes from clusters and their keywords
+  // Extract themes from clusters and their keywords
   const themes: Array<{ name: string; sentiment: number }> = [];
   
   // Extract from clusters
   data.reviewClusters.forEach(cluster => {
     const sentimentValue = mapSentimentToNumber(cluster.sentiment);
     
+    // First add the cluster name itself as a theme
+    themes.push({
+      name: cluster.name,
+      sentiment: sentimentValue
+    });
+    
+    // Then add each keyword as a theme
     cluster.keywords.forEach(keyword => {
       // Avoid very short keywords
       if (keyword.length < 3) return;
@@ -222,47 +222,25 @@ function extractThemes(data: EnhancedAnalysis): Array<{ name: string; sentiment:
 function extractStaffMentions(data: EnhancedAnalysis): Record<string, number> {
   const staffMentions: Record<string, number> = {};
   
-  // This is just a placeholder - in a real implementation, you would extract
-  // this from your analysis data structure
-  
-  // Example extraction (assuming data has a staffMentions property)
-  if ((data as any).staffMentions) {
-    (data as any).staffMentions.forEach((staff: any) => {
-      staffMentions[staff.name] = staff.sentiment;
-    });
-  }
-  
-  // Simulate some staff data for the demo if not available
-  if (Object.keys(staffMentions).length === 0) {
-    const possibleStaff = ['John', 'Sarah', 'Elena', 'Marcus', 'Zoe'];
-    const staffInClusters = new Set<string>();
-    
-    // Extract staff names from review clusters
-    data.reviewClusters.forEach(cluster => {
+  // Look for staff-related themes and clusters
+  data.reviewClusters.forEach(cluster => {
+    // If the cluster is about staff
+    if (cluster.name.toLowerCase().includes('staff') || 
+        cluster.name.toLowerCase().includes('service') || 
+        cluster.name.toLowerCase().includes('employee')) {
+      // Use cluster sentiment as the baseline for staff sentiment
+      const baseSentiment = mapSentimentToNumber(cluster.sentiment);
+      
+      // Look for specific staff names in the keywords
       cluster.keywords.forEach(keyword => {
-        if (possibleStaff.includes(keyword)) {
-          staffInClusters.add(keyword);
+        // Assume any capitalized word starting with a letter might be a name
+        // This is a simplified approach - a real implementation would use NLP to detect names
+        if (/^[A-Z][a-z]+$/.test(keyword)) {
+          staffMentions[keyword] = baseSentiment;
         }
       });
-    });
-    
-    // Assign random sentiment scores to staff
-    staffInClusters.forEach(staffName => {
-      // Get the most frequent cluster sentiment for this staff
-      const relevantClusters = data.reviewClusters.filter(
-        c => c.keywords.includes(staffName)
-      );
-      
-      if (relevantClusters.length > 0) {
-        // Calculate an average sentiment based on cluster sentiment
-        const avgSentiment = relevantClusters.reduce((sum, c) => {
-          return sum + mapSentimentToNumber(c.sentiment);
-        }, 0) / relevantClusters.length;
-        
-        staffMentions[staffName] = avgSentiment;
-      }
-    });
-  }
+    }
+  });
   
   return staffMentions;
 }

@@ -26,776 +26,250 @@ interface AnalysisResult {
 }
 
 export class BrowserAIService {
-  // Core recommendation generation using rule-based logic and pattern matching
+  private worker: Worker | null = null;
+  private workerPromises: Map<string, { resolve: Function, reject: Function }> = new Map();
+  private retryLimit = 3;
+  private retryCount = 0;
+  private isWorkerReady = false;
+
+  constructor() {
+    this.initWorker();
+  }
+
+  private initWorker() {
+    try {
+      // Create a new worker or reset if it exists
+      if (this.worker) {
+        this.terminateWorker();
+      }
+      
+      // Create a new Web Worker
+      this.worker = new Worker(new URL('./ai-worker.js', import.meta.url));
+      
+      // Set up message handling
+      this.worker.onmessage = this.handleWorkerMessage.bind(this);
+      this.worker.onerror = this.handleWorkerError.bind(this);
+      
+      this.isWorkerReady = true;
+      console.log('AI Worker initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize AI Worker:', error);
+      this.isWorkerReady = false;
+    }
+  }
+
+  private terminateWorker() {
+    if (this.worker) {
+      this.worker.terminate();
+      this.worker = null;
+    }
+    
+    // Reject any pending promises
+    this.workerPromises.forEach((promise) => {
+      promise.reject(new Error('Worker terminated'));
+    });
+    
+    // Clear the promises map
+    this.workerPromises.clear();
+  }
+
+  private handleWorkerMessage(event: MessageEvent) {
+    // Find the corresponding promise resolver
+    const requestId = 'default'; // Use a better ID system in a real implementation
+    const promise = this.workerPromises.get(requestId);
+    
+    if (promise) {
+      // Resolve the promise with the data
+      const { resolve } = promise;
+      this.workerPromises.delete(requestId);
+      
+      // Reset retry count on success
+      this.retryCount = 0;
+      
+      // Check if there's an error in the response
+      if (event.data && event.data.error) {
+        resolve(this.getFallbackRecommendations(event.data.error));
+      } else {
+        resolve(event.data);
+      }
+    }
+  }
+
+  private handleWorkerError(error: ErrorEvent) {
+    console.error('AI Worker error:', error);
+    
+    // Find the corresponding promise rejection
+    const requestId = 'default'; // Use a better ID system in a real implementation
+    const promise = this.workerPromises.get(requestId);
+    
+    if (promise) {
+      const { reject } = promise;
+      this.workerPromises.delete(requestId);
+      
+      // Try to restart the worker if not beyond retry limit
+      if (this.retryCount < this.retryLimit) {
+        this.retryCount++;
+        console.log(`Retrying AI Worker (${this.retryCount}/${this.retryLimit})`);
+        this.initWorker();
+        reject(new Error(`Worker error, retrying (${this.retryCount}/${this.retryLimit}): ${error.message}`));
+      } else {
+        // Return fallback recommendations if beyond retry limit
+        reject(new Error(`AI Worker failed after ${this.retryLimit} retries: ${error.message}`));
+      }
+    }
+  }
+
+  // Core recommendation generation using the Web Worker
   async generateRecommendations(
     analysisData: AnalysisResult,
     reviews: Review[],
     businessType: BusinessType = BusinessType.OTHER
   ): Promise<Recommendations> {
-    // Extract business information
-    const businessId = analysisData.businessId;
-    const businessName = analysisData.businessName || "Unknown Business";
+    // Check if we need fallback mode
+    if (!this.isWorkerReady || !this.worker) {
+      console.warn('AI Worker not available, using fallback mode');
+      return this.getFallbackRecommendations();
+    }
     
-    const businessHealth = this.analyzeBusinessHealth(analysisData, reviews, businessType);
-    
+    try {
+      // Create a promise that will be resolved when the worker responds
+      const requestPromise = new Promise<Recommendations>((resolve, reject) => {
+        const requestId = 'default'; // Use a better ID system in a real implementation
+        this.workerPromises.set(requestId, { resolve, reject });
+        
+        // Add a timeout to prevent infinite waiting
+        const timeoutId = setTimeout(() => {
+          if (this.workerPromises.has(requestId)) {
+            this.workerPromises.delete(requestId);
+            reject(new Error('Worker response timeout after 30 seconds'));
+          }
+        }, 30000);
+        
+        // Send the data to the worker
+        this.worker!.postMessage({
+          analysisData,
+          reviews,
+          businessType
+        });
+      });
+      
+      // Wait for the worker to respond
+      const result = await requestPromise;
+      return result;
+    } catch (error) {
+      console.error('Error in worker communication:', error);
+      
+      // If we've exceeded retry limit, use fallback
+      if (this.retryCount >= this.retryLimit) {
+        return this.getFallbackRecommendations(error instanceof Error ? error.message : 'Unknown error');
+      }
+      
+      // Try again with a new worker
+      this.retryCount++;
+      console.log(`Retrying recommendation generation (${this.retryCount}/${this.retryLimit})`);
+      this.initWorker();
+      
+      // Small delay before retry
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return this.generateRecommendations(analysisData, reviews, businessType);
+    }
+  }
+
+  // Fallback recommendations for when the worker fails
+  private getFallbackRecommendations(errorMessage?: string): Recommendations {
     return {
-      businessId,
-      businessName,
-      urgentActions: this.identifyUrgentActions(analysisData, reviews, businessHealth),
-      growthStrategies: this.generateGrowthStrategies(analysisData, reviews, businessType, businessHealth),
-      patternInsights: this.extractPatternInsights(analysisData, reviews),
-      competitivePosition: this.analyzeCompetitivePosition(analysisData, reviews, businessType),
-      customerAttractionPlan: this.createMarketingPlan(analysisData, reviews, businessType),
-      scenarios: this.generateBusinessScenarios(businessHealth, analysisData),
-      longTermStrategies: this.suggestLongTermStrategies(businessHealth, analysisData, businessType)
-    };
-  }
-
-  // Analyze overall business health
-  private analyzeBusinessHealth(
-    data: AnalysisResult,
-    reviews: Review[],
-    businessType: BusinessType
-  ): BusinessHealth {
-    if (!reviews || reviews.length === 0) {
-      return {
-        score: 50,
-        trend: 'stable',
-        strengths: ['Insufficient data for detailed analysis'],
-        weaknesses: ['Insufficient data for detailed analysis'],
-        opportunities: ['Increase review volume to enable detailed analysis'],
-        threats: ['Inability to track performance trends due to low data volume']
-      };
-    }
-    
-    const totalReviews = reviews.length;
-    const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / totalReviews;
-    const benchmark = industryBenchmarks[businessType];
-    
-    // Calculate health score (0-100)
-    let score = 50; // Base score
-    
-    // Rating factor (±20 points)
-    const ratingDiff = avgRating - benchmark.avgRating;
-    score += ratingDiff * 20;
-    
-    // Review volume factor (±15 points)
-    const monthlyReviews = this.calculateMonthlyReviews(reviews);
-    const volumeDiff = (monthlyReviews - benchmark.monthlyReviews) / benchmark.monthlyReviews;
-    score += Math.min(Math.max(volumeDiff * 15, -15), 15);
-    
-    // Sentiment factor (±15 points)
-    const sentimentScore = this.calculateSentimentScore(data.sentimentAnalysis);
-    score += (sentimentScore - 0.7) * 30;
-    
-    score = Math.min(Math.max(score, 0), 100);
-    
-    // Determine trend
-    const recentReviews = reviews.filter(r => {
-      const date = new Date(r.publishedAtDate);
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      return date > threeMonthsAgo;
-    });
-    
-    // Prevent division by zero
-    const recentAvgRating = recentReviews.length > 0 
-      ? recentReviews.reduce((sum, r) => sum + r.stars, 0) / recentReviews.length
-      : avgRating;
-    
-    const trend = recentAvgRating > avgRating ? 'improving' : 
-                recentAvgRating < avgRating ? 'declining' : 'stable';
-    
-    // Identify SWOT
-    const strengths = this.identifyStrengths(data, avgRating, benchmark);
-    const weaknesses = this.identifyWeaknesses(data, avgRating, benchmark);
-    const opportunities = this.identifyOpportunities(data, reviews, businessType);
-    const threats = this.identifyThreats(data, reviews, businessType);
-    
-    return { score, trend, strengths, weaknesses, opportunities, threats };
-  }
-
-  // Identify urgent actions needed
-  private identifyUrgentActions(
-    data: AnalysisResult,
-    reviews: Review[],
-    health: BusinessHealth
-  ): UrgentAction[] {
-    if (!reviews || reviews.length === 0) {
-      return [
+      businessId: '',
+      businessName: 'Fallback Analysis',
+      urgentActions: [
         {
-          id: 'urgent-no-data',
-          title: 'Insufficient Review Data',
-          description: 'There are too few reviews to generate detailed urgent actions',
-          category: 'critical',
+          id: 'fallback-1',
+          title: 'AI Processing Issue',
+          description: errorMessage || 'There was an issue processing the analysis. Using simplified recommendations.',
+          category: 'warning',
           relatedReviews: [],
-          suggestedAction: 'Implement review collection campaign immediately',
-          timeframe: 'Within 1 week'
+          suggestedAction: 'Try again or check console for errors',
+          timeframe: 'Immediate'
         }
-      ];
-    }
-    
-    const actions: UrgentAction[] = [];
-    const recentReviews = reviews.filter(r => {
-      const date = new Date(r.publishedAtDate);
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-      return date > oneMonthAgo;
-    });
-    
-    // Check for critical negative patterns
-    const negativeReviews = recentReviews.filter(r => r.stars <= 2);
-    if (recentReviews.length > 0 && negativeReviews.length / recentReviews.length > 0.2) {
-      actions.push({
-        id: 'urgent-1',
-        title: 'High Negative Review Rate',
-        description: `${((negativeReviews.length / recentReviews.length) * 100).toFixed(1)}% of recent reviews are negative`,
-        category: 'critical',
-        relatedReviews: negativeReviews.slice(0, 5).map(r => r.reviewUrl),
-        suggestedAction: 'Implement immediate service recovery program and staff training',
-        timeframe: 'Within 1 week'
-      });
-    }
-    
-    // Check for staff issues
-    const negativeStaffMentions = data.staffMentions && data.staffMentions.filter(s => s.sentiment === 'negative') || [];
-    if (negativeStaffMentions.length > 0) {
-      negativeStaffMentions.forEach(staff => {
-        if (staff.count >= 3) {
-          actions.push({
-            id: `urgent-staff-${staff.name}`,
-            title: `Staff Performance Issue: ${staff.name}`,
-            description: `${staff.name} mentioned negatively in ${staff.count} reviews`,
-            category: 'important',
-            relatedReviews: [],
-            suggestedAction: `Provide immediate coaching and support for ${staff.name}`,
-            timeframe: 'Within 3 days'
-          });
-        }
-      });
-    }
-    
-    // Check review volume
-    const monthlyReviews = this.calculateMonthlyReviews(reviews);
-    if (monthlyReviews < 100) {
-      actions.push({
-        id: 'urgent-volume',
-        title: 'Low Review Volume',
-        description: `Only ${monthlyReviews} reviews per month (target: 100+)`,
-        category: 'important',
-        relatedReviews: [],
-        suggestedAction: 'Launch review generation campaign with incentives',
-        timeframe: 'Start within 1 week'
-      });
-    }
-    
-    return actions;
-  }
-
-  // Generate growth strategies
-  private generateGrowthStrategies(
-    data: AnalysisResult,
-    reviews: Review[],
-    businessType: BusinessType,
-    health: BusinessHealth
-  ): GrowthStrategy[] {
-    const strategies: GrowthStrategy[] = [];
-    
-    // Marketing strategy for low review volume
-    const monthlyReviews = this.calculateMonthlyReviews(reviews);
-    if (monthlyReviews < 100) {
-      strategies.push({
-        id: 'growth-1',
-        title: 'Review Generation Campaign',
-        description: 'Increase review volume to attract more customers',
-        category: 'marketing',
-        expectedImpact: '50-100% increase in monthly reviews',
-        implementation: [
-          'Create post-visit email campaign requesting reviews',
-          'Train staff to mention reviews at checkout',
-          'Offer small incentive for honest reviews',
-          'Display review QR codes at tables/checkout'
-        ],
-        timeframe: '1-2 months',
-        kpis: ['Monthly review count', 'Review response rate', 'Customer engagement']
-      });
-    }
-    
-    // Leverage positive themes
-    const positiveThemes = data.commonTerms && data.commonTerms
-      .filter(term => this.isPositiveTheme(term.text))
-      .slice(0, 3) || [];
-    
-    if (positiveThemes.length > 0) {
-      strategies.push({
-        id: 'growth-2',
-        title: 'Amplify Strengths Marketing',
-        description: `Focus marketing on top strengths: ${positiveThemes.map(t => t.text).join(', ')}`,
-        category: 'marketing',
-        expectedImpact: '20-30% increase in relevant customer segments',
-        implementation: [
-          `Update website/social media to emphasize ${positiveThemes[0].text}`,
-          'Create content showcasing these strengths',
-          'Train staff to highlight these features',
-          'Update signage and promotional materials'
-        ],
-        timeframe: '1 month',
-        kpis: ['Website traffic', 'Social media engagement', 'Conversion rate']
-      });
-    }
-    
-    // Customer experience improvements
-    if (health.score < 70) {
-      strategies.push({
-        id: 'growth-3',
-        title: 'Customer Experience Enhancement',
-        description: 'Systematic improvements to address pain points',
-        category: 'customer_experience',
-        expectedImpact: '0.3-0.5 star rating increase',
-        implementation: [
-          'Conduct staff training on identified weaknesses',
-          'Implement customer feedback system',
-          'Create service recovery protocols',
-          'Regular quality audits'
-        ],
-        timeframe: '2-3 months',
-        kpis: ['Average rating', 'Negative review percentage', 'Customer satisfaction score']
-      });
-    }
-    
-    return strategies;
-  }
-
-  // Extract pattern insights
-  private extractPatternInsights(
-    data: AnalysisResult,
-    reviews: Review[]
-  ): PatternInsight[] {
-    if (!reviews || reviews.length === 0 || !data.commonTerms) {
-      return [
+      ],
+      growthStrategies: [
         {
-          id: 'pattern-no-data',
-          pattern: 'Insufficient data for pattern analysis',
-          frequency: 0,
+          id: 'fallback-growth-1',
+          title: 'Review Collection Campaign',
+          description: 'Increase review volume to improve analysis quality',
+          category: 'marketing',
+          expectedImpact: 'Improved customer insights',
+          implementation: ['Create post-visit review requests', 'Train staff to request reviews'],
+          timeframe: '1 month',
+          kpis: ['Review count', 'Customer feedback quality']
+        }
+      ],
+      patternInsights: [
+        {
+          id: 'fallback-pattern-1',
+          pattern: 'Basic analysis only',
+          frequency: 100,
           sentiment: 'neutral',
-          recommendation: 'Collect more reviews to enable pattern analysis',
+          recommendation: 'Try again for detailed analysis',
           examples: []
         }
-      ];
-    }
-    
-    const insights: PatternInsight[] = [];
-    
-    // Analyze common terms
-    data.commonTerms.forEach(term => {
-      const relatedReviews = reviews.filter(r => 
-        r.text && typeof r.text === 'string' && 
-        r.text.toLowerCase().includes(term.text.toLowerCase())
-      );
-      
-      const sentiment = this.analyzeSentimentForTerm(relatedReviews);
-      const frequency = (term.count / reviews.length) * 100;
-      
-      if (frequency > 5) { // Mentioned in >5% of reviews
-        insights.push({
-          id: `pattern-${term.text}`,
-          pattern: term.text,
-          frequency: frequency,
-          sentiment: sentiment,
-          recommendation: this.getRecommendationForPattern(term.text, sentiment, frequency),
-          examples: relatedReviews.slice(0, 3).map(r => (r.text || '').substring(0, 100) + '...')
-        });
-      }
-    });
-    
-    // Time-based patterns
-    const timePatterns = this.analyzeTimePatterns(reviews);
-    insights.push(...timePatterns);
-    
-    return insights.sort((a, b) => b.frequency - a.frequency);
-  }
-
-  // Analyze competitive position
-  private analyzeCompetitivePosition(
-    data: AnalysisResult,
-    reviews: Review[],
-    businessType: BusinessType
-  ): CompetitiveAnalysis {
-    if (!reviews || reviews.length === 0) {
-      return {
-        position: 'average',
+      ],
+      competitivePosition: {
+        position: 'unknown',
         metrics: {
           rating: { value: 0, benchmark: 0, percentile: 50 },
           reviewVolume: { value: 0, benchmark: 0, percentile: 50 },
           sentiment: { value: 0, benchmark: 0, percentile: 50 }
         },
-        strengths: ['Insufficient data for competitive analysis'],
-        weaknesses: ['Insufficient data for competitive analysis'],
-        opportunities: ['Increase review volume to enable competitive analysis']
-      };
-    }
-    
-    const benchmark = industryBenchmarks[businessType];
-    const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length;
-    const monthlyReviews = this.calculateMonthlyReviews(reviews);
-    const sentimentScore = this.calculateSentimentScore(data.sentimentAnalysis || []);
-    
-    const ratingPercentile = this.calculatePercentile(avgRating, benchmark.avgRating, 0.5);
-    const volumePercentile = this.calculatePercentile(monthlyReviews, benchmark.monthlyReviews, 50);
-    const sentimentPercentile = this.calculatePercentile(sentimentScore, 0.7, 0.1);
-    
-    const avgPercentile = (ratingPercentile + volumePercentile + sentimentPercentile) / 3;
-    const position = avgPercentile > 60 ? 'above' : avgPercentile < 40 ? 'below' : 'average';
-    
-    // Identify competitive advantages and disadvantages
-    const strengths = [];
-    const weaknesses = [];
-    const opportunities = [];
-    
-    if (ratingPercentile > 60) strengths.push('Higher than average rating');
-    else if (ratingPercentile < 40) weaknesses.push('Below average rating');
-    
-    if (volumePercentile > 60) strengths.push('Strong review volume');
-    else if (volumePercentile < 40) weaknesses.push('Low review volume');
-    
-    if (sentimentPercentile > 60) strengths.push('Excellent customer sentiment');
-    else if (sentimentPercentile < 40) weaknesses.push('Poor customer sentiment');
-    
-    // Opportunities based on benchmark comparison
-    benchmark.commonThemes.forEach(theme => {
-      if (!data.commonTerms) return;
-      
-      const hasTheme = data.commonTerms.some(term => 
-        term.text && theme &&
-        term.text.toLowerCase().includes(theme.toLowerCase())
-      );
-      if (!hasTheme) {
-        opportunities.push(`Develop ${theme} offerings (industry standard)`);
-      }
-    });
-    
-    return {
-      position,
-      metrics: {
-        rating: { value: avgRating, benchmark: benchmark.avgRating, percentile: ratingPercentile },
-        reviewVolume: { value: monthlyReviews, benchmark: benchmark.monthlyReviews, percentile: volumePercentile },
-        sentiment: { value: sentimentScore, benchmark: 0.7, percentile: sentimentPercentile }
+        strengths: ['Unable to determine in fallback mode'],
+        weaknesses: ['Unable to determine in fallback mode'],
+        opportunities: ['Run full analysis when system is available']
       },
-      strengths,
-      weaknesses,
-      opportunities
-    };
-  }
-
-  // Create marketing plan
-  private createMarketingPlan(
-    data: AnalysisResult,
-    reviews: Review[],
-    businessType: BusinessType
-  ): MarketingPlan {
-    // Analyze current customer base
-    const languages = data.languageDistribution || [];
-    const themes = data.mainThemes || [];
-    
-    // Identify target audiences
-    const primaryAudiences = this.identifyPrimaryAudiences(reviews, themes);
-    const secondaryAudiences = this.identifySecondaryAudiences(businessType);
-    const untappedAudiences = this.identifyUntappedAudiences(businessType, primaryAudiences);
-    
-    // Define marketing channels
-    const channels = [
-      {
-        name: 'Social Media',
-        strategy: 'Daily posts highlighting positive reviews and unique features',
-        budget: 'low' as const
-      },
-      {
-        name: 'Email Marketing',
-        strategy: 'Weekly newsletter with promotions and updates',
-        budget: 'low' as const
-      },
-      {
-        name: 'Local SEO',
-        strategy: 'Optimize Google My Business and local directories',
-        budget: 'medium' as const
-      },
-      {
-        name: 'Influencer Partnerships',
-        strategy: 'Collaborate with local food/lifestyle bloggers',
-        budget: 'medium' as const
-      }
-    ];
-    
-    // Craft messaging
-    const topStrengths = data.commonTerms && data.commonTerms
-      .filter(term => this.isPositiveTheme(term.text))
-      .slice(0, 3)
-      .map(t => t.text) || ['quality', 'service', 'value'];
-    
-    const messaging = {
-      keyPoints: topStrengths,
-      uniqueValue: this.craftUniqueValueProposition(topStrengths, businessType),
-      callToAction: 'Visit us today and experience the difference!'
-    };
-    
-    return {
-      targetAudiences: {
-        primary: primaryAudiences,
-        secondary: secondaryAudiences,
-        untapped: untappedAudiences
-      },
-      channels,
-      messaging
-    };
-  }
-
-  // Generate business scenarios
-  private generateBusinessScenarios(
-    health: BusinessHealth,
-    data: AnalysisResult
-  ): BusinessScenario[] {
-    const currentRating = health.score / 20; // Convert to 0-5 scale
-    const currentVolume = 100; // Baseline
-    
-    return [
-      {
-        name: 'Best Case Scenario',
-        description: 'All recommended strategies implemented successfully',
-        probability: 0.25,
-        timeframe: '6 months',
-        projectedMetrics: {
-          reviewVolume: currentVolume * 2,
-          avgRating: Math.min(currentRating + 0.5, 5),
-          sentiment: 0.85,
-          revenue: '+30%'
+      customerAttractionPlan: {
+        targetAudiences: {
+          primary: ['Current customers'],
+          secondary: ['Potential customers'],
+          untapped: ['Based on your business type']
         },
-        requiredActions: [
-          'Implement all urgent actions within 2 weeks',
-          'Launch comprehensive marketing campaign',
-          'Complete staff training program',
-          'Optimize operations based on insights'
-        ]
-      },
-      {
-        name: 'Realistic Growth',
-        description: 'Partial implementation of key strategies',
-        probability: 0.50,
-        timeframe: '6 months',
-        projectedMetrics: {
-          reviewVolume: currentVolume * 1.5,
-          avgRating: Math.min(currentRating + 0.3, 5),
-          sentiment: 0.75,
-          revenue: '+15%'
-        },
-        requiredActions: [
-          'Address critical issues',
-          'Implement review generation campaign',
-          'Basic staff training',
-          'Social media marketing'
-        ]
-      },
-      {
-        name: 'Minimal Improvement',
-        description: 'Only urgent issues addressed',
-        probability: 0.20,
-        timeframe: '6 months',
-        projectedMetrics: {
-          reviewVolume: currentVolume * 1.2,
-          avgRating: currentRating + 0.1,
-          sentiment: 0.70,
-          revenue: '+5%'
-        },
-        requiredActions: [
-          'Fix critical problems only',
-          'Basic customer service improvements'
-        ]
-      },
-      {
-        name: 'Status Quo',
-        description: 'No significant changes made',
-        probability: 0.05,
-        timeframe: '6 months',
-        projectedMetrics: {
-          reviewVolume: currentVolume,
-          avgRating: currentRating,
-          sentiment: 0.68,
-          revenue: '0%'
-        },
-        requiredActions: []
-      }
-    ];
-  }
-
-  // Suggest long-term strategies
-  private suggestLongTermStrategies(
-    health: BusinessHealth,
-    data: AnalysisResult,
-    businessType: BusinessType
-  ): Strategy[] {
-    const strategies: Strategy[] = [];
-    
-    // Brand positioning strategy
-    strategies.push({
-      id: 'long-1',
-      category: 'brand',
-      title: 'Premium Brand Positioning',
-      description: 'Elevate brand perception to command premium pricing',
-      timeframe: '6-12 months',
-      actions: [
-        'Develop premium service offerings',
-        'Upgrade physical space and ambiance',
-        'Create exclusive customer experiences',
-        'Partner with luxury brands'
-      ],
-      expectedROI: '25-40% margin increase',
-      riskLevel: 'medium'
-    });
-    
-    // Customer base expansion
-    strategies.push({
-      id: 'long-2',
-      category: 'customer',
-      title: 'Market Diversification',
-      description: 'Expand into new customer segments and demographics',
-      timeframe: '3-6 months',
-      actions: [
-        'Research untapped demographics',
-        'Create targeted offerings for new segments',
-        'Develop multichannel marketing approach',
-        'Build strategic partnerships'
-      ],
-      expectedROI: '20-30% customer base growth',
-      riskLevel: 'medium'
-    });
-    
-    // Innovation strategy
-    if (businessType === BusinessType.RESTAURANT || businessType === BusinessType.CAFE) {
-      strategies.push({
-        id: 'long-3',
-        category: 'innovation',
-        title: 'Menu Innovation Program',
-        description: 'Regular introduction of new offerings based on trends',
-        timeframe: '2-4 months',
-        actions: [
-          'Establish trend monitoring system',
-          'Create seasonal menu rotations',
-          'Develop signature items',
-          'Test new concepts with focus groups'
+        channels: [
+          {
+            name: 'Social Media',
+            strategy: 'Regular posting of business updates',
+            budget: 'low'
+          }
         ],
-        expectedROI: '15-25% revenue increase',
-        riskLevel: 'low'
-      });
-    }
-    
-    // Digital transformation
-    strategies.push({
-      id: 'long-4',
-      category: 'innovation',
-      title: 'Digital Experience Enhancement',
-      description: 'Leverage technology to improve customer experience',
-      timeframe: '3-6 months',
-      actions: [
-        'Implement mobile ordering/payment',
-        'Create loyalty app with rewards',
-        'Develop AR/VR experiences',
-        'Use AI for personalized recommendations'
+        messaging: {
+          keyPoints: ['quality', 'service', 'value'],
+          uniqueValue: 'Your unique business proposition',
+          callToAction: 'Visit us today!'
+        }
+      },
+      scenarios: [
+        {
+          name: 'Basic Scenario',
+          description: 'Limited analysis available',
+          probability: 1,
+          timeframe: '3 months',
+          projectedMetrics: {
+            reviewVolume: 0,
+            avgRating: 0,
+            sentiment: 0,
+            revenue: 'unknown'
+          },
+          requiredActions: ['Run complete analysis when available']
+        }
       ],
-      expectedROI: '30-50% efficiency improvement',
-      riskLevel: 'medium'
-    });
-    
-    return strategies;
-  }
-
-  // Helper methods
-  private calculateMonthlyReviews(reviews: Review[]): number {
-    if (!reviews || reviews.length === 0) return 0;
-    
-    const now = new Date();
-    const oneYearAgo = new Date(now.setFullYear(now.getFullYear() - 1));
-    const recentReviews = reviews.filter(r => new Date(r.publishedAtDate) > oneYearAgo);
-    return Math.round(recentReviews.length / 12);
-  }
-
-  private calculateSentimentScore(sentimentData: { name: string; value: number }[]): number {
-    if (!sentimentData || sentimentData.length === 0) return 0.5;
-    
-    const total = sentimentData.reduce((sum, s) => sum + s.value, 0);
-    if (total === 0) return 0.5;
-    
-    const positive = sentimentData.find(s => s.name === 'Positive')?.value || 0;
-    return positive / total;
-  }
-
-  private isPositiveTheme(theme: string): boolean {
-    if (!theme || typeof theme !== 'string') return false;
-    const positiveWords = [
-      'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'delicious',
-      'friendly', 'clean', 'comfortable', 'beautiful', 'perfect', 'love'
-    ];
-    return positiveWords.some(word => theme.toLowerCase().includes(word));
-  }
-
-  private analyzeSentimentForTerm(reviews: Review[]): 'positive' | 'negative' | 'neutral' {
-    if (!reviews || reviews.length === 0) return 'neutral';
-    
-    const avgRating = reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length;
-    return avgRating >= 4 ? 'positive' : avgRating <= 2 ? 'negative' : 'neutral';
-  }
-
-  private getRecommendationForPattern(
-    pattern: string,
-    sentiment: 'positive' | 'negative' | 'neutral',
-    frequency: number
-  ): string {
-    if (sentiment === 'positive' && frequency > 10) {
-      return `Highlight "${pattern}" in marketing as a key strength`;
-    } else if (sentiment === 'negative' && frequency > 5) {
-      return `Address issues related to "${pattern}" immediately`;
-    } else if (sentiment === 'neutral') {
-      return `Improve "${pattern}" to convert neutral experiences to positive`;
-    }
-    return `Monitor "${pattern}" for trends`;
-  }
-
-  private analyzeTimePatterns(reviews: Review[]): PatternInsight[] {
-    // This would analyze patterns by day of week, time of day, etc.
-    // Simplified for this implementation
-    return [];
-  }
-
-  private calculatePercentile(value: number, benchmark: number, stdDev: number): number {
-    if (stdDev === 0) return 50; // Avoid division by zero
-    
-    const zScore = (value - benchmark) / stdDev;
-    const percentile = (1 + this.erf(zScore / Math.sqrt(2))) / 2 * 100;
-    return Math.min(Math.max(percentile, 0), 100);
-  }
-
-  private identifyStrengths(
-    data: AnalysisResult,
-    avgRating: number,
-    benchmark: any
-  ): string[] {
-    const strengths = [];
-    if (avgRating > benchmark.avgRating) strengths.push('Above-average rating');
-    
-    const positiveThemes = data.commonTerms && data.commonTerms.filter(t => this.isPositiveTheme(t.text)) || [];
-    if (positiveThemes.length > 0) {
-      strengths.push(`Strong in: ${positiveThemes.slice(0, 3).map(t => t.text).join(', ')}`);
-    }
-    
-    if (strengths.length === 0) {
-      strengths.push('Need more data to identify strengths');
-    }
-    
-    return strengths;
-  }
-
-  private identifyWeaknesses(
-    data: AnalysisResult,
-    avgRating: number,
-    benchmark: any
-  ): string[] {
-    const weaknesses = [];
-    if (avgRating < benchmark.avgRating) weaknesses.push('Below-average rating');
-    
-    const negativeStaff = data.staffMentions && data.staffMentions.filter(s => s.sentiment === 'negative') || [];
-    if (negativeStaff.length > 0) {
-      weaknesses.push('Staff performance issues');
-    }
-    
-    if (weaknesses.length === 0) {
-      weaknesses.push('Need more data to identify weaknesses');
-    }
-    
-    return weaknesses;
-  }
-
-  private identifyOpportunities(
-    data: AnalysisResult,
-    reviews: Review[],
-    businessType: BusinessType
-  ): string[] {
-    const opportunities = [];
-    
-    const monthlyReviews = this.calculateMonthlyReviews(reviews);
-    if (monthlyReviews < 100) {
-      opportunities.push('Increase review volume to attract more customers');
-    }
-    
-    // Add more opportunity identification logic
-    opportunities.push('Expand digital marketing presence');
-    opportunities.push('Develop loyalty program');
-    
-    return opportunities;
-  }
-
-  private identifyThreats(
-    data: AnalysisResult,
-    reviews: Review[],
-    businessType: BusinessType
-  ): string[] {
-    const threats = [];
-    
-    if (!reviews || reviews.length === 0) {
-      threats.push('Insufficient data to identify specific threats');
-      threats.push('Lack of review data affects online visibility');
-      return threats;
-    }
-    
-    const negativeReviews = reviews.filter(r => r.stars <= 2);
-    if (negativeReviews.length / reviews.length > 0.15) {
-      threats.push('High negative review rate damaging reputation');
-    }
-    
-    threats.push('Increased competition in local market');
-    
-    return threats;
-  }
-
-  private identifyPrimaryAudiences(reviews: Review[], themes: any[]): string[] {
-    // Analyze review content to identify primary customer types
-    return ['Local residents', 'Young professionals', 'Families'];
-  }
-
-  private identifySecondaryAudiences(businessType: BusinessType): string[] {
-    // Based on business type
-    return ['Tourists', 'Business travelers', 'Students'];
-  }
-
-  private identifyUntappedAudiences(
-    businessType: BusinessType,
-    currentAudiences: string[]
-  ): string[] {
-    // Identify potential new audiences
-    return ['Remote workers', 'Senior citizens', 'International visitors'];
-  }
-
-  private craftUniqueValueProposition(
-    strengths: string[],
-    businessType: BusinessType
-  ): string {
-    return `The premier ${businessType} known for ${strengths.join(', ')}`;
-  }
-
-  private erf(x: number): number {
-    // Constants
-    const a1 = 0.254829592;
-    const a2 = -0.284496736;
-    const a3 = 1.421413741;
-    const a4 = -1.453152027;
-    const a5 = 1.061405429;
-    const p = 0.3275911;
-
-    // Save the sign of x
-    const sign = x < 0 ? -1 : 1;
-    x = Math.abs(x);
-
-    // A&S formula 7.1.26
-    const t = 1.0 / (1.0 + p * x);
-    const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
-
-    return sign * y;
+      longTermStrategies: [
+        {
+          id: 'fallback-long-1',
+          category: 'general',
+          title: 'Basic Business Strategy',
+          description: 'Focus on core business operations',
+          timeframe: '6 months',
+          actions: ['Maintain quality', 'Listen to customer feedback'],
+          expectedROI: 'Varies',
+          riskLevel: 'low'
+        }
+      ]
+    };
   }
 }

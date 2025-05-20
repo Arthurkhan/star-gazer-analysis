@@ -26,17 +26,29 @@ interface RecommendationsDashboardProps {
   isLoading?: boolean;
   error?: Error | null;
   onRefresh?: () => void;
+  recommendations?: Recommendations;
+  loading?: boolean;
+  generatingMessage?: string;
+  businessName?: string;
 }
 
 /**
  * Dashboard component for displaying AI-generated recommendations
  */
-const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
+export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
   data,
   isLoading = false,
   error = null,
-  onRefresh
+  onRefresh,
+  recommendations,
+  loading,
+  generatingMessage,
+  businessName
 }) => {
+  // Use either data or recommendations prop for backwards compatibility
+  const recommendationsData = data || recommendations;
+  const isLoadingState = isLoading || loading;
+  
   // If there's an error, display an error message
   if (error) {
     return (
@@ -56,7 +68,7 @@ const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
   }
 
   // If loading, display a loading indicator
-  if (isLoading) {
+  if (isLoadingState) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -77,8 +89,19 @@ const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
     );
   }
 
+  // If generating, show the generating message
+  if (generatingMessage) {
+    return (
+      <Alert className="mb-4">
+        <Info className="h-4 w-4" />
+        <AlertTitle>Generating recommendations for {businessName}</AlertTitle>
+        <AlertDescription>{generatingMessage}</AlertDescription>
+      </Alert>
+    );
+  }
+
   // If no data, display a message
-  if (!data) {
+  if (!recommendationsData) {
     return (
       <Alert className="mb-4">
         <Info className="h-4 w-4" />
@@ -120,9 +143,9 @@ const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {data.urgentActions && data.urgentActions.length > 0 ? (
+            {recommendationsData.urgentActions && recommendationsData.urgentActions.length > 0 ? (
               <div className="space-y-4">
-                {data.urgentActions.map((action, index) => (
+                {recommendationsData.urgentActions.map((action, index) => (
                   <Card key={`urgent-${index}`}>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between">
@@ -170,9 +193,9 @@ const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {data.growthStrategies && data.growthStrategies.length > 0 ? (
+            {recommendationsData.growthStrategies && recommendationsData.growthStrategies.length > 0 ? (
               <div className="space-y-4">
-                {data.growthStrategies.map((strategy, index) => (
+                {recommendationsData.growthStrategies.map((strategy, index) => (
                   <Card key={`growth-${index}`}>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between">
@@ -214,15 +237,15 @@ const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
       <TabsContent value="marketing">
         <Card>
           <CardHeader>
-            <CardTitle>{data.customerAttractionPlan?.title || 'Marketing Plan'}</CardTitle>
+            <CardTitle>{recommendationsData.customerAttractionPlan?.title || 'Marketing Plan'}</CardTitle>
             <CardDescription>
-              {data.customerAttractionPlan?.description || 'Strategies to attract and retain customers'}
+              {recommendationsData.customerAttractionPlan?.description || 'Strategies to attract and retain customers'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {data.customerAttractionPlan?.strategies && data.customerAttractionPlan.strategies.length > 0 ? (
+            {recommendationsData.customerAttractionPlan?.strategies && recommendationsData.customerAttractionPlan.strategies.length > 0 ? (
               <div className="space-y-4">
-                {data.customerAttractionPlan.strategies.map((strategy, index) => (
+                {recommendationsData.customerAttractionPlan.strategies.map((strategy, index) => (
                   <Card key={`marketing-${index}`}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">{strategy.title}</CardTitle>
@@ -264,20 +287,20 @@ const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
       <TabsContent value="positioning">
         <Card>
           <CardHeader>
-            <CardTitle>{data.competitivePositioning?.title || 'Competitive Positioning'}</CardTitle>
+            <CardTitle>{recommendationsData.competitivePositioning?.title || 'Competitive Positioning'}</CardTitle>
             <CardDescription>
-              {data.competitivePositioning?.description || 'Analysis of your market position'}
+              {recommendationsData.competitivePositioning?.description || 'Analysis of your market position'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {data.competitivePositioning ? (
+            {recommendationsData.competitivePositioning ? (
               <div className="space-y-6">
                 {/* Strengths */}
-                {data.competitivePositioning.strengths && data.competitivePositioning.strengths.length > 0 && (
+                {recommendationsData.competitivePositioning.strengths && recommendationsData.competitivePositioning.strengths.length > 0 && (
                   <div>
                     <h3 className="text-lg font-medium mb-2">Strengths</h3>
                     <ul className="list-disc pl-5 space-y-1">
-                      {data.competitivePositioning.strengths.map((strength, index) => (
+                      {recommendationsData.competitivePositioning.strengths.map((strength, index) => (
                         <li key={`strength-${index}`}>{strength}</li>
                       ))}
                     </ul>
@@ -285,11 +308,11 @@ const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
                 )}
 
                 {/* Opportunities */}
-                {data.competitivePositioning.opportunities && data.competitivePositioning.opportunities.length > 0 && (
+                {recommendationsData.competitivePositioning.opportunities && recommendationsData.competitivePositioning.opportunities.length > 0 && (
                   <div>
                     <h3 className="text-lg font-medium mb-2">Opportunities</h3>
                     <ul className="list-disc pl-5 space-y-1">
-                      {data.competitivePositioning.opportunities.map((opportunity, index) => (
+                      {recommendationsData.competitivePositioning.opportunities.map((opportunity, index) => (
                         <li key={`opportunity-${index}`}>{opportunity}</li>
                       ))}
                     </ul>
@@ -297,11 +320,11 @@ const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
                 )}
 
                 {/* Recommendations */}
-                {data.competitivePositioning.recommendations && data.competitivePositioning.recommendations.length > 0 && (
+                {recommendationsData.competitivePositioning.recommendations && recommendationsData.competitivePositioning.recommendations.length > 0 && (
                   <div>
                     <h3 className="text-lg font-medium mb-2">Recommendations</h3>
                     <ul className="list-disc pl-5 space-y-1">
-                      {data.competitivePositioning.recommendations.map((recommendation, index) => (
+                      {recommendationsData.competitivePositioning.recommendations.map((recommendation, index) => (
                         <li key={`positioning-rec-${index}`}>{recommendation}</li>
                       ))}
                     </ul>
@@ -331,14 +354,14 @@ const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {data.futureProjections ? (
+            {recommendationsData.futureProjections ? (
               <div className="space-y-6">
                 {/* Short-Term Projections */}
-                {data.futureProjections.shortTerm && data.futureProjections.shortTerm.length > 0 && (
+                {recommendationsData.futureProjections.shortTerm && recommendationsData.futureProjections.shortTerm.length > 0 && (
                   <div>
                     <h3 className="text-lg font-medium mb-2">Short-Term (3-6 months)</h3>
                     <ul className="list-disc pl-5 space-y-1">
-                      {data.futureProjections.shortTerm.map((projection, index) => (
+                      {recommendationsData.futureProjections.shortTerm.map((projection, index) => (
                         <li key={`short-term-${index}`}>{projection}</li>
                       ))}
                     </ul>
@@ -346,11 +369,11 @@ const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
                 )}
 
                 {/* Long-Term Projections */}
-                {data.futureProjections.longTerm && data.futureProjections.longTerm.length > 0 && (
+                {recommendationsData.futureProjections.longTerm && recommendationsData.futureProjections.longTerm.length > 0 && (
                   <div>
                     <h3 className="text-lg font-medium mb-2">Long-Term (1-2 years)</h3>
                     <ul className="list-disc pl-5 space-y-1">
-                      {data.futureProjections.longTerm.map((projection, index) => (
+                      {recommendationsData.futureProjections.longTerm.map((projection, index) => (
                         <li key={`long-term-${index}`}>{projection}</li>
                       ))}
                     </ul>

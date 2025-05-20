@@ -185,22 +185,34 @@ export const calculateBusinessStats = (
   
   // Count reviews for each business, handling both old and new data structures
   const businessCounts: Record<string, number> = {};
+  const businessNameMap: Record<string, string> = {}; // Maps business_id to name
   
   reviews.forEach(review => {
     let businessName = '';
+    let businessId = review.business_id;
     
     // Try to get business name from the joined data (new schema)
     const business = (review as any).businesses;
     if (business && business.name) {
       businessName = business.name;
+      businessNameMap[businessId] = businessName;
     } 
     // Fallback to title field (old schema compatibility)
     else if (review.title) {
       businessName = review.title;
+      businessNameMap[businessId] = businessName;
     }
     
     if (businessName) {
       businessCounts[businessName] = (businessCounts[businessName] || 0) + 1;
+    }
+  });
+  
+  // Ensure business names are used instead of IDs
+  Object.entries(businessNameMap).forEach(([id, name]) => {
+    if (businessCounts[id] && !businessCounts[name]) {
+      businessCounts[name] = businessCounts[id];
+      delete businessCounts[id];
     }
   });
   

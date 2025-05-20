@@ -1,50 +1,59 @@
-// src/utils/safeAccess.ts
-// Utility functions for safely accessing potentially undefined data
+/**
+ * Utilities for safely accessing potentially undefined data
+ * This helps prevent "Cannot read properties of undefined" errors
+ */
 
 /**
- * Safely access a nested property in an object
+ * Safely get a nested property from an object
  * @param obj The object to access
- * @param path The path to the property, using dot notation
- * @param defaultValue The default value to return if the property doesn't exist
+ * @param path The property path, e.g. 'user.profile.name'
+ * @param defaultValue Default value if the path doesn't exist
+ * @returns The value at the path or the default value
  */
 export function safeGet<T>(obj: any, path: string, defaultValue: T): T {
-  if (!obj) return defaultValue;
-  
-  const properties = path.split('.');
-  let current = obj;
-  
-  for (const property of properties) {
-    if (current === null || current === undefined) {
-      return defaultValue;
-    }
-    
-    current = current[property];
+  if (!obj || !path) {
+    return defaultValue;
   }
   
-  return current !== undefined && current !== null ? current as T : defaultValue;
+  const keys = path.split('.');
+  let result = obj;
+  
+  for (const key of keys) {
+    if (result === undefined || result === null) {
+      return defaultValue;
+    }
+    result = result[key];
+  }
+  
+  return (result === undefined || result === null) ? defaultValue : result;
 }
 
 /**
  * Safely access an array element
  * @param arr The array to access
  * @param index The index to access
- * @param defaultValue The default value to return if the element doesn't exist
+ * @param defaultValue Default value if the index doesn't exist
+ * @returns The value at the index or the default value
  */
 export function safeArrayGet<T>(arr: T[] | null | undefined, index: number, defaultValue: T): T {
-  if (!arr || !Array.isArray(arr) || index < 0 || index >= arr.length) {
+  if (!arr || index < 0 || index >= arr.length) {
     return defaultValue;
   }
-  
-  return arr[index] ?? defaultValue;
+  return arr[index];
 }
 
 /**
- * Safely call a function, returning a default value if the function throws
+ * Safely call a function that might not exist
  * @param fn The function to call
- * @param defaultValue The default value to return if the function throws
- * @param args The arguments to pass to the function
+ * @param args Arguments to pass to the function
+ * @param defaultValue Default value if the function doesn't exist or throws
+ * @returns The function result or the default value
  */
-export function safeCall<T>(fn: (...args: any[]) => T, defaultValue: T, ...args: any[]): T {
+export function safeCall<T>(fn: Function | null | undefined, args: any[], defaultValue: T): T {
+  if (!fn || typeof fn !== 'function') {
+    return defaultValue;
+  }
+  
   try {
     return fn(...args);
   } catch (error) {
@@ -54,32 +63,53 @@ export function safeCall<T>(fn: (...args: any[]) => T, defaultValue: T, ...args:
 }
 
 /**
- * Safely parse JSON, returning a default value if parsing fails
- * @param json The JSON string to parse
- * @param defaultValue The default value to return if parsing fails
+ * Convert a value to a number safely
+ * @param value The value to convert
+ * @param defaultValue Default value if conversion fails
+ * @returns The number or the default value
  */
-export function safeParseJSON<T>(json: string, defaultValue: T): T {
+export function safeNumber(value: any, defaultValue: number = 0): number {
+  if (value === null || value === undefined || value === '') {
+    return defaultValue;
+  }
+  
+  const num = Number(value);
+  return isNaN(num) ? defaultValue : num;
+}
+
+/**
+ * Convert a value to a string safely
+ * @param value The value to convert
+ * @param defaultValue Default value if conversion fails
+ * @returns The string or the default value
+ */
+export function safeString(value: any, defaultValue: string = ''): string {
+  if (value === null || value === undefined) {
+    return defaultValue;
+  }
+  
   try {
-    return JSON.parse(json) as T;
+    return String(value);
   } catch (error) {
-    console.error('Error parsing JSON:', error);
     return defaultValue;
   }
 }
 
 /**
- * Safely access a property in localStorage, with optional parsing
- * @param key The localStorage key
- * @param defaultValue The default value to return if the key doesn't exist
- * @param parse Whether to parse the value as JSON
+ * Parse JSON safely
+ * @param jsonString The JSON string to parse
+ * @param defaultValue Default value if parsing fails
+ * @returns The parsed object or the default value
  */
-export function safeLocalStorage<T>(key: string, defaultValue: T, parse = false): T {
+export function safeJsonParse<T>(jsonString: string | null | undefined, defaultValue: T): T {
+  if (!jsonString) {
+    return defaultValue;
+  }
+  
   try {
-    const value = localStorage.getItem(key);
-    if (value === null) return defaultValue;
-    return parse ? JSON.parse(value) as T : value as unknown as T;
+    return JSON.parse(jsonString) as T;
   } catch (error) {
-    console.error(`Error accessing localStorage key "${key}":`, error);
+    console.error('Error parsing JSON:', error);
     return defaultValue;
   }
 }

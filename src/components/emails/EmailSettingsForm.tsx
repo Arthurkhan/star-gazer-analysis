@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
+import { saveEmailSettings, getEmailSettings } from "@/services/emailService";
 import { 
   BarChart3,
   Mail, 
@@ -16,7 +17,8 @@ import {
   Calendar, 
   CalendarClock,
   CheckCircle,
-  AlertTriangle 
+  AlertTriangle,
+  Loader2
 } from "lucide-react";
 import { BusinessType } from "@/types/businessTypes";
 
@@ -35,32 +37,96 @@ interface EmailSettings {
   };
 }
 
+const defaultSettings: EmailSettings = {
+  enabled: false,
+  recipient: "",
+  schedules: {
+    weekly: { enabled: false, dayOfWeek: 1 },
+    monthly: { enabled: false, dayOfMonth: 1 },
+    urgent: { enabled: false, minSeverity: 3 }
+  },
+  content: {
+    includeCharts: true,
+    includeRecommendations: true,
+    includeTables: true
+  }
+};
+
 interface EmailSettingsFormProps {
   businessName: string;
   businessType: BusinessType;
-  initialSettings: EmailSettings;
+  initialSettings?: EmailSettings;
 }
 
 export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({
   businessName,
   businessType,
-  initialSettings,
+  initialSettings
 }) => {
-  const [settings, setSettings] = useState<EmailSettings>(initialSettings);
+  const [settings, setSettings] = useState<EmailSettings>(initialSettings || defaultSettings);
+  const [loading, setLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!businessName || businessName === "all") return;
+      
+      setLoading(true);
+      try {
+        const existingSettings = await getEmailSettings(businessName);
+        if (existingSettings) {
+          setSettings(existingSettings);
+        }
+      } catch (error) {
+        console.error("Error fetching email settings:", error);
+        toast({
+          title: "Error fetching settings",
+          description: "Could not load email notification settings.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchSettings();
+  }, [businessName, toast]);
 
   const handleSettingsChange = (newSettings: EmailSettings) => {
     setSettings(newSettings);
   };
 
-  const handleSaveSettings = () => {
-    // Placeholder for saving settings
-    console.log("Saving settings:", settings);
-    toast({
-      title: "Settings Saved",
-      description: "Email notification settings have been saved.",
-    });
+  const handleSaveSettings = async () => {
+    if (!businessName || businessName === "all") return;
+    
+    setSaveLoading(true);
+    try {
+      await saveEmailSettings(businessName, settings);
+      toast({
+        title: "Settings Saved",
+        description: "Email notification settings have been saved.",
+      });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast({
+        title: "Error Saving Settings",
+        description: "Could not save email notification settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaveLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center p-6">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading settings...</span>
+      </div>
+    );
+  }
 
   return (
     <Card>
@@ -295,7 +361,19 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleSaveSettings}>Save Settings</Button>
+        <Button onClick={handleSaveSettings} disabled={saveLoading}>
+          {saveLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Save Settings
+            </>
+          )}
+        </Button>
       </CardFooter>
     </Card>
   );

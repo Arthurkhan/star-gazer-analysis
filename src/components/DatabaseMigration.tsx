@@ -1,164 +1,166 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
-import { Spinner } from '@/components/ui/spinner';
-import { checkIfMigrationNeeded, migrateDataToNewSchema } from '@/utils/dataMigration';
-import { useToast } from '@/hooks/use-toast';
+import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { migrateDataToNewSchema, checkIfMigrationNeeded } from '@/utils/dataMigration';
 
-export function DatabaseMigrationCard() {
-  const [isMigrationNeeded, setIsMigrationNeeded] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isMigrating, setIsMigrating] = useState(false);
-  const [migrationResult, setMigrationResult] = useState<{
-    success?: boolean;
-    businesses?: any[];
-    error?: any;
-  } | null>(null);
-  const { toast } = useToast();
-
+/**
+ * Database Migration component for the settings page
+ * Handles migrating from the old schema to the new schema
+ */
+const DatabaseMigration: React.FC = () => {
+  const [migrationNeeded, setMigrationNeeded] = useState<boolean | null>(null);
+  const [migrationStatus, setMigrationStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
+  const [statusMessage, setStatusMessage] = useState<string>('');
+  const [checking, setChecking] = useState(true);
+  
+  // Check if migration is needed when the component mounts
   useEffect(() => {
-    async function checkMigration() {
+    const checkMigration = async () => {
       try {
+        setChecking(true);
         const needed = await checkIfMigrationNeeded();
-        setIsMigrationNeeded(needed);
+        setMigrationNeeded(needed);
+        setStatusMessage(needed 
+          ? 'Your database needs to be migrated to the new schema for better performance' 
+          : 'Your database is already using the new schema');
       } catch (error) {
         console.error('Error checking migration status:', error);
-        toast({
-          title: 'Error checking migration status',
-          description: 'Could not determine if migration is needed',
-          variant: 'destructive',
-        });
+        setStatusMessage('Error checking migration status');
+        setMigrationNeeded(null);
       } finally {
-        setIsLoading(false);
+        setChecking(false);
       }
-    }
-
+    };
+    
     checkMigration();
-  }, [toast]);
-
+  }, []);
+  
+  // Handle migration
   const handleMigration = async () => {
-    setIsMigrating(true);
     try {
+      setMigrationStatus('running');
+      setStatusMessage('Migrating database schema. This may take a few minutes...');
+      
       const result = await migrateDataToNewSchema();
-      setMigrationResult(result);
       
       if (result.success) {
-        toast({
-          title: 'Migration Successful',
-          description: `Migrated data for ${result.businesses?.length || 0} businesses`,
-          variant: 'default',
-        });
-        setIsMigrationNeeded(false);
+        setMigrationStatus('success');
+        setStatusMessage(`Migration completed successfully! Created ${result.businesses?.length || 0} businesses.`);
+        setMigrationNeeded(false);
       } else {
-        toast({
-          title: 'Migration Failed',
-          description: 'See console for details',
-          variant: 'destructive',
-        });
+        setMigrationStatus('error');
+        setStatusMessage(`Migration failed: ${result.error}`);
       }
     } catch (error) {
+      setMigrationStatus('error');
+      setStatusMessage(`Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       console.error('Migration error:', error);
-      setMigrationResult({ success: false, error });
-      toast({
-        title: 'Migration Failed',
-        description: 'An unexpected error occurred',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsMigrating(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Database Migration</CardTitle>
-          <CardDescription>Checking database status...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center py-6">
-          <Spinner />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isMigrationNeeded === false) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Database Status</CardTitle>
-          <CardDescription>Using optimized schema</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="default" className="bg-green-50 border-green-200">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertTitle>Database is up to date</AlertTitle>
-            <AlertDescription>
-              Your database is using the optimized schema. No migration needed.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-2xl">
       <CardHeader>
-        <CardTitle>Database Migration Required</CardTitle>
+        <CardTitle>Database Schema Migration</CardTitle>
         <CardDescription>
-          Your database needs to be migrated to the new optimized schema
+          Migrate from the legacy "one table per business" model to the new normalized schema
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Alert variant="default" className="bg-amber-50 border-amber-200 mb-4">
-          <Info className="h-4 w-4 text-amber-600" />
-          <AlertTitle>Migration Information</AlertTitle>
-          <AlertDescription>
-            This migration will move your data to a new normalized database structure for better performance.
-            This process should take less than a minute and will not delete any data from the original tables.
-          </AlertDescription>
-        </Alert>
-
-        {migrationResult?.success === false && (
-          <Alert variant="destructive" className="mb-4">
+        {checking ? (
+          <div className="flex items-center space-x-2 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Checking database schema...</span>
+          </div>
+        ) : migrationNeeded === null ? (
+          <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Migration Failed</AlertTitle>
+            <AlertTitle>Error</AlertTitle>
             <AlertDescription>
-              There was an error during migration. Please check the console for details.
+              {statusMessage || 'Could not check if migration is needed. Please try again later.'}
             </AlertDescription>
           </Alert>
-        )}
-
-        {migrationResult?.success === true && (
-          <Alert variant="default" className="bg-green-50 border-green-200 mb-4">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertTitle>Migration Successful</AlertTitle>
+        ) : migrationNeeded ? (
+          <div className="space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <AlertTitle>Migration Required</AlertTitle>
+              <AlertDescription>
+                {statusMessage}
+              </AlertDescription>
+            </Alert>
+            
+            <div className="text-sm">
+              <p className="font-medium mb-2">Benefits of the new schema:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Better performance with large datasets</li>
+                <li>Simpler querying across businesses</li>
+                <li>Easier to add new businesses</li>
+                <li>Improved caching and pagination</li>
+                <li>Support for advanced analytics</li>
+              </ul>
+            </div>
+            
+            {migrationStatus === 'running' && (
+              <div className="flex items-center space-x-2 text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{statusMessage}</span>
+              </div>
+            )}
+            
+            {migrationStatus === 'error' && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Migration Failed</AlertTitle>
+                <AlertDescription>
+                  {statusMessage}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        ) : (
+          <Alert variant="default">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <AlertTitle>No Migration Needed</AlertTitle>
             <AlertDescription>
-              Successfully migrated data for {migrationResult.businesses?.length || 0} businesses.
+              {statusMessage}
             </AlertDescription>
           </Alert>
         )}
       </CardContent>
-      <CardFooter>
-        <Button 
-          onClick={handleMigration} 
-          disabled={isMigrating || migrationResult?.success === true}
-          className="w-full"
-        >
-          {isMigrating ? (
-            <>
-              <Spinner className="mr-2 h-4 w-4" />
-              Migrating...
-            </>
-          ) : (
-            'Migrate Database'
-          )}
-        </Button>
-      </CardFooter>
+      
+      {migrationNeeded && migrationStatus !== 'success' && (
+        <CardFooter className="justify-between">
+          <p className="text-sm text-gray-500">
+            Migration will not delete any data
+          </p>
+          <Button 
+            onClick={handleMigration} 
+            disabled={migrationStatus === 'running'}
+          >
+            {migrationStatus === 'running' && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Migrate Database
+          </Button>
+        </CardFooter>
+      )}
+      
+      {migrationStatus === 'success' && (
+        <CardFooter>
+          <Alert variant="default" className="w-full">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <AlertTitle>Migration Complete</AlertTitle>
+            <AlertDescription>
+              {statusMessage}
+            </AlertDescription>
+          </Alert>
+        </CardFooter>
+      )}
     </Card>
   );
-}
+};
+
+export default DatabaseMigration;

@@ -6,8 +6,6 @@ import { Loader2 } from "lucide-react";
 import { GrowthStrategiesView } from "./GrowthStrategiesView";
 import { PatternAnalysisView } from "./PatternAnalysisView";
 import { CompetitiveAnalysisView } from "./CompetitiveAnalysisView";
-import { ScenariosView } from "./ScenariosView";
-import { EnhancedAnalysisDisplay } from "@/components/analysis/EnhancedAnalysisDisplay";
 import { BusinessContextDisplay } from "@/components/BusinessContextDisplay";
 import { type Recommendations } from "@/types/recommendations";
 
@@ -78,25 +76,12 @@ export const RecommendationsDashboard = ({
         </Alert>
       )}
       
-      <Tabs defaultValue="enhanced" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="enhanced">Enhanced Analysis</TabsTrigger>
+      <Tabs defaultValue="growth" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="growth">Growth Strategies</TabsTrigger>
           <TabsTrigger value="patterns">Pattern Analysis</TabsTrigger>
           <TabsTrigger value="competitive">Competitive Position</TabsTrigger>
-          <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="enhanced">
-          <EnhancedAnalysisDisplay 
-            temporalPatterns={recommendations.enhancedAnalysis?.temporalPatterns || null}
-            historicalTrends={recommendations.enhancedAnalysis?.historicalTrends || null}
-            reviewClusters={recommendations.enhancedAnalysis?.reviewClusters || null}
-            seasonalAnalysis={recommendations.enhancedAnalysis?.seasonalAnalysis || null}
-            insights={recommendations.enhancedAnalysis?.insights || null}
-            loading={false}
-          />
-        </TabsContent>
         
         <TabsContent value="growth">
           <GrowthStrategiesView 
@@ -115,13 +100,6 @@ export const RecommendationsDashboard = ({
         <TabsContent value="competitive">
           <CompetitiveAnalysisView 
             analysis={recommendations.competitivePosition}
-          />
-        </TabsContent>
-        
-        <TabsContent value="scenarios">
-          <ScenariosView 
-            // The type cast ensures compatibility between Scenario[] and BusinessScenario[]
-            scenarios={recommendations.scenarios as any}
           />
         </TabsContent>
       </Tabs>

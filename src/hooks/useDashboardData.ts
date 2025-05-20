@@ -16,6 +16,24 @@ import {
 } from "@/utils/reviewDataUtils";
 import { useBusinessSelection } from "@/hooks/useBusinessSelection";
 
+// Add a mock data function to prevent unnecessary DB calls
+const getMockReviewData = (): Review[] => {
+  // Return a small set of mock reviews for development
+  return Array(10).fill(null).map((_, i) => ({
+    id: `mock-${i}`,
+    stars: Math.floor(Math.random() * 5) + 1,
+    name: `Mock User ${i}`,
+    text: `This is a mock review ${i}`,
+    textTranslated: '',
+    publishedAtDate: new Date(Date.now() - i * 86400000).toISOString(),
+    reviewUrl: '',
+    responseFromOwnerText: i % 3 === 0 ? 'Thank you for your feedback!' : '',
+    sentiment: i % 3 === 0 ? 'positive' : i % 3 === 1 ? 'neutral' : 'negative',
+    staffMentioned: i % 4 === 0 ? 'John, Mary' : '',
+    mainThemes: i % 2 === 0 ? 'service, quality' : 'ambiance, price',
+  }));
+};
+
 export function useDashboardData(startDate?: Date, endDate?: Date) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -40,6 +58,38 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     setDatabaseError(false);
     
     try {
+      // Use mock data when possible to prevent excessive API calls
+      const useMockData = !forceRefresh && process.env.NODE_ENV === 'development';
+      
+      if (useMockData) {
+        console.log("Using mock data to prevent API calls");
+        
+        // Create mock businesses
+        const mockBusinesses: Business[] = [
+          { id: "1", name: "The Little Prince Cafe" },
+          { id: "2", name: "Vol de Nuit The Hidden Bar" },
+          { id: "3", name: "L'Envol Art Space" }
+        ];
+        
+        setBusinesses(mockBusinesses);
+        setAvailableTables(mockBusinesses.map(b => b.name) as TableName[]);
+        
+        // Get mock review data
+        const mockReviews = getMockReviewData();
+        setReviewData(mockReviews);
+        setLastFetched(Date.now());
+        
+        // Calculate business statistics
+        const businessesObj = calculateBusinessStats(mockReviews);
+        setBusinessData({
+          allBusinesses: { name: "All Businesses", count: mockReviews.length },
+          businesses: businessesObj,
+        });
+        
+        setLoading(false);
+        return;
+      }
+      
       // Clear caches if force refresh is requested
       if (forceRefresh) {
         console.log("Forcing data refresh - clearing all caches");
@@ -173,9 +223,49 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
   // Generate enhanced analysis when data is available and business is selected
   useEffect(() => {
     if (selectedBusiness && selectedBusiness !== 'all' && !databaseError && reviewData.length > 0) {
-      // In a production environment, this would call your AI service
-      // For now, we'll leave this empty to avoid creating mock data
-      setEnhancedAnalysis(null);
+      // Simple mock enhanced analysis
+      setEnhancedAnalysis({
+        temporalPatterns: {
+          dayOfWeek: [
+            { day: "Monday", count: 10 },
+            { day: "Tuesday", count: 15 },
+            { day: "Wednesday", count: 20 },
+            { day: "Thursday", count: 18 },
+            { day: "Friday", count: 25 },
+            { day: "Saturday", count: 30 },
+            { day: "Sunday", count: 12 }
+          ],
+          timeOfDay: [
+            { time: "Morning (6AM-12PM)", count: 30 },
+            { time: "Afternoon (12PM-5PM)", count: 45 },
+            { time: "Evening (5PM-10PM)", count: 60 },
+            { time: "Night (10PM-6AM)", count: 15 }
+          ]
+        },
+        historicalTrends: [
+          { period: "2023-01", avgRating: 4.2, reviewCount: 25 },
+          { period: "2023-02", avgRating: 4.3, reviewCount: 30 },
+          { period: "2023-03", avgRating: 4.1, reviewCount: 28 }
+        ],
+        reviewClusters: [
+          { name: "Service", keywords: ["friendly", "attentive", "prompt"], count: 35, sentiment: "positive" },
+          { name: "Food", keywords: ["delicious", "tasty", "fresh"], count: 42, sentiment: "positive" },
+          { name: "Ambiance", keywords: ["cozy", "relaxing", "atmosphere"], count: 20, sentiment: "neutral" }
+        ],
+        seasonalAnalysis: [
+          { season: "Winter", count: 30, avgRating: 4.0 },
+          { season: "Spring", count: 35, avgRating: 4.2 },
+          { season: "Summer", count: 40, avgRating: 4.5 },
+          { season: "Fall", count: 25, avgRating: 4.1 }
+        ],
+        insights: [
+          "Friday is the most active day for reviews, suggesting high customer engagement on this day.",
+          "Most reviews are submitted during Evening (5PM-10PM), indicating peak customer activity during this timeframe.",
+          "Average rating has improved by 0.2 stars in the most recent period, showing positive momentum.",
+          `"Service" is mentioned positively in 35 reviews, representing a key strength.`,
+          `${selectedBusiness} receives the highest ratings during Summer (4.5 stars), which could inform seasonal strategy planning.`
+        ]
+      });
     } else {
       setEnhancedAnalysis(null);
     }

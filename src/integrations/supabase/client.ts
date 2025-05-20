@@ -19,4 +19,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_KE
       'X-Client-Info': 'star-gazer-analysis'
     },
   },
+  // Disable schema metadata functionality to prevent RPC calls to get_table_schema
+  schema: {
+    enabled: false
+  }
 });

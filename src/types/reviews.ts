@@ -14,7 +14,8 @@ export interface Review {
   name: string;
   text: string;
   textTranslated?: string;
-  publishedAtDate: string;
+  publishedAtDate?: string;  // Camel case (old format)
+  publishedatdate?: string;  // Lower case (new format)
   reviewUrl: string;
   responseFromOwnerText?: string;
   sentiment?: string; 

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/tabs";
 import { AISettingsPanel } from '@/components/AISettingsPanel';
 import { DatabaseTableInspector } from '@/components/DatabaseTableInspector';
+import { DatabaseMigration } from '@/components/DatabaseMigration';
 import { Button } from '@/components/ui/button';
 import { 
   Settings, 
@@ -81,6 +82,7 @@ export function SettingsPage() {
         </TabsContent>
         
         <TabsContent value="database" className="mt-6 space-y-6">
+          <DatabaseMigration />
           <DatabaseTableInspector />
         </TabsContent>
       </Tabs>

@@ -30,33 +30,75 @@ export const DatabaseStatus = ({ onRefresh, isRefreshing }: DatabaseStatusProps)
         tables: {}
       };
       
-      // Basic connection check - just try to get the database version
+      // Basic connection check - try to get database version using a different approach
       try {
-        const { data: versionData, error: versionError } = await supabase
-          .from('_anon_test') // This doesn't need to exist, just testing if we can connect
-          .select('*')
-          .limit(1);
+        const { data: versionData, error: versionError } = await supabase.rpc('version');
         
-        if (versionError && versionError.code === 'PGRST116') {
-          // This error is expected (relation not found) but means we can connect
-          diagnostics.connection = { status: 'ok' };
-        } else if (versionError) {
-          // Other errors might indicate connection problems
-          diagnostics.connection = { 
-            status: 'error', 
-            message: versionError.message
-          };
-          setHasIssues(true);
+        if (versionError) {
+          // Even if this fails, try another simple query before reporting a connection error
+          const { data: systemData, error: systemError } = await supabase
+            .from('pg_stat_database')
+            .select('*')
+            .limit(1);
+          
+          if (systemError) {
+            // Try a basic setting query
+            const { data: settingData, error: settingError } = await supabase
+              .from('pg_settings')
+              .select('name')
+              .limit(1);
+              
+            if (settingError) {
+              diagnostics.connection = { 
+                status: 'error', 
+                message: settingError.message || versionError.message
+              };
+              setHasIssues(true);
+            } else {
+              diagnostics.connection = { status: 'ok' };
+            }
+          } else {
+            diagnostics.connection = { status: 'ok' };
+          }
         } else {
           diagnostics.connection = { status: 'ok' };
         }
       } catch (error: any) {
-        console.error("Database connection check failed:", error);
-        diagnostics.connection = {
-          status: 'error',
-          message: error?.message || 'Unknown connection error'
-        };
-        setHasIssues(true);
+        // Last resort - try directly checking the tables
+        try {
+          // If we can at least check the businesses table, connection is probably fine
+          const { count, error } = await supabase
+            .from('businesses')
+            .select('*', { count: 'exact', head: true });
+            
+          if (!error) {
+            // If we can query businesses, connection is ok
+            diagnostics.connection = { status: 'ok', businesses_count: count };
+          } else {
+            // Check one of the legacy tables
+            const { count: legacyCount, error: legacyError } = await supabase
+              .from("The Little Prince Cafe")
+              .select('*', { count: 'exact', head: true });
+              
+            if (!legacyError) {
+              // If legacy query works, connection is ok
+              diagnostics.connection = { status: 'ok', legacy_count: legacyCount };
+            } else {
+              diagnostics.connection = {
+                status: 'error',
+                message: error?.message || 'Unknown connection error'
+              };
+              setHasIssues(true);
+            }
+          }
+        } catch (nestedError: any) {
+          console.error("Database connection check failed:", error, nestedError);
+          diagnostics.connection = {
+            status: 'error',
+            message: error?.message || nestedError?.message || 'Unknown connection error'
+          };
+          setHasIssues(true);
+        }
       }
       
       // Try to detect which tables exist by directly querying them
@@ -77,7 +119,7 @@ export const DatabaseStatus = ({ onRefresh, isRefreshing }: DatabaseStatusProps)
             .from(table)
             .select('*', { count: 'exact', head: true });
           
-          if (!error || error.code === 'PGRST116') {
+          if (!error) {
             existingTables.push(table);
             diagnostics.tables[table] = { exists: true, count };
           } else {

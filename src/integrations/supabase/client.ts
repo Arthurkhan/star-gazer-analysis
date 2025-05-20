@@ -20,17 +20,17 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_KE
     headers: { 
       'X-Client-Info': 'star-gazer-analysis'
     },
-  },
-  // Enable schema metadata functionality to enhance API operations
-  schema: {
-    enabled: true
   }
 });
 
-// Test the connection
+// Test the connection without using count() which can be problematic
 (async () => {
   try {
-    const { data, error } = await supabase.from('businesses').select('count()', { count: 'exact', head: true });
+    // Just try to fetch a single row to verify connection
+    const { data, error } = await supabase
+      .from('businesses')
+      .select('id')
+      .limit(1);
     
     if (error) {
       console.error('Error connecting to Supabase:', error.message);

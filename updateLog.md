@@ -2,6 +2,24 @@
 
 This file tracks all modifications, implementations, deletions, and creations in the Star-Gazer-Analysis project.
 
+## 2025-05-21: Fixed Severe Business Selector and Review Display Issues
+
+### Completed Improvements
+1. **Completely Redesigned Business Selection Dropdown**
+   - Replaced the default Select component with a custom Radix UI DropdownMenu implementation
+   - Fixed the critical issue where business options disappeared from the dropdown when selecting a specific business
+   - Ensured all business options remain visible at all times in the dropdown
+   - Added improved visual feedback for selected items
+   - Fixed both business and business type selector components
+
+2. **Completely Overhauled Review Loading System**
+   - Dramatically increased page size from 500 to 5000 to load more reviews at once
+   - Completely redesigned review fetching to load ALL reviews for all businesses
+   - Eliminated arbitrary limits on the number of reviews that can be displayed
+   - Implemented automatic pagination to fetch all available reviews
+   - Fixed the core issue that caused reviews to be limited to 47, 28, and 100
+   - Fixed business statistics to correctly show the total number of reviews (e.g., 1374 for The Little Prince Cafe)
+
 ## 2025-05-21: Fixed Business Selector and Review Display Issues
 
 ### Completed Improvements

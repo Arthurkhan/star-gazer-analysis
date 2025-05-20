@@ -9,8 +9,6 @@ import { BusinessType } from '@/types/businessTypes';
 import { AIProviderType, BusinessContext, ReviewAnalysis } from '@/types/aiService';
 import { Review, Business } from '@/types/reviews';
 import { type AIProvider } from '@/components/AIProviderToggle';
-import { enhancedDataAnalysisService } from '@/services/dataAnalysis/enhancedDataAnalysisService';
-import { EnhancedAnalysis } from '@/types/dataAnalysis';
 import { toast } from '@/hooks/use-toast';
 import { getBusinessTypeFromName } from '@/types/BusinessMappings';
 import { fetchBusinesses, getLatestRecommendation, saveRecommendation } from '@/services/reviewDataService';
@@ -124,15 +122,6 @@ export class RecommendationService {
         provider: this.provider
       });
       
-      // Perform enhanced data analysis first
-      let enhancedAnalysis;
-      try {
-        enhancedAnalysis = await enhancedDataAnalysisService.analyzeData(params.reviews);
-      } catch (analysisError) {
-        console.error('Enhanced analysis failed, continuing with basic analysis', analysisError);
-        enhancedAnalysis = null;
-      }
-      
       let recommendations: Recommendations;
       
       if (this.provider === 'api') {
@@ -153,11 +142,6 @@ export class RecommendationService {
           params.reviews,
           businessType
         );
-      }
-      
-      // Add enhanced analysis to the recommendations if available
-      if (enhancedAnalysis) {
-        recommendations.enhancedAnalysis = enhancedAnalysis;
       }
       
       // Add business info to recommendations
@@ -330,15 +314,6 @@ export class RecommendationService {
             description: 'Unable to generate marketing plan at this time.',
             strategies: []
           };
-        }
-      }
-      
-      if (!recommendations.scenarios || recommendations.scenarios.length === 0) {
-        try {
-          recommendations.scenarios = await aiService.generateScenarios(businessContext);
-        } catch (error) {
-          console.error('Failed to generate scenarios', error);
-          recommendations.scenarios = [];
         }
       }
       

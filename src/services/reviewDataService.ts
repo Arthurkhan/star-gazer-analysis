@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Review, TableName } from "@/types/reviews";
 import { Business } from "@/types/reviews";
+import { Recommendations } from "@/types/recommendations";
 
 // Constants
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -22,6 +23,11 @@ const businessesCache = {
   timestamp: 0,
 };
 
+const recommendationsCache = {
+  data: {} as Record<string, any>,
+  timestamp: 0,
+};
+
 /**
  * Clear all caches
  */
@@ -33,6 +39,8 @@ export const clearAllCaches = () => {
   reviewsCache.timestamp = 0;
   businessesCache.data = [];
   businessesCache.timestamp = 0;
+  recommendationsCache.data = {};
+  recommendationsCache.timestamp = 0;
 };
 
 /**
@@ -401,5 +409,116 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
   } catch (error) {
     console.error("Failed to fetch businesses:", error);
     return [];
+  }
+};
+
+/**
+ * Get the latest recommendation for a business
+ */
+export const getLatestRecommendation = async (businessId: string): Promise<any | null> => {
+  try {
+    // Return cached recommendation if available
+    if (recommendationsCache.data[businessId] && recommendationsCache.timestamp > Date.now() - CACHE_TTL) {
+      console.log(`Using cached recommendation for business ${businessId}`);
+      return recommendationsCache.data[businessId];
+    }
+    
+    console.log(`Fetching latest recommendation for business ${businessId}`);
+    
+    // Check if the saved_recommendations table exists
+    const hasRecommendationsTable = await tableExists('saved_recommendations');
+    
+    if (!hasRecommendationsTable) {
+      console.log('No recommendations table found');
+      return null;
+    }
+    
+    // Get the latest recommendation
+    const { data, error } = await supabase
+      .from('saved_recommendations')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (error) {
+      console.error('Error fetching recommendation:', error);
+      return null;
+    }
+    
+    if (!data || data.length === 0) {
+      console.log(`No recommendations found for business ${businessId}`);
+      return null;
+    }
+    
+    console.log(`Found recommendation for business ${businessId} from ${data[0].created_at}`);
+    
+    // Update cache
+    recommendationsCache.data[businessId] = data[0];
+    recommendationsCache.timestamp = Date.now();
+    
+    return data[0];
+  } catch (error) {
+    console.error('Failed to fetch latest recommendation:', error);
+    return null;
+  }
+};
+
+/**
+ * Save a recommendation for a business
+ */
+export const saveRecommendation = async (businessId: string, recommendations: Recommendations): Promise<boolean> => {
+  try {
+    console.log(`Saving recommendation for business ${businessId}`);
+    
+    // Check if the saved_recommendations table exists
+    const hasRecommendationsTable = await tableExists('saved_recommendations');
+    
+    if (!hasRecommendationsTable) {
+      console.log('Creating saved_recommendations table...');
+      
+      // Create the table if it doesn't exist
+      const { error: createError } = await supabase.rpc('create_recommendations_table');
+      
+      if (createError) {
+        console.error('Error creating recommendations table:', createError);
+        return false;
+      }
+    }
+    
+    // Add timestamp to recommendations
+    const recommendationWithTimestamp = {
+      ...recommendations,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // Save to database
+    const { error } = await supabase
+      .from('saved_recommendations')
+      .insert({
+        business_id: businessId,
+        recommendations: recommendationWithTimestamp,
+        created_at: new Date().toISOString()
+      });
+    
+    if (error) {
+      console.error('Error saving recommendation:', error);
+      return false;
+    }
+    
+    console.log(`Recommendation saved for business ${businessId}`);
+    
+    // Update cache
+    recommendationsCache.data[businessId] = {
+      business_id: businessId,
+      recommendations: recommendationWithTimestamp,
+      created_at: new Date().toISOString()
+    };
+    recommendationsCache.timestamp = Date.now();
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to save recommendation:', error);
+    return false;
   }
 };

@@ -1,7 +1,5 @@
 export type BusinessType = "cafe" | "restaurant" | "bar" | "hotel" | "retail" | "art_gallery" | "other";
 
-import { EnhancedAnalysis } from "./dataAnalysis";
-
 export interface Recommendations {
   // Business information
   businessId?: string;
@@ -12,10 +10,6 @@ export interface Recommendations {
   actionPlan: ActionPlan;
   competitiveAnalysis?: CompetitiveAnalysis;
   growthStrategies?: GrowthStrategy[];
-  scenarios?: Scenario[];
-  
-  // Enhanced Analysis data
-  enhancedAnalysis?: EnhancedAnalysis;
   
   // Add missing properties referenced in components
   urgentActions: UrgentAction[];
@@ -33,17 +27,6 @@ export interface AnalysisResult {
   languageDistribution?: { language: string; count: number; percentage: number }[];
   ratingBreakdown?: { rating: number; count: number; percentage: number }[];
   mainThemes?: { theme: string; count: number; percentage: number }[];
-  
-  // Add missing properties
-  temporalPatterns?: any[];
-  historicalTrends?: any[];
-  reviewClusters?: any[];
-  seasonalAnalysis?: any[];
-  insights?: {
-    keyFindings: string[];
-    opportunities: string[];
-    risks: string[];
-  };
 }
 
 export interface Suggestion {
@@ -123,47 +106,6 @@ export interface GrowthStrategy {
   expectedImpact: string;
   implementation: string[];
   kpis: string[];
-}
-
-// Update Scenario to be compatible with BusinessScenario
-export interface Scenario {
-  name: string;
-  description: string;
-  probability: string | number; // Allow both string and number
-  impact: "positive" | "negative" | "neutral";
-  responseStrategy: string;
-  triggers: string[];
-  // Add properties to make it compatible with BusinessScenario
-  projectedMetrics?: {
-    reviewVolume: number;
-    avgRating: number;
-    sentiment: number;
-    revenue: string;
-    [key: string]: number | string;
-  };
-  requiredActions?: string[];
-  timeframe?: string;
-  assumptions?: string[];
-}
-
-export interface BusinessScenario {
-  name: string;
-  description: string;
-  probability: number;
-  timeframe?: string;
-  projectedMetrics: {
-    reviewVolume: number;
-    avgRating: number;
-    sentiment: number;
-    revenue: string;
-    [key: string]: number | string;
-  };
-  requiredActions: string[];
-  assumptions?: string[];
-  // Add these to make it compatible with Scenario
-  impact?: "positive" | "negative" | "neutral";
-  responseStrategy?: string;
-  triggers?: string[];
 }
 
 export interface MarketingPlan {

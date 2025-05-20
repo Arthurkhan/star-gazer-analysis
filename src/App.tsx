@@ -9,7 +9,9 @@ import { toast } from "@/hooks/use-toast";
 import { appDebugger } from "@/utils/debugger";
 import { setupAdvancedErrorHandling } from "@/utils/errorHandling";
 import { safeLocalStorage } from "@/utils/storage/safeStorage";
+import loggingService from "@/services/logging/loggingService";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import DiagnosticPanel from "@/components/diagnostic/DiagnosticPanel";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -24,6 +26,15 @@ const queryClient = new QueryClient({
       retry: 1,
       onError: (error) => {
         appDebugger.error('React Query error:', error);
+        loggingService.logError(
+          error instanceof Error ? error.message : 'Query error',
+          'error',
+          {
+            module: 'ReactQuery',
+            operation: 'query',
+            stack: error instanceof Error ? error.stack : undefined
+          }
+        );
         toast({
           title: 'Data Fetch Error',
           description: error instanceof Error ? error.message : 'Failed to fetch data',
@@ -34,17 +45,23 @@ const queryClient = new QueryClient({
   },
 });
 
-// Initialize advanced error handling
+// Initialize services
 setupAdvancedErrorHandling();
+loggingService.initialize();
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   
   // Check system preference for dark mode and auth state
   useEffect(() => {
     appDebugger.info("App component mounted");
+    
+    // Show diagnostics if debug mode is enabled
+    const debugMode = safeLocalStorage.getItem('DEBUG_MODE');
+    setShowDiagnostics(debugMode === 'true');
     
     // Dark mode handling with safe storage
     const theme = safeLocalStorage.getItem("theme");
@@ -65,6 +82,15 @@ const App = () => {
         
         if (error) {
           appDebugger.error("Auth error:", error);
+          loggingService.logError(
+            `Authentication error: ${error.message}`,
+            'error',
+            {
+              module: 'Authentication',
+              operation: 'getSession',
+              metadata: { error }
+            }
+          );
           setAuthError(`Authentication error: ${error.message}`);
           setIsAuthenticated(false);
           toast({
@@ -98,6 +124,15 @@ const App = () => {
       } catch (err) {
         appDebugger.error("Error in authentication check:", err);
         const errorMessage = err instanceof Error ? err.message : "Unknown authentication error";
+        loggingService.logError(
+          `Authentication error: ${errorMessage}`,
+          'error',
+          {
+            module: 'Authentication',
+            operation: 'checkAuth',
+            stack: err instanceof Error ? err.stack : undefined
+          }
+        );
         setAuthError(`Authentication error: ${errorMessage}`);
         setIsAuthenticated(false);
         setAuthLoading(false);
@@ -121,6 +156,8 @@ const App = () => {
         // Toggle debug mode
         if (safeLocalStorage.getItem('DEBUG_MODE') === 'true') {
           appDebugger.disable();
+          safeLocalStorage.setItem('DEBUG_MODE', 'false');
+          setShowDiagnostics(false);
           toast({
             title: "Debug Mode Disabled",
             description: "Application debugging has been turned off.",
@@ -128,6 +165,8 @@ const App = () => {
           });
         } else {
           appDebugger.enable();
+          safeLocalStorage.setItem('DEBUG_MODE', 'true');
+          setShowDiagnostics(true);
           toast({
             title: "Debug Mode Enabled",
             description: "Application debugging has been turned on. Check console for logs.",
@@ -190,6 +229,9 @@ const App = () => {
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 antialiased text-gray-900 dark:text-gray-100">
             {/* Using only Sonner for toast notifications to avoid conflicts */}
             <Sonner position="top-right" closeButton expand={false} />
+            
+            {/* Diagnostic Panel (only shown in debug mode) */}
+            {showDiagnostics && <DiagnosticPanel />}
             
             <BrowserRouter>
               <ErrorBoundary>

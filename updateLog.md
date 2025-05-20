@@ -2,6 +2,21 @@
 
 This file tracks all modifications, implementations, deletions, and creations in the Star-Gazer-Analysis project.
 
+## 2025-05-21: Additional Placeholder Data Cleanup
+
+### Completed Improvements
+1. **Removed Placeholder Data from PeriodComparison Components**
+   - Fixed extractStaffMentions function in comparisonService.ts to work with real data
+   - Removed hard-coded staff names simulation for demo purposes
+   - Updated PeriodComparisonDisplay to work with the existing useDashboardData hook
+   - Enhanced loading states and error handling in period comparison
+   - Added more detailed comparison view in "Details" tab
+
+2. **Improved Historical Data Processing**
+   - Updated the rating and sentiment calculations to work with the new data structure
+   - Fixed the theme extraction logic to properly handle real data
+   - Enhanced staff mentions detection with a more robust pattern matching approach
+
 ## 2025-05-21: Placeholder Data Removal and Code Cleanup
 
 ### Completed Improvements

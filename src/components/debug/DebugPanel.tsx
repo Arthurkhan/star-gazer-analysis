@@ -3,6 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BugPlay } from "lucide-react";
 import { Review, MonthlyReviewData } from "@/types/reviews";
+import { AIStatusMonitor } from "@/components/diagnostic/AIStatusMonitor";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface DebugPanelProps {
   reviews: Review[];
@@ -12,6 +14,7 @@ interface DebugPanelProps {
 
 export const DebugPanel = ({ reviews, chartData, businessName }: DebugPanelProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState("data");
 
   // Count reviews by month for the current and last month
   const now = new Date();
@@ -74,55 +77,71 @@ export const DebugPanel = ({ reviews, chartData, businessName }: DebugPanelProps
         </Button>
       </div>
       
-      <div className="space-y-3">
-        <div>
-          <h4 className="text-green-400 font-medium">Business Info</h4>
-          <p>Selected Business: {businessName}</p>
-          <p>Total Reviews: {reviews.length}</p>
-        </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full grid grid-cols-2 bg-black/50 mb-4">
+          <TabsTrigger value="data" className="text-xs">Data Debug</TabsTrigger>
+          <TabsTrigger value="ai" className="text-xs">AI Status</TabsTrigger>
+        </TabsList>
         
-        <div>
-          <h4 className="text-green-400 font-medium">Chart Data</h4>
-          <p>Total Months: {chartData.length}</p>
-          <p>Current Month: {currentMonth}</p>
-          <p>Current Month in Chart: {currentMonthData ? "Yes" : "No"}</p>
-          {currentMonthData && <p>Chart shows {currentMonthData.count} reviews in current month</p>}
-          <p>Last Month: {lastMonthStr}</p>
-          <p>Last Month in Chart: {lastMonthData ? "Yes" : "No"}</p>
-          {lastMonthData && <p>Chart shows {lastMonthData.count} reviews in last month</p>}
-        </div>
-        
-        <div>
-          <h4 className="text-green-400 font-medium">Manual Count</h4>
-          <p>Current Month Reviews: {currentMonthReviews.length}</p>
-          <p>Last Month Reviews: {lastMonthReviews.length}</p>
-          <p>Newest Review: {newestReviewDate}</p>
-        </div>
-        
-        <div>
-          <h4 className="text-green-400 font-medium">Recent Reviews</h4>
-          <div className="max-h-40 overflow-y-auto border border-gray-700 rounded p-1 mt-1">
-            {reviews.slice(0, 5).map((review, index) => (
-              <div key={index} className="border-b border-gray-700 pb-1 mb-1">
-                <p>{new Date(review.publishedAtDate).toLocaleString()}</p>
-                <p className="truncate">{review.text?.substring(0, 50)}...</p>
+        <TabsContent value="data" className="mt-0">
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-green-400 font-medium">Business Info</h4>
+              <p>Selected Business: {businessName}</p>
+              <p>Total Reviews: {reviews.length}</p>
+            </div>
+            
+            <div>
+              <h4 className="text-green-400 font-medium">Chart Data</h4>
+              <p>Total Months: {chartData.length}</p>
+              <p>Current Month: {currentMonth}</p>
+              <p>Current Month in Chart: {currentMonthData ? "Yes" : "No"}</p>
+              {currentMonthData && <p>Chart shows {currentMonthData.count} reviews in current month</p>}
+              <p>Last Month: {lastMonthStr}</p>
+              <p>Last Month in Chart: {lastMonthData ? "Yes" : "No"}</p>
+              {lastMonthData && <p>Chart shows {lastMonthData.count} reviews in last month</p>}
+            </div>
+            
+            <div>
+              <h4 className="text-green-400 font-medium">Manual Count</h4>
+              <p>Current Month Reviews: {currentMonthReviews.length}</p>
+              <p>Last Month Reviews: {lastMonthReviews.length}</p>
+              <p>Newest Review: {newestReviewDate}</p>
+            </div>
+            
+            <div>
+              <h4 className="text-green-400 font-medium">Recent Reviews</h4>
+              <div className="max-h-40 overflow-y-auto border border-gray-700 rounded p-1 mt-1">
+                {reviews.slice(0, 5).map((review, index) => (
+                  <div key={index} className="border-b border-gray-700 pb-1 mb-1">
+                    <p>{new Date(review.publishedAtDate).toLocaleString()}</p>
+                    <p className="truncate">{review.text?.substring(0, 50)}...</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-        
-        <div>
-          <h4 className="text-green-400 font-medium">Month Data</h4>
-          <div className="max-h-40 overflow-y-auto border border-gray-700 rounded p-1 mt-1">
-            {chartData.slice(-10).map((monthData, index) => (
-              <div key={index} className="flex justify-between py-1">
-                <span>{monthData.month}</span>
-                <span>{monthData.count} reviews</span>
+            </div>
+            
+            <div>
+              <h4 className="text-green-400 font-medium">Month Data</h4>
+              <div className="max-h-40 overflow-y-auto border border-gray-700 rounded p-1 mt-1">
+                {chartData.slice(-10).map((monthData, index) => (
+                  <div key={index} className="flex justify-between py-1">
+                    <span>{monthData.month}</span>
+                    <span>{monthData.count} reviews</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </div>
+        </TabsContent>
+        
+        <TabsContent value="ai" className="mt-0">
+          {/* Render the AI Status Monitor with dark theme styling */}
+          <div className="text-black">
+            <AIStatusMonitor />
+          </div>
+        </TabsContent>
+      </Tabs>
     </Card>
   );
 };

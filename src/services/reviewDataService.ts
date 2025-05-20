@@ -6,6 +6,7 @@ import { Recommendations } from "@/types/recommendations";
 // Constants
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 const DEBUG_MODE = false;
+const MAX_REVIEWS_TO_FETCH = 10000; // Ensure we can fetch all reviews, even for large datasets
 
 // In-memory caches
 const tableCache = {
@@ -96,17 +97,15 @@ export const fetchAvailableTables = async (): Promise<TableName[]> => {
 };
 
 /**
- * Fetch reviews from a specific table (legacy method)
+ * Fetch all reviews from a specific table (legacy method)
  */
-export const fetchReviewsFromTable = async (
+export const fetchAllReviewsFromTable = async (
   tableName: TableName,
   startDate?: Date,
-  endDate?: Date,
-  page: number = 0,
-  pageSize: number = 100
-): Promise<{ data: Review[], total: number, hasMore: boolean }> => {
+  endDate?: Date
+): Promise<{ data: Review[], total: number }> => {
   try {
-    console.log(`Fetching reviews from table: ${tableName}, page: ${page + 1}, pageSize: ${pageSize}`);
+    console.log(`Fetching ALL reviews from table: ${tableName}`);
     
     // First get total count
     const countQuery = supabase
@@ -125,17 +124,22 @@ export const fetchReviewsFromTable = async (
     
     if (countError) {
       console.error(`Error counting reviews from ${tableName}:`, countError);
-      return { data: [], total: 0, hasMore: false };
+      return { data: [], total: 0 };
     }
     
-    // Then fetch the actual page of data
-    const from = page * pageSize;
+    const total = totalCount || 0;
     
+    if (total === 0) {
+      return { data: [], total: 0 };
+    }
+    
+    console.log(`Total ${total} reviews to fetch from ${tableName}`);
+    
+    // Now fetch all reviews in a single query
     let query = supabase
       .from(tableName)
       .select('*')
-      .order('publishedAtDate', { ascending: false })
-      .range(from, from + pageSize - 1);
+      .order('publishedAtDate', { ascending: false });
     
     // Add date filters if provided
     if (startDate) {
@@ -150,7 +154,12 @@ export const fetchReviewsFromTable = async (
     
     if (error) {
       console.error(`Error fetching reviews from ${tableName}:`, error);
-      return { data: [], total: 0, hasMore: false };
+      return { data: [], total: 0 };
+    }
+    
+    if (!data || data.length === 0) {
+      console.log(`No reviews found for ${tableName}`);
+      return { data: [], total: 0 };
     }
     
     // Add the business name as title for each review
@@ -159,33 +168,30 @@ export const fetchReviewsFromTable = async (
       title: tableName
     }));
     
-    const total = totalCount || 0;
-    const hasMore = from + processedReviews.length < total;
-    
-    console.log(`Fetched ${processedReviews.length} reviews from ${tableName} (page ${page + 1}), total: ${total}`);
+    console.log(`Fetched ${processedReviews.length} reviews from ${tableName}`);
     return { 
       data: processedReviews, 
-      total, 
-      hasMore 
+      total 
     };
   } catch (error) {
     console.error(`Error fetching reviews from ${tableName}:`, error);
-    return { data: [], total: 0, hasMore: false };
+    return { data: [], total: 0 };
   }
 };
 
 /**
  * Fetch reviews with pagination, supporting both new and legacy schema
+ * In legacy mode, we'll fetch ALL reviews instead of using pagination
  */
 export const fetchPaginatedReviews = async (
   page: number = 0,
-  pageSize: number = 100,
+  pageSize: number = 500,
   businessName?: string,
   startDate?: Date,
   endDate?: Date
 ): Promise<{ data: Review[], total: number, hasMore: boolean }> => {
   try {
-    console.log(`Fetching paginated reviews (page ${page + 1}, size ${pageSize})` + 
+    console.log(`Fetching reviews (page ${page + 1}, size ${pageSize})` + 
       (businessName ? ` for business "${businessName}"` : ''));
     
     // Check if we have the new reviews table
@@ -202,22 +208,8 @@ export const fetchPaginatedReviews = async (
         .from('reviews')
         .select('*', { count: 'exact', head: true });
       
-      // Build main query for data
-      let dataQuery = supabase
-        .from('reviews')
-        .select(`
-          *,
-          businesses:business_id (
-            id,
-            name,
-            business_type
-          )
-        `)
-        .order('publishedatdate', { ascending: false })
-        .range(from, from + pageSize - 1);
-      
       // Add filters
-      if (businessName && businessName !== 'All Businesses') {
+      if (businessName && businessName !== 'All Businesses' && businessName !== 'all') {
         // First get business_id by name
         const { data: businessData } = await supabase
           .from('businesses')
@@ -228,19 +220,16 @@ export const fetchPaginatedReviews = async (
         if (businessData && businessData.length > 0) {
           const businessId = businessData[0].id;
           countQuery = countQuery.eq('business_id', businessId);
-          dataQuery = dataQuery.eq('business_id', businessId);
         }
       }
       
       // Add date filters if provided
       if (startDate) {
         countQuery = countQuery.gte('publishedatdate', startDate.toISOString());
-        dataQuery = dataQuery.gte('publishedatdate', startDate.toISOString());
       }
       
       if (endDate) {
         countQuery = countQuery.lte('publishedatdate', endDate.toISOString());
-        dataQuery = dataQuery.lte('publishedatdate', endDate.toISOString());
       }
       
       // Execute count query first
@@ -251,17 +240,62 @@ export const fetchPaginatedReviews = async (
         return { data: [], total: 0, hasMore: false };
       }
       
-      // Then execute data query
+      const total = totalCount || 0;
+      
+      // Build main query for data with pagination
+      let dataQuery = supabase
+        .from('reviews')
+        .select(`
+          *,
+          businesses:business_id (
+            id,
+            name,
+            business_type
+          )
+        `)
+        .order('publishedatdate', { ascending: false });
+      
+      // Add the same filters as the count query
+      if (businessName && businessName !== 'All Businesses' && businessName !== 'all') {
+        const { data: businessData } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('name', businessName)
+          .limit(1);
+          
+        if (businessData && businessData.length > 0) {
+          const businessId = businessData[0].id;
+          dataQuery = dataQuery.eq('business_id', businessId);
+        }
+      }
+      
+      if (startDate) {
+        dataQuery = dataQuery.gte('publishedatdate', startDate.toISOString());
+      }
+      
+      if (endDate) {
+        dataQuery = dataQuery.lte('publishedatdate', endDate.toISOString());
+      }
+      
+      // For the first page, or if the result set is small, try to fetch all reviews at once
+      if (page === 0 && total <= MAX_REVIEWS_TO_FETCH) {
+        console.log(`Fetching all ${total} reviews at once`);
+      } else {
+        // Otherwise use pagination
+        dataQuery = dataQuery.range(from, from + pageSize - 1);
+      }
+      
+      // Execute the data query
       const { data, error } = await dataQuery;
       
       if (error) {
-        console.error(`Error fetching reviews page ${page + 1}:`, error);
+        console.error(`Error fetching reviews:`, error);
         return { data: [], total: 0, hasMore: false };
       }
       
       if (!data || data.length === 0) {
-        console.log(`No reviews found for page ${page + 1}`);
-        return { data: [], total: totalCount || 0, hasMore: false };
+        console.log(`No reviews found for this query`);
+        return { data: [], total, hasMore: false };
       }
       
       // Process and transform the data
@@ -280,10 +314,10 @@ export const fetchPaginatedReviews = async (
         return normalizedReview;
       });
       
-      const total = totalCount || 0;
-      const hasMore = from + processedReviews.length < total;
+      // Calculate if there are more reviews to fetch
+      const hasMore = (from + processedReviews.length) < total;
       
-      console.log(`Fetched ${processedReviews.length} reviews (page ${page + 1}), total: ${total}`);
+      console.log(`Fetched ${processedReviews.length} reviews, total: ${total}, hasMore: ${hasMore}`);
       return { 
         data: processedReviews, 
         total, 
@@ -291,6 +325,8 @@ export const fetchPaginatedReviews = async (
       };
     } else {
       console.log('Using legacy schema (separate tables)');
+      
+      // With legacy schema, we'll get ALL reviews at once instead of using pagination
       
       // Get available tables
       const knownTables = await fetchAvailableTables();
@@ -306,28 +342,15 @@ export const fetchPaginatedReviews = async (
         return { data: [], total: 0, hasMore: false };
       }
       
-      // In legacy schema, we fetch from a specific table with pagination
-      if (tablesToFetch.length === 1) {
-        return await fetchReviewsFromTable(tablesToFetch[0], startDate, endDate, page, pageSize);
-      }
-      
-      // If multiple tables need to be queried, we need to manually handle pagination
+      // Fetch ALL reviews from all relevant tables
       let allReviews: Review[] = [];
       let totalAcrossTables = 0;
       
-      // First get total counts from all tables
+      // Fetch all reviews from all tables
       for (const table of tablesToFetch) {
-        const { total } = await fetchReviewsFromTable(table, startDate, endDate, 0, 1);
-        totalAcrossTables += total;
-      }
-      
-      // Fetch all reviews from all tables for complete data
-      for (const table of tablesToFetch) {
-        // Instead of limiting to pageSize*2, fetch all reviews for each business
-        // This ensures we have all reviews for accurate analysis
-        const maxReviews = 10000; // High number to fetch all reviews
-        const { data } = await fetchReviewsFromTable(table, startDate, endDate, 0, maxReviews);
+        const { data, total } = await fetchAllReviewsFromTable(table, startDate, endDate);
         allReviews.push(...data);
+        totalAcrossTables += total;
       }
       
       // Sort by date
@@ -337,22 +360,18 @@ export const fetchPaginatedReviews = async (
         return dateB - dateA; // Descending order
       });
       
-      // Determine pagination manually
-      const start = page * pageSize;
-      const end = start + pageSize;
-      const paginatedReviews = allReviews.slice(start, end);
+      console.log(`Loaded ${allReviews.length} total reviews from all tables`);
       
-      const hasMore = end < allReviews.length;
-      
-      console.log(`Fetched ${paginatedReviews.length} reviews from legacy tables (page ${page + 1}), total: ${totalAcrossTables}`);
+      // Return all reviews since we've already loaded everything
+      // Pagination will be done elsewhere if needed
       return {
-        data: paginatedReviews,
+        data: allReviews,
         total: totalAcrossTables,
-        hasMore
+        hasMore: false
       };
     }
   } catch (error) {
-    console.error('Failed to fetch paginated reviews:', error);
+    console.error('Failed to fetch reviews:', error);
     return { data: [], total: 0, hasMore: false };
   }
 };

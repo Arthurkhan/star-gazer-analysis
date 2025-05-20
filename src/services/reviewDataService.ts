@@ -27,28 +27,70 @@ const reviewsCache: ReviewCacheEntry = {
 };
 
 // Debug mode - force fresh data every time during development
-const DEBUG_MODE = true;
+const DEBUG_MODE = false; // Set to false for production
 const CACHE_TTL = 1000 * 60 * 5; // 5 minute cache TTL
+
+// Cache for table existence
+const tableExistenceCache: Record<string, boolean> = {};
 
 /**
  * Check if a table exists in the database
  */
 const tableExists = async (tableName: string): Promise<boolean> => {
+  // If we've already checked this table in this session, return the cached result
+  if (tableExistenceCache[tableName] !== undefined) {
+    return tableExistenceCache[tableName];
+  }
+  
   try {
+    console.log(`Checking if table '${tableName}' exists...`);
+    
+    // We'll try two approaches to determine if a table exists
+    
+    // First approach: Try to get the table schema
+    const { data: schemaData, error: schemaError } = await supabase
+      .rpc('get_table_schema', { table_name: tableName })
+      .select('*');
+    
+    // If this succeeds, the table exists
+    if (!schemaError) {
+      console.log(`Table '${tableName}' exists (schema approach)`);
+      tableExistenceCache[tableName] = true;
+      return true;
+    }
+    
+    // Second approach: Try to select a row with head:true
     const { error } = await supabase
       .from(tableName)
       .select('*', { head: true })
       .limit(1);
     
-    // If we get a specific error about the relation not existing, the table doesn't exist
-    if (error && (error.code === '42P01' || error.message.includes('relation') && error.message.includes('does not exist'))) {
-      return false;
+    // The most reliable way is to check for specific error codes
+    if (error) {
+      if (
+        error.code === '42P01' || // PostgreSQL "relation does not exist"
+        error.code === 'PGRST116' || // PostgREST table not found
+        error.message.includes('relation') && error.message.includes('does not exist')
+      ) {
+        console.log(`Table '${tableName}' does not exist`);
+        tableExistenceCache[tableName] = false;
+        return false;
+      }
+      
+      // Other errors (like permissions) - we'll assume the table exists but we can't access it
+      console.log(`Error checking if table '${tableName}' exists, but assuming it does:`, error);
+      tableExistenceCache[tableName] = true;
+      return true;
     }
     
-    // Any other error might be permissions or other issues, but we'll assume the table exists
+    // No error means the table exists
+    console.log(`Table '${tableName}' exists`);
+    tableExistenceCache[tableName] = true;
     return true;
   } catch (error) {
     console.error(`Error checking if table ${tableName} exists:`, error);
+    // Default to assuming the table doesn't exist in case of unexpected errors
+    tableExistenceCache[tableName] = false;
     return false;
   }
 };
@@ -60,6 +102,12 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
   console.log("Fetching businesses from database");
   
   try {
+    // First check if we have a cached result
+    if (!DEBUG_MODE && businessCache.timestamp > Date.now() - CACHE_TTL) {
+      console.log("Using cached businesses");
+      return businessCache.data;
+    }
+    
     // First check if the 'businesses' table exists
     const businessesTableExists = await tableExists('businesses');
     console.log("Businesses table exists:", businessesTableExists);
@@ -93,6 +141,11 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
       }));
       
       console.log("Generated legacy businesses:", mockBusinesses);
+      
+      // Update cache
+      businessCache.data = mockBusinesses;
+      businessCache.timestamp = Date.now();
+      
       return mockBusinesses;
     }
     
@@ -107,6 +160,8 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
     }
     
     console.log(`Found ${data?.length || 0} businesses in database`);
+    
+    // Update cache
     businessCache.data = data || [];
     businessCache.timestamp = Date.now();
     
@@ -297,8 +352,8 @@ export const fetchAllReviews = async (
       // Check each legacy table
       for (const tableName of knownTables) {
         // Check if this table exists
-        const tableExists = await tableExists(tableName);
-        if (tableExists) {
+        const exists = await tableExists(tableName);
+        if (exists) {
           console.log(`Found legacy table: ${tableName}`);
           const reviews = await fetchReviewsFromTable(tableName, startDate, endDate);
           allReviews = [...allReviews, ...reviews];
@@ -308,6 +363,11 @@ export const fetchAllReviews = async (
       }
       
       console.log(`Total ${allReviews.length} reviews fetched from legacy tables`);
+      
+      // Update cache
+      reviewsCache.data = allReviews;
+      reviewsCache.timestamp = Date.now();
+      
       return allReviews;
     }
     
@@ -529,6 +589,10 @@ export const clearAllCaches = () => {
   businessCache.data = [];
   reviewsCache.timestamp = 0;
   reviewsCache.data = [];
+  // Also clear the table existence cache
+  Object.keys(tableExistenceCache).forEach(key => {
+    delete tableExistenceCache[key];
+  });
   console.log("All data caches cleared");
 };
 

@@ -297,7 +297,7 @@ export const fetchPaginatedReviews = async (
       
       // If a business name is provided, only fetch from that table
       let tablesToFetch = knownTables;
-      if (businessName && businessName !== 'All Businesses') {
+      if (businessName && businessName !== 'All Businesses' && businessName !== 'all') {
         tablesToFetch = knownTables.filter(table => table === businessName);
       }
       
@@ -312,7 +312,6 @@ export const fetchPaginatedReviews = async (
       }
       
       // If multiple tables need to be queried, we need to manually handle pagination
-      // This is a simplified approach and might not be perfectly accurate with sorting
       let allReviews: Review[] = [];
       let totalAcrossTables = 0;
       
@@ -322,9 +321,12 @@ export const fetchPaginatedReviews = async (
         totalAcrossTables += total;
       }
       
-      // Fetch reviews from all relevant tables
+      // Fetch all reviews from all tables for complete data
       for (const table of tablesToFetch) {
-        const { data } = await fetchReviewsFromTable(table, startDate, endDate, 0, Math.max(pageSize * 2, 1000));
+        // Instead of limiting to pageSize*2, fetch all reviews for each business
+        // This ensures we have all reviews for accurate analysis
+        const maxReviews = 10000; // High number to fetch all reviews
+        const { data } = await fetchReviewsFromTable(table, startDate, endDate, 0, maxReviews);
         allReviews.push(...data);
       }
       

@@ -13,11 +13,6 @@ const tableCache = {
   timestamp: 0,
 };
 
-const reviewsCache = {
-  data: [] as Review[],
-  timestamp: 0,
-};
-
 const businessesCache = {
   data: [] as Business[],
   timestamp: 0,
@@ -35,8 +30,6 @@ export const clearAllCaches = () => {
   console.log("Clearing all data caches");
   tableCache.tables = [];
   tableCache.timestamp = 0;
-  reviewsCache.data = [];
-  reviewsCache.timestamp = 0;
   businessesCache.data = [];
   businessesCache.timestamp = 0;
   recommendationsCache.data = {};
@@ -103,20 +96,46 @@ export const fetchAvailableTables = async (): Promise<TableName[]> => {
 };
 
 /**
- * Fetch reviews from a specific table
+ * Fetch reviews from a specific table (legacy method)
  */
 export const fetchReviewsFromTable = async (
   tableName: TableName,
   startDate?: Date,
-  endDate?: Date
-): Promise<Review[]> => {
+  endDate?: Date,
+  page: number = 0,
+  pageSize: number = 100
+): Promise<{ data: Review[], total: number, hasMore: boolean }> => {
   try {
-    console.log(`Fetching reviews from table: ${tableName}`);
+    console.log(`Fetching reviews from table: ${tableName}, page: ${page + 1}, pageSize: ${pageSize}`);
+    
+    // First get total count
+    const countQuery = supabase
+      .from(tableName)
+      .select('*', { count: 'exact', head: true });
+    
+    if (startDate) {
+      countQuery.gte('publishedAtDate', startDate.toISOString());
+    }
+    
+    if (endDate) {
+      countQuery.lte('publishedAtDate', endDate.toISOString());
+    }
+    
+    const { count: totalCount, error: countError } = await countQuery;
+    
+    if (countError) {
+      console.error(`Error counting reviews from ${tableName}:`, countError);
+      return { data: [], total: 0, hasMore: false };
+    }
+    
+    // Then fetch the actual page of data
+    const from = page * pageSize;
     
     let query = supabase
       .from(tableName)
       .select('*')
-      .order('publishedAtDate', { ascending: false });
+      .order('publishedAtDate', { ascending: false })
+      .range(from, from + pageSize - 1);
     
     // Add date filters if provided
     if (startDate) {
@@ -131,7 +150,7 @@ export const fetchReviewsFromTable = async (
     
     if (error) {
       console.error(`Error fetching reviews from ${tableName}:`, error);
-      return [];
+      return { data: [], total: 0, hasMore: false };
     }
     
     // Add the business name as title for each review
@@ -140,134 +159,51 @@ export const fetchReviewsFromTable = async (
       title: tableName
     }));
     
-    console.log(`Fetched ${processedReviews.length} reviews from ${tableName}`);
-    return processedReviews;
+    const total = totalCount || 0;
+    const hasMore = from + processedReviews.length < total;
+    
+    console.log(`Fetched ${processedReviews.length} reviews from ${tableName} (page ${page + 1}), total: ${total}`);
+    return { 
+      data: processedReviews, 
+      total, 
+      hasMore 
+    };
   } catch (error) {
     console.error(`Error fetching reviews from ${tableName}:`, error);
-    return [];
+    return { data: [], total: 0, hasMore: false };
   }
 };
 
 /**
- * Fetch all reviews from all available tables
+ * Fetch reviews with pagination, supporting both new and legacy schema
  */
-export const fetchAllReviewData = async (
-  tables: TableName[],
+export const fetchPaginatedReviews = async (
+  page: number = 0,
+  pageSize: number = 100,
+  businessName?: string,
   startDate?: Date,
   endDate?: Date
-): Promise<Review[]> => {
-  // Return cached reviews if available and not expired
-  if (reviewsCache.timestamp > Date.now() - CACHE_TTL) {
-    console.log("Using cached reviews");
-    return reviewsCache.data;
-  }
-  
+): Promise<{ data: Review[], total: number, hasMore: boolean }> => {
   try {
-    let allReviews: Review[] = [];
+    console.log(`Fetching paginated reviews (page ${page + 1}, size ${pageSize})` + 
+      (businessName ? ` for business "${businessName}"` : ''));
     
-    // Try the new schema first (reviews table)
+    // Check if we have the new reviews table
     const hasReviewsTable = await tableExists('reviews');
     
     if (hasReviewsTable) {
-      console.log("Found unified reviews table, using new schema");
-      allReviews = await fetchAllReviews(startDate, endDate);
-    } else {
-      console.log("Using legacy tables for reviews");
-      // Fetch from each available table
-      for (const tableName of tables) {
-        const reviews = await fetchReviewsFromTable(tableName, startDate, endDate);
-        allReviews = [...allReviews, ...reviews];
-      }
-    }
-    
-    console.log(`Total ${allReviews.length} reviews fetched across all businesses`);
-    
-    // Update cache
-    reviewsCache.data = allReviews;
-    reviewsCache.timestamp = Date.now();
-    
-    return allReviews;
-  } catch (error) {
-    console.error("Failed to fetch all review data:", error);
-    return [];
-  }
-};
-
-/**
- * Get all reviews - checks both new and legacy tables
- */
-export const fetchAllReviews = async (
-  startDate?: Date, 
-  endDate?: Date
-): Promise<Review[]> => {
-  // Always bypass cache in debug mode
-  const bypassCache = DEBUG_MODE;
-  
-  // Return cached reviews if available and not expired
-  if (!bypassCache && reviewsCache.timestamp > Date.now() - CACHE_TTL) {
-    console.log("Using cached reviews");
-    return reviewsCache.data;
-  }
-  
-  try {
-    console.log("Fetching all reviews...");
-    
-    // Check if the reviews table exists
-    const hasReviewsTable = await tableExists('reviews');
-    
-    // If we don't have the new reviews table, try legacy tables
-    if (!hasReviewsTable) {
-      console.log("Reviews table not found, trying legacy tables...");
-      const knownTables: TableName[] = [
-        "L'Envol Art Space",
-        "The Little Prince Cafe", 
-        "Vol de Nuit, The Hidden Bar"
-      ];
+      console.log('Using new schema (reviews table)');
       
-      let allReviews: Review[] = [];
-      
-      // Check each legacy table
-      for (const tableName of knownTables) {
-        // Check if this table exists
-        const exists = await tableExists(tableName);
-        if (exists) {
-          console.log(`Found legacy table: ${tableName}`);
-          const reviews = await fetchReviewsFromTable(tableName, startDate, endDate);
-          allReviews = [...allReviews, ...reviews];
-        } else {
-          console.log(`Legacy table does not exist: ${tableName}`);
-        }
-      }
-      
-      console.log(`Total ${allReviews.length} reviews fetched from legacy tables`);
-      
-      // Update cache
-      reviewsCache.data = allReviews;
-      reviewsCache.timestamp = Date.now();
-      
-      return allReviews;
-    }
-    
-    // Otherwise, use the new schema
-    let allReviews: Review[] = [];
-    let page = 0;
-    const pageSize = 1000;
-    let hasMore = true;
-    
-    // First, get total count to track progress
-    const { count: totalCount } = await supabase
-      .from('reviews')
-      .select('*', { count: 'exact', head: true });
-    
-    console.log(`Total reviews in database: ${totalCount || 'unknown'}`);
-    
-    // Use pagination to fetch all reviews
-    while (hasMore) {
+      // Using the new normalized schema
       const from = page * pageSize;
       
-      console.log(`Fetching page ${page+1} (from=${from}, limit=${pageSize}) of all reviews`);
+      // Build query for count
+      let countQuery = supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true });
       
-      let query = supabase
+      // Build main query for data
+      let dataQuery = supabase
         .from('reviews')
         .select(`
           *,
@@ -276,37 +212,57 @@ export const fetchAllReviews = async (
             name,
             business_type
           )
-        `, { count: 'exact' })
+        `)
         .order('publishedatdate', { ascending: false })
-        .limit(pageSize);
+        .range(from, from + pageSize - 1);
       
-      // Apply range instead of offset for pagination
-      if (from > 0) {
-        query = query.range(from, from + pageSize - 1);
+      // Add filters
+      if (businessName && businessName !== 'All Businesses') {
+        // First get business_id by name
+        const { data: businessData } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('name', businessName)
+          .limit(1);
+        
+        if (businessData && businessData.length > 0) {
+          const businessId = businessData[0].id;
+          countQuery = countQuery.eq('business_id', businessId);
+          dataQuery = dataQuery.eq('business_id', businessId);
+        }
       }
       
       // Add date filters if provided
       if (startDate) {
-        query = query.gte('publishedatdate', startDate.toISOString());
+        countQuery = countQuery.gte('publishedatdate', startDate.toISOString());
+        dataQuery = dataQuery.gte('publishedatdate', startDate.toISOString());
       }
       
       if (endDate) {
-        query = query.lte('publishedatdate', endDate.toISOString());
+        countQuery = countQuery.lte('publishedatdate', endDate.toISOString());
+        dataQuery = dataQuery.lte('publishedatdate', endDate.toISOString());
       }
       
-      const { data, error, count } = await query;
+      // Execute count query first
+      const { count: totalCount, error: countError } = await countQuery;
+      
+      if (countError) {
+        console.error('Error getting review count:', countError);
+        return { data: [], total: 0, hasMore: false };
+      }
+      
+      // Then execute data query
+      const { data, error } = await dataQuery;
       
       if (error) {
-        console.error(`Error fetching reviews page ${page+1}:`, error);
-        break;
+        console.error(`Error fetching reviews page ${page + 1}:`, error);
+        return { data: [], total: 0, hasMore: false };
       }
       
       if (!data || data.length === 0) {
-        console.log(`No more reviews found at page ${page+1}`);
-        break;
+        console.log(`No reviews found for page ${page + 1}`);
+        return { data: [], total: totalCount || 0, hasMore: false };
       }
-      
-      console.log(`Fetched ${data.length} reviews for page ${page+1}`);
       
       // Process and transform the data
       const processedReviews = data.map(review => {
@@ -324,28 +280,78 @@ export const fetchAllReviews = async (
         return normalizedReview;
       });
       
-      allReviews = [...allReviews, ...processedReviews];
-      page++;
+      const total = totalCount || 0;
+      const hasMore = from + processedReviews.length < total;
       
-      // Check if we've reached the end - only if we got fewer results than requested
-      hasMore = data.length === pageSize;
+      console.log(`Fetched ${processedReviews.length} reviews (page ${page + 1}), total: ${total}`);
+      return { 
+        data: processedReviews, 
+        total, 
+        hasMore 
+      };
+    } else {
+      console.log('Using legacy schema (separate tables)');
       
-      // Log progress
-      if (totalCount !== null) {
-        console.log(`Progress: ${allReviews.length}/${totalCount} reviews (${Math.round(allReviews.length/totalCount*100)}%)`);
+      // Get available tables
+      const knownTables = await fetchAvailableTables();
+      
+      // If a business name is provided, only fetch from that table
+      let tablesToFetch = knownTables;
+      if (businessName && businessName !== 'All Businesses') {
+        tablesToFetch = knownTables.filter(table => table === businessName);
       }
+      
+      if (tablesToFetch.length === 0) {
+        console.warn('No tables available to fetch from');
+        return { data: [], total: 0, hasMore: false };
+      }
+      
+      // In legacy schema, we fetch from a specific table with pagination
+      if (tablesToFetch.length === 1) {
+        return await fetchReviewsFromTable(tablesToFetch[0], startDate, endDate, page, pageSize);
+      }
+      
+      // If multiple tables need to be queried, we need to manually handle pagination
+      // This is a simplified approach and might not be perfectly accurate with sorting
+      let allReviews: Review[] = [];
+      let totalAcrossTables = 0;
+      
+      // First get total counts from all tables
+      for (const table of tablesToFetch) {
+        const { total } = await fetchReviewsFromTable(table, startDate, endDate, 0, 1);
+        totalAcrossTables += total;
+      }
+      
+      // Fetch reviews from all relevant tables
+      for (const table of tablesToFetch) {
+        const { data } = await fetchReviewsFromTable(table, startDate, endDate, 0, Math.max(pageSize * 2, 1000));
+        allReviews.push(...data);
+      }
+      
+      // Sort by date
+      allReviews.sort((a, b) => {
+        const dateA = new Date(a.publishedAtDate || 0).getTime();
+        const dateB = new Date(b.publishedAtDate || 0).getTime();
+        return dateB - dateA; // Descending order
+      });
+      
+      // Determine pagination manually
+      const start = page * pageSize;
+      const end = start + pageSize;
+      const paginatedReviews = allReviews.slice(start, end);
+      
+      const hasMore = end < allReviews.length;
+      
+      console.log(`Fetched ${paginatedReviews.length} reviews from legacy tables (page ${page + 1}), total: ${totalAcrossTables}`);
+      return {
+        data: paginatedReviews,
+        total: totalAcrossTables,
+        hasMore
+      };
     }
-    
-    console.log(`Total ${allReviews.length} reviews fetched across all businesses`);
-    
-    // Update cache
-    reviewsCache.data = allReviews;
-    reviewsCache.timestamp = Date.now();
-    
-    return allReviews;
   } catch (error) {
-    console.error("Failed to fetch all reviews:", error);
-    return [];
+    console.error('Failed to fetch paginated reviews:', error);
+    return { data: [], total: 0, hasMore: false };
   }
 };
 

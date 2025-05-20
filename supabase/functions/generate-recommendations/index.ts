@@ -26,8 +26,7 @@ async function generateOpenAIRecommendations(data: any, businessType: string, ap
   2. Growth strategies for business expansion
   3. Pattern insights from customer feedback
   4. Competitive analysis compared to industry benchmarks
-  5. Customer attraction plan
-  6. Future scenarios based on different strategic approaches`;
+  5. Customer attraction plan`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4-turbo-preview",
@@ -188,7 +187,6 @@ function parseAIResponse(aiResponse: string, analysisData: any, benchmarks: any)
     patternInsights: extractPatternInsights(aiResponse, analysisData),
     competitivePosition: calculateCompetitivePosition(analysisData, benchmarks),
     customerAttractionPlan: extractMarketingPlan(aiResponse),
-    scenarios: generateScenarios(analysisData, benchmarks),
     longTermStrategies: extractLongTermStrategies(aiResponse),
   };
 }
@@ -295,38 +293,6 @@ function extractMarketingPlan(text: string) {
       callToAction: 'Visit us today for a memorable meal',
     },
   };
-}
-
-function generateScenarios(data: any, benchmarks: any) {
-  // Generate business scenarios
-  return [
-    {
-      name: 'Best Case',
-      description: 'All recommendations implemented successfully',
-      probability: 0.25,
-      timeframe: '6 months',
-      projectedMetrics: {
-        reviewVolume: 250,
-        avgRating: 4.5,
-        sentiment: 0.85,
-        revenue: '+30%',
-      },
-      requiredActions: ['Implement all recommendations', 'Track metrics weekly'],
-    },
-    {
-      name: 'Realistic Case',
-      description: 'Partial implementation with moderate success',
-      probability: 0.50,
-      timeframe: '6 months',
-      projectedMetrics: {
-        reviewVolume: 180,
-        avgRating: 4.3,
-        sentiment: 0.75,
-        revenue: '+15%',
-      },
-      requiredActions: ['Focus on high-impact changes', 'Monitor customer feedback'],
-    },
-  ];
 }
 
 function extractLongTermStrategies(text: string) {

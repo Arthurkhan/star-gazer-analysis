@@ -2,6 +2,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { BusinessType } from '@/types/businessTypes';
 import { EnhancedAnalysis } from '@/types/dataAnalysis';
 
+export interface EmailSettings {
+  enabled: boolean;
+  recipient: string;
+  schedules: {
+    weekly: { enabled: boolean; dayOfWeek: number };
+    monthly: { enabled: boolean; dayOfMonth: number };
+    urgent: { enabled: boolean; minSeverity: number };
+  };
+  content: {
+    includeCharts: boolean;
+    includeRecommendations: boolean;
+    includeTables: boolean;
+  };
+}
+
 export interface EmailOptions {
   recipient: string;
   businessName: string;
@@ -13,6 +28,74 @@ export interface EmailOptions {
 export interface EmailTemplate {
   subject: string;
   html: string;
+}
+
+export async function getEmailSettings(businessName: string): Promise<EmailSettings | null> {
+  try {
+    const { data, error } = await supabase
+      .from('email_settings')
+      .select('*')
+      .eq('business_name', businessName)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No settings found, return null
+        return null;
+      }
+      console.error('Error fetching email settings:', error);
+      throw new Error(`Failed to fetch email settings: ${error.message}`);
+    }
+
+    return data as EmailSettings;
+  } catch (err) {
+    console.error('Error in getEmailSettings:', err);
+    throw err;
+  }
+}
+
+export async function saveEmailSettings(businessName: string, settings: EmailSettings): Promise<void> {
+  try {
+    // Check if settings exist for this business
+    const { data: existingSettings } = await supabase
+      .from('email_settings')
+      .select('id')
+      .eq('business_name', businessName)
+      .single();
+
+    // Either update existing or insert new
+    if (existingSettings) {
+      const { error } = await supabase
+        .from('email_settings')
+        .update({
+          ...settings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('business_name', businessName);
+
+      if (error) {
+        console.error('Error updating email settings:', error);
+        throw new Error(`Failed to update email settings: ${error.message}`);
+      }
+    } else {
+      const { error } = await supabase
+        .from('email_settings')
+        .insert({
+          business_name: businessName,
+          ...settings,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Error inserting email settings:', error);
+        throw new Error(`Failed to insert email settings: ${error.message}`);
+      }
+    }
+  } catch (err) {
+    console.error('Error in saveEmailSettings:', err);
+    throw err;
+  }
 }
 
 export async function sendWeeklySummary(options: EmailOptions, analysisData: EnhancedAnalysis) {
@@ -121,10 +204,26 @@ function generateWeeklySummaryTemplate(options: EmailOptions, data: EnhancedAnal
   
   // Extract key metrics for the summary
   const topClusters = data.reviewClusters
-    .sort((a, b) => b.reviewCount - a.reviewCount)
+    .sort((a, b) => b.count - a.count)
     .slice(0, 3);
   
-  const latestTrend = data.historicalTrends[0]; // Assuming the first trend is the most relevant
+  // Get latest trend (most recent period in historical trends)
+  const latestTrend = data.historicalTrends[data.historicalTrends.length - 1] || { 
+    period: 'Recent',
+    avgRating: 0,
+    reviewCount: 0
+  };
+  
+  // Calculate trend direction
+  let trendDirection = 'stable';
+  if (data.historicalTrends.length >= 2) {
+    const prevTrend = data.historicalTrends[data.historicalTrends.length - 2];
+    if (latestTrend.avgRating > prevTrend.avgRating + 0.2) {
+      trendDirection = 'improving';
+    } else if (latestTrend.avgRating < prevTrend.avgRating - 0.2) {
+      trendDirection = 'declining';
+    }
+  }
   
   // Build the HTML template
   const html = `
@@ -140,24 +239,24 @@ function generateWeeklySummaryTemplate(options: EmailOptions, data: EnhancedAnal
         <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
           <div style="flex: 1; padding: 10px; background-color: #f5f5f5; margin-right: 10px; text-align: center;">
             <h3 style="margin-top: 0;">Average Rating</h3>
-            <p style="font-size: 24px; font-weight: bold;">${latestTrend?.data[latestTrend.data.length - 1].value.toFixed(1) || 'N/A'}</p>
+            <p style="font-size: 24px; font-weight: bold;">${latestTrend.avgRating.toFixed(1) || 'N/A'}</p>
           </div>
           
           <div style="flex: 1; padding: 10px; background-color: #f5f5f5; margin-left: 10px; text-align: center;">
             <h3 style="margin-top: 0;">Trend</h3>
             <p style="font-size: 24px; font-weight: bold; color: ${
-              latestTrend?.trend === 'improving' ? 'green' : 
-              latestTrend?.trend === 'declining' ? 'red' : 
+              trendDirection === 'improving' ? 'green' : 
+              trendDirection === 'declining' ? 'red' : 
               'grey'
             }">
-              ${latestTrend?.trend.charAt(0).toUpperCase() + latestTrend?.trend.slice(1) || 'N/A'}
+              ${trendDirection.charAt(0).toUpperCase() + trendDirection.slice(1)}
             </p>
           </div>
         </div>
         
         <h2>Key Insights</h2>
         <ul>
-          ${data.insights.keyFindings.map(finding => `<li>${finding}</li>`).join('')}
+          ${data.insights.map(insight => `<li>${insight}</li>`).join('')}
         </ul>
         
         <h2>Top Review Clusters</h2>
@@ -165,13 +264,13 @@ function generateWeeklySummaryTemplate(options: EmailOptions, data: EnhancedAnal
           <tr style="background-color: #f5f5f5;">
             <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Cluster</th>
             <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Reviews</th>
-            <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Rating</th>
+            <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Keywords</th>
           </tr>
           ${topClusters.map(cluster => `
             <tr>
               <td style="padding: 10px; border: 1px solid #ddd;">${cluster.name}</td>
-              <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${cluster.reviewCount}</td>
-              <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${cluster.averageRating.toFixed(1)}</td>
+              <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${cluster.count}</td>
+              <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${cluster.keywords.slice(0, 3).join(', ')}</td>
             </tr>
           `).join('')}
         </table>
@@ -195,12 +294,26 @@ function generateWeeklySummaryTemplate(options: EmailOptions, data: EnhancedAnal
 function generateMonthlyReportTemplate(options: EmailOptions, data: EnhancedAnalysis): EmailTemplate {
   const subject = options.subject || `Monthly Performance Report - ${options.businessName}`;
   
-  // Extract opportunities and risks for the report
-  const opportunities = data.insights.opportunities;
-  const risks = data.insights.risks;
+  // Extract insights and trends
+  const insights = data.insights;
   
-  // Get seasonal pattern if available
-  const currentSeason = data.seasonalAnalysis.find(s => s.season !== 'custom') || data.seasonalAnalysis[0];
+  // Get seasonal data
+  const seasonalData = data.seasonalAnalysis.map(season => ({
+    name: season.season,
+    avgRating: season.avgRating,
+    count: season.count
+  }));
+  
+  // Get best and worst seasonal performance
+  const bestSeason = seasonalData.sort((a, b) => b.avgRating - a.avgRating)[0];
+  const worstSeason = seasonalData.sort((a, b) => a.avgRating - b.avgRating)[0];
+  
+  // Calculate review cluster sentiment
+  const sentimentBreakdown = {
+    positive: data.reviewClusters.filter(c => c.sentiment === 'positive').length,
+    neutral: data.reviewClusters.filter(c => c.sentiment === 'neutral').length,
+    negative: data.reviewClusters.filter(c => c.sentiment === 'negative').length
+  };
   
   // Build the HTML template for a more comprehensive monthly report
   const html = `
@@ -218,70 +331,63 @@ function generateMonthlyReportTemplate(options: EmailOptions, data: EnhancedAnal
             <div style="flex: 1; text-align: center; padding: 15px;">
               <p style="font-size: 14px; color: #666; margin-bottom: 5px;">Total Reviews</p>
               <p style="font-size: 28px; font-weight: bold; margin: 0;">
-                ${data.reviewClusters.reduce((sum, cluster) => sum + cluster.reviewCount, 0)}
+                ${data.reviewClusters.reduce((sum, cluster) => sum + cluster.count, 0)}
               </p>
             </div>
             <div style="flex: 1; text-align: center; padding: 15px;">
               <p style="font-size: 14px; color: #666; margin-bottom: 5px;">Avg Rating</p>
               <p style="font-size: 28px; font-weight: bold; margin: 0;">
-                ${(data.reviewClusters.reduce((sum, cluster) => sum + (cluster.averageRating * cluster.reviewCount), 0) / 
-                data.reviewClusters.reduce((sum, cluster) => sum + cluster.reviewCount, 0)).toFixed(1)}
+                ${data.historicalTrends[data.historicalTrends.length - 1]?.avgRating.toFixed(1) || 'N/A'}
               </p>
             </div>
             <div style="flex: 1; text-align: center; padding: 15px;">
-              <p style="font-size: 14px; color: #666; margin-bottom: 5px;">Most Common</p>
+              <p style="font-size: 14px; color: #666; margin-bottom: 5px;">Top Theme</p>
               <p style="font-size: 18px; font-weight: bold; margin: 0;">
-                ${data.reviewClusters.sort((a, b) => b.reviewCount - a.reviewCount)[0]?.name || 'N/A'}
+                ${data.reviewClusters.sort((a, b) => b.count - a.count)[0]?.name || 'N/A'}
               </p>
             </div>
           </div>
         </div>
         
         <div style="margin-bottom: 30px;">
-          <h2 style="color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;">Key Findings</h2>
+          <h2 style="color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;">Key Insights</h2>
           <ul style="padding-left: 20px; line-height: 1.6;">
-            ${data.insights.keyFindings.map(finding => `<li style="margin-bottom: 10px;">${finding}</li>`).join('')}
+            ${insights.map(insight => `<li style="margin-bottom: 10px;">${insight}</li>`).join('')}
           </ul>
         </div>
         
         <div style="display: flex; gap: 20px; margin-bottom: 30px;">
           <div style="flex: 1; background-color: #E8F5E9; padding: 20px; border-radius: 4px;">
-            <h3 style="margin-top: 0; color: #2E7D32;">Opportunities</h3>
+            <h3 style="margin-top: 0; color: #2E7D32;">Positive Themes</h3>
             <ul style="padding-left: 20px; margin-bottom: 0;">
-              ${opportunities.map(op => `<li style="margin-bottom: 8px;">${op}</li>`).join('')}
+              ${data.reviewClusters
+                .filter(c => c.sentiment === 'positive')
+                .slice(0, 3)
+                .map(c => `<li style="margin-bottom: 8px;">${c.name}: ${c.keywords.slice(0, 3).join(', ')}</li>`)
+                .join('')}
             </ul>
           </div>
           
           <div style="flex: 1; background-color: #FFEBEE; padding: 20px; border-radius: 4px;">
-            <h3 style="margin-top: 0; color: #C62828;">Risks</h3>
+            <h3 style="margin-top: 0; color: #C62828;">Improvement Areas</h3>
             <ul style="padding-left: 20px; margin-bottom: 0;">
-              ${risks.map(risk => `<li style="margin-bottom: 8px;">${risk}</li>`).join('')}
+              ${data.reviewClusters
+                .filter(c => c.sentiment === 'negative')
+                .slice(0, 3)
+                .map(c => `<li style="margin-bottom: 8px;">${c.name}: ${c.keywords.slice(0, 3).join(', ')}</li>`)
+                .join('')}
             </ul>
           </div>
         </div>
         
-        ${currentSeason ? `
-          <div style="margin-bottom: 30px;">
-            <h2 style="color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seasonal Insights: ${currentSeason.name}</h2>
-            <p>${currentSeason.dateRange.start} to ${currentSeason.dateRange.end}</p>
-            
-            <div style="margin-top: 15px;">
-              <h4 style="margin-bottom: 10px;">Top Seasonal Themes</h4>
-              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                ${currentSeason.metrics.topThemes.map(theme => 
-                  `<span style="background-color: #E3F2FD; padding: 6px 12px; border-radius: 20px; font-size: 14px;">${theme}</span>`
-                ).join('')}
-              </div>
-            </div>
-            
-            <div style="margin-top: 20px;">
-              <h4 style="margin-bottom: 10px;">Seasonal Recommendations</h4>
-              <ul style="padding-left: 20px;">
-                ${currentSeason.recommendations.map(rec => `<li style="margin-bottom: 8px;">${rec}</li>`).join('')}
-              </ul>
-            </div>
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seasonal Performance</h2>
+          
+          <div style="margin-top: 15px;">
+            <p><strong>Best performing season:</strong> ${bestSeason?.name || 'N/A'} (${bestSeason?.avgRating.toFixed(1) || 'N/A'} stars)</p>
+            <p><strong>Lowest performing season:</strong> ${worstSeason?.name || 'N/A'} (${worstSeason?.avgRating.toFixed(1) || 'N/A'} stars)</p>
           </div>
-        ` : ''}
+        </div>
         
         <div style="text-align: center; margin-top: 40px;">
           <a href="#" style="display: inline-block; padding: 12px 24px; background-color: #4A6FFF; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
@@ -290,7 +396,7 @@ function generateMonthlyReportTemplate(options: EmailOptions, data: EnhancedAnal
         </div>
         
         <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
-          <p>This report was generated by Star-Gazer Analysis. For questions or support, please contact support@star-gazer.com</p>
+          <p>This report was generated by Star-Gazer Analysis.</p>
         </div>
       </div>
     </div>

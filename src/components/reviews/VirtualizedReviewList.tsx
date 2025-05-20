@@ -1,183 +1,180 @@
-import React from 'react';
-import { useVirtual } from 'react-virtual';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Star, ThumbsUp, ThumbsDown, Meh } from "lucide-react";
+import React, { useCallback } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Review } from '@/types/reviews';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Star, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 interface VirtualizedReviewListProps {
   reviews: Review[];
-  loading: boolean;
-  loadingMore: boolean;
-  hasMoreData: boolean;
-  onLoadMore: () => void;
+  isLoading?: boolean;
+  hasMoreData?: boolean;
+  onLoadMore?: () => void;
 }
 
-export const VirtualizedReviewList: React.FC<VirtualizedReviewListProps> = ({ 
-  reviews, 
-  loading,
-  loadingMore,
-  hasMoreData,
+/**
+ * Virtualized list component for efficiently rendering large numbers of reviews
+ * Uses react-virtual for performance optimization
+ */
+const VirtualizedReviewList: React.FC<VirtualizedReviewListProps> = ({
+  reviews,
+  isLoading = false,
+  hasMoreData = false,
   onLoadMore
 }) => {
+  // Create a container ref for the virtualized list
   const parentRef = React.useRef<HTMLDivElement>(null);
   
-  const rowVirtualizer = useVirtual({
-    size: reviews.length,
-    parentRef,
-    estimateSize: React.useCallback(() => 250, []), // Estimated height of each review card
-    overscan: 5,
+  // Setup the virtualizer
+  const rowVirtualizer = useVirtualizer({
+    count: reviews.length + (hasMoreData ? 1 : 0), // Add an extra row for the load more button
+    getScrollElement: () => parentRef.current,
+    estimateSize: useCallback(() => 180, []), // Estimated height of each row
+    overscan: 5, // Number of items to render outside of the visible area
   });
-
-  if (loading && reviews.length === 0) {
-    return (
-      <div className="space-y-4">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <Card key={index} className="w-full">
-            <CardHeader>
-              <Skeleton className="h-4 w-1/4" />
-              <Skeleton className="h-6 w-3/4" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-3/4" />
-            </CardContent>
-            <CardFooter>
-              <Skeleton className="h-4 w-1/4" />
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (!loading && reviews.length === 0) {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>No Reviews Found</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>No reviews were found for the selected business or date range.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Function to render Star Rating
+  
+  // Handle intersection for infinite loading
+  const lastItemRef = React.useCallback((node: HTMLDivElement | null) => {
+    if (node && hasMoreData && !isLoading && onLoadMore) {
+      const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          onLoadMore();
+        }
+      });
+      
+      observer.observe(node);
+      return () => observer.disconnect();
+    }
+  }, [hasMoreData, isLoading, onLoadMore]);
+  
+  // Render stars for ratings
   const renderStars = (rating: number) => {
     return (
-      <div className="flex items-center">
-        {Array.from({ length: 5 }).map((_, index) => (
+      <span className="flex items-center">
+        {Array.from({ length: 5 }).map((_, i) => (
           <Star
-            key={index}
-            className={`w-4 h-4 ${index < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+            key={i}
+            size={16}
+            className={i < rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}
           />
         ))}
-        <span className="ml-1 text-sm font-medium">{rating.toFixed(1)}</span>
-      </div>
+      </span>
     );
   };
-
-  // Function to render sentiment icon
+  
+  // Render sentiment indicator
   const renderSentiment = (sentiment: string) => {
     if (!sentiment) return null;
-    const lowerSentiment = sentiment.toLowerCase();
     
-    if (lowerSentiment.includes('positive')) {
-      return <ThumbsUp className="w-5 h-5 text-green-500" />;
-    } else if (lowerSentiment.includes('negative')) {
-      return <ThumbsDown className="w-5 h-5 text-red-500" />;
-    } else {
-      return <Meh className="w-5 h-5 text-gray-500" />;
+    const lowercaseSentiment = sentiment.toLowerCase();
+    if (lowercaseSentiment.includes('positive')) {
+      return <ThumbsUp size={16} className="text-green-500" />;
+    } else if (lowercaseSentiment.includes('negative')) {
+      return <ThumbsDown size={16} className="text-red-500" />;
+    }
+    return null;
+  };
+  
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch (error) {
+      return 'Unknown date';
     }
   };
-
+  
   return (
-    <div>
+    <div
+      ref={parentRef}
+      className="overflow-auto border rounded-md"
+      style={{ height: 'calc(100vh - 350px)', width: '100%' }}
+    >
       <div
-        ref={parentRef}
-        className="h-[800px] overflow-auto"
+        style={{
+          height: `${rowVirtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
       >
-        <div
-          style={{
-            height: `${rowVirtualizer.totalSize}px`,
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {rowVirtualizer.virtualItems.map((virtualRow) => {
-            const review = reviews[virtualRow.index];
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const isLoaderRow = virtualRow.index === reviews.length;
+          
+          // Render load more button for the last row
+          if (isLoaderRow) {
             return (
               <div
-                key={virtualRow.index}
+                key="loader"
+                ref={lastItemRef}
                 style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
                   width: '100%',
-                  height: `${virtualRow.size}px`,
+                  height: `80px`,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
+                className="flex items-center justify-center p-4"
               >
-                <Card className="w-full mb-4 h-[230px] overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">{review.name || 'Anonymous User'}</CardTitle>
-                        <CardDescription>
-                          {new Date(review.publishedAtDate).toLocaleDateString()} - {review.title}
-                        </CardDescription>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {renderStars(review.stars)}
-                        {renderSentiment(review.sentiment)}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <p className="line-clamp-3 text-sm">
-                      {review.text || 'No review text provided.'}
-                    </p>
-                    {review.responseFromOwnerText && (
-                      <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-md">
-                        <p className="text-xs font-semibold">Owner Response:</p>
-                        <p className="text-xs line-clamp-2">{review.responseFromOwnerText}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                  <CardFooter className="pt-0">
-                    <div className="flex flex-wrap gap-1">
-                      {review.mainThemes && 
-                        review.mainThemes.split(',').map((theme, i) => (
-                          <span key={i} className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-950 text-xs rounded-full">
-                            {theme.trim()}
-                          </span>
-                        ))
-                      }
-                    </div>
-                  </CardFooter>
-                </Card>
+                {isLoading ? (
+                  <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                ) : (
+                  <button
+                    onClick={onLoadMore}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    disabled={isLoading}
+                  >
+                    Load More
+                  </button>
+                )}
               </div>
             );
-          })}
-        </div>
+          }
+          
+          // Get the review data for this row
+          const review = reviews[virtualRow.index];
+          
+          // Render the review card
+          return (
+            <div
+              key={virtualRow.key}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+              className="p-2"
+            >
+              <Card className="h-full overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-sm font-medium">
+                      {review.name || 'Anonymous'}
+                    </CardTitle>
+                    <div className="flex items-center space-x-2">
+                      {renderStars(review.stars || 0)}
+                      {renderSentiment(review.sentiment || '')}
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{review.title || 'Unknown Business'}</span>
+                    <span>{formatDate(review.publishedAtDate || '')}</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="text-sm overflow-y-auto max-h-[80px]">
+                  {review.text || 'No review text provided'}
+                </CardContent>
+              </Card>
+            </div>
+          );
+        })}
       </div>
-      
-      {/* Load More button */}
-      {hasMoreData && (
-        <div className="flex justify-center mt-4 mb-8">
-          <Button 
-            onClick={onLoadMore}
-            disabled={loadingMore}
-            variant="outline"
-          >
-            {loadingMore ? 'Loading...' : 'Load More Reviews'}
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
+
+export default VirtualizedReviewList;

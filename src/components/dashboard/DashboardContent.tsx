@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, memo, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AllReviewsContent from "./AllReviewsContent";
 import MonthlyReport from "@/components/monthly-report";
@@ -11,12 +10,25 @@ interface DashboardContentProps {
   chartData: any[];
 }
 
-const DashboardContent: React.FC<DashboardContentProps> = ({ 
+// Use React.memo to prevent unnecessary re-renders
+const DashboardContent: React.FC<DashboardContentProps> = memo(({ 
   loading, 
   reviews, 
   chartData 
 }) => {
   const [activeTab, setActiveTab] = useState("all-reviews");
+  
+  // Force delayed rendering to avoid chunk errors
+  const [renderContent, setRenderContent] = useState(false);
+  
+  useEffect(() => {
+    // Only render content after component has mounted
+    const timer = setTimeout(() => {
+      setRenderContent(true);
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   if (loading) {
     return (
@@ -41,15 +53,21 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
         <TabsTrigger value="monthly-report">Monthly Report</TabsTrigger>
       </TabsList>
       
-      <TabsContent value="all-reviews" className="mt-0">
-        <AllReviewsContent reviews={reviews} chartData={chartData} />
-      </TabsContent>
-      
-      <TabsContent value="monthly-report" className="mt-0">
-        <MonthlyReport reviews={reviews} />
-      </TabsContent>
+      {renderContent && (
+        <>
+          <TabsContent value="all-reviews" className="mt-0">
+            <AllReviewsContent reviews={reviews} chartData={chartData} />
+          </TabsContent>
+          
+          <TabsContent value="monthly-report" className="mt-0">
+            <MonthlyReport reviews={reviews} />
+          </TabsContent>
+        </>
+      )}
     </Tabs>
   );
-};
+});
+
+DashboardContent.displayName = "DashboardContent";
 
 export default DashboardContent;

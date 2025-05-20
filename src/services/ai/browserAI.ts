@@ -1,7 +1,5 @@
-import { 
-  Recommendations, 
-  BusinessType 
-} from '@/types/recommendations';
+import { Recommendations } from '@/types/recommendations';
+import { BusinessType } from '@/types/businessTypes';
 import { Review } from '@/types/reviews';
 import { appDebugger } from '@/utils/debugger';
 import { handleError, ErrorSeverity } from '@/utils/errorHandling';

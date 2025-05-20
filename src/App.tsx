@@ -6,25 +6,36 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { appDebugger, setupGlobalErrorHandling } from "@/utils/debugger";
+import { appDebugger } from "@/utils/debugger";
+import { setupAdvancedErrorHandling } from "@/utils/errorHandling";
+import { safeLocalStorage } from "@/utils/storage/safeStorage";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import AISettings from "./pages/AISettings";
 import NotFound from "./pages/NotFound";
 
-// Create a global query client
+// Create a global query client with enhanced error handling
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
+      onError: (error) => {
+        appDebugger.error('React Query error:', error);
+        toast({
+          title: 'Data Fetch Error',
+          description: error instanceof Error ? error.message : 'Failed to fetch data',
+          variant: 'destructive'
+        });
+      }
     },
   },
 });
 
-// Initialize global error handling
-setupGlobalErrorHandling();
+// Initialize advanced error handling
+setupAdvancedErrorHandling();
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -35,15 +46,15 @@ const App = () => {
   useEffect(() => {
     appDebugger.info("App component mounted");
     
-    // Dark mode handling
-    const theme = localStorage.getItem("theme");
+    // Dark mode handling with safe storage
+    const theme = safeLocalStorage.getItem("theme");
     if (theme === "dark" || 
         (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
       document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
+      safeLocalStorage.setItem("theme", "dark");
     } else {
       document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
+      safeLocalStorage.setItem("theme", "light");
     }
     
     // Check authentication with improved error handling
@@ -108,7 +119,7 @@ const App = () => {
         e.preventDefault();
         
         // Toggle debug mode
-        if (localStorage.getItem('DEBUG_MODE') === 'true') {
+        if (safeLocalStorage.getItem('DEBUG_MODE') === 'true') {
           appDebugger.disable();
           toast({
             title: "Debug Mode Disabled",
@@ -173,24 +184,52 @@ const App = () => {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 antialiased text-gray-900 dark:text-gray-100">
-          {/* Using only Sonner for toast notifications to avoid conflicts */}
-          <Sonner position="top-right" closeButton expand={false} />
-          
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/auth" />} />
-              <Route path="/auth" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Auth />} />
-              <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" />} />
-              <Route path="/ai-settings" element={isAuthenticated ? <AISettings /> : <Navigate to="/auth" />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </div>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 antialiased text-gray-900 dark:text-gray-100">
+            {/* Using only Sonner for toast notifications to avoid conflicts */}
+            <Sonner position="top-right" closeButton expand={false} />
+            
+            <BrowserRouter>
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/auth" />} />
+                  <Route path="/auth" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Auth />} />
+                  <Route 
+                    path="/dashboard" 
+                    element={
+                      isAuthenticated ? (
+                        <ErrorBoundary
+                          fallback={
+                            <div className="p-6 max-w-xl mx-auto my-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                              <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">Dashboard Error</h2>
+                              <p className="mb-4">We encountered a problem loading the dashboard.</p>
+                              <button
+                                onClick={() => window.location.reload()}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                              >
+                                Reload Application
+                              </button>
+                            </div>
+                          }
+                        >
+                          <Dashboard />
+                        </ErrorBoundary>
+                      ) : (
+                        <Navigate to="/auth" />
+                      )
+                    } 
+                  />
+                  <Route path="/ai-settings" element={isAuthenticated ? <AISettings /> : <Navigate to="/auth" />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ErrorBoundary>
+            </BrowserRouter>
+          </div>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

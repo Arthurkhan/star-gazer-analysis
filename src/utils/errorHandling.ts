@@ -3,6 +3,7 @@
 
 import { toast } from '@/hooks/use-toast';
 import { appDebugger } from './debugger';
+import loggingService from '@/services/logging/loggingService';
 
 export enum ErrorSeverity {
   INFO = 'info',
@@ -32,7 +33,20 @@ export function handleError(
   // Enhance error with context
   const enhancedError = Object.assign(standardError, { context });
   
-  // Log based on severity
+  // Add to the logger
+  loggingService.logError(
+    standardError.message,
+    severity,
+    {
+      module: context.module,
+      component: context.component,
+      operation: context.operation,
+      stack: standardError.stack,
+      metadata: context.data
+    }
+  );
+  
+  // Log based on severity (this uses appDebugger internally via loggingService)
   switch (severity) {
     case ErrorSeverity.INFO:
       appDebugger.info(`${context.module || 'Application'} info: ${standardError.message}`, { 
@@ -176,10 +190,26 @@ export async function safeFetch<T>(
 
 // Setup application-wide error listeners
 export function setupAdvancedErrorHandling() {
+  // Initialize logging service
+  loggingService.initialize();
+  
   // Capture unhandled errors - extending the existing global error handler
   window.addEventListener('error', (event) => {
-    // Already handled by the basic debugger
-    // We'll add some additional handling here if needed
+    // Add to logging service
+    loggingService.logError(
+      event.message,
+      ErrorSeverity.ERROR,
+      {
+        module: 'Window',
+        operation: 'Unhandled error',
+        stack: event.error?.stack,
+        metadata: {
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno
+        }
+      }
+    );
     
     // If the error is related to a script loading issue, we'll handle it specially
     if (event.filename && event.filename.includes('.js') && event.message.includes('loading')) {
@@ -193,14 +223,27 @@ export function setupAdvancedErrorHandling() {
   
   // Enhanced unhandled promise rejection handling
   window.addEventListener('unhandledrejection', (event) => {
-    // Already logged by the basic debugger
-    
-    // Provide user feedback for common async errors
+    // Add to logging service
     const errorMessage = event.reason instanceof Error 
       ? event.reason.message 
       : typeof event.reason === 'string' 
         ? event.reason 
         : 'An unexpected error occurred';
+    
+    loggingService.logError(
+      errorMessage,
+      ErrorSeverity.ERROR,
+      {
+        module: 'Window',
+        operation: 'Unhandled promise rejection',
+        stack: event.reason instanceof Error ? event.reason.stack : undefined,
+        metadata: {
+          reason: event.reason instanceof Error 
+            ? { message: event.reason.message, name: event.reason.name } 
+            : event.reason
+        }
+      }
+    );
     
     // Don't show toast for network-related errors (they're handled elsewhere)
     if (
@@ -222,7 +265,20 @@ export function setupAdvancedErrorHandling() {
     const memoryCheck = setInterval(() => {
       const memoryInfo = (performance as any).memory;
       if (memoryInfo && memoryInfo.usedJSHeapSize > memoryInfo.jsHeapSizeLimit * 0.9) {
-        appDebugger.warn('High memory usage detected', memoryInfo);
+        loggingService.logError(
+          'High memory usage detected',
+          ErrorSeverity.WARNING,
+          {
+            module: 'System',
+            operation: 'Memory monitoring',
+            metadata: {
+              usedJSHeapSize: memoryInfo.usedJSHeapSize,
+              jsHeapSizeLimit: memoryInfo.jsHeapSizeLimit,
+              totalJSHeapSize: memoryInfo.totalJSHeapSize
+            }
+          }
+        );
+        
         toast({
           title: 'Performance Warning',
           description: 'The application is using a lot of memory. Consider refreshing the page.',

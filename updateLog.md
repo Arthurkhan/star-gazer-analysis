@@ -2,6 +2,15 @@
 
 This file tracks all modifications, implementations, deletions, and creations in the Star-Gazer-Analysis project.
 
+## 2025-05-21: Core Utilities and Bug Fixes
+
+### Completed Improvements
+1. **Added Logger Utility**
+   - Created a new Logger class in `src/utils/logger.ts` for consistent logging across the application
+   - Implemented namespaced logging for better traceability
+   - Added support for different log levels (log, warn, error, debug, success)
+   - Fixed the error in aiWorker.ts that was preventing the application from starting
+
 ## 2025-05-21: Import Path and Component Fixes
 
 ### Completed Improvements

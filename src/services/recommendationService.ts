@@ -16,9 +16,23 @@ import { getBusinessTypeFromName } from '@/types/BusinessMappings';
 import { fetchBusinesses, getLatestRecommendation, saveRecommendation } from '@/services/reviewDataService';
 import { getBusinessIdFromName } from '@/utils/reviewDataUtils';
 
+// Circuit breaker states
+enum CircuitState {
+  CLOSED, // Normal operation
+  OPEN,   // Failed, not allowing operations
+  HALF_OPEN // Testing if system has recovered
+}
+
 export class RecommendationService {
   private browserService: BrowserAIService;
   private provider: AIProvider;
+  
+  // Circuit breaker configuration
+  private circuitState: CircuitState = CircuitState.CLOSED;
+  private failureCount: number = 0;
+  private failureThreshold: number = 3;
+  private resetTimeout: number = 60000; // 1 minute
+  private lastFailureTime: number = 0;
   
   constructor(provider: AIProvider = 'browser') {
     this.browserService = new BrowserAIService();
@@ -39,6 +53,18 @@ export class RecommendationService {
     [key: string]: any;
   }): Promise<Recommendations> {
     try {
+      // Check if circuit breaker is open
+      if (this.circuitState === CircuitState.OPEN) {
+        // Check if timeout has elapsed to test again
+        const now = Date.now();
+        if (now - this.lastFailureTime > this.resetTimeout) {
+          this.circuitState = CircuitState.HALF_OPEN;
+          console.log('Circuit half-open, testing system recovery');
+        } else {
+          throw new Error(`System in recovery mode. Please try again in ${Math.ceil((this.resetTimeout - (now - this.lastFailureTime)) / 1000)} seconds`);
+        }
+      }
+      
       // Extract business information
       let businessId: string;
       let businessName: string;
@@ -80,6 +106,11 @@ export class RecommendationService {
       if (businessId) {
         const cachedRecommendation = await getLatestRecommendation(businessId);
         if (cachedRecommendation && (Date.now() - new Date(cachedRecommendation.created_at).getTime() < 24 * 60 * 60 * 1000)) {
+          // Reset circuit breaker on successful cache retrieval
+          if (this.circuitState === CircuitState.HALF_OPEN) {
+            this.circuitState = CircuitState.CLOSED;
+            this.failureCount = 0;
+          }
           return cachedRecommendation.recommendations;
         }
       }
@@ -140,8 +171,24 @@ export class RecommendationService {
         console.warn('Could not save recommendations - no business ID available');
       }
       
+      // Reset circuit breaker on success
+      if (this.circuitState === CircuitState.HALF_OPEN) {
+        this.circuitState = CircuitState.CLOSED;
+        this.failureCount = 0;
+      }
+      
       return recommendations;
     } catch (error) {
+      // Increment failure counter
+      this.failureCount++;
+      this.lastFailureTime = Date.now();
+      
+      // If failure threshold met, open the circuit
+      if (this.failureCount >= this.failureThreshold) {
+        this.circuitState = CircuitState.OPEN;
+        console.error('Circuit breaker opened due to multiple failures', error);
+      }
+      
       console.error('Primary AI failed, attempting fallback', error);
       toast({
         title: 'AI Processing Warning',
@@ -344,6 +391,27 @@ export class RecommendationService {
   // Get current provider
   getCurrentProvider(): AIProvider {
     return this.provider;
+  }
+  
+  // Reset the circuit breaker (for testing/debugging)
+  resetCircuitBreaker(): void {
+    this.circuitState = CircuitState.CLOSED;
+    this.failureCount = 0;
+    this.lastFailureTime = 0;
+  }
+  
+  // Check circuit breaker status
+  getCircuitStatus(): { state: string, failureCount: number, canRetryIn: number } {
+    const now = Date.now();
+    const canRetryIn = this.circuitState === CircuitState.OPEN 
+      ? Math.max(0, Math.ceil((this.resetTimeout - (now - this.lastFailureTime)) / 1000))
+      : 0;
+      
+    return {
+      state: CircuitState[this.circuitState],
+      failureCount: this.failureCount,
+      canRetryIn
+    };
   }
 }
 

@@ -243,20 +243,6 @@ const Dashboard = () => {
             <EmailSettingsForm
               businessName={selectedBusiness}
               businessType={selectedBusinessType}
-              initialSettings={{
-                enabled: true,
-                recipient: "",
-                schedules: {
-                  weekly: { enabled: true, dayOfWeek: 1 },
-                  monthly: { enabled: true, dayOfMonth: 1 },
-                  urgent: { enabled: true, minSeverity: 3 }
-                },
-                content: {
-                  includeCharts: true,
-                  includeRecommendations: true,
-                  includeTables: true
-                }
-              }}
             />
           ) : (
             <div className="text-center p-10 space-y-4">

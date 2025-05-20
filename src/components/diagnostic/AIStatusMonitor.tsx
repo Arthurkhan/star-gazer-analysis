@@ -5,8 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getRecommendationService } from '@/services/recommendationService';
-import { ArrowPathIcon } from '@heroicons/react/24/outline';
-import { RefreshCw, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { RefreshCw, CheckCircle, AlertCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 
 export function AIStatusMonitor() {
   const [circuitStatus, setCircuitStatus] = useState<{
@@ -155,7 +154,7 @@ export function AIStatusMonitor() {
           {refreshing ? (
             <RefreshCw className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <ArrowPathIcon className="h-3.5 w-3.5" />
+            <RotateCcw className="h-3.5 w-3.5" />
           )}
           Reset System
         </Button>

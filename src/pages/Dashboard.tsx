@@ -18,6 +18,7 @@ import { Sparkles, Download, Save, BarChart3, GitCompare, Mail as MailIcon, Refr
 import { DebugPanel } from "@/components/debug/DebugPanel";
 import { DatabaseErrorDisplay } from "@/components/diagnostic/DatabaseErrorDisplay";
 import { MissingEnvAlert } from "@/components/diagnostic/MissingEnvAlert";
+import { NoReviewsAlert } from "@/components/diagnostic/NoReviewsAlert";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -55,6 +56,8 @@ const Dashboard = () => {
     businessType: selectedBusinessType,
   });
   
+  const hasNoReviews = !loading && !databaseError && (!filteredReviews || filteredReviews.length === 0);
+  
   const handleGenerateRecommendations = useCallback(() => {
     generateRecommendations(aiProvider);
   }, [generateRecommendations, aiProvider]);
@@ -84,6 +87,14 @@ const Dashboard = () => {
         <DatabaseErrorDisplay 
           onRefresh={handleRefreshData}
           isRefreshing={isRefreshing}
+        />
+      )}
+      
+      {/* No Reviews Alert */}
+      {hasNoReviews && (
+        <NoReviewsAlert 
+          businessData={businessData}
+          selectedBusiness={selectedBusiness}
         />
       )}
 
@@ -118,7 +129,7 @@ const Dashboard = () => {
           )}
           <Button
             onClick={handleGenerateRecommendations}
-            disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading}
+            disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
             size="icon"
             className="w-10 h-10"
             title="Generate Recommendations"
@@ -169,7 +180,7 @@ const Dashboard = () => {
               </p>
               <Button
                 onClick={handleGenerateRecommendations}
-                disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading}
+                disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
                 className="mt-4"
               >
                 <Sparkles className="w-4 h-4 mr-2" />

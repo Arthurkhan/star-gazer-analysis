@@ -16,7 +16,7 @@ import {
 import { useBusinessSelection } from "@/hooks/useBusinessSelection";
 
 // Constants
-const PAGE_SIZE = 100; // Number of reviews to fetch per page
+const PAGE_SIZE = 500; // Increased from 100 to 500 to load more reviews at once
 
 export function useDashboardData(startDate?: Date, endDate?: Date) {
   const { toast } = useToast();
@@ -160,6 +160,11 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
             title: "Data loaded successfully",
             description: `Loaded ${data.length} reviews of ${total} total`,
           });
+          
+          // If there's more data, fetch the next page automatically to load all reviews
+          if (hasMore) {
+            await fetchNextPage(page + 1);
+          }
         }
       }
     } catch (error) {

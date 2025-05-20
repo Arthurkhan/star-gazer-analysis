@@ -15,8 +15,8 @@ import {
 } from "@/utils/reviewDataUtils";
 import { useBusinessSelection } from "@/hooks/useBusinessSelection";
 
-// Constants
-const PAGE_SIZE = 500; // Increased from 100 to 500 to load more reviews at once
+// Constants - No hard limit on page size
+const PAGE_SIZE = 5000; // Set to a very large number to fetch all reviews at once
 
 export function useDashboardData(startDate?: Date, endDate?: Date) {
   const { toast } = useToast();
@@ -122,7 +122,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       const { data, total, hasMore } = await fetchPaginatedReviews(
         page,
         PAGE_SIZE,
-        selectedBusiness !== "All Businesses" ? selectedBusiness : undefined, 
+        selectedBusiness !== "All Businesses" && selectedBusiness !== "all" ? selectedBusiness : undefined, 
         startDate, 
         endDate
       );
@@ -136,7 +136,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
           variant: "warning",
         });
       } else {
-        console.log(`Fetched ${data.length} reviews for page ${page + 1}`);
+        console.log(`Fetched ${data.length} reviews for page ${page + 1} of ${total} total`);
         
         // Add to existing data if not page 0
         setReviewData(prev => (page === 0 ? data : [...prev, ...data]));
@@ -150,7 +150,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
           console.log("Calculating business statistics...");
           const businessesObj = calculateBusinessStats(data);
           
-          // Update business data
+          // Update business data with actual counts, not limited
           setBusinessData({
             allBusinesses: { name: "All Businesses", count: total },
             businesses: businessesObj,
@@ -161,9 +161,11 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
             description: `Loaded ${data.length} reviews of ${total} total`,
           });
           
-          // If there's more data, fetch the next page automatically to load all reviews
-          if (hasMore) {
-            await fetchNextPage(page + 1);
+          // If there's more data and we haven't fetched all reviews, fetch the next page
+          if (hasMore && data.length < total) {
+            setTimeout(() => {
+              fetchNextPage(page + 1);
+            }, 100); // Small delay to allow UI to update
           }
         }
       }

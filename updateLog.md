@@ -2,6 +2,20 @@
 
 This file tracks all modifications, implementations, deletions, and creations in the Star-Gazer-Analysis project.
 
+## 2025-05-21: Fixed Business Selector and Review Display Issues
+
+### Completed Improvements
+1. **Fixed Business Selector Dropdown Issue**
+   - Fixed issue where other businesses disappeared from dropdown when selecting a specific business
+   - Ensured all business options are visible in the dropdown regardless of selection
+
+2. **Fixed Review Display Limit**
+   - Increased PAGE_SIZE from 100 to 500 in useDashboardData hook to load more reviews at once
+   - Implemented auto-loading of next page of reviews to ensure all reviews are loaded
+   - Modified fetchPaginatedReviews to load all reviews (up to 10,000) when using legacy schema
+   - Fixed multiple business review loading in legacy schema
+   - Added proper business-specific filtering for "all" vs. specific businesses
+
 ## 2025-05-21: Additional Placeholder Data Cleanup
 
 ### Completed Improvements

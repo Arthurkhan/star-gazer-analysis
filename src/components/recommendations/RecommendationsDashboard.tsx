@@ -1,19 +1,375 @@
 import React from 'react';
-import './styles.css';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Recommendations } from '@/types/recommendations';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Info, AlertTriangle, Lightbulb, TrendingUp, Target, Rocket } from 'lucide-react';
 
-// Fix for RecommendationsDashboard.tsx
-// Add unique key prop to each list item
-export const RecommendationsDashboard = ({ recommendations = [] }) => {
+// Impact color mapping
+const impactColors = {
+  Low: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  Medium: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+  High: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+};
+
+// Effort color mapping
+const effortColors = {
+  Low: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  Medium: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+  High: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+};
+
+interface RecommendationsDashboardProps {
+  data?: Recommendations;
+  isLoading?: boolean;
+  error?: Error | null;
+  onRefresh?: () => void;
+}
+
+/**
+ * Dashboard component for displaying AI-generated recommendations
+ */
+const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
+  data,
+  isLoading = false,
+  error = null,
+  onRefresh
+}) => {
+  // If there's an error, display an error message
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error loading recommendations</AlertTitle>
+        <AlertDescription>
+          {error.message || 'Failed to load recommendations. Please try again.'}
+        </AlertDescription>
+        {onRefresh && (
+          <Button variant="outline" size="sm" onClick={onRefresh} className="mt-2">
+            Try Again
+          </Button>
+        )}
+      </Alert>
+    );
+  }
+
+  // If loading, display a loading indicator
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="animate-pulse bg-gray-200 dark:bg-gray-700 h-6 w-48 rounded"></CardTitle>
+          <CardDescription className="animate-pulse bg-gray-200 dark:bg-gray-700 h-4 w-64 rounded"></CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="animate-pulse space-y-2">
+                <div className="bg-gray-200 dark:bg-gray-700 h-5 w-36 rounded"></div>
+                <div className="bg-gray-200 dark:bg-gray-700 h-20 w-full rounded"></div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // If no data, display a message
+  if (!data) {
+    return (
+      <Alert className="mb-4">
+        <Info className="h-4 w-4" />
+        <AlertTitle>No recommendations available</AlertTitle>
+        <AlertDescription>
+          No recommendations have been generated yet. Select a business and generate recommendations.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
-    <div className="recommendations-container">
-      {recommendations.map((recommendation) => (
-        <div key={recommendation.id || `rec-${Math.random()}`} className="recommendation-card">
-          <h3>{recommendation.title}</h3>
-          <p>{recommendation.description}</p>
-          <span className="category-tag">{recommendation.category}</span>
-        </div>
-      ))}
-    </div>
+    <Tabs defaultValue="urgent" className="w-full">
+      <TabsList className="grid grid-cols-5 mb-4">
+        <TabsTrigger value="urgent" className="flex items-center gap-1">
+          <AlertTriangle className="h-4 w-4" /> Urgent
+        </TabsTrigger>
+        <TabsTrigger value="growth" className="flex items-center gap-1">
+          <TrendingUp className="h-4 w-4" /> Growth
+        </TabsTrigger>
+        <TabsTrigger value="marketing" className="flex items-center gap-1">
+          <Target className="h-4 w-4" /> Marketing
+        </TabsTrigger>
+        <TabsTrigger value="positioning" className="flex items-center gap-1">
+          <Lightbulb className="h-4 w-4" /> Positioning
+        </TabsTrigger>
+        <TabsTrigger value="future" className="flex items-center gap-1">
+          <Rocket className="h-4 w-4" /> Future
+        </TabsTrigger>
+      </TabsList>
+
+      {/* Urgent Actions Tab */}
+      <TabsContent value="urgent">
+        <Card>
+          <CardHeader>
+            <CardTitle>Urgent Actions</CardTitle>
+            <CardDescription>
+              High-priority actions that should be addressed immediately
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {data.urgentActions && data.urgentActions.length > 0 ? (
+              <div className="space-y-4">
+                {data.urgentActions.map((action, index) => (
+                  <Card key={`urgent-${index}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between">
+                        <CardTitle className="text-lg">{action.title}</CardTitle>
+                        <div className="flex gap-2">
+                          {action.impact && (
+                            <Badge className={impactColors[action.impact as keyof typeof impactColors] || ''}>
+                              Impact: {action.impact}
+                            </Badge>
+                          )}
+                          {action.effort && (
+                            <Badge className={effortColors[action.effort as keyof typeof effortColors] || ''}>
+                              Effort: {action.effort}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{action.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>No urgent actions</AlertTitle>
+                <AlertDescription>
+                  There are no urgent actions needed at this time. This is a good sign!
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Growth Strategies Tab */}
+      <TabsContent value="growth">
+        <Card>
+          <CardHeader>
+            <CardTitle>Growth Strategies</CardTitle>
+            <CardDescription>
+              Strategic initiatives to help grow your business
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {data.growthStrategies && data.growthStrategies.length > 0 ? (
+              <div className="space-y-4">
+                {data.growthStrategies.map((strategy, index) => (
+                  <Card key={`growth-${index}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between">
+                        <CardTitle className="text-lg">{strategy.title}</CardTitle>
+                        <div className="flex gap-2">
+                          {strategy.impact && (
+                            <Badge className={impactColors[strategy.impact as keyof typeof impactColors] || ''}>
+                              Impact: {strategy.impact}
+                            </Badge>
+                          )}
+                          {strategy.effort && (
+                            <Badge className={effortColors[strategy.effort as keyof typeof effortColors] || ''}>
+                              Effort: {strategy.effort}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{strategy.description}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>No growth strategies</AlertTitle>
+                <AlertDescription>
+                  No growth strategies have been generated yet.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Marketing Plan Tab */}
+      <TabsContent value="marketing">
+        <Card>
+          <CardHeader>
+            <CardTitle>{data.customerAttractionPlan?.title || 'Marketing Plan'}</CardTitle>
+            <CardDescription>
+              {data.customerAttractionPlan?.description || 'Strategies to attract and retain customers'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {data.customerAttractionPlan?.strategies && data.customerAttractionPlan.strategies.length > 0 ? (
+              <div className="space-y-4">
+                {data.customerAttractionPlan.strategies.map((strategy, index) => (
+                  <Card key={`marketing-${index}`}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{strategy.title}</CardTitle>
+                      <div className="flex flex-wrap gap-2">
+                        {strategy.timeline && (
+                          <Badge variant="outline">Timeline: {strategy.timeline}</Badge>
+                        )}
+                        {strategy.cost && (
+                          <Badge variant="outline">Cost: {strategy.cost}</Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{strategy.description}</p>
+                      {strategy.expectedOutcome && (
+                        <div className="mt-2">
+                          <p className="font-medium">Expected Outcome:</p>
+                          <p className="text-sm">{strategy.expectedOutcome}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>No marketing strategies</AlertTitle>
+                <AlertDescription>
+                  No marketing strategies have been generated yet.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Competitive Positioning Tab */}
+      <TabsContent value="positioning">
+        <Card>
+          <CardHeader>
+            <CardTitle>{data.competitivePositioning?.title || 'Competitive Positioning'}</CardTitle>
+            <CardDescription>
+              {data.competitivePositioning?.description || 'Analysis of your market position'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {data.competitivePositioning ? (
+              <div className="space-y-6">
+                {/* Strengths */}
+                {data.competitivePositioning.strengths && data.competitivePositioning.strengths.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Strengths</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {data.competitivePositioning.strengths.map((strength, index) => (
+                        <li key={`strength-${index}`}>{strength}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Opportunities */}
+                {data.competitivePositioning.opportunities && data.competitivePositioning.opportunities.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Opportunities</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {data.competitivePositioning.opportunities.map((opportunity, index) => (
+                        <li key={`opportunity-${index}`}>{opportunity}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Recommendations */}
+                {data.competitivePositioning.recommendations && data.competitivePositioning.recommendations.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Recommendations</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {data.competitivePositioning.recommendations.map((recommendation, index) => (
+                        <li key={`positioning-rec-${index}`}>{recommendation}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>No positioning analysis</AlertTitle>
+                <AlertDescription>
+                  No competitive positioning analysis has been generated yet.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Future Projections Tab */}
+      <TabsContent value="future">
+        <Card>
+          <CardHeader>
+            <CardTitle>Future Projections</CardTitle>
+            <CardDescription>
+              Forecasts and predictions for your business
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {data.futureProjections ? (
+              <div className="space-y-6">
+                {/* Short-Term Projections */}
+                {data.futureProjections.shortTerm && data.futureProjections.shortTerm.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Short-Term (3-6 months)</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {data.futureProjections.shortTerm.map((projection, index) => (
+                        <li key={`short-term-${index}`}>{projection}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Long-Term Projections */}
+                {data.futureProjections.longTerm && data.futureProjections.longTerm.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Long-Term (1-2 years)</h3>
+                    <ul className="list-disc pl-5 space-y-1">
+                      {data.futureProjections.longTerm.map((projection, index) => (
+                        <li key={`long-term-${index}`}>{projection}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>No future projections</AlertTitle>
+                <AlertDescription>
+                  No future projections have been generated yet.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 };
 

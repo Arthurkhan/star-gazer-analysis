@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Review, Business, TableName } from "@/types/reviews";
 import { EnhancedAnalysis } from "@/types/dataAnalysis";
 import { useToast } from "@/hooks/use-toast";
@@ -16,8 +16,9 @@ import {
 import { useBusinessSelection } from "@/hooks/useBusinessSelection";
 
 // Constants
-const PAGE_SIZE = 5000; // Set to a very large number to fetch all reviews at once
-const MAX_ALLOWED_REVIEWS = 100000; // Set a reasonably high limit to prevent browser crashes
+const PAGE_SIZE = 1000; // Reduced page size to prevent memory issues
+const MAX_ALLOWED_REVIEWS = 10000; // Lower limit to prevent browser crashes
+const AUTO_LOAD_PAGES = 1; // Only auto-load the first page to prevent infinite loops
 
 export function useDashboardData(startDate?: Date, endDate?: Date) {
   const { toast } = useToast();
@@ -34,6 +35,11 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
   const [totalReviewCount, setTotalReviewCount] = useState(0);
   const [allPagesLoaded, setAllPagesLoaded] = useState(false);
   
+  // Refs to prevent infinite loops
+  const isInitialMount = useRef(true);
+  const isLoadingRef = useRef(false);
+  const autoLoadingRef = useRef(false);
+  
   // Use the extracted business selection hook
   const { 
     selectedBusiness, 
@@ -44,6 +50,9 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
 
   // Fetch businesses and set up tables
   const fetchInitialData = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    
+    isLoadingRef.current = true;
     setLoading(true);
     setDatabaseError(false);
     
@@ -98,8 +107,8 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       setAllPagesLoaded(false);
       setReviewData([]);
       
-      // Fetch first page of reviews
-      await fetchNextPage(0);
+      // Fetch first page of reviews (don't await to allow UI to update)
+      fetchNextPage(0);
       
     } catch (error) {
       console.error("Error fetching initial data:", error);
@@ -112,21 +121,32 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       });
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
   }, [toast]);
   
   // Fetch next page of reviews
   const fetchNextPage = useCallback(async (page: number) => {
-    if (page === 0) {
-      setReviewData([]); // Clear existing data when loading from the beginning
-      setLoading(true);
-      setAllPagesLoaded(false);
-    } else {
-      setLoadingMore(true);
-    }
+    // Prevent concurrent fetches
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     
     try {
+      if (page === 0) {
+        setReviewData([]); // Clear existing data when loading from the beginning
+        setLoading(true);
+        setAllPagesLoaded(false);
+      } else {
+        setLoadingMore(true);
+      }
+      
       console.log(`Fetching reviews page ${page + 1} (${PAGE_SIZE} items per page)`);
+      
+      // Only fetch if page is valid
+      if (page < 0) {
+        console.warn("Invalid page number:", page);
+        return;
+      }
       
       const { data, total, hasMore } = await fetchPaginatedReviews(
         page,
@@ -161,14 +181,18 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
         setLastFetched(Date.now());
         
         // Calculate business statistics once we have initial data
-        console.log("Calculating business statistics...");
-        const businessesObj = calculateBusinessStats(updatedReviews, total);
-        
-        // Update business data with actual counts
-        setBusinessData({
-          allBusinesses: { name: "All Businesses", count: total },
-          businesses: businessesObj,
-        });
+        try {
+          console.log("Calculating business statistics...");
+          const businessesObj = calculateBusinessStats(data, total); // Only pass current page data
+          
+          // Update business data with actual counts
+          setBusinessData({
+            allBusinesses: { name: "All Businesses", count: total },
+            businesses: businessesObj,
+          });
+        } catch (e) {
+          console.error("Error calculating business stats:", e);
+        }
 
         if (page === 0) {
           toast({
@@ -177,12 +201,15 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
           });
         }
         
-        // If there's more data and we haven't fetched all reviews, fetch the next page
-        // But only auto-fetch up to 3 pages to avoid overwhelming the browser
-        if (hasMore && !hasReachedLimit && page < 2) {
+        // Only auto-load subsequent pages if explicitly enabled and within limits
+        if (page < AUTO_LOAD_PAGES && hasMore && !hasReachedLimit && !autoLoadingRef.current) {
+          autoLoadingRef.current = true;
+          
+          // Timeout to allow UI to update before loading more
           setTimeout(() => {
+            autoLoadingRef.current = false;
             fetchNextPage(page + 1);
-          }, 300); // Small delay to allow UI to update
+          }, 500);
         } else if (!hasMore || hasReachedLimit) {
           setAllPagesLoaded(true);
           
@@ -219,32 +246,46 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       } else {
         setLoadingMore(false);
       }
+      isLoadingRef.current = false;
     }
   }, [selectedBusiness, startDate, endDate, toast, setBusinessData, reviewData]);
 
-  // Fetch data on initial load
+  // Fetch data on initial load only once
   useEffect(() => {
-    fetchInitialData();
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchInitialData();
+    }
   }, [fetchInitialData]);
   
   // When selected business changes, reset and load data
   useEffect(() => {
-    // Reset pagination when selected business changes
+    // Skip on first mount as fetchInitialData already runs
+    if (isInitialMount.current) return;
+    
+    // Prevent re-fetching when unnecessary 
+    if (isLoadingRef.current || autoLoadingRef.current) return;
+    
+    // Don't reset if already loading the correct business
+    console.log(`Business selection changed to: ${selectedBusiness}`);
     setCurrentPage(0);
     setHasMoreData(true);
     setAllPagesLoaded(false);
     fetchNextPage(0);
+    
   }, [selectedBusiness, startDate, endDate, fetchNextPage]);
 
-  // Load more data function
+  // Load more data function - manually triggered
   const loadMoreData = useCallback(() => {
-    if (!loadingMore && hasMoreData && !allPagesLoaded) {
+    if (!loadingMore && hasMoreData && !allPagesLoaded && !isLoadingRef.current) {
       fetchNextPage(currentPage + 1);
     }
   }, [loadingMore, hasMoreData, currentPage, fetchNextPage, allPagesLoaded]);
 
   // Refresh data function
   const refreshData = useCallback(() => {
+    if (isLoadingRef.current) return Promise.resolve();
+    
     // Reset pagination
     setCurrentPage(0);
     setHasMoreData(true);
@@ -261,16 +302,25 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
   // Memoized filtered reviews
   const filteredReviews = useMemo(() => {
     const filtered = getFilteredReviews();
-    console.log(`Filtered to ${filtered.length} reviews for "${selectedBusiness}"`);
+    // Avoid excessive logging
+    if (filtered.length > 0) {
+      console.log(`Filtered to ${filtered.length} reviews for "${selectedBusiness}"`);
+    }
     return filtered;
   }, [getFilteredReviews, selectedBusiness]);
 
   // Generate enhanced analysis when data is available and business is selected
   useEffect(() => {
+    // Only attempt analysis when we have enough data
     if (selectedBusiness && selectedBusiness !== 'all' && !databaseError && reviewData.length > 0) {
-      // Generate real analysis based on review data
-      const analysis = generateEnhancedAnalysis(filteredReviews, selectedBusiness);
-      setEnhancedAnalysis(analysis);
+      try {
+        // Generate real analysis based on review data
+        const analysis = generateEnhancedAnalysis(filteredReviews, selectedBusiness);
+        setEnhancedAnalysis(analysis);
+      } catch (e) {
+        console.error("Error generating analysis:", e);
+        setEnhancedAnalysis(null);
+      }
     } else {
       setEnhancedAnalysis(null);
     }

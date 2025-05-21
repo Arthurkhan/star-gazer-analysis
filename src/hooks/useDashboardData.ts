@@ -16,9 +16,9 @@ import {
 import { useBusinessSelection } from "@/hooks/useBusinessSelection";
 
 // Constants
-const PAGE_SIZE = 1000; // Reduced page size to prevent memory issues
-const MAX_ALLOWED_REVIEWS = 10000; // Lower limit to prevent browser crashes
-const AUTO_LOAD_PAGES = 0; // Disable auto-loading completely to prevent infinite loops
+const PAGE_SIZE = 2000; // Increased page size to load more reviews at once
+const MAX_ALLOWED_REVIEWS = 10000; // Higher limit to accommodate larger businesses
+const AUTO_LOAD_PAGES = 5; // Load initial 5 pages automatically for specific businesses
 
 export function useDashboardData(startDate?: Date, endDate?: Date) {
   const { toast } = useToast();
@@ -34,12 +34,14 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
   const [hasMoreData, setHasMoreData] = useState(true);
   const [totalReviewCount, setTotalReviewCount] = useState(0);
   const [allPagesLoaded, setAllPagesLoaded] = useState(false);
+  const [autoLoadingComplete, setAutoLoadingComplete] = useState(false);
   
   // Refs to prevent infinite loops
   const isInitialMount = useRef(true);
   const isLoadingRef = useRef(false);
   const loadedBusinessDataRef = useRef(false);
   const previousSelectedBusinessRef = useRef<string>("");
+  const autoLoadingRef = useRef(false);
   
   // Use the business selection hook WITHOUT passing reviewData to break circular dependency
   const { 
@@ -77,6 +79,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     setLoading(true);
     setDatabaseError(false);
     loadedBusinessDataRef.current = false;
+    setAutoLoadingComplete(false);
     
     try {
       // Get all businesses
@@ -158,6 +161,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       setReviewData([]);
       setAllPagesLoaded(false);
       loadedBusinessDataRef.current = false;
+      setAutoLoadingComplete(false);
       
       // Actual data fetch
       const { data, total, hasMore } = await fetchPaginatedReviews(
@@ -193,6 +197,17 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
           title: "Data loaded successfully",
           description: `Loaded ${data.length} reviews of ${total} total`,
         });
+        
+        // Auto-load more pages if specific businesses with many reviews
+        if (hasMore && 
+            (selectedBusiness === "The Little Prince Cafe" ||
+             data.length < total * 0.9)) { // Load more if we have less than 90% of reviews
+          setTimeout(() => {
+            autoLoadPages(1);
+          }, 300);
+        } else {
+          setAutoLoadingComplete(true);
+        }
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -209,7 +224,77 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     }
   }, [selectedBusiness, startDate, endDate, toast, updateBusinessStats]);
   
-  // Load more data function (simplified and separated)
+  // Auto-load multiple pages for specific businesses
+  const autoLoadPages = useCallback(async (startPage: number) => {
+    if (autoLoadingRef.current || !hasMoreData || allPagesLoaded) {
+      setAutoLoadingComplete(true);
+      return;
+    }
+    
+    autoLoadingRef.current = true;
+    
+    try {
+      let currentPageNumber = startPage;
+      let shouldContinue = true;
+      let totalLoadedReviews = reviewData.length;
+      
+      // Load up to AUTO_LOAD_PAGES pages or until we reach the totalReviewCount
+      while (shouldContinue && 
+            currentPageNumber < AUTO_LOAD_PAGES && 
+            totalLoadedReviews < totalReviewCount) {
+        
+        // Set loading state but don't block UI
+        setLoadingMore(true);
+        
+        const { data, hasMore } = await fetchPaginatedReviews(
+          currentPageNumber,
+          PAGE_SIZE,
+          selectedBusiness !== "All Businesses" && selectedBusiness !== "all" ? selectedBusiness : undefined, 
+          startDate, 
+          endDate
+        );
+        
+        if (data.length === 0) {
+          shouldContinue = false;
+          setAllPagesLoaded(true);
+        } else {
+          console.log(`Auto-loaded page ${currentPageNumber + 1} with ${data.length} reviews`);
+          
+          // Append new data to existing
+          setReviewData(prev => [...prev, ...data]);
+          setCurrentPage(currentPageNumber);
+          totalLoadedReviews += data.length;
+          
+          // Check if we've loaded enough or reached the limit
+          if (!hasMore || totalLoadedReviews >= MAX_ALLOWED_REVIEWS) {
+            shouldContinue = false;
+            setHasMoreData(hasMore);
+            setAllPagesLoaded(!hasMore || totalLoadedReviews >= totalReviewCount);
+          } else {
+            currentPageNumber++;
+          }
+        }
+      }
+      
+      // Update loading state
+      setLoadingMore(false);
+      setAutoLoadingComplete(true);
+      
+      console.log(`Auto-loaded ${totalLoadedReviews} of ${totalReviewCount} reviews (${Math.round((totalLoadedReviews/totalReviewCount)*100)}%)`);
+      
+    } catch (error) {
+      console.error("Error auto-loading data:", error);
+      setLoadingMore(false);
+    } finally {
+      autoLoadingRef.current = false;
+      setAutoLoadingComplete(true);
+    }
+  }, [
+    allPagesLoaded, hasMoreData, reviewData.length, 
+    selectedBusiness, startDate, endDate, totalReviewCount
+  ]);
+  
+  // Load more data function (manually triggered)
   const loadMoreData = useCallback(async () => {
     // Skip if already loading or no more data
     if (isLoadingRef.current || loadingMore || !hasMoreData || allPagesLoaded) return;
@@ -249,7 +334,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
           });
         }
         
-        if (!hasMore) {
+        if (!hasMore || updatedTotalReviews >= totalReviewCount) {
           setAllPagesLoaded(true);
         }
       }
@@ -267,7 +352,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     }
   }, [
     selectedBusiness, startDate, endDate, toast, 
-    hasMoreData, allPagesLoaded, loadingMore, currentPage, reviewData.length
+    hasMoreData, allPagesLoaded, loadingMore, currentPage, reviewData.length, totalReviewCount
   ]);
 
   // Fetch data on initial mount only
@@ -350,6 +435,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     enhancedAnalysis,
     totalReviewCount,
     currentPage,
-    pageSize: PAGE_SIZE
+    pageSize: PAGE_SIZE,
+    autoLoadingComplete
   };
 }

@@ -2,6 +2,23 @@
 
 This file tracks all modifications, implementations, deletions, and creations in the Star-Gazer-Analysis project.
 
+## 2025-05-21: Fixed Review Count Display and Loading Issues
+
+### Completed Improvements
+1. **Fixed Review Count Display Issues**
+   - Updated the UI to show the correct total review count from the database
+   - Added "Show All" functionality to display all reviews instead of paginated subsets
+   - Fixed the discrepancy between displayed review count and total reviews count
+   - Improved OverviewSection to display actual total counts with loading status
+   - Enhanced the Review Distribution visualization to accurately represent data
+
+2. **Implemented Load More Functionality**
+   - Added a "Load More Reviews" button to progressively load all reviews
+   - Created DashboardContext to share review count data across components
+   - Enhanced ReviewsTable with larger page sizes and better pagination controls
+   - Added display of loading progress when viewing large datasets
+   - Fixed virtualization to ensure all reviews can be browsed efficiently
+
 ## 2025-05-21: Fixed Date Filtering for The Little Prince Cafe
 
 ### Completed Improvements

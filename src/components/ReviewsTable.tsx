@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { Review } from "@/types/reviews";
 import { formatDistanceToNow } from "date-fns";
-import { Search, Eye } from "lucide-react";
+import { Search, Eye, ChevronDown, ChevronUp, ArrowUpDown } from "lucide-react";
 
 interface ReviewsTableProps {
   reviews: Review[];
@@ -50,7 +50,8 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const reviewsPerPage = 10;
+  const [reviewsPerPage, setReviewsPerPage] = useState(25);
+  const [virtualizedView, setVirtualizedView] = useState(true);
   
   // Apply filters and sorting when dependencies change
   useEffect(() => {
@@ -61,9 +62,9 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
       const term = searchTerm.toLowerCase();
       results = results.filter(
         (review) => 
-          review.text.toLowerCase().includes(term) ||
+          review.text?.toLowerCase().includes(term) ||
           (review.textTranslated && review.textTranslated.toLowerCase().includes(term)) ||
-          review.name.toLowerCase().includes(term)
+          review.name?.toLowerCase().includes(term)
       );
     }
     
@@ -117,15 +118,15 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
     // Apply sorting
     results.sort((a, b) => {
       if (sortBy === "date") {
-        const dateA = new Date(a.publishedAtDate).getTime();
-        const dateB = new Date(b.publishedAtDate).getTime();
+        const dateA = new Date(a.publishedAtDate || 0).getTime();
+        const dateB = new Date(b.publishedAtDate || 0).getTime();
         return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
       } else if (sortBy === "rating") {
         return sortOrder === "desc" ? b.stars - a.stars : a.stars - b.stars;
       } else {
         // Default to date sorting
-        const dateA = new Date(a.publishedAtDate).getTime();
-        const dateB = new Date(b.publishedAtDate).getTime();
+        const dateA = new Date(a.publishedAtDate || 0).getTime();
+        const dateB = new Date(b.publishedAtDate || 0).getTime();
         return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
       }
     });
@@ -165,14 +166,64 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
     setSelectedReview(review);
     setIsDialogOpen(true);
   };
+
+  // Toggle between virtualized and paginated view
+  const toggleView = useCallback(() => {
+    setVirtualizedView(!virtualizedView);
+    // When switching to virtualized view, increase rows per page
+    setReviewsPerPage(virtualizedView ? 25 : 1000);
+  }, [virtualizedView]);
+  
+  // Handle "Show All" button click
+  const handleShowAll = useCallback(() => {
+    setReviewsPerPage(filteredReviews.length || 1000);
+    setVirtualizedView(false);
+  }, [filteredReviews.length]);
   
   return (
     <Card className="shadow-md border-0 dark:bg-gray-800 mb-8">
       <CardHeader>
-        <CardTitle>Reviews</CardTitle>
-        <CardDescription>
-          {filteredReviews.length} reviews match your filters
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Reviews</CardTitle>
+            <CardDescription>
+              {filteredReviews.length} reviews match your filters
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={reviewsPerPage.toString()}
+              onValueChange={(value) => setReviewsPerPage(parseInt(value))}
+            >
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="Rows per page" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="25">25 per page</SelectItem>
+                <SelectItem value="50">50 per page</SelectItem>
+                <SelectItem value="100">100 per page</SelectItem>
+                <SelectItem value="250">250 per page</SelectItem>
+                <SelectItem value="500">500 per page</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={toggleView}
+              className="whitespace-nowrap"
+            >
+              {virtualizedView ? "Paginated View" : "Virtual Scroll"}
+            </Button>
+            <Button 
+              variant="secondary" 
+              size="sm"
+              onClick={handleShowAll}
+              className="whitespace-nowrap"
+            >
+              Show All
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -250,7 +301,18 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                     className="w-[15%] cursor-pointer"
                     onClick={() => toggleSort("date")}
                   >
-                    Date {sortBy === "date" && (sortOrder === "desc" ? "↓" : "↑")}
+                    <div className="flex items-center gap-1">
+                      Date
+                      {sortBy === "date" ? (
+                        sortOrder === "desc" ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronUp className="h-4 w-4" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-4 w-4 opacity-50" />
+                      )}
+                    </div>
                   </TableHead>
                   <TableHead className="w-[10%] text-right">Actions</TableHead>
                 </TableRow>
@@ -335,23 +397,44 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                 {Math.min(indexOfLastReview, filteredReviews.length)} of{" "}
                 {filteredReviews.length} reviews
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm text-gray-500">Page</span>
+                  <Select
+                    value={currentPage.toString()}
+                    onValueChange={(value) => setCurrentPage(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-[70px] h-9">
+                      <SelectValue placeholder="Page" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <SelectItem key={i + 1} value={(i + 1).toString()}>
+                          {i + 1}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm text-gray-500">of {totalPages}</span>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             </div>
           )}

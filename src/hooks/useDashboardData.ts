@@ -15,8 +15,9 @@ import {
 } from "@/utils/reviewDataUtils";
 import { useBusinessSelection } from "@/hooks/useBusinessSelection";
 
-// Constants - No hard limit on page size
+// Constants
 const PAGE_SIZE = 5000; // Set to a very large number to fetch all reviews at once
+const MAX_ALLOWED_REVIEWS = 100000; // Set a reasonably high limit to prevent browser crashes
 
 export function useDashboardData(startDate?: Date, endDate?: Date) {
   const { toast } = useToast();
@@ -31,6 +32,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
   const [currentPage, setCurrentPage] = useState(0);
   const [hasMoreData, setHasMoreData] = useState(true);
   const [totalReviewCount, setTotalReviewCount] = useState(0);
+  const [allPagesLoaded, setAllPagesLoaded] = useState(false);
   
   // Use the extracted business selection hook
   const { 
@@ -90,6 +92,12 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
       
       setAvailableTables(tablesResult);
       
+      // Reset pagination variables
+      setCurrentPage(0);
+      setHasMoreData(true);
+      setAllPagesLoaded(false);
+      setReviewData([]);
+      
       // Fetch first page of reviews
       await fetchNextPage(0);
       
@@ -112,6 +120,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     if (page === 0) {
       setReviewData([]); // Clear existing data when loading from the beginning
       setLoading(true);
+      setAllPagesLoaded(false);
     } else {
       setLoadingMore(true);
     }
@@ -135,37 +144,54 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
           description: "No reviews were found for the selected time period.",
           variant: "warning",
         });
+        setAllPagesLoaded(true);
       } else {
         console.log(`Fetched ${data.length} reviews for page ${page + 1} of ${total} total`);
         
         // Add to existing data if not page 0
-        setReviewData(prev => (page === 0 ? data : [...prev, ...data]));
+        const updatedReviews = page === 0 ? data : [...reviewData, ...data];
+        
+        // Check if we've reached the maximum allowed reviews to prevent browser crashes
+        const hasReachedLimit = updatedReviews.length >= MAX_ALLOWED_REVIEWS;
+        
+        setReviewData(updatedReviews);
         setCurrentPage(page);
-        setHasMoreData(hasMore);
+        setHasMoreData(hasMore && !hasReachedLimit);
         setTotalReviewCount(total);
         setLastFetched(Date.now());
         
+        // Calculate business statistics once we have initial data
+        console.log("Calculating business statistics...");
+        const businessesObj = calculateBusinessStats(updatedReviews, total);
+        
+        // Update business data with actual counts
+        setBusinessData({
+          allBusinesses: { name: "All Businesses", count: total },
+          businesses: businessesObj,
+        });
+
         if (page === 0) {
-          // Calculate business statistics once we have initial data
-          console.log("Calculating business statistics...");
-          const businessesObj = calculateBusinessStats(data);
-          
-          // Update business data with actual counts, not limited
-          setBusinessData({
-            allBusinesses: { name: "All Businesses", count: total },
-            businesses: businessesObj,
-          });
-          
           toast({
             title: "Data loaded successfully",
             description: `Loaded ${data.length} reviews of ${total} total`,
           });
+        }
+        
+        // If there's more data and we haven't fetched all reviews, fetch the next page
+        // But only auto-fetch up to 3 pages to avoid overwhelming the browser
+        if (hasMore && !hasReachedLimit && page < 2) {
+          setTimeout(() => {
+            fetchNextPage(page + 1);
+          }, 300); // Small delay to allow UI to update
+        } else if (!hasMore || hasReachedLimit) {
+          setAllPagesLoaded(true);
           
-          // If there's more data and we haven't fetched all reviews, fetch the next page
-          if (hasMore && data.length < total) {
-            setTimeout(() => {
-              fetchNextPage(page + 1);
-            }, 100); // Small delay to allow UI to update
+          if (hasReachedLimit && hasMore) {
+            toast({
+              title: "Large dataset detected",
+              description: `Loaded ${updatedReviews.length} reviews. Additional reviews can be loaded on demand.`,
+              variant: "warning",
+            });
           }
         }
       }
@@ -194,7 +220,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
         setLoadingMore(false);
       }
     }
-  }, [selectedBusiness, startDate, endDate, toast, setBusinessData]);
+  }, [selectedBusiness, startDate, endDate, toast, setBusinessData, reviewData]);
 
   // Fetch data on initial load
   useEffect(() => {
@@ -206,21 +232,23 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     // Reset pagination when selected business changes
     setCurrentPage(0);
     setHasMoreData(true);
+    setAllPagesLoaded(false);
     fetchNextPage(0);
   }, [selectedBusiness, startDate, endDate, fetchNextPage]);
 
   // Load more data function
   const loadMoreData = useCallback(() => {
-    if (!loadingMore && hasMoreData) {
+    if (!loadingMore && hasMoreData && !allPagesLoaded) {
       fetchNextPage(currentPage + 1);
     }
-  }, [loadingMore, hasMoreData, currentPage, fetchNextPage]);
+  }, [loadingMore, hasMoreData, currentPage, fetchNextPage, allPagesLoaded]);
 
   // Refresh data function
   const refreshData = useCallback(() => {
     // Reset pagination
     setCurrentPage(0);
     setHasMoreData(true);
+    setAllPagesLoaded(false);
     // Fetch first page
     return fetchNextPage(0);
   }, [fetchNextPage]);
@@ -261,6 +289,7 @@ export function useDashboardData(startDate?: Date, endDate?: Date) {
     refreshData,
     loadMoreData,
     hasMoreData,
+    allPagesLoaded,
     lastFetched,
     enhancedAnalysis,
     totalReviewCount,

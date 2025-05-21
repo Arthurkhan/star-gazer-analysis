@@ -2,6 +2,16 @@
 
 This file tracks all modifications, implementations, deletions, and creations in the Star-Gazer-Analysis project.
 
+## 2025-05-21: Fixed Date Filtering for The Little Prince Cafe
+
+### Completed Improvements
+1. **Fixed Review Date Filtering Issue for The Little Prince Cafe**
+   - Identified and fixed a critical issue where The Little Prince Cafe only showed reviews from October 2024 in "All Reviews" view
+   - Removed special case handling for The Little Prince Cafe in the `fetchPaginatedReviews` function
+   - Ensured consistent date filtering across all businesses
+   - Made the database query filtering work the same way for all tables
+   - Fixed the discrepancy between individual business view and "All Businesses" view
+
 ## 2025-05-21: Fixed Severe Business Selector and Review Display Issues
 
 ### Completed Improvements

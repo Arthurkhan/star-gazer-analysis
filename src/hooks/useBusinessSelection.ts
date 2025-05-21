@@ -1,55 +1,44 @@
-
-import { useState, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { BusinessData } from "@/types/reviews";
 
-export function useBusinessSelection(reviewData: any[]) {
-  const [selectedBusiness, setSelectedBusiness] = useState<string>(
-    localStorage.getItem("selectedBusiness") || "all"
-  );
+/**
+ * Business selection hook with optimizations to prevent infinite loops
+ * This hook manages the selected business state and related data.
+ */
+export function useBusinessSelection() {
+  // Initial state from localStorage (with fallback to "all")
+  const initialBusiness = localStorage.getItem("selectedBusiness") || "all";
   
+  // State for the selected business
+  const [selectedBusiness, setSelectedBusiness] = useState<string>(initialBusiness);
+  
+  // State for business data
   const [businessData, setBusinessData] = useState<BusinessData>({
     allBusinesses: { name: "All Businesses", count: 0 },
     businesses: {},
   });
-
+  
+  // Ref to track if initial setup has been done
+  const isInitialized = useRef(false);
+  
+  // Save to localStorage when selection changes
   useEffect(() => {
     // Save selected business to localStorage
     localStorage.setItem("selectedBusiness", selectedBusiness);
-    
-    // Filter data based on selected business
-    if (selectedBusiness !== "all") {
-      const filteredData = reviewData.filter(
-        (review) => review.title === selectedBusiness
-      );
-      
-      setBusinessData((prev) => {
-        const businesses = { ...prev.businesses };
-        
-        if (businesses[selectedBusiness]) {
-          businesses[selectedBusiness] = {
-            ...businesses[selectedBusiness],
-            count: filteredData.length,
-          };
-        }
-        
-        return {
-          ...prev,
-          allBusinesses: { ...prev.allBusinesses, count: reviewData.length },
-          businesses,
-        };
-      });
-    } else {
-      setBusinessData((prev) => ({
-        ...prev,
-        allBusinesses: { ...prev.allBusinesses, count: reviewData.length },
-      }));
-    }
-  }, [selectedBusiness, reviewData]);
-
+  }, [selectedBusiness]);
+  
   // Handle business selection change
-  const handleBusinessChange = (business: string) => {
+  const handleBusinessChange = useCallback((business: string) => {
     setSelectedBusiness(business);
-  };
+  }, []);
+  
+  // Initialize with defaults once
+  useEffect(() => {
+    if (!isInitialized.current) {
+      isInitialized.current = true;
+      // Any one-time initialization can go here
+    }
+  }, []);
 
   return {
     selectedBusiness,

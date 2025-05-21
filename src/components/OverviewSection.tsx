@@ -11,18 +11,20 @@ import ReviewsChart from "@/components/ReviewsChart";
 
 interface OverviewSectionProps {
   reviews: Review[];
+  totalReviewCount?: number; // Optional total count from database
 }
 
-const OverviewSection = ({ reviews }: OverviewSectionProps) => {
-  const totalReviews = reviews.length;
+const OverviewSection = ({ reviews, totalReviewCount }: OverviewSectionProps) => {
+  const displayedReviews = reviews.length;
+  const totalReviews = totalReviewCount || displayedReviews;
   const averageRating = calculateAverageRating(reviews);
   const reviewsByRating = countReviewsByRating(reviews);
   const monthlyData = groupReviewsByMonth(reviews);
   const monthlyComparison = calculateMonthlyComparison(reviews);
   
   const fiveStars = reviewsByRating[5] || 0;
-  const fiveStarPercentage = totalReviews > 0 
-    ? Math.round((fiveStars / totalReviews) * 100) 
+  const fiveStarPercentage = displayedReviews > 0 
+    ? Math.round((fiveStars / displayedReviews) * 100) 
     : 0;
   
   return (
@@ -34,11 +36,15 @@ const OverviewSection = ({ reviews }: OverviewSectionProps) => {
         <CardContent>
           <div className="text-3xl font-bold">{totalReviews}</div>
           <p className="text-xs text-gray-500 mt-1">
-            {monthlyComparison.vsLastMonth > 0 
-              ? `+${monthlyComparison.vsLastMonth} from last month` 
-              : monthlyComparison.vsLastMonth < 0 
-                ? `${monthlyComparison.vsLastMonth} from last month`
-                : `Same as last month`}
+            {displayedReviews < totalReviews ? (
+              <span className="text-blue-500">{displayedReviews} loaded (showing {Math.round((displayedReviews/totalReviews)*100)}%)</span>
+            ) : (
+              monthlyComparison.vsLastMonth > 0 
+                ? `+${monthlyComparison.vsLastMonth} from last month` 
+                : monthlyComparison.vsLastMonth < 0 
+                  ? `${monthlyComparison.vsLastMonth} from last month`
+                  : `Same as last month`
+            )}
           </p>
         </CardContent>
       </Card>
@@ -68,7 +74,7 @@ const OverviewSection = ({ reviews }: OverviewSectionProps) => {
                   <div 
                     className="h-full bg-blue-500 rounded-full"
                     style={{ 
-                      width: `${totalReviews ? (reviewsByRating[star] || 0) / totalReviews * 100 : 0}%` 
+                      width: `${displayedReviews ? (reviewsByRating[star] || 0) / displayedReviews * 100 : 0}%` 
                     }}
                   />
                 </div>

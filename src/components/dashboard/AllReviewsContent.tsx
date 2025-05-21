@@ -1,10 +1,22 @@
-import React, { memo } from "react";
+import React, { memo, useContext } from "react";
 import { Review } from "@/types/reviews";
 import OverviewSection from "@/components/OverviewSection";
 import ReviewsTable from "@/components/ReviewsTable";
+import { useDashboardContext } from "@/contexts/DashboardContext";
 
 // Simplified version to prevent potential infinite loops
 const AllReviewsContent: React.FC<{reviews: Review[], chartData: any[]}> = ({ reviews, chartData }) => {
+  // Try to get the total review count from context
+  let totalReviewCount;
+  try {
+    // Attempt to use the context to get the total count if available
+    const dashboardContext = useDashboardContext();
+    totalReviewCount = dashboardContext?.totalReviewCount;
+  } catch (e) {
+    // Context not available, will use the reviews.length as fallback
+    console.warn("Dashboard context not available, using loaded reviews count");
+  }
+  
   // Empty reviews check to prevent rendering issues
   if (!reviews || reviews.length === 0) {
     return (
@@ -20,7 +32,10 @@ const AllReviewsContent: React.FC<{reviews: Review[], chartData: any[]}> = ({ re
   return (
     <div className="space-y-6">
       {/* Most essential component */}
-      <OverviewSection reviews={reviews} />
+      <OverviewSection 
+        reviews={reviews} 
+        totalReviewCount={totalReviewCount}
+      />
       
       {/* Display reviews table */}
       <div className="mt-6">

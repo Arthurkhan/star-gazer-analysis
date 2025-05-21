@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
 import DashboardContent from "@/components/dashboard/DashboardContent";
@@ -21,14 +20,19 @@ import { MissingEnvAlert } from "@/components/diagnostic/MissingEnvAlert";
 import { NoReviewsAlert } from "@/components/diagnostic/NoReviewsAlert";
 import { DashboardProvider } from "@/contexts/DashboardContext";
 
+/**
+ * Main Dashboard Component
+ * Uses optimized hooks for data loading and management
+ */
 const Dashboard = () => {
-  const navigate = useNavigate();
+  // State
   const [activeTab, setActiveTab] = useState("overview");
   const [aiProvider, setAiProvider] = useState<AIProvider>("browser");
   const [selectedBusinessType, setSelectedBusinessType] = useState<BusinessType>(BusinessType.OTHER);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dataInitialized, setDataInitialized] = useState(false);
   
+  // Use dashboard data hook
   const { 
     loading, 
     loadingMore,
@@ -52,6 +56,7 @@ const Dashboard = () => {
   // Only compute chart data when in the overview tab
   const chartData = activeTab === "overview" ? getChartData(filteredReviews) : [];
 
+  // Recommendations data
   const {
     recommendations,
     loading: recommendationsLoading,
@@ -73,13 +78,16 @@ const Dashboard = () => {
     }
   }, [loading, dataInitialized]);
   
+  // Calculate if we have no reviews to display
   const hasNoReviews = !loading && !databaseError && dataInitialized && 
                       (!filteredReviews || filteredReviews.length === 0);
   
+  // Generate recommendations
   const handleGenerateRecommendations = useCallback(() => {
     generateRecommendations(aiProvider);
   }, [generateRecommendations, aiProvider]);
 
+  // Refresh data
   const handleRefreshData = useCallback(async () => {
     if (isRefreshing) return;
     
@@ -132,6 +140,7 @@ const Dashboard = () => {
           />
         )}
 
+        {/* Business Selector and Action Buttons */}
         <div className="flex justify-between items-center gap-4 mb-6 w-full">
           <BusinessSelector
             selectedBusiness={selectedBusiness}
@@ -173,6 +182,7 @@ const Dashboard = () => {
           </div>
         </div>
         
+        {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -182,6 +192,7 @@ const Dashboard = () => {
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
           
+          {/* Overview Tab */}
           <TabsContent value="overview" className="mt-6 relative">
             {activeTab === "overview" && (
               <>
@@ -196,7 +207,7 @@ const Dashboard = () => {
                   chartData={chartData}
                 />
                 
-                {/* Load More Data Button */}
+                {/* Load More Data Button - Only show when there's more to load */}
                 {(!allPagesLoaded && hasMoreData && !loading && !loadingMore) && (
                   <div className="flex justify-center mt-8">
                     <Button
@@ -223,6 +234,7 @@ const Dashboard = () => {
             )}
           </TabsContent>
           
+          {/* Enhanced Analysis Tab */}
           <TabsContent value="enhanced" className="mt-6">
             {activeTab === "enhanced" && (
               enhancedAnalysis ? (
@@ -254,6 +266,7 @@ const Dashboard = () => {
             )}
           </TabsContent>
           
+          {/* Period Comparison Tab */}
           <TabsContent value="comparison" className="mt-6">
             {activeTab === "comparison" && (
               selectedBusiness && selectedBusiness !== "all" ? (
@@ -272,6 +285,7 @@ const Dashboard = () => {
             )}
           </TabsContent>
           
+          {/* AI Recommendations Tab */}
           <TabsContent value="recommendations" className="mt-6">
             {activeTab === "recommendations" && (
               <>
@@ -308,6 +322,7 @@ const Dashboard = () => {
             )}
           </TabsContent>
           
+          {/* Notifications Tab */}
           <TabsContent value="notifications" className="mt-6">
             {activeTab === "notifications" && (
               selectedBusiness && selectedBusiness !== "all" ? (

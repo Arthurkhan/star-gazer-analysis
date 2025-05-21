@@ -348,17 +348,10 @@ export const fetchPaginatedReviews = async (
       
       // Fetch all reviews from all tables
       for (const table of tablesToFetch) {
-        // Remove any date filtering specifically for "The Little Prince Cafe"
-        // to ensure we get all reviews from this table
-        if (table === "The Little Prince Cafe") {
-          const { data, total } = await fetchAllReviewsFromTable(table);
-          allReviews.push(...data);
-          totalAcrossTables += total;
-        } else {
-          const { data, total } = await fetchAllReviewsFromTable(table, startDate, endDate);
-          allReviews.push(...data);
-          totalAcrossTables += total;
-        }
+        // Apply date filtering for all tables including "The Little Prince Cafe"
+        const { data, total } = await fetchAllReviewsFromTable(table, startDate, endDate);
+        allReviews.push(...data);
+        totalAcrossTables += total;
       }
       
       // Sort by date
@@ -369,25 +362,6 @@ export const fetchPaginatedReviews = async (
       });
       
       console.log(`Loaded ${allReviews.length} total reviews from all tables`);
-      
-      // Apply date filtering in memory if this is for The Little Prince Cafe
-      if (businessName === "The Little Prince Cafe" && (startDate || endDate)) {
-        allReviews = allReviews.filter(review => {
-          const reviewDate = new Date(review.publishedAtDate || 0);
-          
-          if (startDate && reviewDate < startDate) {
-            return false;
-          }
-          
-          if (endDate && reviewDate > endDate) {
-            return false;
-          }
-          
-          return true;
-        });
-        
-        console.log(`After date filtering, ${allReviews.length} reviews remain for The Little Prince Cafe`);
-      }
       
       // Return all reviews since we've already loaded everything
       // Pagination will be done elsewhere if needed

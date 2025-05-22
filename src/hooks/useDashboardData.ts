@@ -58,7 +58,7 @@ export function useDashboardData() {
     }
   }, [filteredReviews, selectedBusiness]);
 
-  // Single data loading function - no pagination complexity
+  // Single data loading function - with proper limit to load ALL reviews
   const loadAllData = useCallback(async () => {
     setLoading(true);
     setDatabaseError(false);
@@ -97,7 +97,8 @@ export function useDashboardData() {
       setBusinesses(businessesData);
       console.log(`Loaded ${businessesData.length} businesses`);
       
-      // Load all reviews with business information
+      // Load ALL reviews with business information - Fixed: Added limit to get all reviews
+      console.log("Fetching ALL reviews from database...");
       const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews')
         .select(`
@@ -108,7 +109,8 @@ export function useDashboardData() {
             business_type
           )
         `)
-        .order('publishedatdate', { ascending: false });
+        .order('publishedatdate', { ascending: false })
+        .limit(20000); // Increased limit to ensure we get ALL reviews
       
       if (reviewsError) {
         console.error("Error fetching reviews:", reviewsError);
@@ -142,7 +144,16 @@ export function useDashboardData() {
       setAllReviews(processedReviews);
       setLastFetched(Date.now());
       
-      console.log(`Loaded ${processedReviews.length} reviews`);
+      console.log(`Successfully loaded ${processedReviews.length} total reviews`);
+      
+      // Count reviews per business for verification
+      const businessCounts = processedReviews.reduce((acc, review) => {
+        const businessName = review.businessName || review.title || 'Unknown';
+        acc[businessName] = (acc[businessName] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      console.log("Reviews per business:", businessCounts);
       
       toast({
         title: "Data loaded successfully",

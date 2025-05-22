@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Review } from "@/types/reviews";
 import { 
@@ -8,13 +7,24 @@ import {
   calculateMonthlyComparison
 } from "@/utils/dataUtils";
 import ReviewsChart from "@/components/ReviewsChart";
+import { Button } from "@/components/ui/button";
+import { Loader, RefreshCw } from "lucide-react";
 
 interface OverviewSectionProps {
   reviews: Review[];
-  totalReviewCount?: number; // Optional total count from database
+  totalReviewCount?: number; // Total count from database
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
+  hasMoreData?: boolean;
 }
 
-const OverviewSection = ({ reviews, totalReviewCount }: OverviewSectionProps) => {
+const OverviewSection = ({ 
+  reviews, 
+  totalReviewCount, 
+  loadingMore, 
+  onLoadMore, 
+  hasMoreData 
+}: OverviewSectionProps) => {
   const displayedReviews = reviews.length;
   const totalReviews = totalReviewCount || displayedReviews;
   const averageRating = calculateAverageRating(reviews);
@@ -27,6 +37,10 @@ const OverviewSection = ({ reviews, totalReviewCount }: OverviewSectionProps) =>
     ? Math.round((fiveStars / displayedReviews) * 100) 
     : 0;
   
+  const loadPercentage = totalReviews > 0 
+    ? Math.round((displayedReviews / totalReviews) * 100)
+    : 100;
+  
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
       <Card className="shadow-md border-0 dark:bg-gray-800">
@@ -37,7 +51,7 @@ const OverviewSection = ({ reviews, totalReviewCount }: OverviewSectionProps) =>
           <div className="text-3xl font-bold">{totalReviews}</div>
           <p className="text-xs text-gray-500 mt-1">
             {displayedReviews < totalReviews ? (
-              <span className="text-blue-500">{displayedReviews} loaded (showing {Math.round((displayedReviews/totalReviews)*100)}%)</span>
+              <span className="text-blue-500">{displayedReviews} loaded (showing {loadPercentage}%)</span>
             ) : (
               monthlyComparison.vsLastMonth > 0 
                 ? `+${monthlyComparison.vsLastMonth} from last month` 
@@ -46,6 +60,29 @@ const OverviewSection = ({ reviews, totalReviewCount }: OverviewSectionProps) =>
                   : `Same as last month`
             )}
           </p>
+          
+          {/* Load All Reviews Button - only show when partial data is loaded */}
+          {displayedReviews < totalReviews && hasMoreData && onLoadMore && (
+            <Button 
+              onClick={onLoadMore} 
+              disabled={loadingMore}
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+            >
+              {loadingMore ? (
+                <>
+                  <Loader className="mr-2 h-3 w-3 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-3 w-3" />
+                  Load All Reviews
+                </>
+              )}
+            </Button>
+          )}
         </CardContent>
       </Card>
       

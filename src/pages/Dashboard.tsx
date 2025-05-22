@@ -47,7 +47,8 @@ const Dashboard = () => {
     loadMoreData,
     hasMoreData,
     totalReviewCount,
-    allPagesLoaded
+    allPagesLoaded,
+    autoLoadingComplete
   } = useDashboardData();
 
   // Only compute filtered reviews when needed
@@ -205,10 +206,14 @@ const Dashboard = () => {
                   loading={loading}
                   reviews={filteredReviews}
                   chartData={chartData}
+                  totalReviewCount={totalReviewCount}
+                  loadingMore={loadingMore}
+                  onLoadMore={loadMoreData}
+                  hasMoreData={hasMoreData && !allPagesLoaded}
                 />
                 
-                {/* Load More Data Button - Only show when there's more to load */}
-                {(!allPagesLoaded && hasMoreData && !loading && !loadingMore) && (
+                {/* Load More Data Button - Only show when there's more to load and auto-loading is complete */}
+                {(!allPagesLoaded && hasMoreData && !loading && !loadingMore && autoLoadingComplete) && (
                   <div className="flex justify-center mt-8">
                     <Button
                       onClick={loadMoreData}

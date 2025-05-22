@@ -8,13 +8,21 @@ interface DashboardContentProps {
   loading: boolean;
   reviews: Review[];
   chartData: any[];
+  totalReviewCount?: number;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
+  hasMoreData?: boolean;
 }
 
 // Use React.memo to prevent unnecessary re-renders
 const DashboardContent: React.FC<DashboardContentProps> = memo(({ 
   loading, 
   reviews, 
-  chartData 
+  chartData,
+  totalReviewCount,
+  loadingMore,
+  onLoadMore,
+  hasMoreData
 }) => {
   const [activeTab, setActiveTab] = useState("all-reviews");
   
@@ -56,7 +64,14 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
       {renderContent && (
         <>
           <TabsContent value="all-reviews" className="mt-0">
-            <AllReviewsContent reviews={reviews} chartData={chartData} />
+            <AllReviewsContent 
+              reviews={reviews} 
+              chartData={chartData} 
+              totalReviewCount={totalReviewCount}
+              loadingMore={loadingMore}
+              onLoadMore={onLoadMore}
+              hasMoreData={hasMoreData}
+            />
           </TabsContent>
           
           <TabsContent value="monthly-report" className="mt-0">

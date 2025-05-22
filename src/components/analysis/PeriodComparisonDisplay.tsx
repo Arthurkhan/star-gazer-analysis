@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { compareDataPeriods } from '@/services/comparisonService';
 import { EnhancedAnalysis } from '@/types/dataAnalysis';
-import { generateEnhancedAnalysis } from '@/utils/reviewDataUtils';
+import { generateEnhancedAnalysis, filterReviewsByBusiness } from '@/utils/reviewDataUtils';
 
 export interface ComparisonResult {
   ratingChange: number;
@@ -60,25 +60,39 @@ export function PeriodComparisonDisplay({
   
   const { 
     loading: dashboardLoading, 
-    getFilteredReviews,
-    refreshData 
+    allReviews
   } = useDashboardData();
   
-  // Load data for current period
+  // Fixed: Simple data filtering without infinite loops
+  const filterReviewsByDateRange = (reviews: any[], dateRange: DateRange, business: string) => {
+    return reviews.filter(review => {
+      // Filter by business first
+      if (business !== 'all') {
+        const businessMatches = review.title === business || 
+                              (review.businesses && review.businesses.name === business);
+        if (!businessMatches) return false;
+      }
+      
+      // Filter by date range
+      const reviewDate = new Date(review.publishedAtDate || review.publishedatdate);
+      return reviewDate >= dateRange.from && reviewDate <= dateRange.to;
+    });
+  };
+  
+  // Load data for current period - Fixed dependencies
   useEffect(() => {
-    if (!isComparing) return;
+    if (!isComparing || !allReviews || allReviews.length === 0) return;
     
     const loadCurrentPeriodData = async () => {
       setIsLoadingCurrent(true);
       try {
-        // Refresh data for the current date range
-        await refreshData(currentRange.from, currentRange.to);
+        // Filter reviews for the current date range and business
+        const filteredReviews = filterReviewsByDateRange(allReviews, currentRange, businessName);
         
-        // Get filtered reviews for the business
-        const reviews = getFilteredReviews();
+        console.log(`Current period: Found ${filteredReviews.length} reviews for ${businessName}`);
         
         // Generate enhanced analysis from the reviews
-        const enhancedAnalysis = generateEnhancedAnalysis(reviews, businessName);
+        const enhancedAnalysis = generateEnhancedAnalysis(filteredReviews, businessName);
         setCurrentData(enhancedAnalysis);
       } catch (error) {
         console.error("Error loading current period data:", error);
@@ -88,23 +102,22 @@ export function PeriodComparisonDisplay({
     };
     
     loadCurrentPeriodData();
-  }, [businessName, currentRange.from, currentRange.to, isComparing, refreshData, getFilteredReviews]);
+  }, [businessName, currentRange.from, currentRange.to, isComparing, allReviews]);
   
-  // Load data for previous period
+  // Load data for previous period - Fixed dependencies
   useEffect(() => {
-    if (!isComparing) return;
+    if (!isComparing || !allReviews || allReviews.length === 0) return;
     
     const loadPreviousPeriodData = async () => {
       setIsLoadingPrevious(true);
       try {
-        // Refresh data for the previous date range
-        await refreshData(previousRange.from, previousRange.to);
+        // Filter reviews for the previous date range and business
+        const filteredReviews = filterReviewsByDateRange(allReviews, previousRange, businessName);
         
-        // Get filtered reviews for the business
-        const reviews = getFilteredReviews();
+        console.log(`Previous period: Found ${filteredReviews.length} reviews for ${businessName}`);
         
         // Generate enhanced analysis from the reviews
-        const enhancedAnalysis = generateEnhancedAnalysis(reviews, businessName);
+        const enhancedAnalysis = generateEnhancedAnalysis(filteredReviews, businessName);
         setPreviousData(enhancedAnalysis);
       } catch (error) {
         console.error("Error loading previous period data:", error);
@@ -114,7 +127,7 @@ export function PeriodComparisonDisplay({
     };
     
     loadPreviousPeriodData();
-  }, [businessName, previousRange.from, previousRange.to, isComparing, refreshData, getFilteredReviews]);
+  }, [businessName, previousRange.from, previousRange.to, isComparing, allReviews]);
   
   // Generate comparison result
   const comparisonResult = React.useMemo(() => {
@@ -152,6 +165,8 @@ export function PeriodComparisonDisplay({
                     setCurrentRange({ from: range.from, to: range.to });
                     // Reset comparison when date range changes
                     setIsComparing(false);
+                    setCurrentData(null);
+                    setPreviousData(null);
                   }
                 }}
               />
@@ -166,6 +181,8 @@ export function PeriodComparisonDisplay({
                     setPreviousRange({ from: range.from, to: range.to });
                     // Reset comparison when date range changes
                     setIsComparing(false);
+                    setCurrentData(null);
+                    setPreviousData(null);
                   }
                 }}
               />
@@ -175,7 +192,7 @@ export function PeriodComparisonDisplay({
         <CardFooter className="flex justify-center">
           <Button 
             onClick={() => setIsComparing(true)}
-            disabled={isLoadingCurrent || isLoadingPrevious || dashboardLoading}
+            disabled={isLoadingCurrent || isLoadingPrevious || dashboardLoading || !allReviews}
             size="lg"
           >
             {isLoadingCurrent || isLoadingPrevious ? (

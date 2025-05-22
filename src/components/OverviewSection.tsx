@@ -7,39 +7,27 @@ import {
   calculateMonthlyComparison
 } from "@/utils/dataUtils";
 import ReviewsChart from "@/components/ReviewsChart";
-import { Button } from "@/components/ui/button";
-import { Loader, RefreshCw } from "lucide-react";
 
+// Simplified OverviewSection interface - removed pagination props
 interface OverviewSectionProps {
   reviews: Review[];
-  totalReviewCount?: number; // Total count from database
-  loadingMore?: boolean;
-  onLoadMore?: () => void;
-  hasMoreData?: boolean;
 }
 
-const OverviewSection = ({ 
-  reviews, 
-  totalReviewCount, 
-  loadingMore, 
-  onLoadMore, 
-  hasMoreData 
-}: OverviewSectionProps) => {
-  const displayedReviews = reviews.length;
-  const totalReviews = totalReviewCount || displayedReviews;
+/**
+ * Simplified OverviewSection Component
+ * Phase 2: Removed pagination-related props, simplified to show actual data only
+ */
+const OverviewSection = ({ reviews }: OverviewSectionProps) => {
+  const totalReviews = reviews.length;
   const averageRating = calculateAverageRating(reviews);
   const reviewsByRating = countReviewsByRating(reviews);
   const monthlyData = groupReviewsByMonth(reviews);
   const monthlyComparison = calculateMonthlyComparison(reviews);
   
   const fiveStars = reviewsByRating[5] || 0;
-  const fiveStarPercentage = displayedReviews > 0 
-    ? Math.round((fiveStars / displayedReviews) * 100) 
+  const fiveStarPercentage = totalReviews > 0 
+    ? Math.round((fiveStars / totalReviews) * 100) 
     : 0;
-  
-  const loadPercentage = totalReviews > 0 
-    ? Math.round((displayedReviews / totalReviews) * 100)
-    : 100;
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -50,39 +38,12 @@ const OverviewSection = ({
         <CardContent>
           <div className="text-3xl font-bold">{totalReviews}</div>
           <p className="text-xs text-gray-500 mt-1">
-            {displayedReviews < totalReviews ? (
-              <span className="text-blue-500">{displayedReviews} loaded (showing {loadPercentage}%)</span>
-            ) : (
-              monthlyComparison.vsLastMonth > 0 
-                ? `+${monthlyComparison.vsLastMonth} from last month` 
-                : monthlyComparison.vsLastMonth < 0 
-                  ? `${monthlyComparison.vsLastMonth} from last month`
-                  : `Same as last month`
-            )}
+            {monthlyComparison.vsLastMonth > 0 
+              ? `+${monthlyComparison.vsLastMonth} from last month` 
+              : monthlyComparison.vsLastMonth < 0 
+                ? `${monthlyComparison.vsLastMonth} from last month`
+                : `Same as last month`}
           </p>
-          
-          {/* Load All Reviews Button - only show when partial data is loaded */}
-          {displayedReviews < totalReviews && hasMoreData && onLoadMore && (
-            <Button 
-              onClick={onLoadMore} 
-              disabled={loadingMore}
-              variant="outline" 
-              size="sm" 
-              className="mt-2"
-            >
-              {loadingMore ? (
-                <>
-                  <Loader className="mr-2 h-3 w-3 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-3 w-3" />
-                  Load All Reviews
-                </>
-              )}
-            </Button>
-          )}
         </CardContent>
       </Card>
       
@@ -111,7 +72,7 @@ const OverviewSection = ({
                   <div 
                     className="h-full bg-blue-500 rounded-full"
                     style={{ 
-                      width: `${displayedReviews ? (reviewsByRating[star] || 0) / displayedReviews * 100 : 0}%` 
+                      width: `${totalReviews ? (reviewsByRating[star] || 0) / totalReviews * 100 : 0}%` 
                     }}
                   />
                 </div>

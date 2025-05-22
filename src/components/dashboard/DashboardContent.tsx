@@ -4,25 +4,21 @@ import AllReviewsContent from "./AllReviewsContent";
 import MonthlyReport from "@/components/monthly-report";
 import { Review } from "@/types/reviews";
 
+// Simplified props interface - removed redundant props after Phase 1 changes
 interface DashboardContentProps {
   loading: boolean;
   reviews: Review[];
   chartData: any[];
-  totalReviewCount?: number;
-  loadingMore?: boolean;
-  onLoadMore?: () => void;
-  hasMoreData?: boolean;
 }
 
-// Use React.memo to prevent unnecessary re-renders
+/**
+ * Simplified DashboardContent Component
+ * Phase 2: Cleaned up props interface, removed pagination-related props
+ */
 const DashboardContent: React.FC<DashboardContentProps> = memo(({ 
   loading, 
   reviews, 
-  chartData,
-  totalReviewCount,
-  loadingMore,
-  onLoadMore,
-  hasMoreData
+  chartData
 }) => {
   const [activeTab, setActiveTab] = useState("all-reviews");
   
@@ -64,13 +60,10 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
       {renderContent && (
         <>
           <TabsContent value="all-reviews" className="mt-0">
+            {/* Simplified AllReviewsContent - removed pagination props */}
             <AllReviewsContent 
               reviews={reviews} 
               chartData={chartData} 
-              totalReviewCount={totalReviewCount}
-              loadingMore={loadingMore}
-              onLoadMore={onLoadMore}
-              hasMoreData={hasMoreData}
             />
           </TabsContent>
           

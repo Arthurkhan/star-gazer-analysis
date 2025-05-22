@@ -2,37 +2,15 @@ import React, { memo } from "react";
 import { Review } from "@/types/reviews";
 import OverviewSection from "@/components/OverviewSection";
 import ReviewsTable from "@/components/ReviewsTable";
-import { useDashboardContext } from "@/contexts/DashboardContext";
 
-// AllReviewsContent component with enhanced props for loading all reviews
+// Simplified AllReviewsContent component - removed pagination props
 const AllReviewsContent: React.FC<{
   reviews: Review[]; 
   chartData: any[];
-  totalReviewCount?: number;
-  loadingMore?: boolean;
-  onLoadMore?: () => void;
-  hasMoreData?: boolean;
 }> = ({ 
   reviews, 
-  chartData, 
-  totalReviewCount,
-  loadingMore,
-  onLoadMore,
-  hasMoreData
+  chartData
 }) => {
-  // Try to get the total review count from context if not provided directly
-  let dashboardTotalReviewCount = totalReviewCount;
-  try {
-    // Attempt to use the context to get the total count if available
-    const dashboardContext = useDashboardContext();
-    if (!dashboardTotalReviewCount && dashboardContext?.totalReviewCount) {
-      dashboardTotalReviewCount = dashboardContext.totalReviewCount;
-    }
-  } catch (e) {
-    // Context not available, will use the reviews.length as fallback
-    console.warn("Dashboard context not available, using loaded reviews count");
-  }
-  
   // Empty reviews check to prevent rendering issues
   if (!reviews || reviews.length === 0) {
     return (
@@ -47,14 +25,8 @@ const AllReviewsContent: React.FC<{
 
   return (
     <div className="space-y-6">
-      {/* Overview section with review stats */}
-      <OverviewSection 
-        reviews={reviews} 
-        totalReviewCount={dashboardTotalReviewCount}
-        loadingMore={loadingMore}
-        onLoadMore={onLoadMore}
-        hasMoreData={hasMoreData}
-      />
+      {/* Overview section with review stats - simplified props */}
+      <OverviewSection reviews={reviews} />
       
       {/* Display reviews table */}
       <div className="mt-6">

@@ -58,48 +58,30 @@ export function useDashboardData() {
     }
   }, [filteredReviews, selectedBusiness]);
 
-  // Single data loading function - with proper limit to load ALL reviews
-  const loadAllData = useCallback(async () => {
-    setLoading(true);
-    setDatabaseError(false);
+  // Function to fetch ALL reviews using pagination to overcome Supabase limits
+  const fetchAllReviewsWithPagination = async (): Promise<Review[]> => {
+    console.log("🔍 Starting to fetch ALL reviews using pagination...");
     
-    try {
-      console.log("Loading all application data...");
+    let allReviews: Review[] = [];
+    let currentPage = 0;
+    const pageSize = 1000; // Fetch in chunks of 1000
+    let hasMore = true;
+    
+    // First, get the total count to know how much data we're dealing with
+    const { count, error: countError } = await supabase
+      .from('reviews')
+      .select('*', { count: 'exact', head: true });
+    
+    if (countError) {
+      console.error("❌ Error getting review count:", countError);
+    } else {
+      console.log(`📊 Total reviews in database: ${count}`);
+    }
+    
+    while (hasMore) {
+      console.log(`📄 Fetching page ${currentPage + 1} (rows ${currentPage * pageSize + 1}-${(currentPage + 1) * pageSize})...`);
       
-      // Load businesses
-      const { data: businessesData, error: businessesError } = await supabase
-        .from('businesses')
-        .select('*')
-        .order('name');
-      
-      if (businessesError) {
-        console.error("Error fetching businesses:", businessesError);
-        setDatabaseError(true);
-        toast({
-          title: "Database Error",
-          description: "Failed to load businesses. Please check your connection.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (!businessesData || businessesData.length === 0) {
-        console.error("No businesses found");
-        setDatabaseError(true);
-        toast({
-          title: "No Data Found",
-          description: "No businesses found in the database.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setBusinesses(businessesData);
-      console.log(`Loaded ${businessesData.length} businesses`);
-      
-      // Load ALL reviews with business information - Fixed: Added limit to get all reviews
-      console.log("Fetching ALL reviews from database...");
-      const { data: reviewsData, error: reviewsError } = await supabase
+      const { data: pageData, error } = await supabase
         .from('reviews')
         .select(`
           *,
@@ -110,28 +92,23 @@ export function useDashboardData() {
           )
         `)
         .order('publishedatdate', { ascending: false })
-        .limit(20000); // Increased limit to ensure we get ALL reviews
+        .range(currentPage * pageSize, (currentPage + 1) * pageSize - 1);
       
-      if (reviewsError) {
-        console.error("Error fetching reviews:", reviewsError);
-        setDatabaseError(true);
-        toast({
-          title: "Database Error",
-          description: "Failed to load reviews. Please check your connection.",
-          variant: "destructive",
-        });
-        return;
+      if (error) {
+        console.error(`❌ Error fetching page ${currentPage + 1}:`, error);
+        throw error;
       }
       
-      if (!reviewsData) {
-        console.log("No reviews found");
-        setAllReviews([]);
-        setLastFetched(Date.now());
-        return;
+      if (!pageData || pageData.length === 0) {
+        console.log(`✅ No more data on page ${currentPage + 1}, stopping...`);
+        hasMore = false;
+        break;
       }
       
-      // Process reviews to ensure compatibility
-      const processedReviews = reviewsData.map(review => {
+      console.log(`✅ Page ${currentPage + 1}: Got ${pageData.length} reviews`);
+      
+      // Process and add reviews to our collection
+      const processedPageData = pageData.map(review => {
         const business = review.businesses as any;
         return {
           ...review,
@@ -141,27 +118,89 @@ export function useDashboardData() {
         };
       });
       
-      setAllReviews(processedReviews);
+      allReviews.push(...processedPageData);
+      
+      // If we got less than pageSize, we've reached the end
+      if (pageData.length < pageSize) {
+        console.log(`🏁 Got ${pageData.length} < ${pageSize} reviews, reached end of data`);
+        hasMore = false;
+      } else {
+        currentPage++;
+      }
+      
+      // Safety check to prevent infinite loops
+      if (currentPage > 50) {
+        console.warn("⚠️  Safety limit reached (50 pages), stopping fetch");
+        hasMore = false;
+      }
+    }
+    
+    console.log(`🎉 Finished fetching! Total reviews collected: ${allReviews.length}`);
+    return allReviews;
+  };
+
+  // Single data loading function - using pagination to get ALL data
+  const loadAllData = useCallback(async () => {
+    setLoading(true);
+    setDatabaseError(false);
+    
+    try {
+      console.log("🚀 Loading all application data...");
+      
+      // Load businesses
+      const { data: businessesData, error: businessesError } = await supabase
+        .from('businesses')
+        .select('*')
+        .order('name');
+      
+      if (businessesError) {
+        console.error("❌ Error fetching businesses:", businessesError);
+        setDatabaseError(true);
+        toast({
+          title: "Database Error",
+          description: "Failed to load businesses. Please check your connection.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!businessesData || businessesData.length === 0) {
+        console.error("❌ No businesses found");
+        setDatabaseError(true);
+        toast({
+          title: "No Data Found",
+          description: "No businesses found in the database.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setBusinesses(businessesData);
+      console.log(`✅ Loaded ${businessesData.length} businesses`);
+      
+      // Load ALL reviews using pagination
+      const allReviewsData = await fetchAllReviewsWithPagination();
+      
+      setAllReviews(allReviewsData);
       setLastFetched(Date.now());
       
-      console.log(`Successfully loaded ${processedReviews.length} total reviews`);
-      
       // Count reviews per business for verification
-      const businessCounts = processedReviews.reduce((acc, review) => {
+      const businessCounts = allReviewsData.reduce((acc, review) => {
         const businessName = review.businessName || review.title || 'Unknown';
         acc[businessName] = (acc[businessName] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
       
-      console.log("Reviews per business:", businessCounts);
+      console.log("📊 Final review counts per business:", businessCounts);
+      console.log(`🎯 Total reviews loaded: ${allReviewsData.length}`);
       
       toast({
         title: "Data loaded successfully",
-        description: `Loaded ${processedReviews.length} reviews from ${businessesData.length} businesses`,
+        description: `Loaded ${allReviewsData.length} reviews from ${businessesData.length} businesses`,
       });
       
     } catch (error) {
-      console.error("Error loading data:", error);
+      console.error("💥 Error loading data:", error);
       setDatabaseError(true);
       toast({
         title: "Loading Error",
@@ -175,13 +214,13 @@ export function useDashboardData() {
 
   // Business selection handler - simple state update
   const handleBusinessChange = useCallback((businessName: string) => {
-    console.log(`Business selection changed to: ${businessName}`);
+    console.log(`🔄 Business selection changed to: ${businessName}`);
     setSelectedBusiness(businessName);
   }, []);
 
   // Refresh function - reload all data
   const refreshData = useCallback(async () => {
-    console.log("Refreshing all data...");
+    console.log("🔄 Refreshing all data...");
     await loadAllData();
   }, [loadAllData]);
 

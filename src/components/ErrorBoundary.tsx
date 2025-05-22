@@ -1,78 +1,135 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { appDebugger } from '@/utils/debugger';
-import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
-interface ErrorBoundaryProps {
+interface Props {
   children: ReactNode;
   fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
-interface ErrorBoundaryState {
+interface State {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
+  errorInfo?: ErrorInfo;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
+/**
+ * Enhanced Error Boundary - Phase 4
+ * Better error messages, recovery actions, user-friendly display
+ */
+class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
     super(props);
-    this.state = {
-      hasError: false,
-      error: null
-    };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return {
-      hasError: true,
-      error
-    };
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log the error to our monitoring system
-    appDebugger.error('React component error boundary caught error:', {
-      error,
-      componentStack: errorInfo.componentStack
-    });
-    
-    // Call the onError prop if provided
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    this.setState({ error, errorInfo });
+  }
+
+  private handleRefresh = () => {
+    window.location.reload();
+  };
+
+  private handleGoHome = () => {
+    window.location.href = '/';
+  };
+
+  private handleRetry = () => {
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+  };
+
+  private getErrorMessage(error?: Error): string {
+    if (!error) return 'An unexpected error occurred';
+
+    // Common error patterns and user-friendly messages
+    if (error.message.includes('Cannot read properties of undefined')) {
+      return 'Some data is missing. Please refresh and try again.';
     }
-    
-    // Notify the user
-    toast({
-      title: 'Application Error',
-      description: 'An error occurred in the application. Our team has been notified.',
-      variant: 'destructive'
-    });
+    if (error.message.includes('fetch')) {
+      return 'Network connection issue. Please check your internet and try again.';
+    }
+    if (error.message.includes('Supabase')) {
+      return 'Database connection issue. Please refresh and try again.';
+    }
+    if (error.message.includes('API key')) {
+      return 'API configuration issue. Please check your settings.';
+    }
+
+    return 'Something went wrong. Please try refreshing the page.';
   }
 
-  render(): ReactNode {
+  render() {
     if (this.state.hasError) {
+      // Use custom fallback if provided
       if (this.props.fallback) {
         return this.props.fallback;
       }
-      
-      // Default fallback UI
+
+      const userFriendlyMessage = this.getErrorMessage(this.state.error);
+
       return (
-        <div className="p-6 rounded-lg shadow-lg bg-white dark:bg-gray-800 max-w-md mx-auto my-8">
-          <h2 className="text-xl font-bold text-red-600 dark:text-red-400 mb-4">
-            Component Error
-          </h2>
-          <p className="text-gray-700 dark:text-gray-300 mb-4">
-            Something went wrong in this section of the application.
-          </p>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {this.state.error?.message || 'Unknown error'}
-          </p>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors"
-          >
-            Try Again
-          </button>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+          <div className="max-w-md w-full text-center">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              
+              <h1 className="text-xl font-semibold text-gray-900 mb-2">
+                Oops! Something went wrong
+              </h1>
+              
+              <p className="text-gray-600 mb-6">
+                {userFriendlyMessage}
+              </p>
+
+              <div className="space-y-3">
+                <Button 
+                  onClick={this.handleRetry} 
+                  className="w-full"
+                  variant="default"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Try Again
+                </Button>
+                
+                <Button 
+                  onClick={this.handleRefresh} 
+                  className="w-full"
+                  variant="outline"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Refresh Page
+                </Button>
+
+                <Button 
+                  onClick={this.handleGoHome} 
+                  className="w-full"
+                  variant="ghost"
+                >
+                  <Home className="mr-2 h-4 w-4" />
+                  Go to Home
+                </Button>
+              </div>
+
+              {/* Show technical details in development */}
+              {process.env.NODE_ENV === 'development' && this.state.error && (
+                <details className="mt-6 text-left">
+                  <summary className="text-sm text-gray-500 cursor-pointer">
+                    Technical Details (Development)
+                  </summary>
+                  <pre className="text-xs text-red-600 mt-2 p-2 bg-red-50 rounded overflow-auto">
+                    {this.state.error.toString()}
+                    {this.state.errorInfo?.componentStack}
+                  </pre>
+                </details>
+              )}
+            </div>
+          </div>
         </div>
       );
     }

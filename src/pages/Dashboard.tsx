@@ -19,7 +19,7 @@ import { NoReviewsAlert } from "@/components/diagnostic/NoReviewsAlert";
 
 /**
  * Simplified Dashboard Component
- * Phase 2: Reduced complexity, minimal state management
+ * Phase 2: Reduced complexity, minimal state management, removed DashboardContext
  */
 const Dashboard = () => {
   // Single state variable for tab management

@@ -1,17 +1,33 @@
-import React, { memo, useContext } from "react";
+import React, { memo } from "react";
 import { Review } from "@/types/reviews";
 import OverviewSection from "@/components/OverviewSection";
 import ReviewsTable from "@/components/ReviewsTable";
 import { useDashboardContext } from "@/contexts/DashboardContext";
 
-// Simplified version to prevent potential infinite loops
-const AllReviewsContent: React.FC<{reviews: Review[], chartData: any[]}> = ({ reviews, chartData }) => {
-  // Try to get the total review count from context
-  let totalReviewCount;
+// AllReviewsContent component with enhanced props for loading all reviews
+const AllReviewsContent: React.FC<{
+  reviews: Review[]; 
+  chartData: any[];
+  totalReviewCount?: number;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
+  hasMoreData?: boolean;
+}> = ({ 
+  reviews, 
+  chartData, 
+  totalReviewCount,
+  loadingMore,
+  onLoadMore,
+  hasMoreData
+}) => {
+  // Try to get the total review count from context if not provided directly
+  let dashboardTotalReviewCount = totalReviewCount;
   try {
     // Attempt to use the context to get the total count if available
     const dashboardContext = useDashboardContext();
-    totalReviewCount = dashboardContext?.totalReviewCount;
+    if (!dashboardTotalReviewCount && dashboardContext?.totalReviewCount) {
+      dashboardTotalReviewCount = dashboardContext.totalReviewCount;
+    }
   } catch (e) {
     // Context not available, will use the reviews.length as fallback
     console.warn("Dashboard context not available, using loaded reviews count");
@@ -31,10 +47,13 @@ const AllReviewsContent: React.FC<{reviews: Review[], chartData: any[]}> = ({ re
 
   return (
     <div className="space-y-6">
-      {/* Most essential component */}
+      {/* Overview section with review stats */}
       <OverviewSection 
         reviews={reviews} 
-        totalReviewCount={totalReviewCount}
+        totalReviewCount={dashboardTotalReviewCount}
+        loadingMore={loadingMore}
+        onLoadMore={onLoadMore}
+        hasMoreData={hasMoreData}
       />
       
       {/* Display reviews table */}

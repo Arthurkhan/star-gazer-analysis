@@ -8,6 +8,7 @@
  * - Memory management utilities
  */
 
+import React from 'react';
 import { Review } from "@/types/reviews";
 import { AnalysisSummaryData, AnalysisConfig } from "@/types/analysisSummary";
 
@@ -184,8 +185,8 @@ export function optimizeMemoryUsage(): void {
   clearExpiredCache();
   
   // Suggest garbage collection if available
-  if (window.gc) {
-    window.gc();
+  if ((window as any).gc) {
+    (window as any).gc();
   }
   
   // Log memory usage in development

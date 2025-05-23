@@ -3,17 +3,24 @@ import { Review, Business } from "@/types/reviews";
 import { Recommendations } from "@/types/recommendations";
 
 /**
- * Simplified Review Data Service
- * Removes dual schema support and complex pagination
- * Uses only normalized schema with direct data fetching
+ * Review Data Service
+ * 
+ * Provides data access methods for the Star-Gazer Analysis application.
+ * Handles all database operations for businesses, reviews, and recommendations.
+ * 
+ * @author Star-Gazer Analysis Team
+ * @version 0.1.0 - Phase 0 Cleanup
  */
 
 /**
- * Fetch all businesses from the normalized schema
+ * Fetch all businesses from the database
+ * 
+ * @returns {Promise<Business[]>} Array of all businesses
+ * @throws {Error} Database or network errors
  */
 export const fetchBusinesses = async (): Promise<Business[]> => {
   try {
-    console.log("Fetching businesses from normalized schema...");
+    console.log("Fetching businesses...");
     
     const { data, error } = await supabase
       .from('businesses')
@@ -39,11 +46,14 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
 };
 
 /**
- * Fetch all reviews with business information from normalized schema
+ * Fetch all reviews with business information
+ * 
+ * @returns {Promise<Review[]>} Array of all reviews with business data
+ * @throws {Error} Database or network errors
  */
 export const fetchAllReviews = async (): Promise<Review[]> => {
   try {
-    console.log("Fetching all reviews from normalized schema...");
+    console.log("Fetching all reviews...");
     
     const { data, error } = await supabase
       .from('reviews')
@@ -67,7 +77,7 @@ export const fetchAllReviews = async (): Promise<Review[]> => {
       return [];
     }
     
-    // Process reviews for backward compatibility
+    // Process reviews to normalize data structure
     const processedReviews = data.map(review => {
       const business = review.businesses as any;
       return {
@@ -88,6 +98,10 @@ export const fetchAllReviews = async (): Promise<Review[]> => {
 
 /**
  * Fetch reviews for a specific business
+ * 
+ * @param {string} businessName - Name of the business
+ * @returns {Promise<Review[]>} Array of reviews for the specified business
+ * @throws {Error} Database or network errors
  */
 export const fetchReviewsForBusiness = async (businessName: string): Promise<Review[]> => {
   try {
@@ -128,7 +142,7 @@ export const fetchReviewsForBusiness = async (businessName: string): Promise<Rev
       return [];
     }
     
-    // Process reviews for backward compatibility
+    // Process reviews to normalize data structure
     const processedReviews = data.map(review => {
       const business = review.businesses as any;
       return {
@@ -148,7 +162,45 @@ export const fetchReviewsForBusiness = async (businessName: string): Promise<Rev
 };
 
 /**
+ * Fetch reviews with optional filtering
+ * 
+ * @param {string} [businessName] - Optional business name filter
+ * @param {Date} [startDate] - Optional start date filter  
+ * @param {Date} [endDate] - Optional end date filter
+ * @returns {Promise<Review[]>} Array of filtered reviews
+ */
+export const fetchFilteredReviews = async (
+  businessName?: string,
+  startDate?: Date,
+  endDate?: Date
+): Promise<Review[]> => {
+  try {
+    const allReviews = businessName && businessName !== "all" && businessName !== "All Businesses"
+      ? await fetchReviewsForBusiness(businessName)
+      : await fetchAllReviews();
+    
+    // Apply date filtering if provided
+    if (startDate || endDate) {
+      return allReviews.filter(review => {
+        const reviewDate = new Date(review.publishedAtDate || review.publishedatdate);
+        if (startDate && reviewDate < startDate) return false;
+        if (endDate && reviewDate > endDate) return false;
+        return true;
+      });
+    }
+    
+    return allReviews;
+  } catch (error) {
+    console.error('Failed to fetch filtered reviews:', error);
+    throw error;
+  }
+};
+
+/**
  * Get the latest recommendation for a business
+ * 
+ * @param {string} businessId - Business ID
+ * @returns {Promise<any | null>} Latest recommendation or null if none found
  */
 export const getLatestRecommendation = async (businessId: string): Promise<any | null> => {
   try {
@@ -181,6 +233,10 @@ export const getLatestRecommendation = async (businessId: string): Promise<any |
 
 /**
  * Save a recommendation for a business
+ * 
+ * @param {string} businessId - Business ID
+ * @param {Recommendations} recommendations - Recommendation data to save
+ * @returns {Promise<boolean>} Success status
  */
 export const saveRecommendation = async (businessId: string, recommendations: Recommendations): Promise<boolean> => {
   try {
@@ -214,7 +270,9 @@ export const saveRecommendation = async (businessId: string, recommendations: Re
 };
 
 /**
- * Check if the database has the required tables
+ * Check if the database has the required tables and is accessible
+ * 
+ * @returns {Promise<boolean>} Database health status
  */
 export const checkDatabaseHealth = async (): Promise<boolean> => {
   try {
@@ -229,50 +287,4 @@ export const checkDatabaseHealth = async (): Promise<boolean> => {
     console.error('Database health check failed:', error);
     return false;
   }
-};
-
-// Legacy compatibility exports (now simplified)
-export const fetchAvailableTables = async () => {
-  // Return empty array since we no longer use legacy tables
-  return [];
-};
-
-export const fetchPaginatedReviews = async (
-  page: number = 0,
-  pageSize: number = 1000,
-  businessName?: string,
-  startDate?: Date,
-  endDate?: Date
-): Promise<{ data: Review[], total: number, hasMore: boolean }> => {
-  // For compatibility, just return all reviews
-  try {
-    const allReviews = businessName && businessName !== "all" && businessName !== "All Businesses"
-      ? await fetchReviewsForBusiness(businessName)
-      : await fetchAllReviews();
-    
-    // Apply date filtering if provided
-    let filteredReviews = allReviews;
-    if (startDate || endDate) {
-      filteredReviews = allReviews.filter(review => {
-        const reviewDate = new Date(review.publishedAtDate || review.publishedatdate);
-        if (startDate && reviewDate < startDate) return false;
-        if (endDate && reviewDate > endDate) return false;
-        return true;
-      });
-    }
-    
-    return {
-      data: filteredReviews,
-      total: filteredReviews.length,
-      hasMore: false // No pagination needed for small datasets
-    };
-  } catch (error) {
-    console.error('Failed to fetch paginated reviews:', error);
-    return { data: [], total: 0, hasMore: false };
-  }
-};
-
-// Remove complex caching since it's not needed for small datasets
-export const clearAllCaches = () => {
-  console.log("Cache clearing is no longer needed with simplified architecture");
 };

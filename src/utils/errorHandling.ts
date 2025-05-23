@@ -15,6 +15,13 @@ export enum ErrorType {
   CLIENT = 'CLIENT'
 }
 
+// Backward compatibility - Error severity enum
+export enum ErrorSeverity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high'
+}
+
 // Simple custom error class
 export class AppError extends Error {
   public readonly type: ErrorType;
@@ -25,6 +32,17 @@ export class AppError extends Error {
     this.name = 'AppError';
     this.type = type;
     this.timestamp = new Date();
+  }
+}
+
+// Backward compatibility - Error boundary error class
+export class ErrorBoundaryError extends AppError {
+  constructor(message: string, originalError?: Error) {
+    super(message, ErrorType.CLIENT);
+    this.name = 'ErrorBoundaryError';
+    if (originalError) {
+      this.stack = originalError.stack;
+    }
   }
 }
 
@@ -47,6 +65,28 @@ export function logError(error: Error | AppError, context?: string): void {
       break;
     default:
       appLogger.error(`Client Error${contextStr}:`, error.message);
+  }
+}
+
+// Backward compatibility - errorLogger alias
+export const errorLogger = {
+  error: (message: string, ...args: any[]) => appLogger.error(message, ...args),
+  warn: (message: string, ...args: any[]) => appLogger.warn(message, ...args),
+  info: (message: string, ...args: any[]) => appLogger.info(message, ...args),
+  debug: (message: string, ...args: any[]) => appLogger.debug(message, ...args),
+};
+
+// Backward compatibility - handleError function
+export function handleError(error: Error | AppError, context?: string): void {
+  logError(error, context);
+}
+
+// Backward compatibility - setupAdvancedErrorHandling function
+export function setupAdvancedErrorHandling(): void {
+  // Simplified implementation - just ensure global handlers are set
+  if (typeof window !== 'undefined') {
+    // These are already set up below, so this is a no-op
+    appLogger.info('Advanced error handling initialized (simplified)');
   }
 }
 
@@ -137,7 +177,12 @@ if (typeof window !== 'undefined') {
 export default {
   AppError,
   ErrorType,
+  ErrorSeverity,
+  ErrorBoundaryError,
   logError,
+  errorLogger,
+  handleError,
+  setupAdvancedErrorHandling,
   handleAsyncError,
   safeExecute,
   getUserFriendlyMessage,

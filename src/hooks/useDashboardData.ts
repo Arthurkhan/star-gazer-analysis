@@ -37,15 +37,6 @@ interface DashboardDataReturn {
   // Stats
   totalReviewCount: number;
   lastFetched: number;
-  
-  // Backward compatibility
-  loadingMore: boolean;
-  hasMoreData: boolean;
-  allPagesLoaded: boolean;
-  autoLoadingComplete: boolean;
-  currentPage: number;
-  pageSize: number;
-  loadMoreData: () => void;
 }
 
 /**
@@ -65,7 +56,7 @@ interface DashboardDataConfig {
 /**
  * # Dashboard Data Hook
  * 
- * **Phase 5 Optimized Hook** - A comprehensive data management hook for the Star-Gazer Analysis dashboard.
+ * **Phase 0 Optimized Hook** - A comprehensive data management hook for the Star-Gazer Analysis dashboard.
  * This hook provides centralized data fetching, state management, and business logic for the main dashboard.
  * 
  * ## Key Features
@@ -77,7 +68,7 @@ interface DashboardDataConfig {
  * 
  * ## Performance Optimizations
  * - **Memoized computed values** - Prevents unnecessary recalculations
- * - **Efficient pagination** - Fetches all data in chunks to overcome API limits
+ * - **Efficient data loading** - Fetches all data in chunks to overcome API limits
  * - **Smart filtering** - Client-side filtering for fast business switching
  * - **Performance monitoring** - Tracks execution times in development mode
  * 
@@ -86,7 +77,7 @@ interface DashboardDataConfig {
  * useDashboardData
  * ├── Core State (loading, error, businesses, reviews)
  * ├── Computed Values (filteredReviews, businessStats, businessData)
- * ├── Data Fetching (pagination-based loading)
+ * ├── Data Fetching (efficient chunked loading)
  * └── Actions (business selection, refresh, etc.)
  * ```
  * 
@@ -161,7 +152,7 @@ interface DashboardDataConfig {
  * ```
  * 
  * @author Star-Gazer Analysis Team
- * @version 5.0.0 - Phase 5 Performance & Polish
+ * @version 0.1.0 - Phase 0 Cleanup
  * @since 1.0.0
  */
 export function useDashboardData(config: DashboardDataConfig = {}): DashboardDataReturn {
@@ -286,21 +277,21 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
   }, [filteredReviews, selectedBusiness, enablePerformanceMonitoring]);
 
   /**
-   * Fetch all reviews using pagination to overcome Supabase row limits
+   * Fetch all reviews using efficient chunked loading to overcome Supabase row limits
    * 
-   * This function implements efficient pagination to load all reviews from the database.
-   * It fetches data in configurable chunks and processes them for optimal performance.
+   * This function implements efficient data loading in configurable chunks.
+   * It fetches data and processes them for optimal performance.
    * 
    * @private
    * @returns {Promise<Review[]>} Array of all reviews from the database
    * @throws {Error} Database or network errors
    */
-  const fetchAllReviewsWithPagination = async (): Promise<Review[]> => {
+  const fetchAllReviewsWithChunking = async (): Promise<Review[]> => {
     const stopMeasurement = enablePerformanceMonitoring 
       ? PerformanceMonitor.startMeasurement('fetch-all-reviews')
       : () => 0;
     
-    console.log("🔍 Starting to fetch ALL reviews using pagination...");
+    console.log("🔍 Starting to fetch ALL reviews using chunked loading...");
     
     let allReviews: Review[] = [];
     let currentPage = 0;
@@ -321,7 +312,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       const startRow = currentPage * pageSize;
       const endRow = startRow + pageSize - 1;
       
-      console.log(`📄 Fetching page ${currentPage + 1} (rows ${startRow + 1}-${endRow + 1})...`);
+      console.log(`📄 Fetching chunk ${currentPage + 1} (rows ${startRow + 1}-${endRow + 1})...`);
       
       const { data: pageData, error } = await supabase
         .from('reviews')
@@ -337,17 +328,17 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
         .range(startRow, endRow);
       
       if (error) {
-        console.error(`❌ Error fetching page ${currentPage + 1}:`, error);
+        console.error(`❌ Error fetching chunk ${currentPage + 1}:`, error);
         throw error;
       }
       
       if (!pageData || pageData.length === 0) {
-        console.log(`✅ No more data on page ${currentPage + 1}, stopping...`);
+        console.log(`✅ No more data in chunk ${currentPage + 1}, stopping...`);
         hasMore = false;
         break;
       }
       
-      console.log(`✅ Page ${currentPage + 1}: Got ${pageData.length} reviews`);
+      console.log(`✅ Chunk ${currentPage + 1}: Got ${pageData.length} reviews`);
       
       // Process and normalize review data
       const processedPageData = pageData.map(review => {
@@ -372,7 +363,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     }
     
     if (currentPage >= maxPages) {
-      console.warn(`⚠️ Safety limit reached (${maxPages} pages), stopping fetch`);
+      console.warn(`⚠️ Safety limit reached (${maxPages} chunks), stopping fetch`);
     }
     
     console.log(`🎉 Finished fetching! Total reviews collected: ${allReviews.length}`);
@@ -437,8 +428,8 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       setBusinesses(businessesData);
       console.log(`✅ Loaded ${businessesData.length} businesses`);
       
-      // Load all reviews using pagination
-      const allReviewsData = await fetchAllReviewsWithPagination();
+      // Load all reviews using chunked loading
+      const allReviewsData = await fetchAllReviewsWithChunking();
       
       setAllReviews(allReviewsData);
       setLastFetched(Date.now());
@@ -548,14 +539,5 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     // Statistics
     totalReviewCount: filteredReviews.length,
     lastFetched,
-    
-    // Backward compatibility props
-    loadingMore: false,
-    hasMoreData: false,
-    allPagesLoaded: true,
-    autoLoadingComplete: true,
-    currentPage: 0,
-    pageSize: allReviews.length,
-    loadMoreData: () => {}, // No-op since we load all data at once
   };
 }

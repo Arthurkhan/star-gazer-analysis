@@ -19,6 +19,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
+import { CustomBarLineTooltip, CustomPieTooltip } from '@/components/review-analysis/CustomTooltips';
 
 // Define the props interface based on the enhancedAnalysis structure
 interface EnhancedAnalysisDisplayProps {
@@ -130,7 +131,7 @@ export function EnhancedAnalysisDisplay({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="day" />
                       <YAxis />
-                      <Tooltip />
+                      <Tooltip content={<CustomBarLineTooltip />} />
                       <Legend />
                       <Bar dataKey="count" name="Reviews" fill="#8884d8" />
                     </RechartsBarChart>
@@ -160,7 +161,7 @@ export function EnhancedAnalysisDisplay({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="time" />
                       <YAxis />
-                      <Tooltip />
+                      <Tooltip content={<CustomBarLineTooltip />} />
                       <Legend />
                       <Bar dataKey="count" name="Reviews" fill="#00C49F" />
                     </RechartsBarChart>
@@ -194,7 +195,7 @@ export function EnhancedAnalysisDisplay({
                     <XAxis dataKey="period" />
                     <YAxis yAxisId="left" />
                     <YAxis yAxisId="right" orientation="right" domain={[0, 5]} />
-                    <Tooltip />
+                    <Tooltip content={<CustomBarLineTooltip />} />
                     <Legend />
                     <Line 
                       yAxisId="left"
@@ -250,7 +251,7 @@ export function EnhancedAnalysisDisplay({
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip content={<CustomPieTooltip />} />
                       <Legend />
                     </RechartsPieChart>
                   </ResponsiveContainer>
@@ -327,7 +328,7 @@ export function EnhancedAnalysisDisplay({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="season" />
                       <YAxis />
-                      <Tooltip />
+                      <Tooltip content={<CustomBarLineTooltip />} />
                       <Legend />
                       <Bar dataKey="count" name="Reviews" fill="#FFBB28" />
                     </RechartsBarChart>
@@ -357,7 +358,7 @@ export function EnhancedAnalysisDisplay({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="season" />
                       <YAxis domain={[0, 5]} />
-                      <Tooltip />
+                      <Tooltip content={<CustomBarLineTooltip />} />
                       <Legend />
                       <Bar dataKey="avgRating" name="Average Rating" fill="#FF8042" />
                     </RechartsBarChart>

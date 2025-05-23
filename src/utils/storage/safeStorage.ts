@@ -1,7 +1,7 @@
 // src/utils/storage/safeStorage.ts
 // Safe storage utilities to prevent localStorage and sessionStorage errors
 
-import { handleError, ErrorSeverity } from '@/utils/errorHandling';
+import { handleError, logError, AppError, ErrorType } from '@/utils/errorHandling';
 
 /**
  * Safely interact with localStorage with fallback mechanisms
@@ -25,10 +25,7 @@ class SafeLocalStorage {
       this.available = true;
     } catch (e) {
       this.available = false;
-      handleError(e, {
-        module: 'SafeLocalStorage',
-        operation: 'Availability check'
-      }, ErrorSeverity.WARNING, false);
+      logError(e as Error, 'SafeLocalStorage.checkAvailability');
     }
   }
   
@@ -43,11 +40,7 @@ class SafeLocalStorage {
         return this.memoryFallback.get(key) || null;
       }
     } catch (e) {
-      handleError(e, {
-        module: 'SafeLocalStorage',
-        operation: 'getItem',
-        data: { key }
-      }, ErrorSeverity.WARNING, false);
+      logError(e as Error, `SafeLocalStorage.getItem(${key})`);
       return this.memoryFallback.get(key) || null;
     }
   }
@@ -78,20 +71,12 @@ class SafeLocalStorage {
         } catch (retryError) {
           // Fall back to memory storage only
           this.memoryFallback.set(key, value);
-          handleError(retryError, {
-            module: 'SafeLocalStorage',
-            operation: 'setItem (retry)',
-            data: { key }
-          }, ErrorSeverity.WARNING, true);
+          logError(retryError as Error, `SafeLocalStorage.setItem.retry(${key})`);
         }
       } else {
         // Other errors - fall back to memory storage
         this.memoryFallback.set(key, value);
-        handleError(e, {
-          module: 'SafeLocalStorage',
-          operation: 'setItem',
-          data: { key }
-        }, ErrorSeverity.WARNING, false);
+        logError(e as Error, `SafeLocalStorage.setItem(${key})`);
       }
     }
   }
@@ -106,11 +91,7 @@ class SafeLocalStorage {
       }
       this.memoryFallback.delete(key);
     } catch (e) {
-      handleError(e, {
-        module: 'SafeLocalStorage',
-        operation: 'removeItem',
-        data: { key }
-      }, ErrorSeverity.WARNING, false);
+      logError(e as Error, `SafeLocalStorage.removeItem(${key})`);
     }
   }
   
@@ -125,10 +106,7 @@ class SafeLocalStorage {
         return Array.from(this.memoryFallback.keys());
       }
     } catch (e) {
-      handleError(e, {
-        module: 'SafeLocalStorage',
-        operation: 'getKeys'
-      }, ErrorSeverity.WARNING, false);
+      logError(e as Error, 'SafeLocalStorage.getKeys');
       return Array.from(this.memoryFallback.keys());
     }
   }
@@ -143,10 +121,7 @@ class SafeLocalStorage {
       }
       this.memoryFallback.clear();
     } catch (e) {
-      handleError(e, {
-        module: 'SafeLocalStorage',
-        operation: 'clear'
-      }, ErrorSeverity.WARNING, false);
+      logError(e as Error, 'SafeLocalStorage.clear');
     }
   }
   
@@ -160,11 +135,7 @@ class SafeLocalStorage {
     try {
       return JSON.parse(value) as T;
     } catch (e) {
-      handleError(e, {
-        module: 'SafeLocalStorage',
-        operation: 'getJSON',
-        data: { key }
-      }, ErrorSeverity.WARNING, false);
+      logError(e as Error, `SafeLocalStorage.getJSON(${key})`);
       return defaultValue;
     }
   }
@@ -177,11 +148,7 @@ class SafeLocalStorage {
       const stringValue = JSON.stringify(value);
       this.setItem(key, stringValue);
     } catch (e) {
-      handleError(e, {
-        module: 'SafeLocalStorage',
-        operation: 'setJSON',
-        data: { key }
-      }, ErrorSeverity.WARNING, false);
+      logError(e as Error, `SafeLocalStorage.setJSON(${key})`);
     }
   }
   
@@ -207,10 +174,7 @@ class SafeLocalStorage {
         keys.slice(0, removeCount).forEach(key => localStorage.removeItem(key));
       }
     } catch (e) {
-      handleError(e, {
-        module: 'SafeLocalStorage',
-        operation: 'removeOldItems'
-      }, ErrorSeverity.WARNING, false);
+      logError(e as Error, 'SafeLocalStorage.removeOldItems');
     }
   }
 }

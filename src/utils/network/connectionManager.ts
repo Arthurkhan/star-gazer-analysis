@@ -1,8 +1,9 @@
 // src/utils/network/connectionManager.ts
 // Network connection monitoring and handling
 
-import { handleError, ErrorSeverity } from '@/utils/errorHandling';
+import { handleError, logError, AppError, ErrorType } from '@/utils/errorHandling';
 import { toast } from '@/hooks/use-toast';
+import React from 'react';
 
 // Event types
 export enum ConnectionEventType {
@@ -114,7 +115,6 @@ class ConnectionManager {
       toast({
         title: 'Connection Restored',
         description: 'You are back online.',
-        variant: 'success'
       });
     }
   }
@@ -145,7 +145,6 @@ class ConnectionManager {
       toast({
         title: 'Slow Connection Detected',
         description: 'You may experience slower loading times.',
-        variant: 'warning'
       });
     } else if (wasSlowConnection && !isSlowConnection) {
       this.notifyListeners(ConnectionEventType.CONNECTION_RECOVERED);
@@ -154,7 +153,6 @@ class ConnectionManager {
       toast({
         title: 'Connection Improved',
         description: 'Your connection speed has improved.',
-        variant: 'success'
       });
     }
   }
@@ -231,10 +229,7 @@ class ConnectionManager {
       }
     } catch (error) {
       // Error making the request might indicate network issues
-      handleError(error, {
-        module: 'ConnectionManager',
-        operation: 'measureNetworkQuality'
-      }, ErrorSeverity.WARNING, false);
+      logError(error as Error, 'ConnectionManager.measureNetworkQuality');
     }
   }
 
@@ -246,10 +241,7 @@ class ConnectionManager {
       try {
         listener({ ...this.connectionState }, eventType);
       } catch (error) {
-        handleError(error, {
-          module: 'ConnectionManager',
-          operation: 'notifyListeners'
-        }, ErrorSeverity.WARNING, false);
+        logError(error as Error, 'ConnectionManager.notifyListeners');
       }
     }
   }

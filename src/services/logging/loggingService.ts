@@ -1,7 +1,7 @@
 // src/services/logging/loggingService.ts
 // Centralized logging service for application monitoring
 
-import { appDebugger } from '@/utils/debugger';
+import { appLogger } from '@/utils/logger';
 import { safeLocalStorage } from '@/utils/storage/safeStorage';
 import { ErrorSeverity } from '@/utils/errorHandling';
 
@@ -79,7 +79,7 @@ export class LoggingService {
     });
 
     this.isInitialized = true;
-    appDebugger.info('Logging service initialized');
+    appLogger.info('Logging service initialized');
   }
 
   /**
@@ -87,7 +87,7 @@ export class LoggingService {
    */
   public logError(
     message: string,
-    severity: ErrorSeverity = ErrorSeverity.ERROR,
+    severity: ErrorSeverity = ErrorSeverity.HIGH,
     metadata: any = {}
   ): void {
     const errorEvent: ErrorEvent = {
@@ -98,7 +98,7 @@ export class LoggingService {
     };
 
     // Add to appropriate buffer based on severity
-    if (severity === ErrorSeverity.ERROR || severity === ErrorSeverity.CRITICAL) {
+    if (severity === ErrorSeverity.HIGH) {
       this.errorBuffer.push(errorEvent);
 
       // Trim if buffer exceeds max size
@@ -117,23 +117,20 @@ export class LoggingService {
     // Output to console if enabled
     if (this.consoleOutput) {
       switch (severity) {
-        case ErrorSeverity.INFO:
-          appDebugger.info(message, metadata);
+        case ErrorSeverity.LOW:
+          appLogger.info(message, metadata);
           break;
-        case ErrorSeverity.WARNING:
-          appDebugger.warn(message, metadata);
+        case ErrorSeverity.MEDIUM:
+          appLogger.warn(message, metadata);
           break;
-        case ErrorSeverity.ERROR:
-          appDebugger.error(message, metadata);
-          break;
-        case ErrorSeverity.CRITICAL:
-          appDebugger.error(`CRITICAL: ${message}`, metadata);
+        case ErrorSeverity.HIGH:
+          appLogger.error(message, metadata);
           break;
       }
     }
 
-    // Auto-flush on critical errors
-    if (severity === ErrorSeverity.CRITICAL) {
+    // Auto-flush on high severity errors
+    if (severity === ErrorSeverity.HIGH) {
       this.flush();
     }
   }
@@ -148,7 +145,7 @@ export class LoggingService {
     // Here you would also send logs to server if implemented
     // this.sendLogsToServer();
 
-    appDebugger.info('Logs flushed', {
+    appLogger.info('Logs flushed', {
       errorCount: this.errorBuffer.length,
       warningCount: this.warningBuffer.length
     });
@@ -174,10 +171,9 @@ export class LoggingService {
   public getErrorStats(): any {
     const moduleStats = new Map<string, number>();
     const severityCounts = {
-      [ErrorSeverity.INFO]: 0,
-      [ErrorSeverity.WARNING]: 0,
-      [ErrorSeverity.ERROR]: 0,
-      [ErrorSeverity.CRITICAL]: 0,
+      [ErrorSeverity.LOW]: 0,
+      [ErrorSeverity.MEDIUM]: 0,
+      [ErrorSeverity.HIGH]: 0,
     };
 
     // Process error buffer
@@ -212,7 +208,7 @@ export class LoggingService {
     this.errorBuffer = [];
     this.warningBuffer = [];
     this.persistLogsToStorage();
-    appDebugger.info('Logs cleared');
+    appLogger.info('Logs cleared');
   }
 
   /**
@@ -229,7 +225,7 @@ export class LoggingService {
       safeLocalStorage.setJSON('error_logs', errorsToSave);
       safeLocalStorage.setJSON('warning_logs', warningsToSave);
     } catch (error) {
-      appDebugger.error('Failed to persist logs to storage', error);
+      appLogger.error('Failed to persist logs to storage', error);
     }
   }
 
@@ -244,12 +240,12 @@ export class LoggingService {
       this.errorBuffer = savedErrors;
       this.warningBuffer = savedWarnings;
 
-      appDebugger.info('Loaded persisted logs', {
+      appLogger.info('Loaded persisted logs', {
         errorCount: savedErrors.length,
         warningCount: savedWarnings.length
       });
     } catch (error) {
-      appDebugger.error('Failed to load persisted logs', error);
+      appLogger.error('Failed to load persisted logs', error);
     }
   }
 

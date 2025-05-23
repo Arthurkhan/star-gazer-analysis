@@ -18,9 +18,14 @@ import {
   EyeOff,
   Maximize,
   Grid,
-  BarChart3
+  BarChart3,
+  Shield,
+  Filter,
+  GitCompare,
+  X
 } from "lucide-react";
 import { Review } from "@/types/reviews";
+import { BusinessType } from "@/types/businessTypes";
 import { AnalysisSummaryData, AnalysisConfig } from "@/types/analysisSummary";
 import { generateAnalysisSummary } from "@/utils/analysisUtils";
 import { ExecutiveSummaryCard } from "./ExecutiveSummaryCard";
@@ -33,11 +38,14 @@ import { ActionItemsSection } from "./ActionItemsSection";
 import { InteractiveCharts } from "./InteractiveCharts";
 import { ExportManager } from "./ExportManager";
 import { DashboardCustomizer } from "./DashboardCustomizer";
+import { AlertSystem } from "./AlertSystem";
+import { ComparativeAnalysis } from "./ComparativeAnalysis";
+import { AdvancedFilters, FilterCriteria } from "./AdvancedFilters";
 
 interface AnalysisSummaryProps {
   reviews: Review[];
   businessName?: string;
-  businessType?: string;
+  businessType?: BusinessType;
   loading?: boolean;
   config?: AnalysisConfig;
   className?: string;
@@ -66,7 +74,7 @@ const DEFAULT_VIEW_CONFIG: ViewConfig = {
 export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
   reviews,
   businessName = "Current Business",
-  businessType = "business",
+  businessType = "CAFE",
   loading = false,
   config = {
     timePeriod: "all",
@@ -86,22 +94,32 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [showExportManager, setShowExportManager] = useState(false);
   const [showInteractiveCharts, setShowInteractiveCharts] = useState(false);
+  const [showAlertSystem, setShowAlertSystem] = useState(false);
+  const [showComparativeAnalysis, setShowComparativeAnalysis] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filteredReviews, setFilteredReviews] = useState<Review[]>(reviews);
+  const [activeFilters, setActiveFilters] = useState<FilterCriteria | null>(null);
   const [fullscreenSection, setFullscreenSection] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
+  // Use filtered reviews for analysis
+  const reviewsForAnalysis = useMemo(() => {
+    return filteredReviews.length > 0 ? filteredReviews : reviews;
+  }, [filteredReviews, reviews]);
+
   // Generate analysis data with performance optimization
   const analysisData: AnalysisSummaryData | null = useMemo(() => {
-    if (!reviews || reviews.length === 0) return null;
+    if (!reviewsForAnalysis || reviewsForAnalysis.length === 0) return null;
     
     try {
-      const data = generateAnalysisSummary(reviews, config);
+      const data = generateAnalysisSummary(reviewsForAnalysis, config);
       return { ...data, dataSource: { ...data.dataSource, businessName } };
     } catch (error) {
       console.error("Error generating analysis summary:", error);
       return null;
     }
-  }, [reviews, config, businessName]);
+  }, [reviewsForAnalysis, config, businessName]);
 
   // Handle refresh functionality
   const handleRefresh = useCallback(async () => {
@@ -133,6 +151,12 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
   // Toggle fullscreen for sections
   const toggleFullscreen = useCallback((sectionId: string) => {
     setFullscreenSection(current => current === sectionId ? null : sectionId);
+  }, []);
+
+  // Handle filter changes
+  const handleFiltersChange = useCallback((filtered: Review[], criteria: FilterCriteria) => {
+    setFilteredReviews(filtered);
+    setActiveFilters(criteria);
   }, []);
 
   // Get layout styles based on configuration
@@ -351,6 +375,12 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
               <span className="text-sm text-muted-foreground">
                 ({analysisData.dataSource.totalReviews} reviews analyzed)
               </span>
+              {activeFilters && (
+                <Badge variant="secondary" className="ml-2">
+                  <Filter className="h-3 w-3 mr-1" />
+                  Filtered
+                </Badge>
+              )}
               {autoRefresh && (
                 <Badge variant="secondary" className="ml-2">
                   <RefreshCw className="h-3 w-3 mr-1" />
@@ -365,7 +395,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
           </CardTitle>
           
           {/* Control buttons */}
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex items-center gap-2 mt-4 flex-wrap">
             {onRefresh && (
               <Button
                 variant="outline"
@@ -377,6 +407,33 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
                 Refresh
               </Button>
             )}
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAdvancedFilters(true)}
+            >
+              <Filter className="h-4 w-4 mr-1" />
+              Filters
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowComparativeAnalysis(true)}
+            >
+              <GitCompare className="h-4 w-4 mr-1" />
+              Compare
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAlertSystem(true)}
+            >
+              <Shield className="h-4 w-4 mr-1" />
+              Alerts
+            </Button>
             
             {exportable && (
               <Button
@@ -441,17 +498,72 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
       </Card>
 
       {/* Modals/Dialogs */}
+      {showAdvancedFilters && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
+          <div className="container mx-auto p-6 h-full overflow-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Advanced Filters</h2>
+              <Button variant="outline" onClick={() => setShowAdvancedFilters(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <AdvancedFilters
+              reviews={reviews}
+              onFiltersChange={handleFiltersChange}
+              showResultCount={true}
+              enablePresets={true}
+            />
+          </div>
+        </div>
+      )}
+
+      {showComparativeAnalysis && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
+          <div className="container mx-auto p-6 h-full overflow-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Comparative Analysis</h2>
+              <Button variant="outline" onClick={() => setShowComparativeAnalysis(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <ComparativeAnalysis
+              reviews={reviewsForAnalysis}
+              businessName={businessName}
+              businessType={businessType}
+            />
+          </div>
+        </div>
+      )}
+
+      {showAlertSystem && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
+          <div className="container mx-auto p-6 h-full overflow-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Performance Alert System</h2>
+              <Button variant="outline" onClick={() => setShowAlertSystem(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <AlertSystem
+              reviews={reviewsForAnalysis}
+              businessName={businessName}
+              businessType={businessType}
+            />
+          </div>
+        </div>
+      )}
+
       {showInteractiveCharts && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
           <div className="container mx-auto p-6 h-full overflow-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Interactive Charts</h2>
               <Button variant="outline" onClick={() => setShowInteractiveCharts(false)}>
-                <EyeOff className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
             <InteractiveCharts
-              reviews={reviews}
+              reviews={reviewsForAnalysis}
               analysisData={analysisData}
               refreshData={onRefresh}
               autoRefresh={autoRefresh}
@@ -466,11 +578,11 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Export Manager</h2>
               <Button variant="outline" onClick={() => setShowExportManager(false)}>
-                <EyeOff className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
             <ExportManager
-              reviews={reviews}
+              reviews={reviewsForAnalysis}
               businessName={businessName}
               businessType={businessType}
             />
@@ -484,7 +596,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Dashboard Customizer</h2>
               <Button variant="outline" onClick={() => setShowCustomizer(false)}>
-                <EyeOff className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
             <DashboardCustomizer

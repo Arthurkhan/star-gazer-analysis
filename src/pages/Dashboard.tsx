@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useRecommendations } from "@/hooks/useRecommendations";
-import { BusinessType } from "@/types/businessTypes";
+import { getBusinessTypeFromName } from "@/types/BusinessMappings";
 import { Sparkles, RefreshCw, BarChart3, GitCompare, Mail as MailIcon } from "lucide-react";
 import { DatabaseErrorDisplay } from "@/components/diagnostic/DatabaseErrorDisplay";
 import { MissingEnvAlert } from "@/components/diagnostic/MissingEnvAlert";
@@ -20,6 +20,7 @@ import { NoReviewsAlert } from "@/components/diagnostic/NoReviewsAlert";
 /**
  * Simplified Dashboard Component
  * Phase 2: Reduced complexity, minimal state management, removed DashboardContext
+ * v1.2: Automatic business type detection from business name
  */
 const Dashboard = () => {
   // Single state variable for tab management
@@ -42,7 +43,12 @@ const Dashboard = () => {
   const filteredReviews = getFilteredReviews();
   const chartData = getChartData(filteredReviews);
 
-  // Recommendations data (simplified)
+  // Automatically determine business type from selected business name
+  const businessType = selectedBusiness === "all" 
+    ? "other" 
+    : getBusinessTypeFromName(selectedBusiness);
+
+  // Recommendations data (now using automatic business type)
   const {
     recommendations,
     loading: recommendationsLoading,
@@ -51,7 +57,7 @@ const Dashboard = () => {
   } = useRecommendations({
     businessData: { ...businessData, reviews: filteredReviews },
     selectedBusiness,
-    businessType: BusinessType.OTHER, // Simplified - no dynamic business type
+    businessType, // Using automatically determined business type
   });
   
   // Check if we have no reviews to display
@@ -87,14 +93,12 @@ const Dashboard = () => {
         />
       )}
 
-      {/* Business Selector and Action Buttons */}
+      {/* Business Selector and Action Buttons - Updated props */}
       <div className="flex justify-between items-center gap-4 mb-6 w-full">
         <BusinessSelector
           selectedBusiness={selectedBusiness}
           onBusinessChange={handleBusinessChange}
           businessData={businessData}
-          businessType={BusinessType.OTHER} // Simplified - static business type
-          onBusinessTypeChange={() => {}} // Simplified - no business type change
           className="flex-1"
         />
         <div className="flex gap-2">
@@ -111,7 +115,7 @@ const Dashboard = () => {
           {enhancedAnalysis && (
             <ExportButton
               businessName={selectedBusiness}
-              businessType={BusinessType.OTHER}
+              businessType={businessType}
               data={enhancedAnalysis}
               dateRange={dateRange}
               disabled={!selectedBusiness || selectedBusiness === "all"}
@@ -204,12 +208,12 @@ const Dashboard = () => {
           />
         </TabsContent>
         
-        {/* Notifications Tab */}
+        {/* Notifications Tab - Using automatic business type */}
         <TabsContent value="notifications" className="mt-6">
           {selectedBusiness && selectedBusiness !== "all" ? (
             <EmailSettingsForm
               businessName={selectedBusiness}
-              businessType={BusinessType.OTHER}
+              businessType={businessType}
             />
           ) : (
             <div className="text-center p-10 space-y-4">

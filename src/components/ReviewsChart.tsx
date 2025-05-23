@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { MonthlyReviewData } from "@/types/reviews";
+import { CustomBarLineTooltip } from "@/components/review-analysis/CustomTooltips";
 
 interface ReviewsChartProps {
   data: MonthlyReviewData[];
@@ -62,13 +63,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                   allowDecimals={false}
                 />
                 <Tooltip 
-                  formatter={(value) => [`${value} reviews`, 'Monthly Count']}
-                  labelFormatter={(label) => `${label}`}
-                  contentStyle={{ 
-                    borderRadius: '6px', 
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                    border: '1px solid #eee' 
-                  }}
+                  content={<CustomBarLineTooltip />}
                 />
                 <Legend 
                   verticalAlign="top" 
@@ -117,13 +112,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                   allowDecimals={false}
                 />
                 <Tooltip 
-                  formatter={(value) => [`${value} reviews`, 'Monthly Count']}
-                  labelFormatter={(label) => `${label}`}
-                  contentStyle={{ 
-                    borderRadius: '6px',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                    border: '1px solid #eee'
-                  }}
+                  content={<CustomBarLineTooltip />}
                 />
                 <Legend 
                   verticalAlign="top" 

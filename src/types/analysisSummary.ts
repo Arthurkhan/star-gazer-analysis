@@ -1,242 +1,117 @@
+/**
+ * Simplified Analysis Summary Types - Phase 1 Consolidation
+ * 
+ * Reduces 17 interfaces to 4 essential ones, using TypeScript inference
+ * where possible and avoiding over-typing
+ */
+
 import { Review } from "./reviews";
 
-// Business health score components
-export interface BusinessHealthScore {
-  overall: number; // 0-100 score
-  ratingTrend: number; // -100 to 100 (negative = declining, positive = improving)
-  sentimentScore: number; // 0-100 based on positive sentiment percentage
-  responseRate: number; // 0-100 percentage of reviews with owner responses
-  volumeTrend: number; // -100 to 100 (review volume trend)
-  breakdown: {
-    rating: number;
-    sentiment: number;
-    response: number;
-    volume: number;
-  };
-}
-
-// Performance metrics over time
-export interface PerformanceMetrics {
+// Core business metrics (consolidates health score, performance, ratings, sentiment)
+export interface BusinessMetrics {
+  // Core scores
+  healthScore: number; // 0-100 overall business health
+  averageRating: number;
   totalReviews: number;
-  reviewsPerMonth: number;
-  growthRate: number; // percentage change from previous period
-  peakMonth: string;
-  peakYear: string;
-  recentActivity: {
-    last3Months: number;
-    last6Months: number;
-    last12Months: number;
-  };
+  responseRate: number; // 0-100 percentage
+  
+  // Trends (simple direction indicators)
   trends: {
-    isGrowing: boolean;
-    seasonalPattern: "stable" | "seasonal" | "declining" | "growing";
-    bestPeriods: string[];
-    worstPeriods: string[];
+    rating: 'up' | 'down' | 'stable';
+    volume: 'growing' | 'declining' | 'stable';
+    sentiment: 'improving' | 'declining' | 'stable';
+  };
+  
+  // Distributions (flexible data structure)
+  distributions: {
+    ratings: Record<number, number>; // star rating -> count
+    sentiment: { positive: number; neutral: number; negative: number };
+    languages?: Record<string, number>; // language -> count
   };
 }
 
-// Rating analysis
-export interface RatingAnalysis {
-  distribution: Record<number, { count: number; percentage: number }>;
-  trends: {
-    current: number;
-    previous: number;
-    change: number;
-    direction: "up" | "down" | "stable";
-  };
-  benchmarks: {
-    excellent: number; // 4.5+ percentage
-    good: number; // 4.0+ percentage
-    needsImprovement: number; // Below 3.0 percentage
-  };
-}
-
-// Response analytics
-export interface ResponseAnalytics {
-  responseRate: number;
-  responsesByRating: Record<number, { total: number; responded: number; rate: number }>;
-  averageResponseTime?: number; // if available in future
-  responseEffectiveness: {
-    improvedSubsequentRatings: boolean;
-    customerSatisfactionImpact: number;
-  };
-}
-
-// Enhanced sentiment analysis
-export interface SentimentAnalysis {
-  distribution: {
-    positive: { count: number; percentage: number };
-    neutral: { count: number; percentage: number };
-    negative: { count: number; percentage: number };
-  };
-  trends: Array<{
-    period: string;
-    positive: number;
-    neutral: number;
-    negative: number;
-  }>;
-  correlationWithRating: {
-    highRating: { positive: number; negative: number }; // 4-5 stars
-    lowRating: { positive: number; negative: number }; // 1-2 stars
-  };
-}
-
-// Thematic analysis
-export interface ThematicAnalysis {
-  topCategories: Array<{
-    category: string;
-    count: number;
-    percentage: number;
-    averageRating: number;
-    sentiment: "positive" | "negative" | "neutral";
-  }>;
-  trendingTopics: Array<{
-    topic: string;
-    count: number;
-    trend: "rising" | "declining" | "stable";
-    recentMentions: number;
-  }>;
-  attentionAreas: Array<{
-    theme: string;
-    negativeCount: number;
-    averageRating: number;
-    urgency: "high" | "medium" | "low";
-  }>;
-}
-
-// Staff performance insights
-export interface StaffInsights {
-  mentions: Array<{
+// Analysis insights (consolidates thematic, staff, operational, action items)
+export interface AnalysisInsights {
+  // Top themes/categories mentioned in reviews
+  themes: Array<{
     name: string;
-    totalMentions: number;
-    positiveMentions: number;
-    negativeMentions: number;
-    averageRatingInMentions: number;
-    trend: "improving" | "declining" | "stable";
-    examples: string[];
-  }>;
-  overallStaffScore: number;
-  trainingOpportunities: string[];
-}
-
-// Operational insights
-export interface OperationalInsights {
-  languageDiversity: Array<{
-    language: string;
     count: number;
-    percentage: number;
-    averageRating: number;
+    sentiment: 'positive' | 'negative' | 'neutral';
+    rating?: number; // average rating for this theme
   }>;
-  reviewPatterns: {
-    peakDays: string[];
-    peakMonths: string[];
-    quietPeriods: string[];
+  
+  // Staff mentions (simplified)
+  staff: Array<{
+    name: string;
+    mentions: number;
+    sentiment: 'positive' | 'negative' | 'neutral';
+    examples: string[]; // up to 3 example review snippets
+  }>;
+  
+  // Action items (simplified priority system)
+  actions: {
+    urgent: string[]; // Critical issues requiring immediate attention
+    improvements: string[]; // Suggested improvements
+    strengths: string[]; // Things to leverage
   };
-  customerLoyalty: {
-    repeatReviewers: number;
-    loyaltyScore: number;
-    averageTimeBetweenVisits?: number;
+  
+  // Operational patterns (simplified)
+  patterns: {
+    peakPeriods: string[]; // When reviews are most frequent
+    languageDiversity: number; // Number of different languages
+    loyalCustomers: number; // Repeat reviewers count
   };
 }
 
-// Action items and recommendations
-export interface ActionItems {
-  urgent: Array<{
-    type: "unresponded_negative" | "trending_negative" | "staff_issue" | "operational_issue";
-    description: string;
-    priority: "critical" | "high" | "medium";
-    affectedReviews: number;
-    suggestedAction: string;
-  }>;
-  improvements: Array<{
-    area: string;
-    description: string;
-    potentialImpact: "high" | "medium" | "low";
-    effort: "low" | "medium" | "high";
-    suggestedActions: string[];
-  }>;
-  strengths: Array<{
-    area: string;
-    description: string;
-    leverageOpportunities: string[];
-  }>;
-  monitoring: Array<{
-    metric: string;
-    description: string;
-    targetValue: number;
-    currentValue: number;
-  }>;
-}
-
-// Time period configuration
-export interface TimePeriodConfig {
-  current: {
-    start: Date;
-    end: Date;
-    label: string;
-  };
-  previous: {
-    start: Date;
-    end: Date;
-    label: string;
-  };
-  comparison: "month" | "quarter" | "year" | "custom";
-}
-
-// Main analysis summary data structure
+// Main analysis data structure
 export interface AnalysisSummaryData {
-  businessHealthScore: BusinessHealthScore;
-  performanceMetrics: PerformanceMetrics;
-  ratingAnalysis: RatingAnalysis;
-  responseAnalytics: ResponseAnalytics;
-  sentimentAnalysis: SentimentAnalysis;
-  thematicAnalysis: ThematicAnalysis;
-  staffInsights: StaffInsights;
-  operationalInsights: OperationalInsights;
-  actionItems: ActionItems;
-  timePeriod: TimePeriodConfig;
+  metrics: BusinessMetrics;
+  insights: AnalysisInsights;
+  
+  // Meta information
   generatedAt: Date;
-  dataSource: {
-    totalReviews: number;
-    dateRange: {
-      start: Date;
-      end: Date;
-    };
-    businessName: string;
-  };
-}
-
-// Configuration options for analysis
-export interface AnalysisConfig {
-  timePeriod: "last30days" | "last90days" | "last6months" | "last12months" | "all" | "custom";
-  customRange?: {
+  businessName: string;
+  dateRange: {
     start: Date;
     end: Date;
-  };
-  includeStaffAnalysis: boolean;
-  includeThematicAnalysis: boolean;
-  includeActionItems: boolean;
-  comparisonPeriod?: "previous" | "yearOverYear" | "none";
-}
-
-// Helper types for calculations
-export interface TrendCalculation {
-  current: number;
-  previous: number;
-  change: number;
-  changePercentage: number;
-  direction: "up" | "down" | "stable";
-  significance: "significant" | "minor" | "negligible";
-}
-
-export interface PeriodData {
-  start: Date;
-  end: Date;
-  reviews: Review[];
-  metrics: {
-    averageRating: number;
     totalReviews: number;
-    sentimentScore: number;
-    responseRate: number;
+  };
+  
+  // Optional comparison data (if comparing periods)
+  comparison?: {
+    previousMetrics: Partial<BusinessMetrics>;
+    changes: Record<string, number>; // metric -> percentage change
   };
 }
+
+// Analysis configuration (simplified)
+export interface AnalysisConfig {
+  // Time period
+  period: 'last30days' | 'last90days' | 'last6months' | 'last12months' | 'all' | 'custom';
+  customRange?: { start: Date; end: Date };
+  
+  // Features to include (defaults to all true)
+  includeStaffAnalysis?: boolean;
+  includeThemes?: boolean;
+  includeComparison?: boolean;
+  
+  // Comparison type
+  comparisonPeriod?: 'previous' | 'yearOverYear' | 'none';
+}
+
+// Helper type for trend calculations (used internally)
+export type TrendDirection = 'up' | 'down' | 'stable';
+
+export type SentimentType = 'positive' | 'negative' | 'neutral';
+
+// Re-export for convenience
+export type { Review };
+
+// Default config
+export const defaultAnalysisConfig: AnalysisConfig = {
+  period: 'last90days',
+  includeStaffAnalysis: true,
+  includeThemes: true,
+  includeComparison: false,
+  comparisonPeriod: 'none'
+};

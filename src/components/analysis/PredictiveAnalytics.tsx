@@ -244,7 +244,7 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
         
         // Calculate seasonality factor
         const overallAvgVolume = monthlyData.reduce((sum, data) => sum + data.volume, 0) / monthlyData.length;
-        const seasonalityFactor = afgVolume / overallAvgVolume;
+        const seasonalityFactor = avgVolume / overallAvgVolume;
         
         // Generate recommendations based on historical patterns
         const recommendations: string[] = [];
@@ -500,7 +500,7 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
                     <div className="flex justify-between">
                       <span>Expected Rating:</span>
                       <span className="font-semibold">
-                        {trendPredictions.filter(p => p.isPredicted).slice(0, 3).reduce((avg, p) => avg + p.predictedRating, 0) / 3 || 0}★
+                        {(trendPredictions.filter(p => p.isPredicted).slice(0, 3).reduce((avg, p) => avg + p.predictedRating, 0) / 3).toFixed(1) || 0}★
                       </span>
                     </div>
                     <div className="flex justify-between">

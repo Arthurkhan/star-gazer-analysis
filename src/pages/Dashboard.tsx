@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo, Suspense } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
 import DashboardContent from "@/components/dashboard/DashboardContent";
@@ -17,16 +17,73 @@ import { DatabaseErrorDisplay } from "@/components/diagnostic/DatabaseErrorDispl
 import { MissingEnvAlert } from "@/components/diagnostic/MissingEnvAlert";
 import { NoReviewsAlert } from "@/components/diagnostic/NoReviewsAlert";
 
+// Phase 5: Import performance and error handling utilities
+import { 
+  PerformanceMonitor, 
+  memoizeWithExpiry, 
+  debounce, 
+  optimizeMemoryUsage 
+} from "@/utils/performanceOptimizations";
+import { 
+  errorLogger, 
+  AppError, 
+  ErrorType, 
+  ErrorSeverity, 
+  safeExecute,
+  handleAsyncError 
+} from "@/utils/errorHandling";
+import { 
+  PageErrorBoundary, 
+  SectionErrorBoundary, 
+  ComponentErrorBoundary 
+} from "@/components/ErrorBoundary";
+import { LoadingFallback } from "@/utils/lazyLoading";
+
 /**
- * Simplified Dashboard Component
- * Phase 2: Reduced complexity, minimal state management, removed DashboardContext
- * v1.2: Automatic business type detection from business name
+ * Enhanced Dashboard Component - Phase 5
+ * 
+ * Features:
+ * - Comprehensive error boundaries at multiple levels
+ * - Performance monitoring and optimization
+ * - Memoized expensive operations
+ * - Debounced user interactions
+ * - Memory management
+ * - Enhanced error handling and logging
  */
-const Dashboard = () => {
+
+// Phase 5: Memoized business type calculation
+const getMemoizedBusinessType = memoizeWithExpiry(
+  (selectedBusiness: string): string => {
+    const stopMeasurement = PerformanceMonitor.startMeasurement('business-type-calculation');
+    const result = selectedBusiness === "all" 
+      ? "other" 
+      : getBusinessTypeFromName(selectedBusiness);
+    stopMeasurement();
+    return result;
+  },
+  (selectedBusiness: string) => `business-type-${selectedBusiness}`,
+  30 * 60 * 1000 // 30 minutes cache
+);
+
+const Dashboard: React.FC = React.memo(() => {
+  // Phase 5: Performance monitoring for component lifecycle
+  React.useEffect(() => {
+    const stopMeasurement = PerformanceMonitor.startMeasurement('dashboard-mount');
+    
+    // Memory optimization on component mount
+    optimizeMemoryUsage();
+    
+    return () => {
+      stopMeasurement();
+      // Cleanup on unmount
+      optimizeMemoryUsage();
+    };
+  }, []);
+
   // Single state variable for tab management
   const [activeTab, setActiveTab] = useState("overview");
   
-  // Use simplified dashboard data hook
+  // Use simplified dashboard data hook with error handling
   const { 
     loading, 
     databaseError,
@@ -39,16 +96,59 @@ const Dashboard = () => {
     refreshData
   } = useDashboardData();
 
-  // Get filtered reviews and chart data
-  const filteredReviews = getFilteredReviews();
-  const chartData = getChartData(filteredReviews);
+  // Phase 5: Memoized filtered reviews and chart data
+  const filteredReviews = useMemo(() => {
+    const stopMeasurement = PerformanceMonitor.startMeasurement('filtered-reviews-calculation');
+    try {
+      const result = getFilteredReviews();
+      stopMeasurement();
+      return result;
+    } catch (error) {
+      stopMeasurement();
+      errorLogger.logError(new AppError(
+        "Failed to get filtered reviews",
+        ErrorType.CLIENT,
+        ErrorSeverity.MEDIUM,
+        { selectedBusiness, error: error.message }
+      ));
+      return [];
+    }
+  }, [getFilteredReviews, selectedBusiness]);
 
-  // Automatically determine business type from selected business name
-  const businessType = selectedBusiness === "all" 
-    ? "other" 
-    : getBusinessTypeFromName(selectedBusiness);
+  const chartData = useMemo(() => {
+    const stopMeasurement = PerformanceMonitor.startMeasurement('chart-data-calculation');
+    try {
+      const result = getChartData(filteredReviews);
+      stopMeasurement();
+      return result;
+    } catch (error) {
+      stopMeasurement();
+      errorLogger.logError(new AppError(
+        "Failed to get chart data",
+        ErrorType.CLIENT,
+        ErrorSeverity.MEDIUM,
+        { reviewCount: filteredReviews.length, error: error.message }
+      ));
+      return { monthlyData: [], sentimentData: [], ratingData: [], languageData: [] };
+    }
+  }, [getChartData, filteredReviews]);
 
-  // Recommendations data (now using automatic business type)
+  // Phase 5: Memoized business type with error handling
+  const businessType = useMemo(() => {
+    try {
+      return getMemoizedBusinessType(selectedBusiness);
+    } catch (error) {
+      errorLogger.logError(new AppError(
+        "Failed to determine business type",
+        ErrorType.CLIENT,
+        ErrorSeverity.LOW,
+        { selectedBusiness, error: error.message }
+      ));
+      return "other";
+    }
+  }, [selectedBusiness]);
+
+  // Recommendations data with error handling
   const {
     recommendations,
     loading: recommendationsLoading,
@@ -57,177 +157,316 @@ const Dashboard = () => {
   } = useRecommendations({
     businessData: { ...businessData, reviews: filteredReviews },
     selectedBusiness,
-    businessType, // Using automatically determined business type
+    businessType,
   });
   
-  // Check if we have no reviews to display
-  const hasNoReviews = !loading && !databaseError && (!filteredReviews || filteredReviews.length === 0);
+  // Phase 5: Memoized check for no reviews
+  const hasNoReviews = useMemo(() => {
+    return !loading && !databaseError && (!filteredReviews || filteredReviews.length === 0);
+  }, [loading, databaseError, filteredReviews]);
   
-  // Generate recommendations handler
-  const handleGenerateRecommendations = useCallback(() => {
-    generateRecommendations("browser"); // Simplified - default to browser AI
-  }, [generateRecommendations]);
+  // Phase 5: Debounced tab change handler
+  const handleTabChange = useCallback(
+    debounce((value: string) => {
+      const stopMeasurement = PerformanceMonitor.startMeasurement('tab-change');
+      setActiveTab(value);
+      stopMeasurement();
+      
+      // Optimize memory when switching tabs
+      if (value !== activeTab) {
+        setTimeout(optimizeMemoryUsage, 100);
+      }
+    }, 150),
+    [activeTab]
+  );
 
-  // Date range for export (simplified)
-  const today = new Date();
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const dateRange = { start: thirtyDaysAgo, end: today };
+  // Phase 5: Enhanced recommendations handler with error handling
+  const handleGenerateRecommendations = useCallback(
+    safeExecute(async () => {
+      const stopMeasurement = PerformanceMonitor.startMeasurement('generate-recommendations');
+      try {
+        await handleAsyncError(
+          generateRecommendations("browser"),
+          { 
+            action: 'generate-recommendations',
+            selectedBusiness,
+            businessType,
+            reviewCount: filteredReviews.length
+          }
+        );
+        stopMeasurement();
+      } catch (error) {
+        stopMeasurement();
+        // Error already logged by handleAsyncError
+      }
+    }, {
+      action: 'generate-recommendations',
+      selectedBusiness,
+      businessType
+    }),
+    [generateRecommendations, selectedBusiness, businessType, filteredReviews.length]
+  );
+
+  // Phase 5: Enhanced refresh handler with error handling and debouncing
+  const handleRefreshData = useCallback(
+    debounce(
+      safeExecute(async () => {
+        const stopMeasurement = PerformanceMonitor.startMeasurement('data-refresh');
+        try {
+          await handleAsyncError(refreshData(), {
+            action: 'refresh-data',
+            selectedBusiness
+          });
+          stopMeasurement();
+        } catch (error) {
+          stopMeasurement();
+          // Error already logged by handleAsyncError
+        }
+      }, {
+        action: 'refresh-data',
+        selectedBusiness
+      }),
+      500
+    ),
+    [refreshData, selectedBusiness]
+  );
+
+  // Phase 5: Memoized date range for export
+  const dateRange = useMemo(() => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return { start: thirtyDaysAgo, end: today };
+  }, []);
+
+  // Phase 5: Memoized business change handler
+  const handleBusinessChangeOptimized = useCallback(
+    safeExecute((business: string) => {
+      const stopMeasurement = PerformanceMonitor.startMeasurement('business-change');
+      handleBusinessChange(business);
+      stopMeasurement();
+      
+      // Clear memory after business change
+      setTimeout(optimizeMemoryUsage, 200);
+    }, {
+      action: 'business-change',
+      newBusiness: 'unknown'
+    }),
+    [handleBusinessChange]
+  );
 
   return (
-    <DashboardLayout onProviderChange={() => {}}> {/* Simplified - no provider change */}
-      {/* Error and alert displays */}
-      <MissingEnvAlert />
-      
-      {databaseError && (
-        <DatabaseErrorDisplay 
-          onRefresh={refreshData}
-          isRefreshing={loading}
-        />
-      )}
-      
-      {hasNoReviews && (
-        <NoReviewsAlert 
-          businessData={businessData}
-          selectedBusiness={selectedBusiness}
-        />
-      )}
+    <PageErrorBoundary>
+      <DashboardLayout onProviderChange={() => {}}> {/* Simplified - no provider change */}
+        
+        {/* Error and alert displays with error boundaries */}
+        <ComponentErrorBoundary>
+          <MissingEnvAlert />
+        </ComponentErrorBoundary>
+        
+        {databaseError && (
+          <ComponentErrorBoundary>
+            <DatabaseErrorDisplay 
+              onRefresh={handleRefreshData}
+              isRefreshing={loading}
+            />
+          </ComponentErrorBoundary>
+        )}
+        
+        {hasNoReviews && (
+          <ComponentErrorBoundary>
+            <NoReviewsAlert 
+              businessData={businessData}
+              selectedBusiness={selectedBusiness}
+            />
+          </ComponentErrorBoundary>
+        )}
 
-      {/* Business Selector and Action Buttons - Updated props */}
-      <div className="flex justify-between items-center gap-4 mb-6 w-full">
-        <BusinessSelector
-          selectedBusiness={selectedBusiness}
-          onBusinessChange={handleBusinessChange}
-          businessData={businessData}
-          className="flex-1"
-        />
-        <div className="flex gap-2">
-          <Button
-            onClick={refreshData}
-            disabled={loading}
-            size="icon"
-            variant="outline"
-            className="w-10 h-10"
-            title="Refresh Data"
-          >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          {enhancedAnalysis && (
-            <ExportButton
-              businessName={selectedBusiness}
-              businessType={businessType}
-              data={enhancedAnalysis}
-              dateRange={dateRange}
-              disabled={!selectedBusiness || selectedBusiness === "all"}
-            />
-          )}
-          <Button
-            onClick={handleGenerateRecommendations}
-            disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
-            size="icon"
-            className="w-10 h-10"
-            title="Generate Recommendations"
-          >
-            <Sparkles className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
-      
-      {/* Simplified Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="enhanced">Enhanced Analysis</TabsTrigger>
-          <TabsTrigger value="comparison">Period Comparison</TabsTrigger>
-          <TabsTrigger value="recommendations">AI Recommendations</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-        </TabsList>
-        
-        {/* Overview Tab - Simplified props */}
-        <TabsContent value="overview" className="mt-6">
-          <DashboardContent
-            loading={loading}
-            reviews={filteredReviews}
-            chartData={chartData}
-          />
-        </TabsContent>
-        
-        {/* Enhanced Analysis Tab */}
-        <TabsContent value="enhanced" className="mt-6">
-          {enhancedAnalysis ? (
-            <EnhancedAnalysisDisplay
-              temporalPatterns={enhancedAnalysis.temporalPatterns}
-              historicalTrends={enhancedAnalysis.historicalTrends}
-              reviewClusters={enhancedAnalysis.reviewClusters}
-              seasonalAnalysis={enhancedAnalysis.seasonalAnalysis}
-              insights={enhancedAnalysis.insights}
-              loading={loading}
-            />
-          ) : (
-            <div className="text-center p-10 space-y-4">
-              <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto" />
-              <h3 className="text-lg font-medium">Enhanced Analysis Not Available</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Generate recommendations to see enhanced data analysis for this business.
-              </p>
+        {/* Business Selector and Action Buttons with error boundary */}
+        <SectionErrorBoundary>
+          <div className="flex justify-between items-center gap-4 mb-6 w-full">
+            <ComponentErrorBoundary>
+              <BusinessSelector
+                selectedBusiness={selectedBusiness}
+                onBusinessChange={handleBusinessChangeOptimized}
+                businessData={businessData}
+                className="flex-1"
+              />
+            </ComponentErrorBoundary>
+            
+            <div className="flex gap-2">
+              <Button
+                onClick={handleRefreshData}
+                disabled={loading}
+                size="icon"
+                variant="outline"
+                className="w-10 h-10"
+                title="Refresh Data"
+              >
+                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+              
+              {enhancedAnalysis && (
+                <ComponentErrorBoundary>
+                  <ExportButton
+                    businessName={selectedBusiness}
+                    businessType={businessType}
+                    data={enhancedAnalysis}
+                    dateRange={dateRange}
+                    disabled={!selectedBusiness || selectedBusiness === "all"}
+                  />
+                </ComponentErrorBoundary>
+              )}
+              
               <Button
                 onClick={handleGenerateRecommendations}
                 disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
-                className="mt-4"
+                size="icon"
+                className="w-10 h-10"
+                title="Generate Recommendations"
               >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate Analysis
+                <Sparkles className="w-5 h-5" />
               </Button>
             </div>
-          )}
-        </TabsContent>
+          </div>
+        </SectionErrorBoundary>
         
-        {/* Period Comparison Tab */}
-        <TabsContent value="comparison" className="mt-6">
-          {selectedBusiness && selectedBusiness !== "all" ? (
-            <PeriodComparisonDisplay businessName={selectedBusiness} />
-          ) : (
-            <div className="text-center p-10 space-y-4">
-              <GitCompare className="w-12 h-12 text-muted-foreground mx-auto" />
-              <h3 className="text-lg font-medium">Select a Business</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Please select a specific business to compare data across different time periods.
-              </p>
-            </div>
-          )}
-        </TabsContent>
+        {/* Phase 5: Enhanced Main Content Tabs with error boundaries and lazy loading */}
+        <SectionErrorBoundary>
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="enhanced">Enhanced Analysis</TabsTrigger>
+              <TabsTrigger value="comparison">Period Comparison</TabsTrigger>
+              <TabsTrigger value="recommendations">AI Recommendations</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            </TabsList>
+            
+            {/* Overview Tab with error boundary */}
+            <TabsContent value="overview" className="mt-6">
+              <SectionErrorBoundary>
+                <Suspense fallback={<LoadingFallback size="large" message="Loading overview..." />}>
+                  <DashboardContent
+                    loading={loading}
+                    reviews={filteredReviews}
+                    chartData={chartData}
+                  />
+                </Suspense>
+              </SectionErrorBoundary>
+            </TabsContent>
+            
+            {/* Enhanced Analysis Tab with error boundary */}
+            <TabsContent value="enhanced" className="mt-6">
+              <SectionErrorBoundary>
+                {enhancedAnalysis ? (
+                  <Suspense fallback={<LoadingFallback size="large" message="Loading enhanced analysis..." />}>
+                    <EnhancedAnalysisDisplay
+                      temporalPatterns={enhancedAnalysis.temporalPatterns}
+                      historicalTrends={enhancedAnalysis.historicalTrends}
+                      reviewClusters={enhancedAnalysis.reviewClusters}
+                      seasonalAnalysis={enhancedAnalysis.seasonalAnalysis}
+                      insights={enhancedAnalysis.insights}
+                      loading={loading}
+                    />
+                  </Suspense>
+                ) : (
+                  <div className="text-center p-10 space-y-4">
+                    <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto" />
+                    <h3 className="text-lg font-medium">Enhanced Analysis Not Available</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      Generate recommendations to see enhanced data analysis for this business.
+                    </p>
+                    <Button
+                      onClick={handleGenerateRecommendations}
+                      disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
+                      className="mt-4"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Analysis
+                    </Button>
+                  </div>
+                )}
+              </SectionErrorBoundary>
+            </TabsContent>
+            
+            {/* Period Comparison Tab with error boundary */}
+            <TabsContent value="comparison" className="mt-6">
+              <SectionErrorBoundary>
+                {selectedBusiness && selectedBusiness !== "all" ? (
+                  <Suspense fallback={<LoadingFallback size="large" message="Loading comparison..." />}>
+                    <PeriodComparisonDisplay businessName={selectedBusiness} />
+                  </Suspense>
+                ) : (
+                  <div className="text-center p-10 space-y-4">
+                    <GitCompare className="w-12 h-12 text-muted-foreground mx-auto" />
+                    <h3 className="text-lg font-medium">Select a Business</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      Please select a specific business to compare data across different time periods.
+                    </p>
+                  </div>
+                )}
+              </SectionErrorBoundary>
+            </TabsContent>
+            
+            {/* AI Recommendations Tab with error boundary */}
+            <TabsContent value="recommendations" className="mt-6">
+              <SectionErrorBoundary>
+                <Suspense fallback={<LoadingFallback size="large" message="Loading recommendations..." />}>
+                  <RecommendationsDashboard
+                    recommendations={recommendations}
+                    loading={recommendationsLoading}
+                    error={recommendationsError || undefined}
+                    generatingMessage="Generating recommendations..."
+                    businessName={selectedBusiness}
+                  />
+                </Suspense>
+              </SectionErrorBoundary>
+            </TabsContent>
+            
+            {/* Notifications Tab with error boundary */}
+            <TabsContent value="notifications" className="mt-6">
+              <SectionErrorBoundary>
+                {selectedBusiness && selectedBusiness !== "all" ? (
+                  <Suspense fallback={<LoadingFallback size="medium" message="Loading notifications..." />}>
+                    <EmailSettingsForm
+                      businessName={selectedBusiness}
+                      businessType={businessType}
+                    />
+                  </Suspense>
+                ) : (
+                  <div className="text-center p-10 space-y-4">
+                    <MailIcon className="w-12 h-12 text-muted-foreground mx-auto" />
+                    <h3 className="text-lg font-medium">Select a Business</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      Please select a specific business to configure email notifications.
+                    </p>
+                  </div>
+                )}
+              </SectionErrorBoundary>
+            </TabsContent>
+          </Tabs>
+        </SectionErrorBoundary>
         
-        {/* AI Recommendations Tab */}
-        <TabsContent value="recommendations" className="mt-6">
-          <RecommendationsDashboard
-            recommendations={recommendations}
-            loading={recommendationsLoading}
-            error={recommendationsError || undefined}
-            generatingMessage="Generating recommendations..."
-            businessName={selectedBusiness}
-          />
-        </TabsContent>
-        
-        {/* Notifications Tab - Using automatic business type */}
-        <TabsContent value="notifications" className="mt-6">
-          {selectedBusiness && selectedBusiness !== "all" ? (
-            <EmailSettingsForm
-              businessName={selectedBusiness}
-              businessType={businessType}
-            />
-          ) : (
-            <div className="text-center p-10 space-y-4">
-              <MailIcon className="w-12 h-12 text-muted-foreground mx-auto" />
-              <h3 className="text-lg font-medium">Select a Business</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Please select a specific business to configure email notifications.
-              </p>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </DashboardLayout>
+        {/* Phase 5: Development performance stats */}
+        {process.env.NODE_ENV === 'development' && (
+          <ComponentErrorBoundary>
+            <details className="mt-8 p-4 bg-muted rounded text-xs">
+              <summary className="cursor-pointer font-medium">Performance Stats (Development)</summary>
+              <div className="mt-2 space-y-1">
+                <div>Dashboard Mount Time: {PerformanceMonitor.getAverageTime('dashboard-mount').toFixed(2)}ms</div>
+                <div>Business Change Time: {PerformanceMonitor.getAverageTime('business-change').toFixed(2)}ms</div>
+                <div>Tab Change Time: {PerformanceMonitor.getAverageTime('tab-change').toFixed(2)}ms</div>
+                <div>Filtered Reviews Time: {PerformanceMonitor.getAverageTime('filtered-reviews-calculation').toFixed(2)}ms</div>
+                <div>Chart Data Time: {PerformanceMonitor.getAverageTime('chart-data-calculation').toFixed(2)}ms</div>
+              </div>
+            </details>
+          </ComponentErrorBoundary>
+        )}
+      </DashboardLayout>
+    </PageErrorBoundary>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
 
 export default Dashboard;

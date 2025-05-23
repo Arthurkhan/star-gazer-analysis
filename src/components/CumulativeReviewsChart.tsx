@@ -32,15 +32,15 @@ const CumulativeReviewsChart = ({ data }: CumulativeReviewsChartProps) => {
         </ToggleGroup>
       </CardHeader>
       <CardContent className="pt-2">
-        <div className="h-80">
+        <div className="h-96">
           <ResponsiveContainer width="100%" height="100%">
             {chartType === "area" ? (
               <AreaChart
                 data={data}
                 margin={{
                   top: 5,
-                  right: 30,
-                  left: 20,
+                  right: 10,
+                  left: 10,
                   bottom: 60,
                 }}
               >
@@ -95,8 +95,8 @@ const CumulativeReviewsChart = ({ data }: CumulativeReviewsChartProps) => {
                 data={data}
                 margin={{
                   top: 5,
-                  right: 30,
-                  left: 20,
+                  right: 10,
+                  left: 10,
                   bottom: 60,
                 }}
               >

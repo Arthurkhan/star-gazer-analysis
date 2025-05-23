@@ -14,13 +14,22 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
-    "strict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitAny": false,
-    "noFallthroughCasesInSwitch": false,
+    /* Phase 5: Strict mode enabled for better performance and error catching */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitAny": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
 
+    /* Performance optimizations */
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

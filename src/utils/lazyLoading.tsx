@@ -8,7 +8,11 @@ import React from 'react';
 import { AppError, ErrorType, ErrorSeverity, errorLogger } from './errorHandling';
 
 // Simple loading fallback component
-export const LoadingFallback: React.FC<{ error?: Error }> = ({ error }) => {
+export const LoadingFallback: React.FC<{ 
+  error?: Error; 
+  size?: 'small' | 'medium' | 'large';
+  message?: string;
+}> = ({ error, size = 'medium', message = 'Loading...' }) => {
   if (error) {
     errorLogger.error('Component loading failed:', error);
     return (
@@ -26,11 +30,23 @@ export const LoadingFallback: React.FC<{ error?: Error }> = ({ error }) => {
     );
   }
 
+  const sizeClasses = {
+    small: 'p-4',
+    medium: 'p-8', 
+    large: 'p-12'
+  };
+
+  const spinnerSizes = {
+    small: 'h-4 w-4',
+    medium: 'h-8 w-8',
+    large: 'h-12 w-12'
+  };
+
   return (
-    <div className="flex items-center justify-center p-8">
+    <div className={`flex items-center justify-center ${sizeClasses[size]}`}>
       <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-        <div className="text-muted-foreground">Loading...</div>
+        <div className={`animate-spin rounded-full border-b-2 border-blue-500 mx-auto mb-2 ${spinnerSizes[size]}`}></div>
+        <div className="text-muted-foreground">{message}</div>
       </div>
     </div>
   );
@@ -63,8 +79,65 @@ export const createLazyComponent = <P extends object>(
   ));
 };
 
+// Placeholder components for missing lazy-loaded components
+// These are simple placeholders that prevent import errors
+
+export const LazyInteractiveCharts: React.FC<any> = (props) => (
+  <div className="p-6 border rounded-lg">
+    <h3 className="text-lg font-semibold mb-4">Interactive Charts</h3>
+    <p className="text-muted-foreground">Interactive charts feature coming soon...</p>
+    <LoadingFallback message="Charts feature in development" />
+  </div>
+);
+
+export const LazyExportManager: React.FC<any> = (props) => (
+  <div className="p-6 border rounded-lg">
+    <h3 className="text-lg font-semibold mb-4">Export Manager</h3>
+    <p className="text-muted-foreground">Export functionality coming soon...</p>
+    <LoadingFallback message="Export feature in development" />
+  </div>
+);
+
+export const LazyDashboardCustomizer: React.FC<any> = (props) => (
+  <div className="p-6 border rounded-lg">
+    <h3 className="text-lg font-semibold mb-4">Dashboard Customizer</h3>
+    <p className="text-muted-foreground">Dashboard customization coming soon...</p>
+    <LoadingFallback message="Customizer feature in development" />
+  </div>
+);
+
+export const LazyAlertSystem: React.FC<any> = (props) => (
+  <div className="p-6 border rounded-lg">
+    <h3 className="text-lg font-semibold mb-4">Alert System</h3>
+    <p className="text-muted-foreground">Performance alerts coming soon...</p>
+    <LoadingFallback message="Alert system in development" />
+  </div>
+);
+
+export const LazyComparativeAnalysis: React.FC<any> = (props) => (
+  <div className="p-6 border rounded-lg">
+    <h3 className="text-lg font-semibold mb-4">Comparative Analysis</h3>
+    <p className="text-muted-foreground">Comparison features coming soon...</p>
+    <LoadingFallback message="Comparison feature in development" />
+  </div>
+);
+
+export const LazyAdvancedFilters: React.FC<any> = (props) => (
+  <div className="p-6 border rounded-lg">
+    <h3 className="text-lg font-semibold mb-4">Advanced Filters</h3>
+    <p className="text-muted-foreground">Advanced filtering coming soon...</p>
+    <LoadingFallback message="Filters feature in development" />
+  </div>
+);
+
 export default {
   LoadingFallback,
   LoadingSpinner,
-  createLazyComponent
+  createLazyComponent,
+  LazyInteractiveCharts,
+  LazyExportManager,
+  LazyDashboardCustomizer,
+  LazyAlertSystem,
+  LazyComparativeAnalysis,
+  LazyAdvancedFilters
 };

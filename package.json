@@ -14,6 +14,7 @@
     "reset": "npm run clean && npm install"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^16.6.0",
     "@hookform/resolvers": "^3.3.0",
     "@radix-ui/react-accordion": "^1.2.10",
     "@radix-ui/react-alert-dialog": "1.0.4",

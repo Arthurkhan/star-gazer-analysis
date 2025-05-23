@@ -8,16 +8,177 @@ import {
   calculateBusinessStats,
   generateEnhancedAnalysis,
 } from "@/utils/reviewDataUtils";
+import { PerformanceMonitor } from "@/utils/performanceOptimizations";
 
 /**
- * Simplified Dashboard Data Hook
- * Eliminates infinite loops and circular dependencies
- * Loads all data once and provides simple filtering
+ * Return type for the useDashboardData hook
+ * @interface DashboardDataReturn
  */
-export function useDashboardData() {
+interface DashboardDataReturn {
+  // Core state
+  loading: boolean;
+  databaseError: boolean;
+  businesses: Business[];
+  selectedBusiness: string;
+  businessData: {
+    allBusinesses: { name: string; count: number };
+    businesses: Record<string, any>;
+  };
+  
+  // Data getters
+  getFilteredReviews: () => Review[];
+  getChartData: typeof getChartData;
+  enhancedAnalysis: EnhancedAnalysis | null;
+  
+  // Actions
+  handleBusinessChange: (businessName: string) => void;
+  refreshData: () => Promise<void>;
+  
+  // Stats
+  totalReviewCount: number;
+  lastFetched: number;
+  
+  // Backward compatibility
+  loadingMore: boolean;
+  hasMoreData: boolean;
+  allPagesLoaded: boolean;
+  autoLoadingComplete: boolean;
+  currentPage: number;
+  pageSize: number;
+  loadMoreData: () => void;
+}
+
+/**
+ * Configuration options for the dashboard data hook
+ */
+interface DashboardDataConfig {
+  /** Enable performance monitoring (default: true in development) */
+  enablePerformanceMonitoring?: boolean;
+  /** Page size for data fetching (default: 1000) */
+  pageSize?: number;
+  /** Maximum pages to fetch (safety limit, default: 50) */
+  maxPages?: number;
+  /** Auto-refresh interval in milliseconds (0 = disabled) */
+  autoRefreshInterval?: number;
+}
+
+/**
+ * # Dashboard Data Hook
+ * 
+ * **Phase 5 Optimized Hook** - A comprehensive data management hook for the Star-Gazer Analysis dashboard.
+ * This hook provides centralized data fetching, state management, and business logic for the main dashboard.
+ * 
+ * ## Key Features
+ * - ✅ **Eliminates infinite loops** - No circular dependencies between hooks
+ * - ✅ **Performance optimized** - Uses memoization and efficient data structures
+ * - ✅ **Single data source** - Loads all data once and provides simple filtering
+ * - ✅ **Error handling** - Comprehensive error states and user feedback
+ * - ✅ **TypeScript support** - Full type safety with detailed interfaces
+ * 
+ * ## Performance Optimizations
+ * - **Memoized computed values** - Prevents unnecessary recalculations
+ * - **Efficient pagination** - Fetches all data in chunks to overcome API limits
+ * - **Smart filtering** - Client-side filtering for fast business switching
+ * - **Performance monitoring** - Tracks execution times in development mode
+ * 
+ * ## Data Architecture
+ * ```
+ * useDashboardData
+ * ├── Core State (loading, error, businesses, reviews)
+ * ├── Computed Values (filteredReviews, businessStats, businessData)
+ * ├── Data Fetching (pagination-based loading)
+ * └── Actions (business selection, refresh, etc.)
+ * ```
+ * 
+ * ## Usage Examples
+ * 
+ * ### Basic Usage
+ * ```tsx
+ * function Dashboard() {
+ *   const {
+ *     loading,
+ *     businesses,
+ *     selectedBusiness,
+ *     getFilteredReviews,
+ *     handleBusinessChange
+ *   } = useDashboardData();
+ * 
+ *   if (loading) return <Loading />;
+ * 
+ *   return (
+ *     <div>
+ *       <BusinessSelector 
+ *         businesses={businesses}
+ *         selected={selectedBusiness}
+ *         onChange={handleBusinessChange}
+ *       />
+ *       <ReviewsDisplay reviews={getFilteredReviews()} />
+ *     </div>
+ *   );
+ * }
+ * ```
+ * 
+ * ### With Enhanced Analysis
+ * ```tsx
+ * function AnalyticsDashboard() {
+ *   const { enhancedAnalysis, selectedBusiness } = useDashboardData();
+ * 
+ *   return (
+ *     <div>
+ *       {enhancedAnalysis && selectedBusiness !== 'all' && (
+ *         <EnhancedAnalysisDisplay analysis={enhancedAnalysis} />
+ *       )}
+ *     </div>
+ *   );
+ * }
+ * ```
+ * 
+ * ## Business Logic
+ * - **Business Selection**: Supports 'all' for combined view or specific business names
+ * - **Data Filtering**: Automatically filters reviews based on selected business
+ * - **Enhanced Analysis**: Generates advanced analytics for individual businesses
+ * - **Performance Stats**: Tracks loading times and provides business statistics
+ * 
+ * ## Error Handling
+ * - Database connection errors are handled gracefully
+ * - User-friendly error messages with retry options
+ * - Fallback states for missing or corrupted data
+ * - Comprehensive logging for debugging
+ * 
+ * @param config - Optional configuration for the hook
+ * @returns {DashboardDataReturn} Hook state and actions
+ * 
+ * @example
+ * ```tsx
+ * // Basic usage
+ * const dashboardData = useDashboardData();
+ * 
+ * // With configuration
+ * const dashboardData = useDashboardData({
+ *   pageSize: 2000,
+ *   enablePerformanceMonitoring: true
+ * });
+ * ```
+ * 
+ * @author Star-Gazer Analysis Team
+ * @version 5.0.0 - Phase 5 Performance & Polish
+ * @since 1.0.0
+ */
+export function useDashboardData(config: DashboardDataConfig = {}): DashboardDataReturn {
   const { toast } = useToast();
   
-  // Core state - simplified to essentials
+  // Configuration with defaults
+  const {
+    enablePerformanceMonitoring = process.env.NODE_ENV === 'development',
+    pageSize = 1000,
+    maxPages = 50,
+    autoRefreshInterval = 0
+  } = config;
+  
+  /**
+   * Core state management
+   * Simplified to essential state variables to prevent infinite loops
+   */
   const [loading, setLoading] = useState(true);
   const [databaseError, setDatabaseError] = useState(false);
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -25,49 +186,127 @@ export function useDashboardData() {
   const [selectedBusiness, setSelectedBusiness] = useState<string>("all");
   const [lastFetched, setLastFetched] = useState<number>(0);
 
-  // Computed values - no complex caching needed for small datasets
+  /**
+   * Memoized filtered reviews based on business selection
+   * Performance: O(n) filtering only when business selection changes
+   * 
+   * @returns {Review[]} Filtered reviews for the selected business
+   */
   const filteredReviews = useMemo(() => {
+    const stopMeasurement = enablePerformanceMonitoring 
+      ? PerformanceMonitor.startMeasurement('filter-reviews')
+      : () => 0;
+    
+    let result: Review[];
+    
     if (selectedBusiness === "all" || selectedBusiness === "All Businesses") {
-      return allReviews;
+      result = allReviews;
+    } else {
+      result = allReviews.filter(review => 
+        review.title === selectedBusiness || 
+        review.businesses?.name === selectedBusiness
+      );
     }
-    return allReviews.filter(review => 
-      review.title === selectedBusiness || 
-      review.businesses?.name === selectedBusiness
-    );
-  }, [allReviews, selectedBusiness]);
+    
+    if (enablePerformanceMonitoring) {
+      const duration = stopMeasurement();
+      if (duration > 10) { // Log if filtering takes more than 10ms
+        console.log(`⚠️ Slow filtering detected: ${duration.toFixed(2)}ms for ${allReviews.length} reviews`);
+      }
+    }
+    
+    return result;
+  }, [allReviews, selectedBusiness, enablePerformanceMonitoring]);
 
+  /**
+   * Memoized business statistics calculation
+   * Performance: Only recalculates when reviews change
+   * 
+   * @returns {Record<string, any>} Business statistics object
+   */
   const businessStats = useMemo(() => {
     if (allReviews.length === 0) return {};
-    return calculateBusinessStats(allReviews, allReviews.length);
-  }, [allReviews]);
+    
+    const stopMeasurement = enablePerformanceMonitoring 
+      ? PerformanceMonitor.startMeasurement('business-stats')
+      : () => 0;
+    
+    const stats = calculateBusinessStats(allReviews, allReviews.length);
+    
+    if (enablePerformanceMonitoring) {
+      stopMeasurement();
+    }
+    
+    return stats;
+  }, [allReviews, enablePerformanceMonitoring]);
 
+  /**
+   * Memoized business data structure
+   * Combines all businesses view with individual business stats
+   * 
+   * @returns {Object} Complete business data structure
+   */
   const businessData = useMemo(() => ({
     allBusinesses: { name: "All Businesses", count: allReviews.length },
     businesses: businessStats,
   }), [allReviews.length, businessStats]);
 
+  /**
+   * Memoized enhanced analysis for individual businesses
+   * Only generates analysis for specific business selections
+   * 
+   * @returns {EnhancedAnalysis | null} Enhanced analysis or null for 'all' view
+   */
   const enhancedAnalysis = useMemo(() => {
     if (selectedBusiness === "all" || selectedBusiness === "All Businesses" || filteredReviews.length === 0) {
       return null;
     }
+    
+    const stopMeasurement = enablePerformanceMonitoring 
+      ? PerformanceMonitor.startMeasurement('enhanced-analysis')
+      : () => 0;
+    
     try {
-      return generateEnhancedAnalysis(filteredReviews, selectedBusiness);
+      const analysis = generateEnhancedAnalysis(filteredReviews, selectedBusiness);
+      
+      if (enablePerformanceMonitoring) {
+        stopMeasurement();
+      }
+      
+      return analysis;
     } catch (error) {
-      console.error("Error generating enhanced analysis:", error);
+      console.error("❌ Error generating enhanced analysis:", error);
+      
+      if (enablePerformanceMonitoring) {
+        stopMeasurement();
+      }
+      
       return null;
     }
-  }, [filteredReviews, selectedBusiness]);
+  }, [filteredReviews, selectedBusiness, enablePerformanceMonitoring]);
 
-  // Function to fetch ALL reviews using pagination to overcome Supabase limits
+  /**
+   * Fetch all reviews using pagination to overcome Supabase row limits
+   * 
+   * This function implements efficient pagination to load all reviews from the database.
+   * It fetches data in configurable chunks and processes them for optimal performance.
+   * 
+   * @private
+   * @returns {Promise<Review[]>} Array of all reviews from the database
+   * @throws {Error} Database or network errors
+   */
   const fetchAllReviewsWithPagination = async (): Promise<Review[]> => {
+    const stopMeasurement = enablePerformanceMonitoring 
+      ? PerformanceMonitor.startMeasurement('fetch-all-reviews')
+      : () => 0;
+    
     console.log("🔍 Starting to fetch ALL reviews using pagination...");
     
     let allReviews: Review[] = [];
     let currentPage = 0;
-    const pageSize = 1000; // Fetch in chunks of 1000
     let hasMore = true;
     
-    // First, get the total count to know how much data we're dealing with
+    // Get total count for progress tracking
     const { count, error: countError } = await supabase
       .from('reviews')
       .select('*', { count: 'exact', head: true });
@@ -78,8 +317,11 @@ export function useDashboardData() {
       console.log(`📊 Total reviews in database: ${count}`);
     }
     
-    while (hasMore) {
-      console.log(`📄 Fetching page ${currentPage + 1} (rows ${currentPage * pageSize + 1}-${(currentPage + 1) * pageSize})...`);
+    while (hasMore && currentPage < maxPages) {
+      const startRow = currentPage * pageSize;
+      const endRow = startRow + pageSize - 1;
+      
+      console.log(`📄 Fetching page ${currentPage + 1} (rows ${startRow + 1}-${endRow + 1})...`);
       
       const { data: pageData, error } = await supabase
         .from('reviews')
@@ -92,7 +334,7 @@ export function useDashboardData() {
           )
         `)
         .order('publishedatdate', { ascending: false })
-        .range(currentPage * pageSize, (currentPage + 1) * pageSize - 1);
+        .range(startRow, endRow);
       
       if (error) {
         console.error(`❌ Error fetching page ${currentPage + 1}:`, error);
@@ -107,7 +349,7 @@ export function useDashboardData() {
       
       console.log(`✅ Page ${currentPage + 1}: Got ${pageData.length} reviews`);
       
-      // Process and add reviews to our collection
+      // Process and normalize review data
       const processedPageData = pageData.map(review => {
         const business = review.businesses as any;
         return {
@@ -120,34 +362,51 @@ export function useDashboardData() {
       
       allReviews.push(...processedPageData);
       
-      // If we got less than pageSize, we've reached the end
+      // Check if we've reached the end
       if (pageData.length < pageSize) {
         console.log(`🏁 Got ${pageData.length} < ${pageSize} reviews, reached end of data`);
         hasMore = false;
       } else {
         currentPage++;
       }
-      
-      // Safety check to prevent infinite loops
-      if (currentPage > 50) {
-        console.warn("⚠️  Safety limit reached (50 pages), stopping fetch");
-        hasMore = false;
-      }
+    }
+    
+    if (currentPage >= maxPages) {
+      console.warn(`⚠️ Safety limit reached (${maxPages} pages), stopping fetch`);
     }
     
     console.log(`🎉 Finished fetching! Total reviews collected: ${allReviews.length}`);
+    
+    if (enablePerformanceMonitoring) {
+      const duration = stopMeasurement();
+      console.log(`📊 Total fetch time: ${duration.toFixed(2)}ms`);
+    }
+    
     return allReviews;
   };
 
-  // Single data loading function - using pagination to get ALL data
+  /**
+   * Load all application data (businesses and reviews)
+   * 
+   * This is the main data loading function that fetches all necessary data
+   * for the dashboard. It handles errors gracefully and provides user feedback.
+   * 
+   * @async
+   * @function loadAllData
+   * @returns {Promise<void>}
+   */
   const loadAllData = useCallback(async () => {
     setLoading(true);
     setDatabaseError(false);
     
+    const stopMeasurement = enablePerformanceMonitoring 
+      ? PerformanceMonitor.startMeasurement('load-all-data')
+      : () => 0;
+    
     try {
       console.log("🚀 Loading all application data...");
       
-      // Load businesses
+      // Load businesses first
       const { data: businessesData, error: businessesError } = await supabase
         .from('businesses')
         .select('*')
@@ -178,13 +437,13 @@ export function useDashboardData() {
       setBusinesses(businessesData);
       console.log(`✅ Loaded ${businessesData.length} businesses`);
       
-      // Load ALL reviews using pagination
+      // Load all reviews using pagination
       const allReviewsData = await fetchAllReviewsWithPagination();
       
       setAllReviews(allReviewsData);
       setLastFetched(Date.now());
       
-      // Count reviews per business for verification
+      // Generate verification statistics
       const businessCounts = allReviewsData.reduce((acc, review) => {
         const businessName = review.businessName || review.title || 'Unknown';
         acc[businessName] = (acc[businessName] || 0) + 1;
@@ -199,6 +458,11 @@ export function useDashboardData() {
         description: `Loaded ${allReviewsData.length} reviews from ${businessesData.length} businesses`,
       });
       
+      if (enablePerformanceMonitoring) {
+        const duration = stopMeasurement();
+        console.log(`🚀 Total load time: ${duration.toFixed(2)}ms`);
+      }
+      
     } catch (error) {
       console.error("💥 Error loading data:", error);
       setDatabaseError(true);
@@ -207,30 +471,62 @@ export function useDashboardData() {
         description: "An unexpected error occurred while loading data.",
         variant: "destructive",
       });
+      
+      if (enablePerformanceMonitoring) {
+        stopMeasurement();
+      }
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, enablePerformanceMonitoring, pageSize, maxPages]);
 
-  // Business selection handler - simple state update
+  /**
+   * Handle business selection change
+   * 
+   * Updates the selected business and triggers UI updates.
+   * This is optimized to only update state when necessary.
+   * 
+   * @param {string} businessName - Name of the selected business or 'all'
+   */
   const handleBusinessChange = useCallback((businessName: string) => {
     console.log(`🔄 Business selection changed to: ${businessName}`);
     setSelectedBusiness(businessName);
   }, []);
 
-  // Refresh function - reload all data
+  /**
+   * Refresh all data from the database
+   * 
+   * Reloads all businesses and reviews, useful for getting latest data
+   * without requiring a full page refresh.
+   * 
+   * @async
+   * @function refreshData
+   * @returns {Promise<void>}
+   */
   const refreshData = useCallback(async () => {
     console.log("🔄 Refreshing all data...");
     await loadAllData();
   }, [loadAllData]);
 
-  // Load data on mount
+  /**
+   * Get filtered reviews for the current business selection
+   * 
+   * @returns {Review[]} Array of filtered reviews
+   */
+  const getFilteredReviews = useCallback(() => filteredReviews, [filteredReviews]);
+
+  // Auto-refresh functionality
+  useEffect(() => {
+    if (autoRefreshInterval > 0) {
+      const interval = setInterval(refreshData, autoRefreshInterval);
+      return () => clearInterval(interval);
+    }
+  }, [refreshData, autoRefreshInterval]);
+
+  // Initial data load on mount
   useEffect(() => {
     loadAllData();
-  }, []); // No dependencies to prevent re-runs
-
-  // Simple chart data function
-  const getFilteredReviews = useCallback(() => filteredReviews, [filteredReviews]);
+  }, []); // Intentionally no dependencies to prevent re-runs
 
   return {
     // Core state
@@ -240,7 +536,7 @@ export function useDashboardData() {
     selectedBusiness,
     businessData,
     
-    // Data
+    // Data getters
     getFilteredReviews,
     getChartData,
     enhancedAnalysis,
@@ -249,11 +545,11 @@ export function useDashboardData() {
     handleBusinessChange,
     refreshData,
     
-    // Stats
+    // Statistics
     totalReviewCount: filteredReviews.length,
     lastFetched,
     
-    // Simplified props for backward compatibility
+    // Backward compatibility props
     loadingMore: false,
     hasMoreData: false,
     allPagesLoaded: true,

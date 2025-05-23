@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,20 @@ import { Review } from "@/types/reviews";
 import { BusinessType } from "@/types/businessTypes";
 import { AnalysisSummaryData, AnalysisConfig } from "@/types/analysisSummary";
 import { generateAnalysisSummary } from "@/utils/analysisUtils";
+import { memoizeWithExpiry, PerformanceMonitor, debounce } from "@/utils/performanceOptimizations";
+import { errorLogger, AppError, ErrorType, ErrorSeverity, safeExecute } from "@/utils/errorHandling";
+import { SectionErrorBoundary, ComponentErrorBoundary } from "@/components/ErrorBoundary";
+import { 
+  LazyInteractiveCharts,
+  LazyExportManager,
+  LazyDashboardCustomizer,
+  LazyAlertSystem,
+  LazyComparativeAnalysis,
+  LazyAdvancedFilters,
+  LoadingFallback
+} from "@/utils/lazyLoading";
+
+// Core analysis components (always loaded)
 import { ExecutiveSummaryCard } from "./ExecutiveSummaryCard";
 import { PerformanceMetricsGrid } from "./PerformanceMetricsGrid";
 import { SentimentAnalysisSection } from "./SentimentAnalysisSection";
@@ -35,12 +49,19 @@ import { ThematicAnalysisSection } from "./ThematicAnalysisSection";
 import { StaffInsightsSection } from "./StaffInsightsSection";
 import { OperationalInsightsSection } from "./OperationalInsightsSection";
 import { ActionItemsSection } from "./ActionItemsSection";
-import { InteractiveCharts } from "./InteractiveCharts";
-import { ExportManager } from "./ExportManager";
-import { DashboardCustomizer } from "./DashboardCustomizer";
-import { AlertSystem } from "./AlertSystem";
-import { ComparativeAnalysis } from "./ComparativeAnalysis";
-import { AdvancedFilters, FilterCriteria } from "./AdvancedFilters";
+
+// Phase 5: Advanced filters type import
+interface FilterCriteria {
+  dateRange?: { start: Date; end: Date };
+  ratingRange?: { min: number; max: number };
+  sentiment?: string[];
+  textSearch?: string;
+  themes?: string[];
+  staffMentions?: string[];
+  hasOwnerResponse?: boolean;
+  languages?: string[];
+  reviewLength?: { min: number; max: number };
+}
 
 interface AnalysisSummaryProps {
   reviews: Review[];
@@ -71,7 +92,27 @@ const DEFAULT_VIEW_CONFIG: ViewConfig = {
   enableAnimations: true
 };
 
-export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
+// Phase 5: Memoized analysis data calculation
+const generateMemoizedAnalysis = memoizeWithExpiry(
+  (reviews: Review[], config: AnalysisConfig, businessName: string): AnalysisSummaryData => {
+    const stopMeasurement = PerformanceMonitor.startMeasurement('analysis-summary-generation');
+    
+    try {
+      const data = generateAnalysisSummary(reviews, config);
+      const result = { ...data, dataSource: { ...data.dataSource, businessName } };
+      stopMeasurement();
+      return result;
+    } catch (error) {
+      stopMeasurement();
+      throw error;
+    }
+  },
+  (reviews: Review[], config: AnalysisConfig, businessName: string) => 
+    `analysis-${reviews.length}-${JSON.stringify(config)}-${businessName}`,
+  10 * 60 * 1000 // 10 minutes cache
+);
+
+export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
   reviews,
   businessName = "Current Business",
   businessType = "CAFE",
@@ -89,7 +130,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
   customizable = false,
   exportable = false
 }) => {
-  // State management for enhanced features
+  // Phase 5: Enhanced state management with performance monitoring
   const [viewConfig, setViewConfig] = useState<ViewConfig>(DEFAULT_VIEW_CONFIG);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [showExportManager, setShowExportManager] = useState(false);
@@ -103,63 +144,97 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  // Use filtered reviews for analysis
+  // Phase 5: Performance monitoring for component lifecycle
+  React.useEffect(() => {
+    const stopMeasurement = PerformanceMonitor.startMeasurement('analysis-summary-mount');
+    return () => {
+      stopMeasurement();
+    };
+  }, []);
+
+  // Use filtered reviews for analysis with performance optimization
   const reviewsForAnalysis = useMemo(() => {
-    return filteredReviews.length > 0 ? filteredReviews : reviews;
+    const stopMeasurement = PerformanceMonitor.startMeasurement('reviews-filtering');
+    const result = filteredReviews.length > 0 ? filteredReviews : reviews;
+    stopMeasurement();
+    return result;
   }, [filteredReviews, reviews]);
 
-  // Generate analysis data with performance optimization
+  // Phase 5: Memoized analysis data generation with error handling
   const analysisData: AnalysisSummaryData | null = useMemo(() => {
     if (!reviewsForAnalysis || reviewsForAnalysis.length === 0) return null;
     
     try {
-      const data = generateAnalysisSummary(reviewsForAnalysis, config);
-      return { ...data, dataSource: { ...data.dataSource, businessName } };
+      return generateMemoizedAnalysis(reviewsForAnalysis, config, businessName);
     } catch (error) {
-      console.error("Error generating analysis summary:", error);
+      errorLogger.logError(new AppError(
+        "Failed to generate analysis summary",
+        ErrorType.CLIENT,
+        ErrorSeverity.HIGH,
+        { 
+          reviewCount: reviewsForAnalysis.length,
+          config,
+          businessName 
+        }
+      ));
       return null;
     }
   }, [reviewsForAnalysis, config, businessName]);
 
-  // Handle refresh functionality
-  const handleRefresh = useCallback(async () => {
-    if (onRefresh) {
-      setRefreshing(true);
-      try {
-        await onRefresh();
-        setLastRefresh(new Date());
-      } catch (error) {
-        console.error('Refresh failed:', error);
-      } finally {
-        setRefreshing(false);
+  // Phase 5: Debounced refresh handler with error handling
+  const handleRefresh = useCallback(
+    debounce(async () => {
+      if (onRefresh) {
+        setRefreshing(true);
+        try {
+          const stopMeasurement = PerformanceMonitor.startMeasurement('analysis-refresh');
+          await onRefresh();
+          setLastRefresh(new Date());
+          stopMeasurement();
+        } catch (error) {
+          errorLogger.logError(new AppError(
+            "Refresh failed",
+            ErrorType.CLIENT,
+            ErrorSeverity.MEDIUM,
+            { error: error.message }
+          ));
+        } finally {
+          setRefreshing(false);
+        }
       }
-    }
-  }, [onRefresh]);
+    }, 1000),
+    [onRefresh]
+  );
 
-  // Handle export functionality
-  const handleExport = useCallback((format: string) => {
+  // Phase 5: Safe export handler
+  const handleExport = useCallback(safeExecute((format: string) => {
     if (analysisData) {
       setShowExportManager(true);
+      PerformanceMonitor.startMeasurement('export-manager-open');
     }
-  }, [analysisData]);
+  }, { action: 'export', format: 'unknown' }), [analysisData]);
 
-  // Handle view configuration changes
+  // Phase 5: Optimized view configuration changes
   const handleViewConfigChange = useCallback((key: keyof ViewConfig, value: any) => {
     setViewConfig(prev => ({ ...prev, [key]: value }));
+    PerformanceMonitor.startMeasurement('view-config-change');
   }, []);
 
-  // Toggle fullscreen for sections
+  // Phase 5: Fullscreen toggle with performance tracking
   const toggleFullscreen = useCallback((sectionId: string) => {
     setFullscreenSection(current => current === sectionId ? null : sectionId);
+    PerformanceMonitor.startMeasurement('fullscreen-toggle');
   }, []);
 
-  // Handle filter changes
+  // Phase 5: Optimized filter change handler
   const handleFiltersChange = useCallback((filtered: Review[], criteria: FilterCriteria) => {
+    const stopMeasurement = PerformanceMonitor.startMeasurement('filters-apply');
     setFilteredReviews(filtered);
     setActiveFilters(criteria);
+    stopMeasurement();
   }, []);
 
-  // Get layout styles based on configuration
+  // Phase 5: Memoized layout styles
   const getLayoutStyles = useMemo(() => {
     const spacing = {
       compact: 'space-y-3',
@@ -181,34 +256,47 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
     };
   }, [viewConfig]);
 
-  // Loading state
+  // Phase 5: Enhanced loading state with performance info
   if (loading) {
     return (
-      <Card className={`w-full ${className}`}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Generating Analysis Summary...
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <ComponentErrorBoundary>
+        <Card className={`w-full ${className}`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Generating Analysis Summary...
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </ComponentErrorBoundary>
     );
   }
 
-  // Error state
+  // Phase 5: Enhanced error state
   if (!analysisData) {
     return (
       <Alert className={`w-full ${className}`} variant="destructive">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
           Unable to generate analysis summary. Please ensure you have review data available.
+          {process.env.NODE_ENV === 'development' && (
+            <details className="mt-2 text-xs">
+              <summary>Debug Info</summary>
+              <pre>{JSON.stringify({
+                reviewCount: reviews.length,
+                filteredCount: filteredReviews.length,
+                config,
+                businessName
+              }, null, 2)}</pre>
+            </details>
+          )}
         </AlertDescription>
       </Alert>
     );
@@ -222,74 +310,88 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
                     healthScore >= 60 ? AlertTriangle : AlertTriangle;
   const HealthIcon = healthIcon;
 
-  // Render main content based on layout
-  const renderMainContent = () => {
+  // Phase 5: Optimized main content rendering
+  const renderMainContent = useCallback(() => {
     const sections = [
       {
         id: 'executive-summary',
         title: 'Executive Summary',
         component: (
-          <ExecutiveSummaryCard 
-            healthScore={analysisData.businessHealthScore}
-            performanceMetrics={analysisData.performanceMetrics}
-            timePeriod={analysisData.timePeriod}
-          />
+          <ComponentErrorBoundary>
+            <ExecutiveSummaryCard 
+              healthScore={analysisData.businessHealthScore}
+              performanceMetrics={analysisData.performanceMetrics}
+              timePeriod={analysisData.timePeriod}
+            />
+          </ComponentErrorBoundary>
         )
       },
       {
         id: 'performance-metrics',
         title: 'Performance Metrics',
         component: (
-          <PerformanceMetricsGrid 
-            performanceMetrics={analysisData.performanceMetrics}
-            ratingAnalysis={analysisData.ratingAnalysis}
-            responseAnalytics={analysisData.responseAnalytics}
-          />
+          <ComponentErrorBoundary>
+            <PerformanceMetricsGrid 
+              performanceMetrics={analysisData.performanceMetrics}
+              ratingAnalysis={analysisData.ratingAnalysis}
+              responseAnalytics={analysisData.responseAnalytics}
+            />
+          </ComponentErrorBoundary>
         )
       },
       {
         id: 'sentiment-analysis',
         title: 'Sentiment Analysis',
         component: (
-          <SentimentAnalysisSection 
-            sentimentAnalysis={analysisData.sentimentAnalysis}
-          />
+          <ComponentErrorBoundary>
+            <SentimentAnalysisSection 
+              sentimentAnalysis={analysisData.sentimentAnalysis}
+            />
+          </ComponentErrorBoundary>
         )
       },
       {
         id: 'thematic-analysis',
         title: 'Thematic Analysis',
         component: config.includeThematicAnalysis ? (
-          <ThematicAnalysisSection 
-            thematicAnalysis={analysisData.thematicAnalysis}
-          />
+          <ComponentErrorBoundary>
+            <ThematicAnalysisSection 
+              thematicAnalysis={analysisData.thematicAnalysis}
+            />
+          </ComponentErrorBoundary>
         ) : null
       },
       {
         id: 'staff-insights',
         title: 'Staff Insights',
         component: config.includeStaffAnalysis && analysisData.staffInsights.mentions.length > 0 ? (
-          <StaffInsightsSection 
-            staffInsights={analysisData.staffInsights}
-          />
+          <ComponentErrorBoundary>
+            <StaffInsightsSection 
+              staffInsights={analysisData.staffInsights}
+            />
+          </ComponentErrorBoundary>
         ) : null
       },
       {
         id: 'operational-insights',
         title: 'Operational Insights',
         component: (
-          <OperationalInsightsSection 
-            operationalInsights={analysisData.operationalInsights}
-          />
+          <ComponentErrorBoundary>
+            <OperationalInsightsSection 
+              operationalInsights={analysisData.operationalInsights}
+            />
+          </ComponentErrorBoundary>
         )
       },
       {
         id: 'action-items',
         title: 'Action Items',
         component: config.includeActionItems ? (
-          <ActionItemsSection 
-            actionItems={analysisData.actionItems}
-          />
+          <ComponentErrorBoundary>
+            <ActionItemsSection 
+              actionItems={analysisData.actionItems}
+            />
+          </ComponentErrorBoundary>
         ) : null
       }
     ].filter(section => section.component !== null);
@@ -306,19 +408,21 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
           </TabsList>
           {sections.map(section => (
             <TabsContent key={section.id} value={section.id} className="mt-6">
-              <div className={fullscreenSection === section.id ? 'fixed inset-0 z-50 bg-background p-6' : ''}>
-                {section.component}
-                {fullscreenSection === section.id && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="absolute top-4 right-4"
-                    onClick={() => toggleFullscreen(section.id)}
-                  >
-                    <EyeOff className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+              <SectionErrorBoundary>
+                <div className={fullscreenSection === section.id ? 'fixed inset-0 z-50 bg-background p-6' : ''}>
+                  {section.component}
+                  {fullscreenSection === section.id && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="absolute top-4 right-4"
+                      onClick={() => toggleFullscreen(section.id)}
+                    >
+                      <EyeOff className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </SectionErrorBoundary>
             </TabsContent>
           ))}
         </Tabs>
@@ -329,40 +433,41 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
     return (
       <div className={`grid gap-6 ${getLayoutStyles.columns}`}>
         {sections.map(section => (
-          <div 
-            key={section.id} 
-            className={`${getLayoutStyles.animations} ${fullscreenSection === section.id ? 'fixed inset-0 z-50 bg-background p-6' : ''}`}
-          >
-            {fullscreenSection === section.id && (
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">{section.title}</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toggleFullscreen(section.id)}
-                >
-                  <EyeOff className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-            <div className="relative group">
-              {section.component}
-              {!fullscreenSection && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => toggleFullscreen(section.id)}
-                >
-                  <Maximize className="h-4 w-4" />
-                </Button>
+          <SectionErrorBoundary key={section.id}>
+            <div 
+              className={`${getLayoutStyles.animations} ${fullscreenSection === section.id ? 'fixed inset-0 z-50 bg-background p-6' : ''}`}
+            >
+              {fullscreenSection === section.id && (
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">{section.title}</h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleFullscreen(section.id)}
+                  >
+                    <EyeOff className="h-4 w-4" />
+                  </Button>
+                </div>
               )}
+              <div className="relative group">
+                {section.component}
+                {!fullscreenSection && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => toggleFullscreen(section.id)}
+                  >
+                    <Maximize className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          </SectionErrorBoundary>
         ))}
       </div>
     );
-  };
+  }, [analysisData, config, viewConfig, fullscreenSection, getLayoutStyles, toggleFullscreen]);
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -497,7 +602,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
         </CardContent>
       </Card>
 
-      {/* Modals/Dialogs */}
+      {/* Phase 5: Lazy-loaded modal components with error boundaries */}
       {showAdvancedFilters && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
           <div className="container mx-auto p-6 h-full overflow-auto">
@@ -507,12 +612,16 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <AdvancedFilters
-              reviews={reviews}
-              onFiltersChange={handleFiltersChange}
-              showResultCount={true}
-              enablePresets={true}
-            />
+            <Suspense fallback={<LoadingFallback size="large" message="Loading filters..." />}>
+              <SectionErrorBoundary>
+                <LazyAdvancedFilters
+                  reviews={reviews}
+                  onFiltersChange={handleFiltersChange}
+                  showResultCount={true}
+                  enablePresets={true}
+                />
+              </SectionErrorBoundary>
+            </Suspense>
           </div>
         </div>
       )}
@@ -526,11 +635,15 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <ComparativeAnalysis
-              reviews={reviewsForAnalysis}
-              businessName={businessName}
-              businessType={businessType}
-            />
+            <Suspense fallback={<LoadingFallback size="large" message="Loading comparison..." />}>
+              <SectionErrorBoundary>
+                <LazyComparativeAnalysis
+                  reviews={reviewsForAnalysis}
+                  businessName={businessName}
+                  businessType={businessType}
+                />
+              </SectionErrorBoundary>
+            </Suspense>
           </div>
         </div>
       )}
@@ -544,11 +657,15 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <AlertSystem
-              reviews={reviewsForAnalysis}
-              businessName={businessName}
-              businessType={businessType}
-            />
+            <Suspense fallback={<LoadingFallback size="large" message="Loading alerts..." />}>
+              <SectionErrorBoundary>
+                <LazyAlertSystem
+                  reviews={reviewsForAnalysis}
+                  businessName={businessName}
+                  businessType={businessType}
+                />
+              </SectionErrorBoundary>
+            </Suspense>
           </div>
         </div>
       )}
@@ -562,12 +679,16 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <InteractiveCharts
-              reviews={reviewsForAnalysis}
-              analysisData={analysisData}
-              refreshData={onRefresh}
-              autoRefresh={autoRefresh}
-            />
+            <Suspense fallback={<LoadingFallback size="large" message="Loading charts..." />}>
+              <SectionErrorBoundary>
+                <LazyInteractiveCharts
+                  reviews={reviewsForAnalysis}
+                  analysisData={analysisData}
+                  refreshData={onRefresh}
+                  autoRefresh={autoRefresh}
+                />
+              </SectionErrorBoundary>
+            </Suspense>
           </div>
         </div>
       )}
@@ -581,11 +702,15 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <ExportManager
-              reviews={reviewsForAnalysis}
-              businessName={businessName}
-              businessType={businessType}
-            />
+            <Suspense fallback={<LoadingFallback size="large" message="Loading export manager..." />}>
+              <SectionErrorBoundary>
+                <LazyExportManager
+                  reviews={reviewsForAnalysis}
+                  businessName={businessName}
+                  businessType={businessType}
+                />
+              </SectionErrorBoundary>
+            </Suspense>
           </div>
         </div>
       )}
@@ -599,28 +724,34 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = ({
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <DashboardCustomizer
-              currentLayout={{
-                id: 'current',
-                name: 'Current Layout',
-                description: 'Current dashboard configuration',
-                widgets: [],
-                columns: viewConfig.columns,
-                spacing: 16,
-                theme: 'light'
-              }}
-              onLayoutChange={(layout) => {
-                handleViewConfigChange('columns', layout.columns);
-              }}
-              onSaveTemplate={() => {}}
-              onLoadTemplate={() => {}}
-              availableTemplates={[]}
-            />
+            <Suspense fallback={<LoadingFallback size="large" message="Loading customizer..." />}>
+              <SectionErrorBoundary>
+                <LazyDashboardCustomizer
+                  currentLayout={{
+                    id: 'current',
+                    name: 'Current Layout',
+                    description: 'Current dashboard configuration',
+                    widgets: [],
+                    columns: viewConfig.columns,
+                    spacing: 16,
+                    theme: 'light'
+                  }}
+                  onLayoutChange={(layout) => {
+                    handleViewConfigChange('columns', layout.columns);
+                  }}
+                  onSaveTemplate={() => {}}
+                  onLoadTemplate={() => {}}
+                  availableTemplates={[]}
+                />
+              </SectionErrorBoundary>
+            </Suspense>
           </div>
         </div>
       )}
     </div>
   );
-};
+});
+
+AnalysisSummary.displayName = 'AnalysisSummary';
 
 export default AnalysisSummary;

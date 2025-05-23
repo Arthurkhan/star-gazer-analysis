@@ -1,3 +1,5 @@
+import React from 'react';
+
 /**
  * Theme utility functions for handling dark/light mode in charts and tooltips
  */

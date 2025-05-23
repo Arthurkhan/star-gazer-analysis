@@ -36,3 +36,67 @@ export const CustomTermsTooltip = ({ active, payload }: any) => {
   }
   return null;
 };
+
+// Generic chart tooltip that works with all chart types
+export const CustomChartTooltip = ({ active, payload, label, formatter, labelFormatter }: any) => {
+  if (!active || !payload || !payload.length) {
+    return null;
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 p-3 rounded-md shadow-lg border border-gray-200 dark:border-gray-600 text-sm">
+      {label && (
+        <p className="font-medium text-gray-900 dark:text-gray-50 mb-2">
+          {labelFormatter ? labelFormatter(label) : label}
+        </p>
+      )}
+      {payload.map((entry: any, index: number) => (
+        <div key={index} className="flex items-center justify-between gap-2 py-1">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-sm"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              {entry.name}:
+            </span>
+          </div>
+          <span className="text-sm font-medium text-gray-900 dark:text-gray-50">
+            {formatter ? formatter(entry.value, entry.name)[0] : entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Simplified bar/line chart tooltip
+export const CustomBarLineTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload || !payload.length) {
+    return null;
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 p-3 rounded-md shadow-lg border border-gray-200 dark:border-gray-600 text-sm">
+      {label && (
+        <p className="font-medium text-gray-900 dark:text-gray-50 mb-2">
+          {label}
+        </p>
+      )}
+      {payload.map((entry: any, index: number) => (
+        <div key={index} className="flex items-center gap-2">
+          <div
+            className="w-3 h-3 rounded-sm"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-gray-700 dark:text-gray-300 text-sm">
+            {entry.name}: 
+          </span>
+          <span className="font-medium text-gray-900 dark:text-gray-50 text-sm">
+            {entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};

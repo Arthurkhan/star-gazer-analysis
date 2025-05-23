@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, Sector } from 'recharts';
+import { CustomChartTooltip } from './CustomTooltips';
 
 interface PieChartRendererProps {
   data: Array<{
@@ -114,8 +115,7 @@ export const PieChartRenderer: React.FC<PieChartRendererProps> = ({
             ))}
           </Pie>
           <Tooltip 
-            formatter={(value: number) => [value, 'Count']} 
-            labelFormatter={(label) => `${label}`}
+            content={<CustomChartTooltip />}
           />
           <Legend />
         </PieChart>

@@ -19,11 +19,13 @@ import {
   CheckCircle,
   Clock,
   FileImage,
-  FileSpreadsheet
+  FileSpreadsheet,
+  AlertTriangle
 } from 'lucide-react';
 import { Review } from '@/types/reviews';
 import { generateAnalysisSummary } from '@/utils/analysisUtils';
 import { calculateSeasonalTrends, analyzeCustomerJourney, generateCompetitiveInsights } from '@/utils/performanceMetrics';
+import { prepareExportData, generatePDFContent, generateExcelWorkbook, generateCSVContent, generateJSONContent, downloadFile, exportFormats, ExportConfig, defaultExportConfig } from '@/utils/exportUtils';
 import { format } from 'date-fns';
 
 interface ExportManagerProps {
@@ -32,56 +34,8 @@ interface ExportManagerProps {
   businessType: string;
 }
 
-interface ExportConfig {
-  format: 'pdf' | 'excel' | 'json' | 'csv';
-  includeSections: {
-    summary: boolean;
-    charts: boolean;
-    recommendations: boolean;
-    rawData: boolean;
-    trends: boolean;
-    competitive: boolean;
-  };
-  customization: {
-    title: string;
-    subtitle: string;
-    includeCompanyLogo: boolean;
-    includeDate: boolean;
-    includeWatermark: boolean;
-  };
-  scheduling: {
-    enabled: boolean;
-    frequency: 'weekly' | 'monthly' | 'quarterly';
-    recipients: string[];
-  };
-}
-
-const defaultConfig: ExportConfig = {
-  format: 'pdf',
-  includeSections: {
-    summary: true,
-    charts: true,
-    recommendations: true,
-    rawData: false,
-    trends: true,
-    competitive: true
-  },
-  customization: {
-    title: 'Business Analysis Report',
-    subtitle: 'Customer Review Analysis & Insights',
-    includeCompanyLogo: false,
-    includeDate: true,
-    includeWatermark: false
-  },
-  scheduling: {
-    enabled: false,
-    frequency: 'monthly',
-    recipients: []
-  }
-};
-
 export function ExportManager({ reviews, businessName, businessType }: ExportManagerProps) {
-  const [config, setConfig] = useState<ExportConfig>(defaultConfig);
+  const [config, setConfig] = useState<ExportConfig>(defaultExportConfig);
   const [isExporting, setIsExporting] = useState(false);
   const [exportHistory, setExportHistory] = useState<Array<{
     date: string;
@@ -101,41 +55,39 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
     setIsExporting(true);
     
     try {
-      // Prepare export data based on configuration
-      const exportData = {
-        metadata: {
-          title: config.customization.title,
-          subtitle: config.customization.subtitle,
-          businessName,
-          businessType,
-          generatedAt: new Date().toISOString(),
-          totalReviews: reviews.length,
-          dateRange: {
-            from: reviews.length > 0 ? reviews[0].publishedAtDate : null,
-            to: reviews.length > 0 ? reviews[reviews.length - 1].publishedAtDate : null
-          }
-        },
-        sections: {
-          ...(config.includeSections.summary && { summary: analysisData }),
-          ...(config.includeSections.trends && { trends: seasonalTrends }),
-          ...(config.includeSections.competitive && { competitive: competitiveInsights }),
-          ...(config.includeSections.rawData && { rawData: reviews })
-        }
-      };
+      // Prepare export data using the new utility
+      const exportData = prepareExportData(reviews, analysisData, config);
 
       // Generate export based on format
+      let content: string | Blob;
+      let filename: string;
+      let mimeType: string;
+
       switch (config.format) {
         case 'pdf':
-          await generatePDFReport(exportData);
+          content = generatePDFContent(exportData, config);
+          filename = `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+          mimeType = exportFormats.pdf.mimeType;
+          await generatePDFReport(content as string, filename);
           break;
         case 'excel':
-          await generateExcelReport(exportData);
+          const workbook = generateExcelWorkbook(exportData, config);
+          content = JSON.stringify(workbook, null, 2);
+          filename = `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+          mimeType = exportFormats.excel.mimeType;
+          downloadFile(content, filename, mimeType);
           break;
         case 'json':
-          await generateJSONReport(exportData);
+          content = generateJSONContent(exportData, config);
+          filename = `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.json`;
+          mimeType = exportFormats.json.mimeType;
+          downloadFile(content, filename, mimeType);
           break;
         case 'csv':
-          await generateCSVReport(exportData);
+          content = generateCSVContent(reviews, config);
+          filename = `${businessName}-reviews-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+          mimeType = exportFormats.csv.mimeType;
+          downloadFile(content, filename, mimeType);
           break;
       }
 
@@ -143,7 +95,7 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
       setExportHistory(prev => [{
         date: new Date().toISOString(),
         format: config.format.toUpperCase(),
-        sections: Object.keys(config.includeSections).filter(key => config.includeSections[key as keyof typeof config.includeSections]),
+        sections: Object.keys(config.sections).filter(key => config.sections[key as keyof typeof config.sections]),
         status: 'success'
       }, ...prev.slice(0, 9)]); // Keep last 10 exports
 
@@ -160,15 +112,11 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
     }
   };
 
-  const generatePDFReport = async (data: any) => {
-    // This would integrate with a PDF generation library like jsPDF or Puppeteer
-    // For now, we'll create a basic implementation
-    const reportContent = generateReportHTML(data);
-    
+  const generatePDFReport = async (htmlContent: string, filename: string) => {
     // Create a printable version
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-      printWindow.document.write(reportContent);
+      printWindow.document.write(htmlContent);
       printWindow.document.close();
       printWindow.focus();
       setTimeout(() => {
@@ -176,141 +124,6 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
         printWindow.close();
       }, 500);
     }
-  };
-
-  const generateExcelReport = async (data: any) => {
-    // Convert data to Excel format
-    const workbook = {
-      SheetNames: ['Summary', 'Trends', 'Raw Data'],
-      Sheets: {
-        'Summary': generateExcelSheet(data.sections.summary),
-        'Trends': generateExcelSheet(data.sections.trends),
-        'Raw Data': generateExcelSheet(data.sections.rawData)
-      }
-    };
-
-    // Create and download Excel file
-    const excelBlob = new Blob([JSON.stringify(workbook, null, 2)], { 
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-    });
-    downloadFile(excelBlob, `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-  };
-
-  const generateJSONReport = async (data: any) => {
-    const jsonBlob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    downloadFile(jsonBlob, `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.json`);
-  };
-
-  const generateCSVReport = async (data: any) => {
-    const csvContent = convertToCSV(data.sections.rawData || reviews);
-    const csvBlob = new Blob([csvContent], { type: 'text/csv' });
-    downloadFile(csvBlob, `${businessName}-reviews-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-  };
-
-  const generateReportHTML = (data: any) => {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${data.metadata.title}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { text-align: center; margin-bottom: 30px; }
-          .section { margin-bottom: 30px; }
-          .chart-placeholder { background: #f0f0f0; padding: 20px; text-align: center; margin: 20px 0; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-          @media print { .no-print { display: none; } }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>${data.metadata.title}</h1>
-          <h2>${data.metadata.subtitle}</h2>
-          <p>Business: ${data.metadata.businessName}</p>
-          <p>Generated: ${format(new Date(data.metadata.generatedAt), 'PPP')}</p>
-        </div>
-
-        ${config.includeSections.summary ? `
-          <div class="section">
-            <h2>Executive Summary</h2>
-            <p>Total Reviews: ${data.metadata.totalReviews}</p>
-            <p>Business Health Score: ${data.sections.summary?.healthScore?.overall || 'N/A'}</p>
-          </div>
-        ` : ''}
-
-        ${config.includeSections.charts ? `
-          <div class="section">
-            <h2>Performance Charts</h2>
-            <div class="chart-placeholder">
-              [Chart: Rating Trends Over Time]
-            </div>
-            <div class="chart-placeholder">
-              [Chart: Review Volume by Month]
-            </div>
-          </div>
-        ` : ''}
-
-        ${config.includeSections.trends ? `
-          <div class="section">
-            <h2>Seasonal Trends</h2>
-            <table>
-              <tr><th>Period</th><th>Avg Rating</th><th>Review Count</th><th>Trend</th></tr>
-              ${data.sections.trends?.map((trend: any) => `
-                <tr>
-                  <td>${trend.period}</td>
-                  <td>${trend.avgRating?.toFixed(1) || 'N/A'}</td>
-                  <td>${trend.reviewCount || 'N/A'}</td>
-                  <td>${trend.trendDirection || 'N/A'}</td>
-                </tr>
-              `).join('') || ''}
-            </table>
-          </div>
-        ` : ''}
-
-        <div class="section">
-          <p><small>Generated by Star-Gazer Analysis Platform</small></p>
-        </div>
-      </body>
-      </html>
-    `;
-  };
-
-  const generateExcelSheet = (data: any) => {
-    // Basic Excel sheet structure
-    if (Array.isArray(data)) {
-      return data.map((item, index) => ({ ...item, row: index + 1 }));
-    }
-    return [data];
-  };
-
-  const convertToCSV = (data: Review[]) => {
-    if (!data || data.length === 0) return '';
-    
-    const headers = ['Date', 'Rating', 'Customer', 'Review Text', 'Sentiment', 'Staff Mentioned', 'Themes'];
-    const rows = data.map(review => [
-      review.publishedAtDate,
-      review.stars,
-      review.name || '',
-      `"${(review.text || '').replace(/"/g, '""')}"`,
-      review.sentiment || '',
-      review.staffMentioned || '',
-      review.mainThemes || ''
-    ]);
-    
-    return [headers, ...rows].map(row => row.join(',')).join('\n');
-  };
-
-  const downloadFile = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const updateConfig = (path: string, value: any) => {
@@ -372,12 +185,12 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
             <div>
               <Label className="text-base font-medium">Sections to Include</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
-                {Object.entries(config.includeSections).map(([key, value]) => (
+                {Object.entries(config.sections).map(([key, value]) => (
                   <div key={key} className="flex items-center space-x-2">
                     <Checkbox
                       id={key}
                       checked={value}
-                      onCheckedChange={(checked) => updateConfig(`includeSections.${key}`, checked)}
+                      onCheckedChange={(checked) => updateConfig(`sections.${key}`, checked)}
                     />
                     <Label htmlFor={key} className="capitalize">
                       {key.replace(/([A-Z])/g, ' $1').trim()}
@@ -396,86 +209,40 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
                   <Label htmlFor="title">Report Title</Label>
                   <Input
                     id="title"
-                    value={config.customization.title}
-                    onChange={(e) => updateConfig('customization.title', e.target.value)}
+                    value={config.branding.companyName || ''}
+                    onChange={(e) => updateConfig('branding.companyName', e.target.value)}
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="subtitle">Subtitle</Label>
-                  <Input
-                    id="subtitle"
-                    value={config.customization.subtitle}
-                    onChange={(e) => updateConfig('customization.subtitle', e.target.value)}
-                  />
+                  <Label htmlFor="template">Template</Label>
+                  <Select
+                    value={config.template}
+                    onValueChange={(value) => updateConfig('template', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="executive">Executive</SelectItem>
+                      <SelectItem value="detailed">Detailed</SelectItem>
+                      <SelectItem value="minimal">Minimal</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="includeDate"
-                    checked={config.customization.includeDate}
-                    onCheckedChange={(checked) => updateConfig('customization.includeDate', checked)}
+                    id="coverPage"
+                    checked={config.sections.coverPage}
+                    onCheckedChange={(checked) => updateConfig('sections.coverPage', checked)}
                   />
-                  <Label htmlFor="includeDate">Include Generation Date</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="includeWatermark"
-                    checked={config.customization.includeWatermark}
-                    onCheckedChange={(checked) => updateConfig('customization.includeWatermark', checked)}
-                  />
-                  <Label htmlFor="includeWatermark">Include Watermark</Label>
+                  <Label htmlFor="coverPage">Include Cover Page</Label>
                 </div>
               </div>
-            </div>
-
-            {/* Scheduled Exports */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="schedulingEnabled"
-                  checked={config.scheduling.enabled}
-                  onCheckedChange={(checked) => updateConfig('scheduling.enabled', checked)}
-                />
-                <Label htmlFor="schedulingEnabled" className="text-base font-medium">
-                  Enable Scheduled Exports
-                </Label>
-              </div>
-              
-              {config.scheduling.enabled && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
-                  <div>
-                    <Label htmlFor="frequency">Frequency</Label>
-                    <Select
-                      value={config.scheduling.frequency}
-                      onValueChange={(value) => updateConfig('scheduling.frequency', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="quarterly">Quarterly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="recipients">Email Recipients</Label>
-                    <Textarea
-                      id="recipients"
-                      placeholder="Enter email addresses, one per line"
-                      value={config.scheduling.recipients.join('\n')}
-                      onChange={(e) => updateConfig('scheduling.recipients', e.target.value.split('\n').filter(Boolean))}
-                      rows={3}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Export Button */}
@@ -505,53 +272,50 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
               <FileImage className="h-4 w-4" />
               <AlertDescription>
                 Export Preview: {config.format.toUpperCase()} format with {
-                  Object.values(config.includeSections).filter(Boolean).length
+                  Object.values(config.sections).filter(Boolean).length
                 } sections
               </AlertDescription>
             </Alert>
 
             <div className="border rounded-lg p-6 space-y-4">
               <div className="text-center border-b pb-4">
-                <h2 className="text-xl font-bold">{config.customization.title}</h2>
-                <p className="text-gray-600">{config.customization.subtitle}</p>
+                <h2 className="text-xl font-bold">{config.branding.companyName || 'Business Analysis Report'}</h2>
+                <p className="text-gray-600">Generated on {format(new Date(), 'PPP')}</p>
                 <p className="text-sm text-gray-500">Business: {businessName}</p>
-                {config.customization.includeDate && (
-                  <p className="text-sm text-gray-500">Generated: {format(new Date(), 'PPP')}</p>
-                )}
               </div>
 
-              {config.includeSections.summary && (
+              {config.sections.executiveSummary && (
                 <div>
                   <h3 className="font-semibold">Executive Summary</h3>
                   <p className="text-sm text-gray-600">Business health score, key metrics, and performance overview</p>
                 </div>
               )}
 
-              {config.includeSections.charts && (
+              {config.sections.charts && (
                 <div>
                   <h3 className="font-semibold">Performance Charts</h3>
                   <p className="text-sm text-gray-600">Visual representations of trends and patterns</p>
                 </div>
               )}
 
-              {config.includeSections.trends && (
+              {config.sections.detailedAnalysis && (
                 <div>
-                  <h3 className="font-semibold">Seasonal Trends</h3>
-                  <p className="text-sm text-gray-600">Monthly and seasonal performance analysis</p>
+                  <h3 className="font-semibold">Detailed Analysis</h3>
+                  <p className="text-sm text-gray-600">In-depth analysis of customer feedback and performance</p>
                 </div>
               )}
 
-              {config.includeSections.competitive && (
+              {config.sections.recommendations && (
                 <div>
-                  <h3 className="font-semibold">Competitive Analysis</h3>
-                  <p className="text-sm text-gray-600">Industry benchmarks and positioning</p>
+                  <h3 className="font-semibold">Recommendations</h3>
+                  <p className="text-sm text-gray-600">Actionable insights and improvement suggestions</p>
                 </div>
               )}
 
-              {config.includeSections.rawData && (
+              {config.sections.appendix && (
                 <div>
-                  <h3 className="font-semibold">Raw Data</h3>
-                  <p className="text-sm text-gray-600">Complete review dataset</p>
+                  <h3 className="font-semibold">Appendix</h3>
+                  <p className="text-sm text-gray-600">Additional data and methodology notes</p>
                 </div>
               )}
             </div>

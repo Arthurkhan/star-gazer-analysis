@@ -2,6 +2,7 @@ import React, { memo } from "react";
 import { Review } from "@/types/reviews";
 import OverviewSection from "@/components/OverviewSection";
 import ReviewsTable from "@/components/ReviewsTable";
+import AnalysisSummary from "@/components/analysis/AnalysisSummary";
 import { useDashboardContext } from "@/contexts/DashboardContext";
 
 // AllReviewsContent component with enhanced props for loading all reviews
@@ -47,6 +48,20 @@ const AllReviewsContent: React.FC<{
 
   return (
     <div className="space-y-6">
+      {/* Analysis Summary - New comprehensive analysis section */}
+      <AnalysisSummary 
+        reviews={reviews}
+        businessName="Current Business" // TODO: Pass actual business name from props
+        loading={false}
+        config={{
+          timePeriod: "all",
+          includeStaffAnalysis: true,
+          includeThematicAnalysis: true,
+          includeActionItems: true,
+          comparisonPeriod: "previous"
+        }}
+      />
+      
       {/* Overview section with review stats */}
       <OverviewSection 
         reviews={reviews} 

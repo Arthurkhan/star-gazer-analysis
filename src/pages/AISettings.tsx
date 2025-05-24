@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,10 +10,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { AIServiceFactory, defaultConfigs } from '@/services/ai/aiServiceFactory';
 import { AIProviderType } from '@/types/aiService';
-import { Loader2, Check, X } from 'lucide-react';
+import { Loader2, Check, X, ArrowLeft, Settings } from 'lucide-react';
 
 const AISettings = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedProvider, setSelectedProvider] = useState<AIProviderType>('openai');
   const [apiKeys, setApiKeys] = useState<Record<AIProviderType, string>>({
     openai: '',
@@ -40,6 +42,11 @@ const AISettings = () => {
     };
     setApiKeys(savedKeys);
   }, []);
+
+  // Back navigation handler
+  const handleGoBack = () => {
+    navigate('/dashboard');
+  };
 
   const saveSettings = () => {
     // Save provider selection
@@ -124,7 +131,29 @@ const AISettings = () => {
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">AI Provider Settings</h1>
+        {/* Enhanced Header with Back Button */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleGoBack}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Button>
+            <div className="flex items-center gap-3">
+              <Settings className="h-6 w-6 text-muted-foreground" />
+              <div>
+                <h1 className="text-2xl font-bold">AI Provider Settings</h1>
+                <p className="text-sm text-muted-foreground">
+                  Configure your AI providers and manage API keys
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <Card className="mb-6">
           <CardHeader>
@@ -214,7 +243,15 @@ const AISettings = () => {
           </AlertDescription>
         </Alert>
 
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <Button 
+            variant="outline" 
+            onClick={handleGoBack}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
           <Button onClick={saveSettings}>Save Settings</Button>
         </div>
       </div>

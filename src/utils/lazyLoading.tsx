@@ -18,7 +18,7 @@ interface LoadingFallbackProps {
   showProgress?: boolean;
 }
 
-const LoadingFallback: React.FC<LoadingFallbackProps> = ({ 
+export const LoadingFallback: React.FC<LoadingFallbackProps> = ({ 
   size = 'medium', 
   message = 'Loading...', 
   showProgress = false 
@@ -439,6 +439,7 @@ export const LazyAdvancedFilters = createLazyComponent(
   }
 );
 
+// Default export for compatibility
 export default {
   createLazyComponent,
   createObserverLazyComponent,

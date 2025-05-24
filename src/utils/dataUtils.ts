@@ -29,6 +29,100 @@ export const countReviewsByRating = (
   }, {} as Record<number, number>);
 };
 
+// Calculate response rate from owner - FIXED ISSUE
+export const calculateResponseRate = (reviews: Review[]): number => {
+  if (reviews.length === 0) return 0;
+  
+  const reviewsWithResponses = reviews.filter(review => {
+    const responseText = reviewFieldAccessor.getResponseText(review);
+    return responseText && responseText.trim().length > 0;
+  });
+  
+  return (reviewsWithResponses.length / reviews.length) * 100;
+};
+
+// Calculate engagement metrics - NEW FUNCTION
+export const calculateEngagementMetrics = (reviews: Review[]): {
+  responseRate: number;
+  responseCount: number;
+  avgResponseLength: number;
+  responseByRating: Record<number, { total: number; responded: number; rate: number }>;
+  recentResponseRate: number; // Last 3 months
+} => {
+  if (reviews.length === 0) {
+    return {
+      responseRate: 0,
+      responseCount: 0,
+      avgResponseLength: 0,
+      responseByRating: {},
+      recentResponseRate: 0
+    };
+  }
+  
+  // Overall response metrics
+  const reviewsWithResponses = reviews.filter(review => {
+    const responseText = reviewFieldAccessor.getResponseText(review);
+    return responseText && responseText.trim().length > 0;
+  });
+  
+  const responseRate = (reviewsWithResponses.length / reviews.length) * 100;
+  const responseCount = reviewsWithResponses.length;
+  
+  // Calculate average response length
+  const totalResponseLength = reviewsWithResponses.reduce((total, review) => {
+    const responseText = reviewFieldAccessor.getResponseText(review);
+    return total + (responseText?.length || 0);
+  }, 0);
+  
+  const avgResponseLength = responseCount > 0 ? totalResponseLength / responseCount : 0;
+  
+  // Response rate by rating
+  const responseByRating: Record<number, { total: number; responded: number; rate: number }> = {};
+  
+  for (let rating = 1; rating <= 5; rating++) {
+    const reviewsWithRating = reviews.filter(r => r.stars === rating);
+    const responsesWithRating = reviewsWithRating.filter(review => {
+      const responseText = reviewFieldAccessor.getResponseText(review);
+      return responseText && responseText.trim().length > 0;
+    });
+    
+    responseByRating[rating] = {
+      total: reviewsWithRating.length,
+      responded: responsesWithRating.length,
+      rate: reviewsWithRating.length > 0 ? (responsesWithRating.length / reviewsWithRating.length) * 100 : 0
+    };
+  }
+  
+  // Recent response rate (last 3 months)
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  
+  const recentReviews = reviews.filter(review => {
+    const publishedDate = reviewFieldAccessor.getPublishedDate(review);
+    if (!publishedDate) return false;
+    
+    const reviewDate = new Date(publishedDate);
+    return reviewDate >= threeMonthsAgo;
+  });
+  
+  const recentReviewsWithResponses = recentReviews.filter(review => {
+    const responseText = reviewFieldAccessor.getResponseText(review);
+    return responseText && responseText.trim().length > 0;
+  });
+  
+  const recentResponseRate = recentReviews.length > 0 
+    ? (recentReviewsWithResponses.length / recentReviews.length) * 100 
+    : 0;
+  
+  return {
+    responseRate,
+    responseCount,
+    avgResponseLength,
+    responseByRating,
+    recentResponseRate
+  };
+};
+
 // Group reviews by month, calculate count and month-over-month comparison
 export const groupReviewsByMonth = (reviews: Review[]): MonthlyReviewData[] => {
   // Create a map for months

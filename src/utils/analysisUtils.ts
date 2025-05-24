@@ -664,10 +664,6 @@ export const generateAnalysisSummary = memoizeWithExpiry(
         peakDays: [],
         peakMonths: [performanceMetrics.peakMonth],
         quietPeriods: []
-      },
-      customerLoyalty: {
-        repeatReviewers: 0, // TODO: Implement in future phases
-        loyaltyScore: 0
       }
     };
 

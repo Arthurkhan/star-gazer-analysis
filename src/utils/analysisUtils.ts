@@ -28,11 +28,12 @@ import {
   generateAnalysisCacheKey, 
   PerformanceMonitor 
 } from "@/utils/performanceOptimizations";
+import { reviewFieldAccessor, hasOwnerResponse } from "@/types/reviews";
 
 // Helper function to filter reviews by date range
 export const filterReviewsByDateRange = (reviews: Review[], start: Date, end: Date): Review[] => {
   return reviews.filter(review => {
-    const reviewDate = new Date(review.publishedAtDate || review.publishedatdate || '');
+    const reviewDate = new Date(reviewFieldAccessor.getPublishedDate(review) || '');
     return reviewDate >= start && reviewDate <= end;
   });
 };
@@ -185,8 +186,8 @@ export const calculatePerformanceMetrics = memoizeWithExpiry(
     const totalReviews = reviews.length;
     
     // Calculate reviews per month
-    const startDate = new Date(Math.min(...reviews.map(r => new Date(r.publishedAtDate || r.publishedatdate || '').getTime())));
-    const endDate = new Date(Math.max(...reviews.map(r => new Date(r.publishedAtDate || r.publishedatdate || '').getTime())));
+    const startDate = new Date(Math.min(...reviews.map(r => new Date(reviewFieldAccessor.getPublishedDate(r) || '').getTime())));
+    const endDate = new Date(Math.max(...reviews.map(r => new Date(reviewFieldAccessor.getPublishedDate(r) || '').getTime())));
     const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
     const reviewsPerMonth = totalReviews / Math.max(1, monthsDiff);
 
@@ -202,7 +203,7 @@ export const calculatePerformanceMetrics = memoizeWithExpiry(
     // Find peak periods
     const monthlyData = new Map<string, number>();
     reviews.forEach(review => {
-      const date = new Date(review.publishedAtDate || review.publishedatdate || '');
+      const date = new Date(reviewFieldAccessor.getPublishedDate(review) || '');
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       monthlyData.set(monthKey, (monthlyData.get(monthKey) || 0) + 1);
     });
@@ -308,20 +309,20 @@ export const calculateRatingAnalysis = memoizeWithExpiry(
   3 * 60 * 1000 // 3 minutes cache
 );
 
-// Calculate response analytics - MEMOIZED
+// Calculate response analytics - MEMOIZED - FIXED TO USE PROPER FIELD ACCESSORS
 export const calculateResponseAnalytics = memoizeWithExpiry(
   (reviews: Review[]): ResponseAnalytics => {
     const stopMeasurement = PerformanceMonitor.startMeasurement('response-analytics-calculation');
     
     const totalReviews = reviews.length;
-    const reviewsWithResponse = reviews.filter(r => r.responseFromOwnerText?.trim()).length;
+    const reviewsWithResponse = reviews.filter(hasOwnerResponse).length;
     const responseRate = totalReviews > 0 ? (reviewsWithResponse / totalReviews) * 100 : 0;
 
     const responsesByRating: Record<number, { total: number; responded: number; rate: number }> = {};
     
     for (let rating = 1; rating <= 5; rating++) {
       const ratingReviews = reviews.filter(r => r.stars === rating);
-      const ratingResponses = ratingReviews.filter(r => r.responseFromOwnerText?.trim());
+      const ratingResponses = ratingReviews.filter(hasOwnerResponse);
       
       responsesByRating[rating] = {
         total: ratingReviews.length,
@@ -345,7 +346,7 @@ export const calculateResponseAnalytics = memoizeWithExpiry(
     };
   },
   (reviews: Review[]) => 
-    `response-${reviews.length}-${reviews.filter(r => r.responseFromOwnerText?.trim()).length}`,
+    `response-${reviews.length}-${reviews.filter(hasOwnerResponse).length}`,
   3 * 60 * 1000 // 3 minutes cache
 );
 
@@ -384,7 +385,7 @@ export const calculateSentimentAnalysis = memoizeWithExpiry(
     const quarterlyData = new Map<string, { positive: number; neutral: number; negative: number; total: number }>();
 
     reviews.forEach(review => {
-      const date = new Date(review.publishedAtDate || review.publishedatdate || '');
+      const date = new Date(reviewFieldAccessor.getPublishedDate(review) || '');
       const quarter = `Q${Math.floor(date.getMonth() / 3) + 1} ${date.getFullYear()}`;
       
       if (!quarterlyData.has(quarter)) {
@@ -451,7 +452,7 @@ export const calculateSentimentAnalysis = memoizeWithExpiry(
   3 * 60 * 1000 // 3 minutes cache
 );
 
-// Calculate thematic analysis - MEMOIZED
+// Calculate thematic analysis - MEMOIZED - FIXED TO USE PROPER FIELD ACCESSORS
 export const calculateThematicAnalysis = memoizeWithExpiry(
   (reviews: Review[]): ThematicAnalysis => {
     const stopMeasurement = PerformanceMonitor.startMeasurement('thematic-analysis-calculation');
@@ -471,11 +472,13 @@ export const calculateThematicAnalysis = memoizeWithExpiry(
       categoryData.terms.push(term);
       categoryData.totalCount += term.count;
       
-      // Find reviews mentioning this term to get average rating
-      const mentioningReviews = reviews.filter(review => 
-        (review.mainThemes?.toLowerCase().includes(term.text.toLowerCase())) ||
-        (review["common terms"]?.toLowerCase().includes(term.text.toLowerCase()))
-      );
+      // Find reviews mentioning this term to get average rating - FIXED
+      const mentioningReviews = reviews.filter(review => {
+        const mainThemes = reviewFieldAccessor.getMainThemes(review);
+        const commonTermsField = review["common terms"];
+        return (mainThemes?.toLowerCase().includes(term.text.toLowerCase())) ||
+               (commonTermsField?.toLowerCase().includes(term.text.toLowerCase()));
+      });
       
       mentioningReviews.forEach(review => categoryData.ratings.push(review.stars));
     });
@@ -519,8 +522,8 @@ export const calculateThematicAnalysis = memoizeWithExpiry(
 
     // Simple trending topics (most mentioned in recent reviews)
     const recentReviews = reviews
-      .sort((a, b) => new Date(b.publishedAtDate || b.publishedatdate || '').getTime() - 
-                       new Date(a.publishedAtDate || a.publishedatdate || '').getTime())
+      .sort((a, b) => new Date(reviewFieldAccessor.getPublishedDate(b) || '').getTime() - 
+                       new Date(reviewFieldAccessor.getPublishedDate(a) || '').getTime())
       .slice(0, Math.min(50, Math.floor(reviews.length * 0.3))); // Last 30% or 50 reviews
 
     const recentTerms = extractCommonTerms_sync(recentReviews);
@@ -667,7 +670,7 @@ export const generateAnalysisSummary = memoizeWithExpiry(
       }
     };
 
-    // Simple action items based on available data
+    // Simple action items based on available data - FIXED TO USE PROPER FIELD ACCESSORS
     const actionItems: ActionItems = {
       urgent: [],
       improvements: [],
@@ -676,9 +679,9 @@ export const generateAnalysisSummary = memoizeWithExpiry(
     };
 
     if (config.includeActionItems) {
-      // Add urgent items for unresponded negative reviews
+      // Add urgent items for unresponded negative reviews - FIXED
       const unrespondedNegative = currentReviews.filter(r => 
-        r.stars <= 2 && !r.responseFromOwnerText?.trim()
+        r.stars <= 2 && !hasOwnerResponse(r)
       );
       
       if (unrespondedNegative.length > 0) {

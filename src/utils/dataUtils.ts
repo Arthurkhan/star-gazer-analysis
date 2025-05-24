@@ -6,7 +6,8 @@ import {
   InsightsData,
   ThemeData,
   TrendPoint,
-  StaffMention
+  StaffMention,
+  reviewFieldAccessor
 } from "@/types/reviews";
 
 // Calculate average rating from reviews
@@ -35,11 +36,14 @@ export const groupReviewsByMonth = (reviews: Review[]): MonthlyReviewData[] => {
   
   // Sort reviews by date
   const sortedReviews = [...reviews].sort(
-    (a, b) => new Date(a.publishedAtDate).getTime() - new Date(b.publishedAtDate).getTime()
+    (a, b) => new Date(reviewFieldAccessor.getPublishedDate(a) || '').getTime() - new Date(reviewFieldAccessor.getPublishedDate(b) || '').getTime()
   );
   
   sortedReviews.forEach(review => {
-    const date = new Date(review.publishedAtDate);
+    const publishedDate = reviewFieldAccessor.getPublishedDate(review);
+    if (!publishedDate) return;
+    
+    const date = new Date(publishedDate);
     const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     
     if (!monthMap.has(monthYear)) {
@@ -95,7 +99,10 @@ export const calculateMonthlyComparison = (reviews: Review[]): {
   
   // Current month
   const currentMonthReviews = reviews.filter(review => {
-    const reviewDate = new Date(review.publishedAtDate);
+    const publishedDate = reviewFieldAccessor.getPublishedDate(review);
+    if (!publishedDate) return false;
+    
+    const reviewDate = new Date(publishedDate);
     return reviewDate.getMonth() === currentMonth && reviewDate.getFullYear() === currentYear;
   });
   
@@ -104,13 +111,19 @@ export const calculateMonthlyComparison = (reviews: Review[]): {
   const previousMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
   
   const previousMonthReviews = reviews.filter(review => {
-    const reviewDate = new Date(review.publishedAtDate);
+    const publishedDate = reviewFieldAccessor.getPublishedDate(review);
+    if (!publishedDate) return false;
+    
+    const reviewDate = new Date(publishedDate);
     return reviewDate.getMonth() === previousMonth && reviewDate.getFullYear() === previousMonthYear;
   });
   
   // Same month last year
   const previousYearSameMonthReviews = reviews.filter(review => {
-    const reviewDate = new Date(review.publishedAtDate);
+    const publishedDate = reviewFieldAccessor.getPublishedDate(review);
+    if (!publishedDate) return false;
+    
+    const reviewDate = new Date(publishedDate);
     return reviewDate.getMonth() === currentMonth && reviewDate.getFullYear() === currentYear - 1;
   });
   
@@ -162,19 +175,116 @@ export const analyzeReviewSentiment = async (reviews: Review[]): Promise<Sentime
   return analyzeReviewSentiment_sync(reviews);
 };
 
-// Count reviews by language
+// Count reviews by language - FIXED to use new language field
 export const countReviewsByLanguage = (reviews: Review[]): LanguageData[] => {
   const languageCounts: Record<string, number> = {};
   
   reviews.forEach(review => {
-    const language = review.originalLanguage || 'Unknown';
-    languageCounts[language] = (languageCounts[language] || 0) + 1;
+    // Use the new language field from the database
+    const language = reviewFieldAccessor.getLanguage(review);
+    const languageName = getLanguageDisplayName(language);
+    
+    languageCounts[languageName] = (languageCounts[languageName] || 0) + 1;
   });
   
   // Convert to array and sort by count
   return Object.entries(languageCounts)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
+};
+
+// Helper function to convert language codes to display names
+const getLanguageDisplayName = (languageCode: string): string => {
+  if (!languageCode || languageCode === 'unknown') {
+    return 'Unknown';
+  }
+  
+  const languageMap: Record<string, string> = {
+    'en': 'English',
+    'th': 'Thai',
+    'fr': 'French',
+    'zh': 'Chinese',
+    'zh-Hant': 'Chinese (Traditional)',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'de': 'German',
+    'ru': 'Russian',
+    'vi': 'Vietnamese',
+    'es': 'Spanish',
+    'pl': 'Polish',
+    'nl': 'Dutch',
+    'pt': 'Portuguese',
+    'ta': 'Tamil',
+    'fil': 'Filipino',
+    'bg': 'Bulgarian',
+    'id': 'Indonesian',
+    'ro': 'Romanian',
+    'iw': 'Hebrew',
+    'it': 'Italian',
+    'ar': 'Arabic',
+    'sv': 'Swedish',
+    'no': 'Norwegian',
+    'da': 'Danish',
+    'fi': 'Finnish',
+    'hu': 'Hungarian',
+    'cs': 'Czech',
+    'sk': 'Slovak',
+    'hr': 'Croatian',
+    'sl': 'Slovenian',
+    'et': 'Estonian',
+    'lv': 'Latvian',
+    'lt': 'Lithuanian',
+    'mt': 'Maltese',
+    'tr': 'Turkish',
+    'uk': 'Ukrainian',
+    'be': 'Belarusian',
+    'mk': 'Macedonian',
+    'sq': 'Albanian',
+    'sr': 'Serbian',
+    'bs': 'Bosnian',
+    'me': 'Montenegrin',
+    'el': 'Greek',
+    'cy': 'Welsh',
+    'ga': 'Irish',
+    'gd': 'Scottish Gaelic',
+    'eu': 'Basque',
+    'ca': 'Catalan',
+    'gl': 'Galician',
+    'pt-BR': 'Portuguese (Brazil)',
+    'es-MX': 'Spanish (Mexico)',
+    'en-US': 'English (US)',
+    'en-GB': 'English (UK)',
+    'fr-CA': 'French (Canada)',
+    'zh-CN': 'Chinese (Simplified)',
+    'zh-TW': 'Chinese (Taiwan)',
+    'hi': 'Hindi',
+    'bn': 'Bengali',
+    'ur': 'Urdu',
+    'te': 'Telugu',
+    'mr': 'Marathi',
+    'gu': 'Gujarati',
+    'kn': 'Kannada',
+    'ml': 'Malayalam',
+    'pa': 'Punjabi',
+    'or': 'Odia',
+    'as': 'Assamese',
+    'ne': 'Nepali',
+    'si': 'Sinhala',
+    'my': 'Myanmar',
+    'km': 'Khmer',
+    'lo': 'Lao',
+    'mn': 'Mongolian',
+    'ka': 'Georgian',
+    'hy': 'Armenian',
+    'az': 'Azerbaijani',
+    'kk': 'Kazakh',
+    'ky': 'Kyrgyz',
+    'tg': 'Tajik',
+    'tk': 'Turkmen',
+    'uz': 'Uzbek'
+  };
+  
+  return languageMap[languageCode] || languageCode.charAt(0).toUpperCase() + languageCode.slice(1);
 };
 
 // Enhanced helper function to normalize and consolidate similar staff names
@@ -225,10 +335,11 @@ export const extractStaffMentions_sync = (reviews: Review[]): StaffMention[] => 
   const staffMap: Record<string, { count: number, sentiment: string, examples: string[] }> = {};
   
   reviews.forEach(review => {
-    if (!review.staffMentioned) return;
+    const staffMentioned = reviewFieldAccessor.getStaffMentioned(review);
+    if (!staffMentioned) return;
     
     // Split by commas or semicolons if multiple staff are mentioned
-    const staffNames = review.staffMentioned.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+    const staffNames = staffMentioned.split(/[,;]/).map(s => s.trim()).filter(Boolean);
     
     staffNames.forEach(staffName => {
       if (!staffName) return;
@@ -436,8 +547,9 @@ export const extractCommonTerms_sync = (reviews: Review[]): {text: string, count
   
   reviews.forEach(review => {
     // Process mainThemes
-    if (review.mainThemes) {
-      const themes = review.mainThemes.split(/[,;:]/).map(t => t.trim().toLowerCase()).filter(Boolean);
+    const mainThemes = reviewFieldAccessor.getMainThemes(review);
+    if (mainThemes) {
+      const themes = mainThemes.split(/[,;:]/).map(t => t.trim().toLowerCase()).filter(Boolean);
       themes.forEach(theme => {
         const normalizedTheme = normalizeTerms(theme);
         
@@ -606,8 +718,13 @@ export const getOverallAnalysis = async (reviews: Review[]): Promise<string> => 
   let analysis = `Based on a comprehensive analysis of ${reviews.length} customer reviews, your business has achieved an average rating of ${avgRating.toFixed(1)}/5 stars, with ${positivePercentage}% of reviews expressing positive sentiment. `;
   
   // Frequency analysis
-  const oldestReviewDate = new Date(Math.min(...reviews.map(r => new Date(r.publishedAtDate).getTime())));
-  const newestReviewDate = new Date(Math.max(...reviews.map(r => new Date(r.publishedAtDate).getTime())));
+  const reviewDates = reviews
+    .map(r => reviewFieldAccessor.getPublishedDate(r))
+    .filter(Boolean)
+    .map(date => new Date(date!));
+    
+  const oldestReviewDate = new Date(Math.min(...reviewDates.map(d => d.getTime())));
+  const newestReviewDate = new Date(Math.max(...reviewDates.map(d => d.getTime())));
   const monthsDiff = (newestReviewDate.getFullYear() - oldestReviewDate.getFullYear()) * 12 + (newestReviewDate.getMonth() - oldestReviewDate.getMonth());
   const reviewsPerMonth = totalReviews / (monthsDiff || 1);
   
@@ -674,7 +791,7 @@ export const getOverallAnalysis = async (reviews: Review[]): Promise<string> => 
     }
   }
   
-  // Add language diversity insights with more detail
+  // Add language diversity insights with more detail - FIXED to use new language field
   const languages = countReviewsByLanguage(reviews);
   if (languages.length > 1) {
     const topLanguages = languages.slice(0, 3).map(l => l.name);
@@ -692,8 +809,11 @@ export const getOverallAnalysis = async (reviews: Review[]): Promise<string> => 
   // Add seasonality insights if available
   const monthCounts = new Map<number, number>();
   reviews.forEach(review => {
-    const month = new Date(review.publishedAtDate).getMonth();
-    monthCounts.set(month, (monthCounts.get(month) || 0) + 1);
+    const publishedDate = reviewFieldAccessor.getPublishedDate(review);
+    if (publishedDate) {
+      const month = new Date(publishedDate).getMonth();
+      monthCounts.set(month, (monthCounts.get(month) || 0) + 1);
+    }
   });
   
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -738,7 +858,10 @@ export const analyzeReviewInsights = (reviews: Review[]): InsightsData => {
   const quarters = new Map<string, { sum: number; count: number }>();
   
   reviews.forEach(review => {
-    const date = new Date(review.publishedAtDate);
+    const publishedDate = reviewFieldAccessor.getPublishedDate(review);
+    if (!publishedDate) return;
+    
+    const date = new Date(publishedDate);
     const quarter = `Q${Math.floor(date.getMonth() / 3) + 1} ${date.getFullYear()}`;
     
     if (!quarters.has(quarter)) {
@@ -793,7 +916,10 @@ export const analyzeReviewInsights = (reviews: Review[]): InsightsData => {
   
   // Find reviews needing attention (low rating, no response)
   const needAttention = reviews
-    .filter(review => review.stars <= 2 && !review.responseFromOwnerText?.trim())
+    .filter(review => {
+      const responseText = reviewFieldAccessor.getResponseText(review);
+      return review.stars <= 2 && !responseText?.trim();
+    })
     .slice(0, 3);
   
   // Extract common themes from the database with enhanced categorization
@@ -812,10 +938,13 @@ export const analyzeReviewInsights = (reviews: Review[]): InsightsData => {
     let termSentiment: "positive" | "negative" | "neutral" = "neutral";
     
     // Find reviews mentioning this term
-    const mentioningReviews = reviews.filter(review => 
-      (review.mainThemes && review.mainThemes.toLowerCase().includes(term.text.toLowerCase())) ||
-      (review["common terms"] && review["common terms"].toLowerCase().includes(term.text.toLowerCase()))
-    );
+    const mentioningReviews = reviews.filter(review => {
+      const mainThemes = reviewFieldAccessor.getMainThemes(review);
+      const commonTerms = review["common terms"];
+      
+      return (mainThemes && mainThemes.toLowerCase().includes(term.text.toLowerCase())) ||
+             (commonTerms && commonTerms.toLowerCase().includes(term.text.toLowerCase()));
+    });
     
     // Calculate sentiment score based on these reviews
     if (mentioningReviews.length > 0) {

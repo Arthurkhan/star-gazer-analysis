@@ -336,7 +336,7 @@ const Dashboard: React.FC = React.memo(() => {
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="enhanced">All Reviews</TabsTrigger>
+              <TabsTrigger value="enhanced">Enhanced Analysis</TabsTrigger>
               <TabsTrigger value="comparison">Period Comparison</TabsTrigger>
               <TabsTrigger value="recommendations">AI Recommendations</TabsTrigger>
               <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -355,7 +355,7 @@ const Dashboard: React.FC = React.memo(() => {
               </SectionErrorBoundary>
             </TabsContent>
             
-            {/* All Reviews Analysis Tab - with full vertical layout */}
+            {/* Enhanced Analysis Tab with error boundary */}
             <TabsContent value="enhanced" className="mt-6">
               <SectionErrorBoundary>
                 {enhancedAnalysis ? (
@@ -367,7 +367,6 @@ const Dashboard: React.FC = React.memo(() => {
                       seasonalAnalysis={enhancedAnalysis.seasonalAnalysis}
                       insights={enhancedAnalysis.insights}
                       loading={loading}
-                      fullView={true}
                     />
                   </Suspense>
                 ) : (

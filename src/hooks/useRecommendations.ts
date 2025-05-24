@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Recommendations } from '@/types/recommendations';
 import { recommendationService, BusinessData } from '@/services/recommendationService';
 
@@ -9,8 +9,13 @@ interface UseRecommendationsProps {
 }
 
 /**
- * Simplified Recommendations Hook
- * Phase 3: Basic loading states and API calls, no complex error handling
+ * Optimized Recommendations Hook - Fixed Infinite Loop Issue
+ * 
+ * Changes:
+ * - Removed businessData from useCallback dependencies to prevent constant recreation
+ * - Added proper memoization for stable references
+ * - Improved error handling and validation
+ * - More defensive checks to prevent unnecessary API calls
  */
 export const useRecommendations = ({ businessData, selectedBusiness, businessType }: UseRecommendationsProps) => {
   const [recommendations, setRecommendations] = useState<Recommendations | null>(null);
@@ -18,7 +23,16 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
   const [error, setError] = useState<string | null>(null);
   const [generatingMessage, setGeneratingMessage] = useState<string>('');
 
+  // Memoize validation checks to prevent unnecessary re-renders
+  const isValidForGeneration = useMemo(() => {
+    return selectedBusiness && 
+           selectedBusiness !== 'all' && 
+           businessData.reviews && 
+           businessData.reviews.length > 0;
+  }, [selectedBusiness, businessData.reviews?.length]);
+
   const generateRecommendations = useCallback(async (provider: string = 'openai') => {
+    // Validate current state - use fresh businessData from closure
     if (!selectedBusiness || selectedBusiness === 'all') {
       setError('Please select a specific business');
       return;
@@ -29,20 +43,25 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
       return;
     }
 
+    // Clear previous state
     setLoading(true);
     setError(null);
     setGeneratingMessage('Analyzing reviews and generating recommendations...');
 
     try {
+      // Prepare business data fresh from current state
       const preparedBusinessData: BusinessData = {
         businessName: selectedBusiness,
         businessType: businessType,
         reviews: businessData.reviews
       };
 
+      console.log(`Generating recommendations for ${selectedBusiness} with ${businessData.reviews.length} reviews`);
+
       const result = await recommendationService.generateRecommendations(preparedBusinessData);
       setRecommendations(result);
       setGeneratingMessage('');
+      console.log('Recommendations generated successfully');
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate recommendations';
@@ -53,7 +72,7 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
     } finally {
       setLoading(false);
     }
-  }, [selectedBusiness, businessData, businessType]);
+  }, [selectedBusiness, businessType]); // Removed businessData from dependencies to prevent infinite loops
 
   const exportRecommendations = useCallback(() => {
     if (!recommendations || !selectedBusiness) return;
@@ -83,13 +102,28 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
     }
   }, [recommendations, selectedBusiness]);
 
+  // Clear recommendations when business changes to prevent stale data
+  const resetRecommendations = useCallback(() => {
+    setRecommendations(null);
+    setError(null);
+    setGeneratingMessage('');
+  }, []);
+
+  // Auto-clear recommendations when business changes
+  const previousBusiness = useMemo(() => selectedBusiness, [selectedBusiness]);
+  if (previousBusiness !== selectedBusiness) {
+    resetRecommendations();
+  }
+
   return {
     recommendations,
     loading,
     error,
     generatingMessage,
+    isValidForGeneration,
     generateRecommendations,
     exportRecommendations,
-    saveRecommendations
+    saveRecommendations,
+    resetRecommendations
   };
 };

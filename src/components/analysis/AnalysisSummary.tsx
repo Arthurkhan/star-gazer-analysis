@@ -86,7 +86,7 @@ interface ViewConfig {
 
 const DEFAULT_VIEW_CONFIG: ViewConfig = {
   layout: 'grid',
-  columns: 2,
+  columns: 1, // Changed from 2 to 1 to display cards vertically
   spacing: 'normal',
   showMiniCards: true,
   enableAnimations: true
@@ -234,7 +234,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
     stopMeasurement();
   }, []);
 
-  // Phase 5: Memoized layout styles
+  // Phase 5: Memoized layout styles - Updated to always use single column for main grid
   const getLayoutStyles = useMemo(() => {
     const spacing = {
       compact: 'space-y-3',
@@ -242,16 +242,12 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
       spacious: 'space-y-8'
     };
 
-    const columns = {
-      1: 'grid-cols-1',
-      2: 'grid-cols-1 lg:grid-cols-2',
-      3: 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3',
-      4: 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4'
-    };
+    // Force single column layout for main content to display cards vertically
+    const columns = 'grid-cols-1';
 
     return {
       spacing: spacing[viewConfig.spacing],
-      columns: columns[viewConfig.columns as keyof typeof columns] || columns[2],
+      columns,
       animations: viewConfig.enableAnimations ? 'transition-all duration-300 ease-in-out' : ''
     };
   }, [viewConfig]);
@@ -429,7 +425,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
       );
     }
 
-    // Grid layout (default)
+    // Grid layout (single column for vertical stacking)
     return (
       <div className={`grid gap-6 ${getLayoutStyles.columns}`}>
         {sections.map(section => (

@@ -4,6 +4,7 @@ import OverviewSection from "@/components/OverviewSection";
 import ReviewsTable from "@/components/ReviewsTable";
 import AnalysisSummary from "@/components/analysis/AnalysisSummary";
 import { useDashboardContext } from "@/contexts/DashboardContext";
+import { Separator } from "@/components/ui/separator";
 
 // AllReviewsContent component with enhanced props for loading all reviews
 const AllReviewsContent: React.FC<{
@@ -47,35 +48,71 @@ const AllReviewsContent: React.FC<{
   }
 
   return (
-    <div className="space-y-6">
-      {/* Analysis Summary - New comprehensive analysis section */}
-      <AnalysisSummary 
-        reviews={reviews}
-        businessName="Current Business" // TODO: Pass actual business name from props
-        loading={false}
-        config={{
-          timePeriod: "all",
-          includeStaffAnalysis: true,
-          includeThematicAnalysis: true,
-          includeActionItems: true,
-          comparisonPeriod: "previous"
-        }}
-      />
+    <div className="space-y-8">
+      {/* Phase 2: Overview Section - Now positioned FIRST for better UX flow */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Business Overview</h2>
+            <p className="text-muted-foreground">
+              Key metrics and performance indicators at a glance
+            </p>
+          </div>
+        </div>
+        
+        <OverviewSection 
+          reviews={reviews} 
+          totalReviewCount={dashboardTotalReviewCount}
+          loadingMore={loadingMore}
+          onLoadMore={onLoadMore}
+          hasMoreData={hasMoreData}
+        />
+      </section>
+
+      <Separator className="my-8" />
       
-      {/* Overview section with review stats */}
-      <OverviewSection 
-        reviews={reviews} 
-        totalReviewCount={dashboardTotalReviewCount}
-        loadingMore={loadingMore}
-        onLoadMore={onLoadMore}
-        hasMoreData={hasMoreData}
-      />
+      {/* Phase 2: Analysis Summary - Now positioned SECOND for logical progression */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Detailed Analysis</h2>
+            <p className="text-muted-foreground">
+              Comprehensive insights and recommendations based on review data
+            </p>
+          </div>
+        </div>
+        
+        <AnalysisSummary 
+          reviews={reviews}
+          businessName="Current Business" // TODO: Pass actual business name from props
+          loading={false}
+          config={{
+            timePeriod: "all",
+            includeStaffAnalysis: true,
+            includeThematicAnalysis: true,
+            includeActionItems: true,
+            comparisonPeriod: "previous"
+          }}
+          customizable={true}
+          exportable={true}
+        />
+      </section>
+
+      <Separator className="my-8" />
       
-      {/* Display reviews table */}
-      <div className="mt-6">
-        <h2 className="text-xl font-semibold mb-4">Review Table</h2>
+      {/* Phase 2: Reviews Table - Now positioned THIRD for complete data access */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Review Details</h2>
+            <p className="text-muted-foreground">
+              Individual reviews with full text and metadata
+            </p>
+          </div>
+        </div>
+        
         <ReviewsTable reviews={reviews} />
-      </div>
+      </section>
     </div>
   );
 };

@@ -12,7 +12,7 @@ interface OperationalInsightsSectionProps {
 export const OperationalInsightsSection: React.FC<OperationalInsightsSectionProps> = ({
   operationalInsights
 }) => {
-  const { languageDiversity, reviewPatterns, customerLoyalty } = operationalInsights;
+  const { languageDiversity, reviewPatterns } = operationalInsights;
 
   // Helper to get language flag emoji (simplified)
   const getLanguageFlag = (language: string) => {
@@ -52,7 +52,7 @@ export const OperationalInsightsSection: React.FC<OperationalInsightsSectionProp
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* Language Diversity */}
           <div className="space-y-4">
@@ -177,63 +177,12 @@ export const OperationalInsightsSection: React.FC<OperationalInsightsSectionProp
                   )}
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Customer Loyalty */}
-          <div className="space-y-4">
-            <h3 className="font-semibold">Customer Loyalty</h3>
-            
-            <div className="space-y-4">
-              {/* Repeat Reviewers */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold">Repeat Reviewers</h4>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">{customerLoyalty.repeatReviewers}</span>
-                  <span className="text-sm text-muted-foreground">customers</span>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {customerLoyalty.repeatReviewers > 0 
-                    ? "Customers who left multiple reviews"
-                    : "No repeat reviewers detected yet"}
-                </div>
-              </div>
-
-              {/* Loyalty Score */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold">Loyalty Score</h4>
-                <div className="flex items-center gap-2">
-                  <Progress value={customerLoyalty.loyaltyScore} className="flex-1 h-3" />
-                  <span className="text-sm font-medium min-w-[40px]">
-                    {customerLoyalty.loyaltyScore}/100
-                  </span>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {customerLoyalty.loyaltyScore >= 70 ? "High customer loyalty" :
-                   customerLoyalty.loyaltyScore >= 40 ? "Moderate customer loyalty" :
-                   "Growing customer base"}
-                </div>
-              </div>
-
-              {/* Average Time Between Visits */}
-              {customerLoyalty.averageTimeBetweenVisits && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold">Visit Frequency</h4>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-lg font-bold">{customerLoyalty.averageTimeBetweenVisits}</span>
-                    <span className="text-sm text-muted-foreground">days avg</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Average time between customer visits
-                  </div>
-                </div>
-              )}
-
-              {/* Customer Engagement Summary */}
+              {/* Business Engagement Summary */}
               <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Users className="w-4 h-4 text-purple-600" />
-                  <span className="font-semibold text-purple-900">Engagement Summary</span>
+                  <span className="font-semibold text-purple-900">Business Insights</span>
                 </div>
                 <div className="text-sm text-purple-800 space-y-1">
                   <p>
@@ -246,11 +195,7 @@ export const OperationalInsightsSection: React.FC<OperationalInsightsSectionProp
                       ? `Seasonal business with ${reviewPatterns.peakMonths.length} peak months`
                       : "Consistent year-round activity"}
                   </p>
-                  <p>
-                    {customerLoyalty.loyaltyScore >= 50
-                      ? "Strong customer retention"
-                      : "Growing customer engagement"}
-                  </p>
+                  <p>Growing customer engagement across all periods</p>
                 </div>
               </div>
             </div>

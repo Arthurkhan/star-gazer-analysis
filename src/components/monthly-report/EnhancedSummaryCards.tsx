@@ -36,6 +36,7 @@ import {
   Activity
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { MonthlyReportExporter } from "@/utils/monthlyReportExporter";
 
 // Enhanced color palette for charts
 const RATING_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#84CC16', '#22C55E'];
@@ -123,20 +124,33 @@ export function EnhancedSummaryCards({
     { name: 'Very Poor (1★)', value: summaryData.ratingDistribution.find(r => r.name === "1 ★")?.value || 0, color: RATING_COLORS[0] }
   ].filter(item => item.value > 0), [summaryData.ratingDistribution]);
 
-  // Export functions
+  // Export functions with actual implementation
   const exportToPDF = async () => {
     setIsExporting(true);
     try {
-      // TODO: Implement PDF export with jsPDF
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate export
+      const exportData = {
+        summaryData,
+        selectedReviews,
+        dateRange,
+        businessName,
+        enhancedMetrics
+      };
+      
+      await MonthlyReportExporter.exportToPDF(exportData, {
+        includeCharts: true,
+        includeReviews: true,
+        format: 'detailed'
+      });
+      
       toast({
         title: "Export Successful",
         description: "Monthly report exported to PDF successfully."
       });
     } catch (error) {
+      console.error('PDF Export Error:', error);
       toast({
         title: "Export Failed",
-        description: "Failed to export PDF. Please try again.",
+        description: "Failed to export PDF. Please ensure you have sufficient data and try again.",
         variant: "destructive"
       });
     } finally {
@@ -147,16 +161,27 @@ export function EnhancedSummaryCards({
   const exportToExcel = async () => {
     setIsExporting(true);
     try {
-      // TODO: Implement Excel export with SheetJS
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate export
+      const exportData = {
+        summaryData,
+        selectedReviews,
+        dateRange,
+        businessName,
+        enhancedMetrics
+      };
+      
+      await MonthlyReportExporter.exportToExcel(exportData, {
+        includeReviews: true
+      });
+      
       toast({
         title: "Export Successful", 
         description: "Monthly report exported to Excel successfully."
       });
     } catch (error) {
+      console.error('Excel Export Error:', error);
       toast({
         title: "Export Failed",
-        description: "Failed to export Excel. Please try again.",
+        description: "Failed to export Excel. Please ensure you have sufficient data and try again.",
         variant: "destructive"
       });
     } finally {
@@ -199,22 +224,32 @@ export function EnhancedSummaryCards({
             variant="outline" 
             size="sm" 
             onClick={exportToPDF}
-            disabled={isExporting}
+            disabled={isExporting || summaryData.totalReviews === 0}
           >
             <FileText className="h-4 w-4 mr-2" />
-            Export PDF
+            {isExporting ? 'Exporting...' : 'Export PDF'}
           </Button>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={exportToExcel}
-            disabled={isExporting}
+            disabled={isExporting || summaryData.totalReviews === 0}
           >
             <Table2 className="h-4 w-4 mr-2" />
-            Export Excel
+            {isExporting ? 'Exporting...' : 'Export Excel'}
           </Button>
         </div>
       </div>
+
+      {/* No data warning */}
+      {summaryData.totalReviews === 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No reviews found for the selected date range. Please select a different period or check your data.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Key Performance Indicators */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -358,6 +393,15 @@ export function EnhancedSummaryCards({
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   Low response rate. Engage more with customer feedback.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {summaryData.totalReviews === 0 && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  No reviews in selected period. Export functionality requires review data.
                 </AlertDescription>
               </Alert>
             )}

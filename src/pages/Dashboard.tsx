@@ -49,6 +49,7 @@ import { LoadingFallback } from "@/utils/lazyLoading";
  * - Debounced user interactions
  * - Memory management
  * - Enhanced error handling and logging
+ * - Fixed infinite loop in AI recommendations
  */
 
 // Phase 5: Memoized business type calculation
@@ -148,14 +149,21 @@ const Dashboard: React.FC = React.memo(() => {
     }
   }, [selectedBusiness]);
 
-  // Recommendations data with error handling
+  // FIX: Properly memoize businessData to prevent infinite loops
+  const memoizedBusinessData = useMemo(() => ({
+    businessName: selectedBusiness,
+    businessType: businessType,
+    reviews: filteredReviews
+  }), [selectedBusiness, businessType, filteredReviews]);
+
+  // Recommendations data with error handling - now using memoized businessData
   const {
     recommendations,
     loading: recommendationsLoading,
     error: recommendationsError,
     generateRecommendations,
   } = useRecommendations({
-    businessData: { ...businessData, reviews: filteredReviews },
+    businessData: memoizedBusinessData,
     selectedBusiness,
     businessType,
   });

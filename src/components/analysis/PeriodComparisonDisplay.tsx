@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +6,7 @@ import { ArrowUpIcon, ArrowDownIcon, MinusIcon, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { compareDataPeriods } from '@/services/comparisonService';
 import { EnhancedAnalysis } from '@/types/dataAnalysis';
@@ -52,11 +53,12 @@ export function PeriodComparisonDisplay({
     to: oneMonthAgo
   });
   
-  const [isComparing, setIsComparing] = useState(false);
-  const [isLoadingCurrent, setIsLoadingCurrent] = useState(false);
-  const [isLoadingPrevious, setIsLoadingPrevious] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [currentData, setCurrentData] = useState<EnhancedAnalysis | null>(null);
   const [previousData, setPreviousData] = useState<EnhancedAnalysis | null>(null);
+  const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
   
   const { 
     loading: dashboardLoading, 
@@ -64,63 +66,62 @@ export function PeriodComparisonDisplay({
     refreshData 
   } = useDashboardData();
   
-  // Load data for current period
-  useEffect(() => {
-    if (!isComparing) return;
+  // Handle comparison with proper loading management
+  const handleCompare = useCallback(async () => {
+    setIsLoading(true);
+    setLoadingProgress(0);
+    setLoadingMessage('Initializing comparison...');
     
-    const loadCurrentPeriodData = async () => {
-      setIsLoadingCurrent(true);
-      try {
-        // Refresh data for the current date range
-        await refreshData(currentRange.from, currentRange.to);
-        
-        // Get filtered reviews for the business
-        const reviews = getFilteredReviews();
-        
-        // Generate enhanced analysis from the reviews
-        const enhancedAnalysis = generateEnhancedAnalysis(reviews, businessName);
-        setCurrentData(enhancedAnalysis);
-      } catch (error) {
-        console.error("Error loading current period data:", error);
-      } finally {
-        setIsLoadingCurrent(false);
+    try {
+      // Step 1: Load current period data (33%)
+      setLoadingMessage('Loading current period data...');
+      setLoadingProgress(10);
+      
+      await refreshData(currentRange.from, currentRange.to);
+      const currentReviews = getFilteredReviews();
+      const currentAnalysis = generateEnhancedAnalysis(currentReviews, businessName);
+      setCurrentData(currentAnalysis);
+      
+      setLoadingProgress(33);
+      
+      // Step 2: Load previous period data (66%)
+      setLoadingMessage('Loading previous period data...');
+      
+      await refreshData(previousRange.from, previousRange.to);
+      const previousReviews = getFilteredReviews();
+      const previousAnalysis = generateEnhancedAnalysis(previousReviews, businessName);
+      setPreviousData(previousAnalysis);
+      
+      setLoadingProgress(66);
+      
+      // Step 3: Generate comparison (100%)
+      setLoadingMessage('Generating comparison report...');
+      
+      if (currentAnalysis && previousAnalysis) {
+        const result = compareDataPeriods(currentAnalysis, previousAnalysis);
+        setComparisonResult(result);
       }
-    };
-    
-    loadCurrentPeriodData();
-  }, [businessName, currentRange.from, currentRange.to, isComparing, refreshData, getFilteredReviews]);
-  
-  // Load data for previous period
-  useEffect(() => {
-    if (!isComparing) return;
-    
-    const loadPreviousPeriodData = async () => {
-      setIsLoadingPrevious(true);
-      try {
-        // Refresh data for the previous date range
-        await refreshData(previousRange.from, previousRange.to);
-        
-        // Get filtered reviews for the business
-        const reviews = getFilteredReviews();
-        
-        // Generate enhanced analysis from the reviews
-        const enhancedAnalysis = generateEnhancedAnalysis(reviews, businessName);
-        setPreviousData(enhancedAnalysis);
-      } catch (error) {
-        console.error("Error loading previous period data:", error);
-      } finally {
-        setIsLoadingPrevious(false);
-      }
-    };
-    
-    loadPreviousPeriodData();
-  }, [businessName, previousRange.from, previousRange.to, isComparing, refreshData, getFilteredReviews]);
-  
-  // Generate comparison result
-  const comparisonResult = React.useMemo(() => {
-    if (!isComparing || !currentData || !previousData) return null;
-    return compareDataPeriods(currentData, previousData);
-  }, [isComparing, currentData, previousData]);
+      
+      setLoadingProgress(100);
+      setLoadingMessage('Comparison complete!');
+      
+      // Small delay to show completion
+      setTimeout(() => {
+        setIsLoading(false);
+        setLoadingProgress(0);
+        setLoadingMessage('');
+      }, 500);
+      
+    } catch (error) {
+      console.error("Error during comparison:", error);
+      setLoadingMessage('Error during comparison. Please try again.');
+      setTimeout(() => {
+        setIsLoading(false);
+        setLoadingProgress(0);
+        setLoadingMessage('');
+      }, 2000);
+    }
+  }, [businessName, currentRange, previousRange, refreshData, getFilteredReviews]);
   
   const formatDateRange = (range: DateRange) => {
     const dateFormat = new Intl.DateTimeFormat('en-US', { 
@@ -151,7 +152,7 @@ export function PeriodComparisonDisplay({
                   if (range?.from && range?.to) {
                     setCurrentRange({ from: range.from, to: range.to });
                     // Reset comparison when date range changes
-                    setIsComparing(false);
+                    setComparisonResult(null);
                   }
                 }}
               />
@@ -165,7 +166,7 @@ export function PeriodComparisonDisplay({
                   if (range?.from && range?.to) {
                     setPreviousRange({ from: range.from, to: range.to });
                     // Reset comparison when date range changes
-                    setIsComparing(false);
+                    setComparisonResult(null);
                   }
                 }}
               />
@@ -174,11 +175,11 @@ export function PeriodComparisonDisplay({
         </CardContent>
         <CardFooter className="flex justify-center">
           <Button 
-            onClick={() => setIsComparing(true)}
-            disabled={isLoadingCurrent || isLoadingPrevious || dashboardLoading}
+            onClick={handleCompare}
+            disabled={isLoading || dashboardLoading}
             size="lg"
           >
-            {isLoadingCurrent || isLoadingPrevious ? (
+            {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Loading...
@@ -188,18 +189,24 @@ export function PeriodComparisonDisplay({
         </CardFooter>
       </Card>
       
-      {isComparing && (isLoadingCurrent || isLoadingPrevious) && (
+      {isLoading && (
         <Card>
           <CardContent className="py-6">
-            <div className="flex justify-center items-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p>Loading and comparing data...</p>
+            <div className="space-y-4">
+              <div className="flex justify-center items-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-lg font-medium">{loadingMessage}</p>
+              </div>
+              <Progress value={loadingProgress} className="w-full" />
+              <p className="text-center text-sm text-muted-foreground">
+                {loadingProgress}% complete
+              </p>
             </div>
           </CardContent>
         </Card>
       )}
       
-      {isComparing && comparisonResult && (
+      {!isLoading && comparisonResult && (
         <Card>
           <CardHeader>
             <CardTitle>Comparison Results</CardTitle>

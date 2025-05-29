@@ -21,7 +21,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { saveBusinessContext, getBusinessContext, BusinessContext } from '@/utils/businessContext';
+import { 
+  saveBusinessContext, 
+  getBusinessContext, 
+  BusinessContext,
+  COMMON_CURRENCIES,
+  getDefaultCurrency
+} from '@/utils/businessContext';
 import { BusinessType } from '@/types/businessTypes';
 import { 
   MapPin, 
@@ -61,6 +67,7 @@ export function BusinessDetailsDialog({
     peakHours: '',
     averageTransaction: '',
     seatingCapacity: undefined,
+    currency: 'USD', // Default currency
     specialties: [],
     priceRange: 'medium',
     customerTypes: [],
@@ -85,7 +92,8 @@ export function BusinessDetailsDialog({
         setContext({
           ...context,
           ...savedContext,
-          businessType // Always use current businessType
+          businessType, // Always use current businessType
+          currency: savedContext.currency || 'USD' // Ensure currency has a default
         });
       }
     }
@@ -106,12 +114,28 @@ export function BusinessDetailsDialog({
   };
 
   const updateLocation = (field: 'country' | 'city' | 'neighborhood', value: string) => {
+    const newLocation = {
+      ...context.location!,
+      [field]: value
+    };
+    
+    // Auto-update currency when country changes (only if currency wasn't manually set)
+    if (field === 'country' && value) {
+      const defaultCurrency = getDefaultCurrency(value);
+      // Only update if the current currency is still the default USD
+      if (context.currency === 'USD' || !context.currency) {
+        setContext({
+          ...context,
+          location: newLocation,
+          currency: defaultCurrency
+        });
+        return;
+      }
+    }
+    
     setContext({
       ...context,
-      location: {
-        ...context.location!,
-        [field]: value
-      }
+      location: newLocation
     });
   };
 
@@ -140,6 +164,9 @@ export function BusinessDetailsDialog({
       : [...currentApps, app];
     updateOnlinePresence('deliveryApps', newApps);
   };
+
+  // Get currency symbol for average transaction placeholder
+  const currencySymbol = COMMON_CURRENCIES.find(c => c.code === context.currency)?.symbol || '$';
 
   if (businessName === 'all') {
     return null;
@@ -258,14 +285,33 @@ export function BusinessDetailsDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="avg-transaction">Average Transaction</Label>
-                <Input 
-                  id="avg-transaction"
-                  value={context.averageTransaction || ''} 
-                  onChange={(e) => setContext({...context, averageTransaction: e.target.value})}
-                  placeholder="e.g. $15-20" 
-                />
+                <Label htmlFor="currency">Currency</Label>
+                <Select 
+                  value={context.currency || 'USD'}
+                  onValueChange={(value) => setContext({...context, currency: value})}
+                >
+                  <SelectTrigger id="currency">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COMMON_CURRENCIES.map(currency => (
+                      <SelectItem key={currency.code} value={currency.code}>
+                        {currency.code} ({currency.symbol}) - {currency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="avg-transaction">Average Transaction</Label>
+              <Input 
+                id="avg-transaction"
+                value={context.averageTransaction || ''} 
+                onChange={(e) => setContext({...context, averageTransaction: e.target.value})}
+                placeholder={`e.g. ${currencySymbol}15-20`} 
+              />
             </div>
 
             {(businessType === 'cafe' || businessType === 'bar') && (

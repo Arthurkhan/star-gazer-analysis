@@ -56,6 +56,7 @@ export function BusinessDetailsDialog({
   isOpen,
   onOpenChange
 }: BusinessDetailsDialogProps) {
+  // Main context state for structured data
   const [context, setContext] = useState<BusinessContext>({
     businessType,
     location: {
@@ -67,7 +68,7 @@ export function BusinessDetailsDialog({
     peakHours: '',
     averageTransaction: '',
     seatingCapacity: undefined,
-    currency: 'USD', // Default currency
+    currency: 'USD',
     specialties: [],
     priceRange: 'medium',
     customerTypes: [],
@@ -85,6 +86,15 @@ export function BusinessDetailsDialog({
     additionalContext: ''
   });
 
+  // Raw string states for comma-separated fields to allow normal typing
+  const [rawInputs, setRawInputs] = useState({
+    specialties: '',
+    customerTypes: '',
+    mainCompetitors: '',
+    uniqueSellingPoints: '',
+    currentChallenges: ''
+  });
+
   useEffect(() => {
     if (isOpen && businessName !== 'all') {
       const savedContext = getBusinessContext(businessName);
@@ -92,8 +102,17 @@ export function BusinessDetailsDialog({
         setContext({
           ...context,
           ...savedContext,
-          businessType, // Always use current businessType
-          currency: savedContext.currency || 'USD' // Ensure currency has a default
+          businessType,
+          currency: savedContext.currency || 'USD'
+        });
+        
+        // Set raw inputs from saved arrays
+        setRawInputs({
+          specialties: savedContext.specialties?.join(', ') || '',
+          customerTypes: savedContext.customerTypes?.join(', ') || '',
+          mainCompetitors: savedContext.mainCompetitors?.join(', ') || '',
+          uniqueSellingPoints: savedContext.uniqueSellingPoints?.join(', ') || '',
+          currentChallenges: savedContext.currentChallenges?.join(', ') || ''
         });
       }
     }
@@ -101,15 +120,25 @@ export function BusinessDetailsDialog({
 
   const handleSave = () => {
     if (businessName !== 'all') {
-      saveBusinessContext(businessName, context);
+      // Process raw inputs into arrays before saving
+      const processedContext = {
+        ...context,
+        specialties: rawInputs.specialties.split(',').map(s => s.trim()).filter(s => s),
+        customerTypes: rawInputs.customerTypes.split(',').map(s => s.trim()).filter(s => s),
+        mainCompetitors: rawInputs.mainCompetitors.split(',').map(s => s.trim()).filter(s => s),
+        uniqueSellingPoints: rawInputs.uniqueSellingPoints.split(',').map(s => s.trim()).filter(s => s),
+        currentChallenges: rawInputs.currentChallenges.split(',').map(s => s.trim()).filter(s => s)
+      };
+      
+      saveBusinessContext(businessName, processedContext);
       onOpenChange(false);
     }
   };
 
-  const handleArrayInput = (field: 'specialties' | 'customerTypes' | 'mainCompetitors' | 'uniqueSellingPoints' | 'currentChallenges', value: string) => {
-    setContext({
-      ...context,
-      [field]: value.split(',').map(s => s.trim()).filter(s => s)
+  const updateRawInput = (field: keyof typeof rawInputs, value: string) => {
+    setRawInputs({
+      ...rawInputs,
+      [field]: value
     });
   };
 
@@ -119,10 +148,9 @@ export function BusinessDetailsDialog({
       [field]: value
     };
     
-    // Auto-update currency when country changes (only if currency wasn't manually set)
+    // Auto-update currency when country changes
     if (field === 'country' && value) {
       const defaultCurrency = getDefaultCurrency(value);
-      // Only update if the current currency is still the default USD
       if (context.currency === 'USD' || !context.currency) {
         setContext({
           ...context,
@@ -165,7 +193,6 @@ export function BusinessDetailsDialog({
     updateOnlinePresence('deliveryApps', newApps);
   };
 
-  // Get currency symbol for average transaction placeholder
   const currencySymbol = COMMON_CURRENCIES.find(c => c.code === context.currency)?.symbol || '$';
 
   if (businessName === 'all') {
@@ -329,21 +356,23 @@ export function BusinessDetailsDialog({
 
             <div className="space-y-2">
               <Label htmlFor="specialties">Business Specialties</Label>
-              <Input 
+              <Textarea 
                 id="specialties"
-                value={context.specialties?.join(', ') || ''} 
-                onChange={(e) => handleArrayInput('specialties', e.target.value)}
+                value={rawInputs.specialties} 
+                onChange={(e) => updateRawInput('specialties', e.target.value)}
                 placeholder="e.g. espresso, pastries, breakfast (comma separated)" 
+                rows={2}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="customer-types">Main Customer Types</Label>
-              <Input 
+              <Textarea 
                 id="customer-types"
-                value={context.customerTypes?.join(', ') || ''} 
-                onChange={(e) => handleArrayInput('customerTypes', e.target.value)}
+                value={rawInputs.customerTypes} 
+                onChange={(e) => updateRawInput('customerTypes', e.target.value)}
                 placeholder="e.g. tourists, business professionals, students (comma separated)" 
+                rows={2}
               />
             </div>
 
@@ -407,11 +436,12 @@ export function BusinessDetailsDialog({
           <TabsContent value="market" className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="competitors">Main Competitors</Label>
-              <Input 
+              <Textarea 
                 id="competitors"
-                value={context.mainCompetitors?.join(', ') || ''} 
-                onChange={(e) => handleArrayInput('mainCompetitors', e.target.value)}
+                value={rawInputs.mainCompetitors} 
+                onChange={(e) => updateRawInput('mainCompetitors', e.target.value)}
                 placeholder="e.g. Starbucks, Blue Bottle Coffee (comma separated)" 
+                rows={2}
               />
             </div>
 
@@ -419,8 +449,8 @@ export function BusinessDetailsDialog({
               <Label htmlFor="usp">Unique Selling Points</Label>
               <Textarea 
                 id="usp"
-                value={context.uniqueSellingPoints?.join(', ') || ''} 
-                onChange={(e) => handleArrayInput('uniqueSellingPoints', e.target.value)}
+                value={rawInputs.uniqueSellingPoints} 
+                onChange={(e) => updateRawInput('uniqueSellingPoints', e.target.value)}
                 placeholder="What makes your business special? (comma separated)"
                 rows={3}
               />
@@ -432,8 +462,8 @@ export function BusinessDetailsDialog({
               <Label htmlFor="challenges">Current Challenges</Label>
               <Textarea 
                 id="challenges"
-                value={context.currentChallenges?.join(', ') || ''} 
-                onChange={(e) => handleArrayInput('currentChallenges', e.target.value)}
+                value={rawInputs.currentChallenges} 
+                onChange={(e) => updateRawInput('currentChallenges', e.target.value)}
                 placeholder="e.g. low weekday traffic, staff retention, online visibility (comma separated)"
                 rows={3}
               />

@@ -12,10 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { getBusinessTypeFromName } from "@/types/BusinessMappings";
-import { Sparkles, RefreshCw, BarChart3, GitCompare, Mail as MailIcon } from "lucide-react";
+import { Sparkles, RefreshCw, BarChart3, GitCompare, Mail as MailIcon, KeyRound } from "lucide-react";
 import { DatabaseErrorDisplay } from "@/components/diagnostic/DatabaseErrorDisplay";
 import { MissingEnvAlert } from "@/components/diagnostic/MissingEnvAlert";
 import { NoReviewsAlert } from "@/components/diagnostic/NoReviewsAlert";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 // Phase 5: Import performance and error handling utilities
 import { 
@@ -67,6 +69,9 @@ const getMemoizedBusinessType = memoizeWithExpiry(
 );
 
 const Dashboard: React.FC = React.memo(() => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
   // Phase 5: Performance monitoring for component lifecycle
   React.useEffect(() => {
     const stopMeasurement = PerformanceMonitor.startMeasurement('dashboard-mount');
@@ -191,6 +196,28 @@ const Dashboard: React.FC = React.memo(() => {
   // Phase 5: Enhanced recommendations handler with error handling
   const handleGenerateRecommendations = useCallback(
     safeExecute(async () => {
+      // Check if API key is configured
+      const apiKey = localStorage.getItem('OPENAI_API_KEY');
+      if (!apiKey) {
+        toast({
+          title: "API Key Required",
+          description: "Please configure your OpenAI API key in AI Settings to generate recommendations.",
+          variant: "destructive",
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/ai-settings')}
+              className="flex items-center gap-2"
+            >
+              <KeyRound className="h-4 w-4" />
+              Configure
+            </Button>
+          )
+        });
+        return;
+      }
+      
       const stopMeasurement = PerformanceMonitor.startMeasurement('generate-recommendations');
       try {
         await handleAsyncError(
@@ -212,7 +239,7 @@ const Dashboard: React.FC = React.memo(() => {
       selectedBusiness,
       businessType
     }),
-    [generateRecommendations, selectedBusiness, businessType, filteredReviews.length]
+    [generateRecommendations, selectedBusiness, businessType, filteredReviews.length, navigate, toast]
   );
 
   // Phase 5: Enhanced refresh handler with error handling and debouncing

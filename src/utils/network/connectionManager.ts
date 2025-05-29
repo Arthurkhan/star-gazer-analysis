@@ -84,8 +84,8 @@ class ConnectionManager {
       });
     }
 
-    // Set up regular connection quality checks
-    this.startConnectionChecks();
+    // Removed regular connection checks that were causing the ping errors
+    // We'll rely on the browser's built-in connection monitoring instead
   }
 
   /**
@@ -177,60 +177,6 @@ class ConnectionManager {
     }
     
     return false;
-  }
-
-  /**
-   * Start regular connection quality checks
-   */
-  private startConnectionChecks(): void {
-    // Check connection quality every 30 seconds
-    this.checkInterval = window.setInterval(() => {
-      // Only do checks if we're online according to the browser
-      if (navigator.onLine) {
-        this.measureNetworkQuality();
-      }
-    }, 30000); // 30 seconds
-  }
-
-  /**
-   * Measure network quality by sending a tiny ping request
-   */
-  private async measureNetworkQuality(): Promise<void> {
-    try {
-      const startTime = performance.now();
-      
-      // Fetch a tiny resource to measure network latency
-      // Using a timestamp to prevent caching
-      const response = await fetch(`/api/ping?t=${Date.now()}`, {
-        method: 'GET',
-        cache: 'no-store',
-        headers: {
-          'pragma': 'no-cache',
-          'cache-control': 'no-cache'
-        }
-      });
-      
-      const endTime = performance.now();
-      const latency = endTime - startTime;
-      
-      // Update RTT in our connection state
-      this.connectionState.rtt = latency;
-      this.connectionState.lastChecked = Date.now();
-      
-      // Check if connection quality changed
-      const wasSlowConnection = this.connectionState.isSlowConnection;
-      const isSlowConnection = this.detectSlowConnection();
-      this.connectionState.isSlowConnection = isSlowConnection;
-      
-      if (!wasSlowConnection && isSlowConnection) {
-        this.notifyListeners(ConnectionEventType.SLOW_CONNECTION);
-      } else if (wasSlowConnection && !isSlowConnection) {
-        this.notifyListeners(ConnectionEventType.CONNECTION_RECOVERED);
-      }
-    } catch (error) {
-      // Error making the request might indicate network issues
-      logError(error as Error, 'ConnectionManager.measureNetworkQuality');
-    }
   }
 
   /**

@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Recommendations } from '@/types/recommendations';
 import { recommendationService, BusinessData } from '@/services/recommendationService';
+import { getBusinessContext } from '@/utils/businessContext';
 
 interface UseRecommendationsProps {
   businessData: BusinessData;
@@ -48,15 +49,15 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
           if (prev.progress < 20) {
             newProgress = Math.min(20, prev.progress + 2);
             newStage = 'preparing';
-            newMessage = 'Preparing review data...';
+            newMessage = 'Preparing review data and business context...';
           } else if (prev.progress < 50) {
             newProgress = Math.min(50, prev.progress + 1.5);
             newStage = 'analyzing';
-            newMessage = `Analyzing ${businessData.reviews?.length || 0} reviews...`;
+            newMessage = `Analyzing ${businessData.reviews?.length || 0} reviews with business context...`;
           } else if (prev.progress < 80) {
             newProgress = Math.min(80, prev.progress + 1);
             newStage = 'generating';
-            newMessage = 'Generating AI recommendations...';
+            newMessage = 'Generating personalized AI recommendations...';
           } else if (prev.progress < 90) {
             newProgress = Math.min(90, prev.progress + 0.5);
             newStage = 'finalizing';
@@ -90,19 +91,30 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
     // Clear previous state
     setLoading(true);
     setError(null);
-    setGeneratingMessage('Starting AI analysis...');
+    setGeneratingMessage('Starting AI analysis with business context...');
     setProgress({
       stage: 'preparing',
-      message: 'Preparing review data...',
+      message: 'Preparing review data and business context...',
       progress: 0
     });
 
     try {
-      // Prepare business data fresh from current state
+      // Fetch business context for the selected business
+      const businessContext = getBusinessContext(selectedBusiness);
+      
+      // Log if business context is found
+      if (businessContext) {
+        console.log('Found business context for', selectedBusiness);
+      } else {
+        console.log('No business context found for', selectedBusiness, '- using basic info only');
+      }
+
+      // Prepare business data with context
       const preparedBusinessData: BusinessData = {
         businessName: selectedBusiness,
         businessType: businessType,
-        reviews: businessData.reviews
+        reviews: businessData.reviews,
+        businessContext: businessContext || undefined // Include business context if available
       };
 
       console.log(`Generating recommendations for ${selectedBusiness} with ${businessData.reviews.length} reviews`);

@@ -1,10 +1,12 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Recommendations } from '@/types/recommendations';
+import { BusinessContext } from '@/utils/businessContext';
 
 export interface BusinessData {
   businessName: string;
   businessType: string;
   reviews: any[];
+  businessContext?: BusinessContext; // Add BusinessContext to the interface
 }
 
 /**
@@ -27,6 +29,11 @@ export class RecommendationService {
 
     console.log(`Generating recommendations for ${businessData.businessName}`);
     console.log(`Using ${businessData.reviews.length} reviews for analysis`);
+    
+    // Log if business context is included
+    if (businessData.businessContext) {
+      console.log('Including comprehensive business context in analysis');
+    }
 
     // Create abort controller for timeout
     const controller = new AbortController();

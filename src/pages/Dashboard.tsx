@@ -161,12 +161,13 @@ const Dashboard: React.FC = React.memo(() => {
     reviews: filteredReviews
   }), [selectedBusiness, businessType, filteredReviews]);
 
-  // Recommendations data with error handling - now using memoized businessData
+  // Recommendations data with error handling - now using memoized businessData and including progress
   const {
     recommendations,
     loading: recommendationsLoading,
     error: recommendationsError,
     generateRecommendations,
+    progress,
   } = useRecommendations({
     businessData: memoizedBusinessData,
     selectedBusiness,
@@ -443,7 +444,7 @@ const Dashboard: React.FC = React.memo(() => {
               </SectionErrorBoundary>
             </TabsContent>
             
-            {/* AI Recommendations Tab with error boundary */}
+            {/* AI Recommendations Tab with error boundary - now passing progress */}
             <TabsContent value="recommendations" className="mt-6">
               <SectionErrorBoundary>
                 <Suspense fallback={<LoadingFallback size="large" message="Loading recommendations..." />}>
@@ -453,6 +454,7 @@ const Dashboard: React.FC = React.memo(() => {
                     error={recommendationsError || undefined}
                     generatingMessage="Generating recommendations..."
                     businessName={selectedBusiness}
+                    progress={progress}
                   />
                 </Suspense>
               </SectionErrorBoundary>

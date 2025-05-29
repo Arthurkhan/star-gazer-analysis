@@ -9,12 +9,13 @@ Enhanced the Business Details dialog to capture comprehensive business context t
 - Organize the information in a more user-friendly tabbed interface
 - Prepare the data structure for future AI integration
 - Add currency selection with country-based defaults
+- Fix input fields to allow proper typing with spaces and commas
 
 ## Files Modified/Created
 
 ### 🔄 MODIFIED FILES:
 - `src/utils/businessContext.ts` - Expanded BusinessContext interface with comprehensive fields and currency utilities
-- `src/components/BusinessDetailsDialog.tsx` - Complete redesign with tabbed interface and new fields
+- `src/components/BusinessDetailsDialog.tsx` - Complete redesign with tabbed interface and fixed input handling
 
 ## Changes Made
 
@@ -59,7 +60,14 @@ Added new fields organized into logical groups:
   - Regional currencies (THB, SGD, AUD, CAD, etc.)
   - Default to USD if country not recognized
 
-### 4. Key Improvements
+### 4. Input Field Fix (NEW)
+- Fixed issue where users couldn't type spaces or commas in comma-separated fields
+- Separated display state from data state for better user experience
+- Now stores raw input strings and only processes them into arrays on save
+- Changed small Input fields to Textarea for multi-value fields
+- Ensures smooth typing experience without cursor jumping
+
+### 5. Key Improvements
 - More comprehensive data collection for AI analysis
 - Better organization with tabs reduces cognitive load
 - Flexible fields (arrays for competitors, challenges, etc.)
@@ -67,6 +75,7 @@ Added new fields organized into logical groups:
 - Checkboxes for boolean values (online presence, operating days)
 - Contextual fields (seating capacity only for cafes/bars)
 - Smart currency defaults based on location
+- Smooth input experience for all text fields
 
 ## Technical Details
 - Used existing UI components (Tabs, Checkbox, Textarea, Select)
@@ -74,6 +83,7 @@ Added new fields organized into logical groups:
 - Kept backward compatibility with legacy fields
 - Proper TypeScript typing throughout
 - Efficient country-currency mapping with simple lookup
+- Separate state management for raw inputs vs processed data
 
 ## Success Criteria: ✅
 - ✅ Added free-form additional context field
@@ -82,6 +92,7 @@ Added new fields organized into logical groups:
 - ✅ Maintained backward compatibility
 - ✅ Improved UI/UX with better layout and icons
 - ✅ Added currency selection with smart defaults
+- ✅ Fixed input fields to allow spaces and commas
 
 ## Next Steps
 - Connect the BusinessContext data to the AI recommendation system

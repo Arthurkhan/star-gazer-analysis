@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Recommendations } from '@/types/recommendations';
 import { recommendationService, BusinessData } from '@/services/recommendationService';
 
@@ -8,20 +8,25 @@ interface UseRecommendationsProps {
   businessType: string;
 }
 
+export interface GenerationProgress {
+  stage: 'preparing' | 'analyzing' | 'generating' | 'finalizing' | 'complete' | 'error';
+  message: string;
+  progress: number; // 0-100
+}
+
 /**
- * Optimized Recommendations Hook - Fixed Infinite Loop Issue
- * 
- * Changes:
- * - Removed businessData from useCallback dependencies to prevent constant recreation
- * - Added proper memoization for stable references
- * - Improved error handling and validation
- * - More defensive checks to prevent unnecessary API calls
+ * Enhanced Recommendations Hook with Progress Tracking
  */
 export const useRecommendations = ({ businessData, selectedBusiness, businessType }: UseRecommendationsProps) => {
   const [recommendations, setRecommendations] = useState<Recommendations | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatingMessage, setGeneratingMessage] = useState<string>('');
+  const [progress, setProgress] = useState<GenerationProgress>({
+    stage: 'preparing',
+    message: '',
+    progress: 0
+  });
 
   // Memoize validation checks to prevent unnecessary re-renders
   const isValidForGeneration = useMemo(() => {
@@ -30,6 +35,45 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
            businessData.reviews && 
            businessData.reviews.length > 0;
   }, [selectedBusiness, businessData.reviews?.length]);
+
+  // Progress simulation for better UX
+  useEffect(() => {
+    if (loading && progress.progress < 90) {
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          let newProgress = prev.progress;
+          let newStage = prev.stage;
+          let newMessage = prev.message;
+
+          if (prev.progress < 20) {
+            newProgress = Math.min(20, prev.progress + 2);
+            newStage = 'preparing';
+            newMessage = 'Preparing review data...';
+          } else if (prev.progress < 50) {
+            newProgress = Math.min(50, prev.progress + 1.5);
+            newStage = 'analyzing';
+            newMessage = `Analyzing ${businessData.reviews?.length || 0} reviews...`;
+          } else if (prev.progress < 80) {
+            newProgress = Math.min(80, prev.progress + 1);
+            newStage = 'generating';
+            newMessage = 'Generating AI recommendations...';
+          } else if (prev.progress < 90) {
+            newProgress = Math.min(90, prev.progress + 0.5);
+            newStage = 'finalizing';
+            newMessage = 'Finalizing recommendations...';
+          }
+
+          return {
+            stage: newStage,
+            message: newMessage,
+            progress: newProgress
+          };
+        });
+      }, 200);
+
+      return () => clearInterval(interval);
+    }
+  }, [loading, progress.progress, businessData.reviews?.length]);
 
   const generateRecommendations = useCallback(async (provider: string = 'openai') => {
     // Validate current state - use fresh businessData from closure
@@ -46,7 +90,12 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
     // Clear previous state
     setLoading(true);
     setError(null);
-    setGeneratingMessage('Analyzing reviews and generating recommendations...');
+    setGeneratingMessage('Starting AI analysis...');
+    setProgress({
+      stage: 'preparing',
+      message: 'Preparing review data...',
+      progress: 0
+    });
 
     try {
       // Prepare business data fresh from current state
@@ -59,14 +108,36 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
       console.log(`Generating recommendations for ${selectedBusiness} with ${businessData.reviews.length} reviews`);
 
       const result = await recommendationService.generateRecommendations(preparedBusinessData);
+      
+      // Complete the progress
+      setProgress({
+        stage: 'complete',
+        message: 'Recommendations ready!',
+        progress: 100
+      });
+
       setRecommendations(result);
       setGeneratingMessage('');
       console.log('Recommendations generated successfully');
+      
+      // Clear progress after a short delay
+      setTimeout(() => {
+        setProgress({
+          stage: 'preparing',
+          message: '',
+          progress: 0
+        });
+      }, 1000);
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate recommendations';
       setError(errorMessage);
       setGeneratingMessage('');
+      setProgress({
+        stage: 'error',
+        message: errorMessage,
+        progress: 0
+      });
       console.error('Recommendation generation failed:', err);
       
     } finally {
@@ -107,6 +178,11 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
     setRecommendations(null);
     setError(null);
     setGeneratingMessage('');
+    setProgress({
+      stage: 'preparing',
+      message: '',
+      progress: 0
+    });
   }, []);
 
   // Auto-clear recommendations when business changes
@@ -120,6 +196,7 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
     loading,
     error,
     generatingMessage,
+    progress,
     isValidForGeneration,
     generateRecommendations,
     exportRecommendations,

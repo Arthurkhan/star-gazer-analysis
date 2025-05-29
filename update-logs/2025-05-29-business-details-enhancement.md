@@ -8,11 +8,12 @@ Enhanced the Business Details dialog to capture comprehensive business context t
 - Expand the business details fields to capture more valuable information for AI analysis
 - Organize the information in a more user-friendly tabbed interface
 - Prepare the data structure for future AI integration
+- Add currency selection with country-based defaults
 
 ## Files Modified/Created
 
 ### 🔄 MODIFIED FILES:
-- `src/utils/businessContext.ts` - Expanded BusinessContext interface with comprehensive fields
+- `src/utils/businessContext.ts` - Expanded BusinessContext interface with comprehensive fields and currency utilities
 - `src/components/BusinessDetailsDialog.tsx` - Complete redesign with tabbed interface and new fields
 
 ## Changes Made
@@ -25,6 +26,7 @@ Added new fields organized into logical groups:
   - Peak hours (specific busy times)
   - Average transaction value
   - Seating capacity (for physical locations)
+  - Currency selection (NEW)
 - **Market Position**:
   - Main competitors (helps with competitive analysis)
   - Unique selling points (what makes the business special)
@@ -39,7 +41,7 @@ Added new fields organized into logical groups:
 ### 2. Redesigned BusinessDetailsDialog
 - Implemented tabbed interface for better organization:
   - **Location Tab**: Country, city, neighborhood, operating days, peak hours
-  - **Operations Tab**: Price range, average transaction, seating capacity, specialties, customer types, online presence
+  - **Operations Tab**: Price range, currency, average transaction, seating capacity, specialties, customer types, online presence
   - **Market Tab**: Competitors and unique selling points
   - **Goals Tab**: Current challenges, business goals, and additional context field
 - Added icons to tabs for better visual hierarchy
@@ -47,19 +49,31 @@ Added new fields organized into logical groups:
 - Added helpful placeholders and descriptions
 - Maintained backward compatibility with existing data
 
-### 3. Key Improvements
+### 3. Currency Feature (NEW)
+- Added currency selector with 20 common currencies
+- Auto-detects appropriate currency based on country input
+- Dynamically updates average transaction placeholder with currency symbol
+- Supports manual currency selection override
+- Country to currency mapping includes:
+  - Major currencies (USD, EUR, GBP, JPY, CNY)
+  - Regional currencies (THB, SGD, AUD, CAD, etc.)
+  - Default to USD if country not recognized
+
+### 4. Key Improvements
 - More comprehensive data collection for AI analysis
 - Better organization with tabs reduces cognitive load
 - Flexible fields (arrays for competitors, challenges, etc.)
 - Dedicated free-form text area for context that doesn't fit elsewhere
 - Checkboxes for boolean values (online presence, operating days)
 - Contextual fields (seating capacity only for cafes/bars)
+- Smart currency defaults based on location
 
 ## Technical Details
-- Used existing UI components (Tabs, Checkbox, Textarea)
+- Used existing UI components (Tabs, Checkbox, Textarea, Select)
 - Maintained localStorage persistence strategy
 - Kept backward compatibility with legacy fields
 - Proper TypeScript typing throughout
+- Efficient country-currency mapping with simple lookup
 
 ## Success Criteria: ✅
 - ✅ Added free-form additional context field
@@ -67,6 +81,7 @@ Added new fields organized into logical groups:
 - ✅ Organized information in user-friendly tabs
 - ✅ Maintained backward compatibility
 - ✅ Improved UI/UX with better layout and icons
+- ✅ Added currency selection with smart defaults
 
 ## Next Steps
 - Connect the BusinessContext data to the AI recommendation system

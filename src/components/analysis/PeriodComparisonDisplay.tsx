@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { compareDataPeriods } from '@/services/comparisonService';
 import { EnhancedAnalysis } from '@/types/dataAnalysis';
+import { Review } from '@/types/reviews';
 import { generateEnhancedAnalysis } from '@/utils/reviewDataUtils';
 
 export interface ComparisonResult {
@@ -55,6 +56,8 @@ export function PeriodComparisonDisplay({
   const [loadingMessage, setLoadingMessage] = useState('');
   const [currentData, setCurrentData] = useState<EnhancedAnalysis | null>(null);
   const [previousData, setPreviousData] = useState<EnhancedAnalysis | null>(null);
+  const [currentReviews, setCurrentReviews] = useState<Review[]>([]);
+  const [previousReviews, setPreviousReviews] = useState<Review[]>([]);
   const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
   
   const { 
@@ -86,8 +89,18 @@ export function PeriodComparisonDisplay({
       setLoadingProgress(10);
       
       await refreshData(currentPeriod.dateRange.from, currentPeriod.dateRange.to);
-      const currentReviews = getFilteredReviews();
-      const currentAnalysis = generateEnhancedAnalysis(currentReviews, businessName);
+      const currentPeriodReviews = getFilteredReviews();
+      
+      // Filter reviews by business if not "all"
+      const filteredCurrentReviews = businessName === 'all' 
+        ? currentPeriodReviews 
+        : currentPeriodReviews.filter(review => 
+            review.title === businessName || 
+            review.businesses?.name === businessName
+          );
+      
+      setCurrentReviews(filteredCurrentReviews);
+      const currentAnalysis = generateEnhancedAnalysis(filteredCurrentReviews, businessName);
       setCurrentData(currentAnalysis);
       
       setLoadingProgress(33);
@@ -96,8 +109,18 @@ export function PeriodComparisonDisplay({
       setLoadingMessage('Loading previous period data...');
       
       await refreshData(previousPeriod.dateRange.from, previousPeriod.dateRange.to);
-      const previousReviews = getFilteredReviews();
-      const previousAnalysis = generateEnhancedAnalysis(previousReviews, businessName);
+      const previousPeriodReviews = getFilteredReviews();
+      
+      // Filter reviews by business if not "all"
+      const filteredPreviousReviews = businessName === 'all' 
+        ? previousPeriodReviews 
+        : previousPeriodReviews.filter(review => 
+            review.title === businessName || 
+            review.businesses?.name === businessName
+          );
+      
+      setPreviousReviews(filteredPreviousReviews);
+      const previousAnalysis = generateEnhancedAnalysis(filteredPreviousReviews, businessName);
       setPreviousData(previousAnalysis);
       
       setLoadingProgress(66);
@@ -106,7 +129,12 @@ export function PeriodComparisonDisplay({
       setLoadingMessage('Generating comparison report...');
       
       if (currentAnalysis && previousAnalysis) {
-        const result = compareDataPeriods(currentAnalysis, previousAnalysis);
+        const result = compareDataPeriods(
+          currentAnalysis, 
+          previousAnalysis,
+          filteredCurrentReviews,
+          filteredPreviousReviews
+        );
         setComparisonResult(result);
       }
       
@@ -397,13 +425,13 @@ export function PeriodComparisonDisplay({
                           <div>
                             <p className="text-sm text-muted-foreground">Previous Period</p>
                             <p className="text-xl font-semibold">
-                              {previousData?.reviewClusters.reduce((sum, c) => sum + c.count, 0) || 0} reviews
+                              {previousReviews.length} reviews
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Current Period</p>
                             <p className="text-xl font-semibold">
-                              {currentData?.reviewClusters.reduce((sum, c) => sum + c.count, 0) || 0} reviews
+                              {currentReviews.length} reviews
                             </p>
                           </div>
                         </div>
@@ -417,13 +445,17 @@ export function PeriodComparisonDisplay({
                           <div>
                             <p className="text-sm text-muted-foreground">Previous Period Average</p>
                             <p className="text-xl font-semibold">
-                              {previousData?.historicalTrends[previousData.historicalTrends.length - 1]?.avgRating.toFixed(2) || 'N/A'}
+                              {previousReviews.length > 0 
+                                ? (previousReviews.reduce((sum, r) => sum + (r.stars || 0), 0) / previousReviews.filter(r => r.stars).length).toFixed(2)
+                                : 'N/A'}
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Current Period Average</p>
                             <p className="text-xl font-semibold">
-                              {currentData?.historicalTrends[currentData.historicalTrends.length - 1]?.avgRating.toFixed(2) || 'N/A'}
+                              {currentReviews.length > 0 
+                                ? (currentReviews.reduce((sum, r) => sum + (r.stars || 0), 0) / currentReviews.filter(r => r.stars).length).toFixed(2)
+                                : 'N/A'}
                             </p>
                           </div>
                         </div>

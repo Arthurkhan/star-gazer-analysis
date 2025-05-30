@@ -207,7 +207,7 @@ class EnhancedDataAnalysisService {
           if (review.text) {
             const words = review.text
               .toLowerCase()
-              .split(/\\s+/)
+              .split(/\s+/)
               .filter((word: string) => word.length > 4 && !clusters[theme].keywords.includes(word));
             
             // Add up to 3 keywords per review

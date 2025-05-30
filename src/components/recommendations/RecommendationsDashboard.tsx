@@ -6,21 +6,29 @@ import { Recommendations } from '@/types/recommendations';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Info, AlertTriangle, Lightbulb, TrendingUp, Target, Rocket, Loader2 } from 'lucide-react';
+import { Info, AlertTriangle, Lightbulb, TrendingUp, Target, Rocket, Loader2, Sparkles, Zap, Shield, Timer, DollarSign, ChevronRight } from 'lucide-react';
 import { GenerationProgress } from '@/hooks/useRecommendations';
 
-// Impact color mapping
+// Enhanced color mappings with gradients
 const impactColors = {
-  Low: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  Medium: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
-  High: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+  Low: 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-200',
+  Medium: 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 border-amber-200',
+  High: 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-red-200'
 };
 
-// Effort color mapping
 const effortColors = {
-  Low: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  Medium: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
-  High: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+  Low: 'bg-gradient-to-r from-green-50 to-green-100 text-green-700 border-green-200',
+  Medium: 'bg-gradient-to-r from-yellow-50 to-yellow-100 text-yellow-700 border-yellow-200',
+  High: 'bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-200'
+};
+
+// Icon mapping for different categories
+const categoryIcons = {
+  urgent: <Zap className="h-4 w-4" />,
+  growth: <TrendingUp className="h-4 w-4" />,
+  marketing: <Target className="h-4 w-4" />,
+  positioning: <Shield className="h-4 w-4" />,
+  future: <Rocket className="h-4 w-4" />
 };
 
 interface RecommendationsDashboardProps {
@@ -35,9 +43,6 @@ interface RecommendationsDashboardProps {
   progress?: GenerationProgress;
 }
 
-/**
- * Dashboard component for displaying AI-generated recommendations
- */
 export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> = ({
   data,
   isLoading = false,
@@ -49,49 +54,52 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
   businessName,
   progress
 }) => {
-  // Use either data or recommendations prop for backwards compatibility
   const recommendationsData = data || recommendations;
   const isLoadingState = isLoading || loading;
   
-  // If there's an error, display an error message
   if (error) {
     return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error loading recommendations</AlertTitle>
-        <AlertDescription>
-          {error.message || 'Failed to load recommendations. Please try again.'}
+      <Alert variant="destructive" className="mb-4 border-2">
+        <AlertTriangle className="h-5 w-5" />
+        <AlertTitle>Oops! Something went wrong</AlertTitle>
+        <AlertDescription className="mt-2">
+          {error.message || 'We couldn\'t generate recommendations right now. Let\'s try again!'}
         </AlertDescription>
         {onRefresh && (
-          <Button variant="outline" size="sm" onClick={onRefresh} className="mt-2">
-            Try Again
+          <Button variant="outline" size="sm" onClick={onRefresh} className="mt-3">
+            <ChevronRight className="h-4 w-4 mr-1" /> Try Again
           </Button>
         )}
       </Alert>
     );
   }
 
-  // If loading, display a loading indicator with progress
   if (isLoadingState) {
     return (
-      <Card className="w-full">
+      <Card className="w-full border-2 shadow-lg bg-gradient-to-br from-white to-gray-50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Generating AI Recommendations
+          <CardTitle className="flex items-center gap-3 text-2xl">
+            <div className="p-2 bg-primary/10 rounded-full">
+              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+            </div>
+            <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+              Crafting Your Success Strategy
+            </span>
           </CardTitle>
-          <CardDescription>
-            {progress?.message || generatingMessage || 'Please wait while we analyze your reviews...'}
+          <CardDescription className="text-base mt-2">
+            {progress?.message || generatingMessage || 'Our AI is analyzing your reviews and creating personalized recommendations...'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {progress && (
               <>
-                <Progress value={progress.progress} className="w-full h-2" />
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>{progress.stage === 'error' ? 'Error' : progress.stage.charAt(0).toUpperCase() + progress.stage.slice(1)}</span>
-                  <span>{progress.progress}%</span>
+                <Progress value={progress.progress} className="w-full h-3" />
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium text-primary">
+                    {progress.stage === 'error' ? '❌ Error' : `✨ ${progress.stage.charAt(0).toUpperCase() + progress.stage.slice(1)}`}
+                  </span>
+                  <span className="font-bold text-primary">{progress.progress}%</span>
                 </div>
                 {progress.stage === 'error' && (
                   <Alert variant="destructive" className="mt-4">
@@ -108,25 +116,23 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
     );
   }
 
-  // If generating, show the generating message
   if (generatingMessage && !progress) {
     return (
-      <Alert className="mb-4">
-        <Info className="h-4 w-4" />
-        <AlertTitle>Generating recommendations for {businessName}</AlertTitle>
-        <AlertDescription>{generatingMessage}</AlertDescription>
+      <Alert className="mb-4 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-purple-50">
+        <Sparkles className="h-5 w-5 text-primary" />
+        <AlertTitle className="text-lg">Creating magic for {businessName} ✨</AlertTitle>
+        <AlertDescription className="mt-1">{generatingMessage}</AlertDescription>
       </Alert>
     );
   }
 
-  // If no data, display a message
   if (!recommendationsData) {
     return (
-      <Alert className="mb-4">
-        <Info className="h-4 w-4" />
-        <AlertTitle>No recommendations available</AlertTitle>
-        <AlertDescription>
-          No recommendations have been generated yet. Select a business and generate recommendations.
+      <Alert className="mb-4 border-2 bg-gradient-to-r from-gray-50 to-white">
+        <Info className="h-5 w-5" />
+        <AlertTitle className="text-lg">Ready to unlock your potential?</AlertTitle>
+        <AlertDescription className="mt-1">
+          Select a business above and click "Generate Recommendations" to get started with AI-powered insights!
         </AlertDescription>
       </Alert>
     );
@@ -134,67 +140,82 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
   return (
     <Tabs defaultValue="urgent" className="w-full">
-      <TabsList className="grid grid-cols-5 mb-4">
-        <TabsTrigger value="urgent" className="flex items-center gap-1">
-          <AlertTriangle className="h-4 w-4" /> Urgent
+      <TabsList className="grid grid-cols-5 mb-6 h-auto p-1 bg-gray-100/50 backdrop-blur">
+        <TabsTrigger value="urgent" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+          {categoryIcons.urgent}
+          <span className="hidden sm:inline">Urgent</span>
         </TabsTrigger>
-        <TabsTrigger value="growth" className="flex items-center gap-1">
-          <TrendingUp className="h-4 w-4" /> Growth
+        <TabsTrigger value="growth" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+          {categoryIcons.growth}
+          <span className="hidden sm:inline">Growth</span>
         </TabsTrigger>
-        <TabsTrigger value="marketing" className="flex items-center gap-1">
-          <Target className="h-4 w-4" /> Marketing
+        <TabsTrigger value="marketing" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+          {categoryIcons.marketing}
+          <span className="hidden sm:inline">Marketing</span>
         </TabsTrigger>
-        <TabsTrigger value="positioning" className="flex items-center gap-1">
-          <Lightbulb className="h-4 w-4" /> Positioning
+        <TabsTrigger value="positioning" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+          {categoryIcons.positioning}
+          <span className="hidden sm:inline">Position</span>
         </TabsTrigger>
-        <TabsTrigger value="future" className="flex items-center gap-1">
-          <Rocket className="h-4 w-4" /> Future
+        <TabsTrigger value="future" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+          {categoryIcons.future}
+          <span className="hidden sm:inline">Future</span>
         </TabsTrigger>
       </TabsList>
 
       {/* Urgent Actions Tab */}
       <TabsContent value="urgent">
-        <Card>
-          <CardHeader>
-            <CardTitle>Urgent Actions</CardTitle>
-            <CardDescription>
-              High-priority actions that should be addressed immediately
+        <Card className="border-2 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <div className="p-2 bg-red-100 rounded-full">
+                <Zap className="h-6 w-6 text-red-600" />
+              </div>
+              Quick Wins & Urgent Actions
+            </CardTitle>
+            <CardDescription className="text-base mt-2">
+              🎯 Focus on these high-impact actions to see immediate improvements
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {recommendationsData.urgentActions && recommendationsData.urgentActions.length > 0 ? (
               <div className="space-y-4">
                 {recommendationsData.urgentActions.map((action, index) => (
-                  <Card key={`urgent-${index}`}>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between">
-                        <CardTitle className="text-lg">{action.title || action}</CardTitle>
-                        <div className="flex gap-2">
+                  <Card key={`urgent-${index}`} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-red-400">
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <CardTitle className="text-lg flex items-start gap-2">
+                          <span className="text-red-500 font-bold">#{index + 1}</span>
+                          {action.title || action}
+                        </CardTitle>
+                        <div className="flex gap-2 flex-wrap">
                           {action.impact && (
-                            <Badge className={impactColors[action.impact as keyof typeof impactColors] || ''}>
-                              Impact: {action.impact}
+                            <Badge className={`${impactColors[action.impact as keyof typeof impactColors]} border`}>
+                              ⚡ {action.impact} Impact
                             </Badge>
                           )}
                           {action.effort && (
-                            <Badge className={effortColors[action.effort as keyof typeof effortColors] || ''}>
-                              Effort: {action.effort}
+                            <Badge className={`${effortColors[action.effort as keyof typeof effortColors]} border`}>
+                              💪 {action.effort} Effort
                             </Badge>
                           )}
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p>{action.description || action}</p>
+                      <p className="text-gray-700 leading-relaxed">
+                        {action.description || action}
+                      </p>
                     </CardContent>
                   </Card>
                 ))}
               </div>
             ) : (
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>No urgent actions</AlertTitle>
-                <AlertDescription>
-                  There are no urgent actions needed at this time. This is a good sign!
+              <Alert className="bg-green-50 border-green-200">
+                <Sparkles className="h-5 w-5 text-green-600" />
+                <AlertTitle className="text-green-800">Great news!</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  No urgent actions needed right now. You're doing fantastic! 🎉
                 </AlertDescription>
               </Alert>
             )}
@@ -204,47 +225,57 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
       {/* Growth Strategies Tab */}
       <TabsContent value="growth">
-        <Card>
-          <CardHeader>
-            <CardTitle>Growth Strategies</CardTitle>
-            <CardDescription>
-              Strategic initiatives to help grow your business
+        <Card className="border-2 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <div className="p-2 bg-green-100 rounded-full">
+                <TrendingUp className="h-6 w-6 text-green-600" />
+              </div>
+              Growth Strategies That Work
+            </CardTitle>
+            <CardDescription className="text-base mt-2">
+              🚀 Strategic initiatives to accelerate your business growth
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {recommendationsData.growthStrategies && recommendationsData.growthStrategies.length > 0 ? (
               <div className="space-y-4">
                 {recommendationsData.growthStrategies.map((strategy, index) => (
-                  <Card key={`growth-${index}`}>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between">
-                        <CardTitle className="text-lg">{strategy.title || strategy}</CardTitle>
-                        <div className="flex gap-2">
+                  <Card key={`growth-${index}`} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-green-400">
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <CardTitle className="text-lg flex items-start gap-2">
+                          <span className="text-green-600 font-bold">#{index + 1}</span>
+                          {strategy.title || strategy}
+                        </CardTitle>
+                        <div className="flex gap-2 flex-wrap">
                           {strategy.impact && (
-                            <Badge className={impactColors[strategy.impact as keyof typeof impactColors] || ''}>
-                              Impact: {strategy.impact}
+                            <Badge className={`${impactColors[strategy.impact as keyof typeof impactColors]} border`}>
+                              📈 {strategy.impact} Impact
                             </Badge>
                           )}
                           {strategy.effort && (
-                            <Badge className={effortColors[strategy.effort as keyof typeof effortColors] || ''}>
-                              Effort: {strategy.effort}
+                            <Badge className={`${effortColors[strategy.effort as keyof typeof effortColors]} border`}>
+                              ⏱️ {strategy.effort} Effort
                             </Badge>
                           )}
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p>{strategy.description || strategy}</p>
+                      <p className="text-gray-700 leading-relaxed">
+                        {strategy.description || strategy}
+                      </p>
                     </CardContent>
                   </Card>
                 ))}
               </div>
             ) : (
               <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>No growth strategies</AlertTitle>
+                <Info className="h-5 w-5" />
+                <AlertTitle>No growth strategies yet</AlertTitle>
                 <AlertDescription>
-                  No growth strategies have been generated yet.
+                  Generate recommendations to see personalized growth strategies.
                 </AlertDescription>
               </Alert>
             )}
@@ -254,36 +285,50 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
       {/* Marketing Plan Tab */}
       <TabsContent value="marketing">
-        <Card>
-          <CardHeader>
-            <CardTitle>{recommendationsData.customerAttractionPlan?.title || 'Marketing Plan'}</CardTitle>
-            <CardDescription>
-              {recommendationsData.customerAttractionPlan?.description || 'Strategies to attract and retain customers'}
+        <Card className="border-2 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <div className="p-2 bg-blue-100 rounded-full">
+                <Target className="h-6 w-6 text-blue-600" />
+              </div>
+              {recommendationsData.customerAttractionPlan?.title || 'Customer Attraction Playbook'}
+            </CardTitle>
+            <CardDescription className="text-base mt-2">
+              {recommendationsData.customerAttractionPlan?.description || '🎯 Proven strategies to attract and delight customers'}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {(recommendationsData.customerAttractionPlan?.strategies && recommendationsData.customerAttractionPlan.strategies.length > 0) || 
              (recommendationsData.marketingPlan && recommendationsData.marketingPlan.length > 0) ? (
               <div className="space-y-4">
                 {(recommendationsData.customerAttractionPlan?.strategies || recommendationsData.marketingPlan || []).map((strategy, index) => (
-                  <Card key={`marketing-${index}`}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{strategy.title || strategy}</CardTitle>
-                      <div className="flex flex-wrap gap-2">
+                  <Card key={`marketing-${index}`} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-400">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-start gap-2">
+                        <span className="text-blue-600 font-bold">#{index + 1}</span>
+                        {strategy.title || strategy}
+                      </CardTitle>
+                      <div className="flex flex-wrap gap-2 mt-2">
                         {strategy.timeline && (
-                          <Badge variant="outline">Timeline: {strategy.timeline}</Badge>
+                          <Badge variant="outline" className="bg-blue-50">
+                            <Timer className="h-3 w-3 mr-1" /> {strategy.timeline}
+                          </Badge>
                         )}
                         {strategy.cost && (
-                          <Badge variant="outline">Cost: {strategy.cost}</Badge>
+                          <Badge variant="outline" className="bg-green-50">
+                            <DollarSign className="h-3 w-3 mr-1" /> {strategy.cost}
+                          </Badge>
                         )}
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p>{strategy.description || strategy}</p>
+                      <p className="text-gray-700 leading-relaxed">
+                        {strategy.description || strategy}
+                      </p>
                       {strategy.expectedOutcome && (
-                        <div className="mt-2">
-                          <p className="font-medium">Expected Outcome:</p>
-                          <p className="text-sm">{strategy.expectedOutcome}</p>
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                          <p className="font-semibold text-blue-900 text-sm">🎯 Expected Result:</p>
+                          <p className="text-blue-800 text-sm mt-1">{strategy.expectedOutcome}</p>
                         </div>
                       )}
                     </CardContent>
@@ -292,10 +337,10 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
               </div>
             ) : (
               <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>No marketing strategies</AlertTitle>
+                <Info className="h-5 w-5" />
+                <AlertTitle>No marketing strategies yet</AlertTitle>
                 <AlertDescription>
-                  No marketing strategies have been generated yet.
+                  Generate recommendations to see your personalized marketing plan.
                 </AlertDescription>
               </Alert>
             )}
@@ -305,23 +350,31 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
       {/* Competitive Positioning Tab */}
       <TabsContent value="positioning">
-        <Card>
-          <CardHeader>
-            <CardTitle>{recommendationsData.competitivePositioning?.title || 'Competitive Positioning'}</CardTitle>
-            <CardDescription>
-              {recommendationsData.competitivePositioning?.description || 'Analysis of your market position'}
+        <Card className="border-2 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <div className="p-2 bg-purple-100 rounded-full">
+                <Shield className="h-6 w-6 text-purple-600" />
+              </div>
+              {recommendationsData.competitivePositioning?.title || 'Your Competitive Edge'}
+            </CardTitle>
+            <CardDescription className="text-base mt-2">
+              {recommendationsData.competitivePositioning?.description || '🏆 Understanding and leveraging your unique market position'}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {recommendationsData.competitivePositioning || (recommendationsData.competitiveAnalysis && recommendationsData.competitiveAnalysis.length > 0) ? (
               <div className="space-y-6">
-                {/* If we have competitiveAnalysis array (simple format) */}
+                {/* Competitive Insights */}
                 {recommendationsData.competitiveAnalysis && recommendationsData.competitiveAnalysis.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Competitive Insights</h3>
-                    <ul className="list-disc pl-5 space-y-1">
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3 text-purple-900">💡 Key Insights</h3>
+                    <ul className="space-y-2">
                       {recommendationsData.competitiveAnalysis.map((insight, index) => (
-                        <li key={`insight-${index}`}>{insight}</li>
+                        <li key={`insight-${index}`} className="flex items-start gap-2">
+                          <ChevronRight className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-purple-800">{insight}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -329,11 +382,14 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
                 {/* Strengths */}
                 {recommendationsData.competitivePositioning?.strengths && recommendationsData.competitivePositioning.strengths.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Strengths</h3>
-                    <ul className="list-disc pl-5 space-y-1">
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3 text-green-900">💪 Your Strengths</h3>
+                    <ul className="space-y-2">
                       {recommendationsData.competitivePositioning.strengths.map((strength, index) => (
-                        <li key={`strength-${index}`}>{strength}</li>
+                        <li key={`strength-${index}`} className="flex items-start gap-2">
+                          <ChevronRight className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-green-800">{strength}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -341,11 +397,14 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
                 {/* Opportunities */}
                 {recommendationsData.competitivePositioning?.opportunities && recommendationsData.competitivePositioning.opportunities.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Opportunities</h3>
-                    <ul className="list-disc pl-5 space-y-1">
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3 text-blue-900">🚀 Growth Opportunities</h3>
+                    <ul className="space-y-2">
                       {recommendationsData.competitivePositioning.opportunities.map((opportunity, index) => (
-                        <li key={`opportunity-${index}`}>{opportunity}</li>
+                        <li key={`opportunity-${index}`} className="flex items-start gap-2">
+                          <ChevronRight className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-blue-800">{opportunity}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -353,11 +412,14 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
                 {/* Recommendations */}
                 {recommendationsData.competitivePositioning?.recommendations && recommendationsData.competitivePositioning.recommendations.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Recommendations</h3>
-                    <ul className="list-disc pl-5 space-y-1">
+                  <div className="p-4 bg-amber-50 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3 text-amber-900">🎯 Strategic Actions</h3>
+                    <ul className="space-y-2">
                       {recommendationsData.competitivePositioning.recommendations.map((recommendation, index) => (
-                        <li key={`positioning-rec-${index}`}>{recommendation}</li>
+                        <li key={`positioning-rec-${index}`} className="flex items-start gap-2">
+                          <ChevronRight className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-amber-800">{recommendation}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -365,10 +427,10 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
               </div>
             ) : (
               <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>No positioning analysis</AlertTitle>
+                <Info className="h-5 w-5" />
+                <AlertTitle>No positioning analysis yet</AlertTitle>
                 <AlertDescription>
-                  No competitive positioning analysis has been generated yet.
+                  Generate recommendations to see your competitive positioning analysis.
                 </AlertDescription>
               </Alert>
             )}
@@ -378,23 +440,33 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
       {/* Future Projections Tab */}
       <TabsContent value="future">
-        <Card>
-          <CardHeader>
-            <CardTitle>Future Projections</CardTitle>
-            <CardDescription>
-              Forecasts and predictions for your business
+        <Card className="border-2 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-2xl">
+              <div className="p-2 bg-indigo-100 rounded-full">
+                <Rocket className="h-6 w-6 text-indigo-600" />
+              </div>
+              Your Future Success Path
+            </CardTitle>
+            <CardDescription className="text-base mt-2">
+              🔮 Data-driven projections and milestones for your business journey
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {recommendationsData.futureProjections ? (
               <div className="space-y-6">
                 {/* Short-Term Projections */}
                 {recommendationsData.futureProjections.shortTerm && recommendationsData.futureProjections.shortTerm.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Short-Term (3-6 months)</h3>
-                    <ul className="list-disc pl-5 space-y-1">
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3 text-indigo-900">📅 Next 3-6 Months</h3>
+                    <ul className="space-y-3">
                       {recommendationsData.futureProjections.shortTerm.map((projection, index) => (
-                        <li key={`short-term-${index}`}>{projection}</li>
+                        <li key={`short-term-${index}`} className="flex items-start gap-3">
+                          <div className="p-1 bg-indigo-100 rounded-full flex-shrink-0">
+                            <ChevronRight className="h-4 w-4 text-indigo-600" />
+                          </div>
+                          <span className="text-gray-700">{projection}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -402,11 +474,16 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
                 {/* Long-Term Projections */}
                 {recommendationsData.futureProjections.longTerm && recommendationsData.futureProjections.longTerm.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-medium mb-2">Long-Term (1-2 years)</h3>
-                    <ul className="list-disc pl-5 space-y-1">
+                  <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-3 text-purple-900">🎯 1-2 Year Vision</h3>
+                    <ul className="space-y-3">
                       {recommendationsData.futureProjections.longTerm.map((projection, index) => (
-                        <li key={`long-term-${index}`}>{projection}</li>
+                        <li key={`long-term-${index}`} className="flex items-start gap-3">
+                          <div className="p-1 bg-purple-100 rounded-full flex-shrink-0">
+                            <ChevronRight className="h-4 w-4 text-purple-600" />
+                          </div>
+                          <span className="text-gray-700">{projection}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -414,10 +491,10 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
               </div>
             ) : (
               <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>No future projections</AlertTitle>
+                <Info className="h-5 w-5" />
+                <AlertTitle>No future projections yet</AlertTitle>
                 <AlertDescription>
-                  No future projections have been generated yet.
+                  Generate recommendations to see your personalized growth projections.
                 </AlertDescription>
               </Alert>
             )}

@@ -1,8 +1,10 @@
 import React, { memo } from "react";
 import { Review } from "@/types/reviews";
-import OverviewSection from "@/components/OverviewSection";
 import ReviewsTable from "@/components/ReviewsTable";
 import AnalysisSummary from "@/components/analysis/AnalysisSummary";
+import ReviewsChart from "@/components/ReviewsChart";
+import CumulativeReviewsChart from "@/components/CumulativeReviewsChart";
+import { groupReviewsByMonth } from "@/utils/dataUtils";
 import { useDashboardContext } from "@/contexts/DashboardContext";
 import { Separator } from "@/components/ui/separator";
 
@@ -47,31 +49,34 @@ const AllReviewsContent: React.FC<{
     );
   }
 
+  // Get monthly data for charts
+  const monthlyData = groupReviewsByMonth(reviews);
+
   return (
     <div className="space-y-8">
-      {/* Phase 2: Overview Section - Now positioned FIRST for better UX flow */}
+      {/* Charts Section - Moved from OverviewSection */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Business Overview</h2>
+            <h2 className="text-2xl font-bold tracking-tight">Performance Charts</h2>
             <p className="text-muted-foreground">
-              Key metrics and performance indicators at a glance
+              Visual representation of review trends and growth
             </p>
           </div>
         </div>
         
-        <OverviewSection 
-          reviews={reviews} 
-          totalReviewCount={dashboardTotalReviewCount}
-          loadingMore={loadingMore}
-          onLoadMore={onLoadMore}
-          hasMoreData={hasMoreData}
-        />
+        <div className="space-y-6">
+          {/* Reviews Timeline Chart */}
+          <ReviewsChart data={monthlyData} />
+          
+          {/* Cumulative Reviews Growth Chart */}
+          <CumulativeReviewsChart data={monthlyData} />
+        </div>
       </section>
 
       <Separator className="my-8" />
       
-      {/* Phase 2: Analysis Summary - Now positioned SECOND for logical progression */}
+      {/* Detailed Analysis */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -100,7 +105,7 @@ const AllReviewsContent: React.FC<{
 
       <Separator className="my-8" />
       
-      {/* Phase 2: Reviews Table - Now positioned THIRD for complete data access */}
+      {/* Reviews Table */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div>

@@ -1,4 +1,5 @@
 import { EnhancedAnalysis, ReviewCluster, HistoricalTrend } from '@/types/dataAnalysis';
+import { Review } from '@/types/reviews';
 
 export interface ComparisonResult {
   ratingChange: number;
@@ -14,22 +15,28 @@ export interface ComparisonResult {
 
 /**
  * Compare data between two periods and calculate changes
+ * Updated to work with actual review data instead of just EnhancedAnalysis
  */
-export function compareDataPeriods(current: EnhancedAnalysis, previous: EnhancedAnalysis): ComparisonResult {
+export function compareDataPeriods(
+  current: EnhancedAnalysis, 
+  previous: EnhancedAnalysis,
+  currentReviews?: Review[],
+  previousReviews?: Review[]
+): ComparisonResult {
   // Calculate basic metric changes
-  const currentRating = extractAverageRating(current);
-  const previousRating = extractAverageRating(previous);
+  const currentRating = calculateAverageRatingFromReviews(currentReviews) || extractAverageRating(current);
+  const previousRating = calculateAverageRatingFromReviews(previousReviews) || extractAverageRating(previous);
   const ratingChange = currentRating - previousRating;
   
-  const currentReviewCount = calculateTotalReviewCount(current.reviewClusters);
-  const previousReviewCount = calculateTotalReviewCount(previous.reviewClusters);
+  const currentReviewCount = currentReviews?.length || calculateTotalReviewCount(current.reviewClusters);
+  const previousReviewCount = previousReviews?.length || calculateTotalReviewCount(previous.reviewClusters);
   const reviewCountChange = currentReviewCount - previousReviewCount;
   const reviewCountChangePercent = previousReviewCount > 0 
     ? (reviewCountChange / previousReviewCount) * 100 
     : 0;
   
-  const currentSentiment = extractAverageSentiment(current);
-  const previousSentiment = extractAverageSentiment(previous);
+  const currentSentiment = calculateAverageSentimentFromReviews(currentReviews) || extractAverageSentiment(current);
+  const previousSentiment = calculateAverageSentimentFromReviews(previousReviews) || extractAverageSentiment(previous);
   const sentimentChange = currentSentiment - previousSentiment;
   
   // Extract themes from both periods
@@ -66,8 +73,8 @@ export function compareDataPeriods(current: EnhancedAnalysis, previous: Enhanced
   // Compare staff performance
   const staffPerformanceChanges: Record<string, number> = {};
   
-  const currentStaff = extractStaffMentions(current);
-  const previousStaff = extractStaffMentions(previous);
+  const currentStaff = extractStaffMentions(current, currentReviews);
+  const previousStaff = extractStaffMentions(previous, previousReviews);
   
   // Combine all staff members from both periods
   const allStaffMembers = new Set([
@@ -96,12 +103,42 @@ export function compareDataPeriods(current: EnhancedAnalysis, previous: Enhanced
 }
 
 /**
+ * Calculate average rating directly from reviews
+ */
+function calculateAverageRatingFromReviews(reviews?: Review[]): number {
+  if (!reviews || reviews.length === 0) return 0;
+  
+  const reviewsWithRating = reviews.filter(r => r.stars);
+  if (reviewsWithRating.length === 0) return 0;
+  
+  const totalRating = reviewsWithRating.reduce((sum, r) => sum + (r.stars || 0), 0);
+  return totalRating / reviewsWithRating.length;
+}
+
+/**
+ * Calculate average sentiment directly from reviews
+ */
+function calculateAverageSentimentFromReviews(reviews?: Review[]): number {
+  if (!reviews || reviews.length === 0) return 0;
+  
+  const reviewsWithSentiment = reviews.filter(r => r.sentiment);
+  if (reviewsWithSentiment.length === 0) return 0;
+  
+  let totalSentiment = 0;
+  reviewsWithSentiment.forEach(review => {
+    totalSentiment += mapSentimentToNumber(review.sentiment || '');
+  });
+  
+  return totalSentiment / reviewsWithSentiment.length;
+}
+
+/**
  * Extract average rating from analysis data
  */
 function extractAverageRating(data: EnhancedAnalysis): number {
   // Try to get the rating from historical trends
   const latestTrend = data.historicalTrends[data.historicalTrends.length - 1];
-  if (latestTrend) {
+  if (latestTrend && latestTrend.avgRating > 0) {
     return latestTrend.avgRating;
   }
   
@@ -218,11 +255,38 @@ function extractThemes(data: EnhancedAnalysis): Array<{ name: string; sentiment:
 
 /**
  * Extract staff mentions and their sentiment from analysis data
+ * Updated to also check actual reviews if provided
  */
-function extractStaffMentions(data: EnhancedAnalysis): Record<string, number> {
+function extractStaffMentions(data: EnhancedAnalysis, reviews?: Review[]): Record<string, number> {
   const staffMentions: Record<string, number> = {};
   
-  // Look for staff-related themes and clusters
+  // First check actual reviews if provided
+  if (reviews && reviews.length > 0) {
+    reviews.forEach(review => {
+      if (review.staffMentioned) {
+        const staffNames = review.staffMentioned.split(',').map(s => s.trim());
+        const sentimentValue = mapSentimentToNumber(review.sentiment || 'neutral');
+        
+        staffNames.forEach(name => {
+          if (name) {
+            if (staffMentions[name]) {
+              // Average the sentiment
+              staffMentions[name] = (staffMentions[name] + sentimentValue) / 2;
+            } else {
+              staffMentions[name] = sentimentValue;
+            }
+          }
+        });
+      }
+    });
+    
+    // If we found staff in actual reviews, return that
+    if (Object.keys(staffMentions).length > 0) {
+      return staffMentions;
+    }
+  }
+  
+  // Otherwise fall back to looking in clusters
   data.reviewClusters.forEach(cluster => {
     // If the cluster is about staff
     if (cluster.name.toLowerCase().includes('staff') || 

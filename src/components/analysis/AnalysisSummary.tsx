@@ -223,10 +223,28 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
     PerformanceMonitor.startMeasurement('view-config-change');
   }, []);
 
-  // Phase 5: Fullscreen toggle with performance tracking
+  // Phase 5: Fullscreen toggle with performance tracking and body scroll lock
   const toggleFullscreen = useCallback((sectionId: string) => {
-    setFullscreenSection(current => current === sectionId ? null : sectionId);
+    setFullscreenSection(current => {
+      const newValue = current === sectionId ? null : sectionId;
+      
+      // Lock/unlock body scroll
+      if (newValue) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
+      
+      return newValue;
+    });
     PerformanceMonitor.startMeasurement('fullscreen-toggle');
+  }, []);
+
+  // Clean up body scroll lock on unmount
+  React.useEffect(() => {
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, []);
 
   // Phase 5: Optimized filter change handler
@@ -408,18 +426,23 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
           {sections.map(section => (
             <TabsContent key={section.id} value={section.id} className="mt-6">
               <SectionErrorBoundary>
-                <div className={fullscreenSection === section.id ? 'fixed inset-0 z-50 bg-background p-6' : ''}>
-                  {section.component}
+                <div className={fullscreenSection === section.id ? 'fixed inset-0 z-50 bg-background overflow-hidden flex flex-col' : ''}>
                   {fullscreenSection === section.id && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="absolute top-4 right-4"
-                      onClick={() => toggleFullscreen(section.id)}
-                    >
-                      <EyeOff className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-between items-center p-6 pb-4 border-b">
+                      <h2 className="text-2xl font-bold">{section.title}</h2>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="z-10"
+                        onClick={() => toggleFullscreen(section.id)}
+                      >
+                        <EyeOff className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
+                  <div className={fullscreenSection === section.id ? 'overflow-y-auto flex-1 p-6' : ''}>
+                    {section.component}
+                  </div>
                 </div>
               </SectionErrorBoundary>
             </TabsContent>
@@ -434,10 +457,10 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
         {sections.map(section => (
           <SectionErrorBoundary key={section.id}>
             <div 
-              className={`${getLayoutStyles.animations} ${fullscreenSection === section.id ? 'fixed inset-0 z-50 bg-background p-6' : ''}`}
+              className={`${getLayoutStyles.animations} ${fullscreenSection === section.id ? 'fixed inset-0 z-50 bg-background overflow-hidden flex flex-col' : ''}`}
             >
               {fullscreenSection === section.id && (
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center p-6 pb-4 border-b">
                   <h2 className="text-2xl font-bold">{section.title}</h2>
                   <Button
                     variant="outline"
@@ -448,7 +471,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
                   </Button>
                 </div>
               )}
-              <div className="relative group">
+              <div className={`relative group ${fullscreenSection === section.id ? 'overflow-y-auto flex-1 p-6' : ''}`}>
                 {section.component}
                 {!fullscreenSection && (
                   <Button

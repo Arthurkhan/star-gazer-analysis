@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { DateRangeSelector } from '@/components/monthly-report/DateRangeSelector';
+import { useSelectedDateRange } from '@/components/monthly-report/hooks/useSelectedDateRange';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpIcon, ArrowDownIcon, MinusIcon, Loader2 } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon, Loader2, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,11 +25,6 @@ export interface ComparisonResult {
   staffPerformanceChanges: Record<string, number>;
 }
 
-interface DateRange {
-  from: Date;
-  to: Date;
-}
-
 export function PeriodComparisonDisplay({ 
   businessName 
 }: { 
@@ -42,15 +38,16 @@ export function PeriodComparisonDisplay({
   const twoMonthsAgo = new Date();
   twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
   
-  // Initialize date ranges
-  const [currentRange, setCurrentRange] = useState<DateRange>({
-    from: oneMonthAgo,
-    to: today
+  // Use the same date range hook as Monthly Report for current period
+  const currentPeriod = useSelectedDateRange({
+    initialFrom: oneMonthAgo,
+    initialTo: today
   });
   
-  const [previousRange, setPreviousRange] = useState<DateRange>({
-    from: twoMonthsAgo,
-    to: oneMonthAgo
+  // Use the same date range hook as Monthly Report for previous period
+  const previousPeriod = useSelectedDateRange({
+    initialFrom: twoMonthsAgo,
+    initialTo: oneMonthAgo
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -73,11 +70,22 @@ export function PeriodComparisonDisplay({
     setLoadingMessage('Initializing comparison...');
     
     try {
+      // Ensure both date ranges have valid 'to' dates
+      if (!currentPeriod.dateRange.to || !previousPeriod.dateRange.to) {
+        setLoadingMessage('Please select complete date ranges for both periods.');
+        setTimeout(() => {
+          setIsLoading(false);
+          setLoadingProgress(0);
+          setLoadingMessage('');
+        }, 2000);
+        return;
+      }
+      
       // Step 1: Load current period data (33%)
       setLoadingMessage('Loading current period data...');
       setLoadingProgress(10);
       
-      await refreshData(currentRange.from, currentRange.to);
+      await refreshData(currentPeriod.dateRange.from, currentPeriod.dateRange.to);
       const currentReviews = getFilteredReviews();
       const currentAnalysis = generateEnhancedAnalysis(currentReviews, businessName);
       setCurrentData(currentAnalysis);
@@ -87,7 +95,7 @@ export function PeriodComparisonDisplay({
       // Step 2: Load previous period data (66%)
       setLoadingMessage('Loading previous period data...');
       
-      await refreshData(previousRange.from, previousRange.to);
+      await refreshData(previousPeriod.dateRange.from, previousPeriod.dateRange.to);
       const previousReviews = getFilteredReviews();
       const previousAnalysis = generateEnhancedAnalysis(previousReviews, businessName);
       setPreviousData(previousAnalysis);
@@ -121,62 +129,68 @@ export function PeriodComparisonDisplay({
         setLoadingMessage('');
       }, 2000);
     }
-  }, [businessName, currentRange, previousRange, refreshData, getFilteredReviews]);
-  
-  const formatDateRange = (range: DateRange) => {
-    const dateFormat = new Intl.DateTimeFormat('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric'
-    });
-    return `${dateFormat.format(range.from)} - ${dateFormat.format(range.to)}`;
-  };
-  
-  const currentRangeLabel = formatDateRange(currentRange);
-  const previousRangeLabel = formatDateRange(previousRange);
+  }, [businessName, currentPeriod.dateRange, previousPeriod.dateRange, refreshData, getFilteredReviews]);
   
   return (
     <div className="space-y-6">
+      {/* Current Period Date Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>Period Comparison</CardTitle>
-          <CardDescription>Compare review metrics across two time periods</CardDescription>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            <CardTitle>Current Period</CardTitle>
+          </div>
+          <CardDescription>Select the current period for comparison</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-medium mb-2">Current Period</h3>
-              <DateRangePicker
-                value={{ from: currentRange.from, to: currentRange.to }}
-                onChange={(range) => {
-                  if (range?.from && range?.to) {
-                    setCurrentRange({ from: range.from, to: range.to });
-                    // Reset comparison when date range changes
-                    setComparisonResult(null);
-                  }
-                }}
-              />
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-medium mb-2">Previous Period</h3>
-              <DateRangePicker
-                value={{ from: previousRange.from, to: previousRange.to }}
-                onChange={(range) => {
-                  if (range?.from && range?.to) {
-                    setPreviousRange({ from: range.from, to: range.to });
-                    // Reset comparison when date range changes
-                    setComparisonResult(null);
-                  }
-                }}
-              />
-            </div>
+          <DateRangeSelector
+            dateRange={currentPeriod.dateRange}
+            selectingDate={currentPeriod.selectingDate}
+            setSelectingDate={currentPeriod.setSelectingDate}
+            fromDateInput={currentPeriod.fromDateInput}
+            setFromDateInput={currentPeriod.setFromDateInput}
+            toDateInput={currentPeriod.toDateInput}
+            setToDateInput={currentPeriod.setToDateInput}
+            dateInputError={currentPeriod.dateInputError}
+            dateRangePresets={currentPeriod.dateRangePresets}
+            applyDateRangePreset={currentPeriod.applyDateRangePreset}
+            handleDateSelect={currentPeriod.handleDateSelect}
+            handleManualDateSubmit={currentPeriod.handleManualDateSubmit}
+            isDateInRange={currentPeriod.isDateInRange}
+          />
+        </CardContent>
+      </Card>
+      
+      {/* Previous Period Date Selection */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            <CardTitle>Previous Period</CardTitle>
           </div>
+          <CardDescription>Select the previous period for comparison</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DateRangeSelector
+            dateRange={previousPeriod.dateRange}
+            selectingDate={previousPeriod.selectingDate}
+            setSelectingDate={previousPeriod.setSelectingDate}
+            fromDateInput={previousPeriod.fromDateInput}
+            setFromDateInput={previousPeriod.setFromDateInput}
+            toDateInput={previousPeriod.toDateInput}
+            setToDateInput={previousPeriod.setToDateInput}
+            dateInputError={previousPeriod.dateInputError}
+            dateRangePresets={previousPeriod.dateRangePresets}
+            applyDateRangePreset={previousPeriod.applyDateRangePreset}
+            handleDateSelect={previousPeriod.handleDateSelect}
+            handleManualDateSubmit={previousPeriod.handleManualDateSubmit}
+            isDateInRange={previousPeriod.isDateInRange}
+          />
         </CardContent>
         <CardFooter className="flex justify-center">
           <Button 
             onClick={handleCompare}
-            disabled={isLoading || dashboardLoading}
+            disabled={isLoading || dashboardLoading || !currentPeriod.dateRange.to || !previousPeriod.dateRange.to}
             size="lg"
           >
             {isLoading ? (
@@ -211,7 +225,7 @@ export function PeriodComparisonDisplay({
           <CardHeader>
             <CardTitle>Comparison Results</CardTitle>
             <CardDescription>
-              {previousRangeLabel} vs {currentRangeLabel}
+              Analysis of changes between the two selected periods
             </CardDescription>
           </CardHeader>
           <CardContent>

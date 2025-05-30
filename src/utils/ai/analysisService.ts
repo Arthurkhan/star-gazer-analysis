@@ -1,5 +1,5 @@
 // This file uses pre-computed AI data from Supabase instead of external APIs
-import { Review } from "@/types/reviews";
+import { Review, reviewFieldAccessor } from "@/types/reviews";
 import { generateCacheKey, getFromCache, storeInCache, clearCache } from "./analysisCache";
 
 export { clearCache };
@@ -90,13 +90,14 @@ function calculateSentimentDistribution(reviews: Review[]) {
   ];
 }
 
-// Aggregate staff mentions from pre-computed data
+// Aggregate staff mentions from pre-computed data using field accessor
 function aggregateStaffMentions(reviews: Review[]) {
   const staffMap = new Map<string, { count: number; sentiments: string[]; examples: string[] }>();
   
   reviews.forEach(review => {
-    if (review.staffMentioned) {
-      const staffNames = review.staffMentioned.split(',').map(s => s.trim());
+    const staffMentioned = reviewFieldAccessor.getStaffMentioned(review);
+    if (staffMentioned) {
+      const staffNames = staffMentioned.split(',').map(s => s.trim()).filter(s => s.length > 0);
       staffNames.forEach(name => {
         if (!staffMap.has(name)) {
           staffMap.set(name, { count: 0, sentiments: [], examples: [] });
@@ -104,19 +105,21 @@ function aggregateStaffMentions(reviews: Review[]) {
         const staff = staffMap.get(name)!;
         staff.count++;
         staff.sentiments.push(review.sentiment || 'neutral');
-        if (staff.examples.length < 3) {
+        if (staff.examples.length < 3 && review.text) {
           staff.examples.push(review.text.substring(0, 100) + '...');
         }
       });
     }
   });
   
-  return Array.from(staffMap.entries()).map(([name, data]) => ({
-    name,
-    count: data.count,
-    sentiment: calculateDominantSentiment(data.sentiments),
-    examples: data.examples
-  }));
+  return Array.from(staffMap.entries())
+    .map(([name, data]) => ({
+      name,
+      count: data.count,
+      sentiment: calculateDominantSentiment(data.sentiments),
+      examples: data.examples
+    }))
+    .sort((a, b) => b.count - a.count);
 }
 
 // Aggregate common terms from pre-computed data
@@ -125,7 +128,7 @@ function aggregateCommonTerms(reviews: Review[]) {
   
   reviews.forEach(review => {
     if (review["common terms"]) {
-      const terms = review["common terms"].split(',').map(t => t.trim());
+      const terms = review["common terms"].split(',').map(t => t.trim()).filter(t => t.length > 0);
       terms.forEach(term => {
         termMap.set(term, (termMap.get(term) || 0) + 1);
       });
@@ -138,14 +141,15 @@ function aggregateCommonTerms(reviews: Review[]) {
     .slice(0, 20); // Top 20 terms
 }
 
-// Aggregate main themes
+// Aggregate main themes using field accessor
 function aggregateMainThemes(reviews: Review[]) {
   const themeMap = new Map<string, number>();
   const total = reviews.length;
   
   reviews.forEach(review => {
-    if (review.mainThemes) {
-      const themes = review.mainThemes.split(',').map(t => t.trim());
+    const mainThemes = reviewFieldAccessor.getMainThemes(review);
+    if (mainThemes) {
+      const themes = mainThemes.split(',').map(t => t.trim()).filter(t => t.length > 0);
       themes.forEach(theme => {
         themeMap.set(theme, (themeMap.get(theme) || 0) + 1);
       });
@@ -172,8 +176,9 @@ function generateOverallAnalysis(
   const positivePercent = ((sentiment[0].value / total) * 100).toFixed(1);
   const negativePercent = ((sentiment[2].value / total) * 100).toFixed(1);
   
-  const topThemes = aggregatedData.mainThemes.slice(0, 5).map((t: any) => t.theme).join(', ');
-  const topStaff = aggregatedData.staffMentions.slice(0, 3).map((s: any) => s.name).join(', ');
+  // Get top themes and staff
+  const topThemes = aggregatedData.mainThemes.slice(0, 5).map((t: any) => t.theme).filter((t: string) => t);
+  const topStaff = aggregatedData.staffMentions.slice(0, 3).map((s: any) => s.name).filter((n: string) => n);
   
   return `
 📊 **Overall Summary**
@@ -185,36 +190,75 @@ Based on ${total} reviews with an average rating of ${avgRating.toFixed(1)} star
 • Customer satisfaction is ${Number(positivePercent) > 70 ? 'excellent' : Number(positivePercent) > 50 ? 'good' : 'needs improvement'}
 
 🗣️ **Key Themes**
-The most discussed topics are: ${topThemes || 'No specific themes identified'}
+${topThemes.length > 0 ? `The most discussed topics are: ${topThemes.join(', ')}` : 'No specific themes identified'}
 
 💬 **Staff Performance**
-${topStaff ? `Frequently mentioned staff: ${topStaff}` : 'No specific staff members were frequently mentioned'}
+${topStaff.length > 0 ? `Frequently mentioned staff: ${topStaff.join(', ')}` : 'No specific staff members were frequently mentioned'}
 
 🎯 **Recommendations**
-${generateRecommendations(aggregatedData, avgRating)}
+${generateRecommendations(aggregatedData, avgRating, reviews)}
 `;
 }
 
-// Generate recommendations based on the analysis
-function generateRecommendations(data: any, avgRating: number): string {
+// Generate more detailed recommendations based on the analysis
+function generateRecommendations(data: any, avgRating: number, reviews: Review[]): string {
   const recommendations = [];
   
-  if (avgRating < 4) {
-    recommendations.push('• Focus on improving customer satisfaction');
+  // Rating-based recommendations
+  if (avgRating < 3.5) {
+    recommendations.push('• Urgent: Focus on addressing critical issues affecting customer satisfaction');
+    recommendations.push('• Implement immediate service recovery strategies');
+  } else if (avgRating < 4) {
+    recommendations.push('• Focus on improving customer satisfaction through service enhancements');
+    recommendations.push('• Conduct staff training sessions to address common complaints');
   }
   
+  // Sentiment-based recommendations
   const total = data.sentimentAnalysis[0].value + data.sentimentAnalysis[1].value + data.sentimentAnalysis[2].value;
   const negativePercent = (data.sentimentAnalysis[2].value / total) * 100;
   
-  if (negativePercent > 20) {
-    recommendations.push('• Address negative feedback patterns');
+  if (negativePercent > 30) {
+    recommendations.push('• Critical: Address high volume of negative feedback immediately');
+    recommendations.push('• Analyze negative reviews to identify root causes');
+  } else if (negativePercent > 20) {
+    recommendations.push('• Address negative feedback patterns proactively');
   }
   
-  if (data.staffMentions.some((s: any) => s.sentiment === 'negative')) {
-    recommendations.push('• Provide additional training for staff receiving negative mentions');
+  // Staff-based recommendations
+  const negativeStaff = data.staffMentions.filter((s: any) => s.sentiment === 'negative');
+  if (negativeStaff.length > 0) {
+    recommendations.push(`• Provide additional training for staff receiving negative mentions: ${negativeStaff.map((s: any) => s.name).join(', ')}`);
   }
   
-  return recommendations.join('\n') || '• Maintain current service levels';
+  const positiveStaff = data.staffMentions.filter((s: any) => s.sentiment === 'positive');
+  if (positiveStaff.length > 0) {
+    recommendations.push(`• Recognize and reward high-performing staff: ${positiveStaff.slice(0, 3).map((s: any) => s.name).join(', ')}`);
+  }
+  
+  // Theme-based recommendations
+  if (data.mainThemes.length > 0) {
+    const topTheme = data.mainThemes[0];
+    recommendations.push(`• Focus on improving "${topTheme.theme}" which is mentioned in ${topTheme.percentage.toFixed(1)}% of reviews`);
+  }
+  
+  // Response rate recommendations
+  const reviewsWithResponses = reviews.filter(r => reviewFieldAccessor.getResponseText(r));
+  const responseRate = (reviewsWithResponses.length / reviews.length) * 100;
+  
+  if (responseRate < 30) {
+    recommendations.push('• Increase engagement by responding to more customer reviews');
+  } else if (responseRate < 50) {
+    recommendations.push('• Continue improving review response rate to build customer trust');
+  }
+  
+  // If no specific recommendations, provide general guidance
+  if (recommendations.length === 0) {
+    recommendations.push('• Maintain current service excellence');
+    recommendations.push('• Continue monitoring customer feedback trends');
+    recommendations.push('• Consider implementing loyalty programs to reward satisfied customers');
+  }
+  
+  return recommendations.join('\n');
 }
 
 // Helper functions
@@ -223,7 +267,9 @@ function filterReviewsByDateRange(reviews: Review[], dateRange: DateRange) {
   const end = new Date(dateRange.endDate);
   
   return reviews.filter(review => {
-    const reviewDate = new Date(review.publishedAtDate);
+    const publishedDate = reviewFieldAccessor.getPublishedDate(review);
+    if (!publishedDate) return false;
+    const reviewDate = new Date(publishedDate);
     return reviewDate >= start && reviewDate <= end;
   });
 }
@@ -267,13 +313,13 @@ function calculateRatingBreakdown(reviews: Review[]) {
   ];
 }
 
-// Calculate language distribution
+// Calculate language distribution using field accessor
 function calculateLanguageDistribution(reviews: Review[]) {
   const totalReviews = reviews.length;
   const languages: Record<string, number> = {};
   
   reviews.forEach(review => {
-    const language = review.originalLanguage || "Unknown";
+    const language = reviewFieldAccessor.getLanguage(review) || "Unknown";
     languages[language] = (languages[language] || 0) + 1;
   });
   

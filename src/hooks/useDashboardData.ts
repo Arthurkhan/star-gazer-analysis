@@ -309,37 +309,16 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     let currentPage = 0;
     let hasMore = true;
     
-    // Build query
-    let query = supabase
-      .from('reviews')
-      .select(`
-        *,
-        businesses:business_id (
-          id,
-          name,
-          business_type
-        )
-      `)
-      .order('publishedatdate', { ascending: false });
-    
-    // Apply date filtering if provided
-    if (from) {
-      query = query.gte('publishedatdate', from.toISOString());
-    }
-    if (to) {
-      query = query.lte('publishedatdate', to.toISOString());
-    }
-    
     // Get total count for progress tracking
-    const countQuery = supabase
+    let countQuery = supabase
       .from('reviews')
       .select('*', { count: 'exact', head: true });
     
     if (from) {
-      countQuery.gte('publishedatdate', from.toISOString());
+      countQuery = countQuery.gte('publishedatdate', from.toISOString());
     }
     if (to) {
-      countQuery.lte('publishedatdate', to.toISOString());
+      countQuery = countQuery.lte('publishedatdate', to.toISOString());
     }
     
     const { count, error: countError } = await countQuery;
@@ -356,7 +335,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       
       console.log(`📄 Fetching page ${currentPage + 1} (rows ${startRow + 1}-${endRow + 1})...`);
       
-      const pageQuery = supabase
+      let pageQuery = supabase
         .from('reviews')
         .select(`
           *,
@@ -369,12 +348,12 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
         .order('publishedatdate', { ascending: false })
         .range(startRow, endRow);
       
-      // Apply date filtering if provided
+      // Apply date filtering if provided - FIXED: Now properly capturing the returned query
       if (from) {
-        pageQuery.gte('publishedatdate', from.toISOString());
+        pageQuery = pageQuery.gte('publishedatdate', from.toISOString());
       }
       if (to) {
-        pageQuery.lte('publishedatdate', to.toISOString());
+        pageQuery = pageQuery.lte('publishedatdate', to.toISOString());
       }
       
       const { data: pageData, error } = await pageQuery;

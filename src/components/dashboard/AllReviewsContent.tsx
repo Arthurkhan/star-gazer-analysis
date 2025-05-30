@@ -16,13 +16,15 @@ const AllReviewsContent: React.FC<{
   loadingMore?: boolean;
   onLoadMore?: () => void;
   hasMoreData?: boolean;
+  selectedBusiness?: string; // Add selected business prop
 }> = ({ 
   reviews, 
   chartData, 
   totalReviewCount,
   loadingMore,
   onLoadMore,
-  hasMoreData
+  hasMoreData,
+  selectedBusiness = "all" // Default to "all" if not provided
 }) => {
   // Try to get the total review count from context if not provided directly
   let dashboardTotalReviewCount = totalReviewCount;
@@ -51,6 +53,11 @@ const AllReviewsContent: React.FC<{
 
   // Get monthly data for charts
   const monthlyData = groupReviewsByMonth(reviews);
+  
+  // Determine the actual business name to display
+  const displayBusinessName = selectedBusiness === "all" || selectedBusiness === "All Businesses" 
+    ? "All Businesses" 
+    : selectedBusiness;
 
   return (
     <div className="space-y-8">
@@ -89,7 +96,7 @@ const AllReviewsContent: React.FC<{
         
         <AnalysisSummary 
           reviews={reviews}
-          businessName="Current Business" // TODO: Pass actual business name from props
+          businessName={displayBusinessName} // Pass the actual selected business name
           loading={false}
           config={{
             timePeriod: "all",

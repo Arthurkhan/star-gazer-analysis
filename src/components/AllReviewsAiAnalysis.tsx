@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Review } from "@/types/reviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
+  const prevReviewsRef = useRef<Review[]>([]);
 
   const fetchAnalysis = async (forceRefresh = false) => {
     if (reviews.length === 0) {
@@ -53,8 +54,25 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
   };
 
   useEffect(() => {
-    if (reviews.length > 0 && !analysis && !loading) {
-      fetchAnalysis();
+    // Check if reviews have changed
+    const reviewsChanged = reviews !== prevReviewsRef.current && 
+                          (reviews.length !== prevReviewsRef.current.length ||
+                           JSON.stringify(reviews[0]) !== JSON.stringify(prevReviewsRef.current[0]));
+    
+    if (reviewsChanged) {
+      prevReviewsRef.current = reviews;
+      
+      // Clear existing analysis when reviews change
+      if (analysis) {
+        console.log("Reviews changed, clearing analysis and re-fetching");
+        setAnalysis(null);
+        clearCache(); // Clear the cache to ensure fresh analysis
+      }
+      
+      // Fetch new analysis if we have reviews
+      if (reviews.length > 0) {
+        fetchAnalysis();
+      }
     }
   }, [reviews]);
 

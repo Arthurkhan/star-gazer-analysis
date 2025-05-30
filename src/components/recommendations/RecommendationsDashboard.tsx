@@ -141,23 +141,38 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
   return (
     <Tabs defaultValue="urgent" className="w-full">
       <TabsList className="grid grid-cols-5 mb-6 h-auto p-1 bg-gray-100/50 backdrop-blur">
-        <TabsTrigger value="urgent" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+        <TabsTrigger 
+          value="urgent" 
+          className="flex items-center gap-2 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+        >
           {categoryIcons.urgent}
           <span className="hidden sm:inline">Urgent</span>
         </TabsTrigger>
-        <TabsTrigger value="growth" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+        <TabsTrigger 
+          value="growth" 
+          className="flex items-center gap-2 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+        >
           {categoryIcons.growth}
           <span className="hidden sm:inline">Growth</span>
         </TabsTrigger>
-        <TabsTrigger value="marketing" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+        <TabsTrigger 
+          value="marketing" 
+          className="flex items-center gap-2 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+        >
           {categoryIcons.marketing}
           <span className="hidden sm:inline">Marketing</span>
         </TabsTrigger>
-        <TabsTrigger value="positioning" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+        <TabsTrigger 
+          value="positioning" 
+          className="flex items-center gap-2 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+        >
           {categoryIcons.positioning}
           <span className="hidden sm:inline">Position</span>
         </TabsTrigger>
-        <TabsTrigger value="future" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md transition-all">
+        <TabsTrigger 
+          value="future" 
+          className="flex items-center gap-2 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+        >
           {categoryIcons.future}
           <span className="hidden sm:inline">Future</span>
         </TabsTrigger>
@@ -203,7 +218,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-700 leading-relaxed">
+                      <p className="text-gray-800 leading-relaxed font-medium">
                         {action.description || action}
                       </p>
                     </CardContent>
@@ -263,7 +278,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-700 leading-relaxed">
+                      <p className="text-gray-800 leading-relaxed font-medium">
                         {strategy.description || strategy}
                       </p>
                     </CardContent>
@@ -310,19 +325,19 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
                       </CardTitle>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {strategy.timeline && (
-                          <Badge variant="outline" className="bg-blue-50">
+                          <Badge variant="outline" className="bg-blue-600 text-white border-blue-600">
                             <Timer className="h-3 w-3 mr-1" /> {strategy.timeline}
                           </Badge>
                         )}
                         {strategy.cost && (
-                          <Badge variant="outline" className="bg-green-50">
+                          <Badge variant="outline" className="bg-green-600 text-white border-green-600">
                             <DollarSign className="h-3 w-3 mr-1" /> {strategy.cost}
                           </Badge>
                         )}
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-700 leading-relaxed">
+                      <p className="text-gray-800 leading-relaxed font-medium">
                         {strategy.description || strategy}
                       </p>
                       {strategy.expectedOutcome && (
@@ -465,7 +480,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
                           <div className="p-1 bg-indigo-100 rounded-full flex-shrink-0">
                             <ChevronRight className="h-4 w-4 text-indigo-600" />
                           </div>
-                          <span className="text-gray-700">{projection}</span>
+                          <span className="text-gray-800 font-medium">{projection}</span>
                         </li>
                       ))}
                     </ul>
@@ -482,7 +497,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
                           <div className="p-1 bg-purple-100 rounded-full flex-shrink-0">
                             <ChevronRight className="h-4 w-4 text-purple-600" />
                           </div>
-                          <span className="text-gray-700">{projection}</span>
+                          <span className="text-gray-800 font-medium">{projection}</span>
                         </li>
                       ))}
                     </ul>

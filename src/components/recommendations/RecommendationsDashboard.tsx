@@ -166,14 +166,14 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
       {/* Urgent Actions Tab */}
       <TabsContent value="urgent">
         <Card className="border-2 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50 rounded-t-lg">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <div className="p-2 bg-red-100 rounded-full">
-                <Zap className="h-6 w-6 text-red-600" />
+          <CardHeader className="bg-gradient-to-r from-red-600 to-orange-600 rounded-t-lg text-white">
+            <CardTitle className="flex items-center gap-3 text-2xl text-white">
+              <div className="p-2 bg-white/20 backdrop-blur rounded-full">
+                <Zap className="h-6 w-6 text-white" />
               </div>
               Quick Wins & Urgent Actions
             </CardTitle>
-            <CardDescription className="text-base mt-2">
+            <CardDescription className="text-base mt-2 text-red-50">
               🎯 Focus on these high-impact actions to see immediate improvements
             </CardDescription>
           </CardHeader>
@@ -226,14 +226,14 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
       {/* Growth Strategies Tab */}
       <TabsContent value="growth">
         <Card className="border-2 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-lg">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <div className="p-2 bg-green-100 rounded-full">
-                <TrendingUp className="h-6 w-6 text-green-600" />
+          <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg text-white">
+            <CardTitle className="flex items-center gap-3 text-2xl text-white">
+              <div className="p-2 bg-white/20 backdrop-blur rounded-full">
+                <TrendingUp className="h-6 w-6 text-white" />
               </div>
               Growth Strategies That Work
             </CardTitle>
-            <CardDescription className="text-base mt-2">
+            <CardDescription className="text-base mt-2 text-emerald-50">
               🚀 Strategic initiatives to accelerate your business growth
             </CardDescription>
           </CardHeader>
@@ -286,14 +286,14 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
       {/* Marketing Plan Tab */}
       <TabsContent value="marketing">
         <Card className="border-2 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <div className="p-2 bg-blue-100 rounded-full">
-                <Target className="h-6 w-6 text-blue-600" />
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg text-white">
+            <CardTitle className="flex items-center gap-3 text-2xl text-white">
+              <div className="p-2 bg-white/20 backdrop-blur rounded-full">
+                <Target className="h-6 w-6 text-white" />
               </div>
               {recommendationsData.customerAttractionPlan?.title || 'Customer Attraction Playbook'}
             </CardTitle>
-            <CardDescription className="text-base mt-2">
+            <CardDescription className="text-base mt-2 text-blue-50">
               {recommendationsData.customerAttractionPlan?.description || '🎯 Proven strategies to attract and delight customers'}
             </CardDescription>
           </CardHeader>
@@ -351,14 +351,14 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
       {/* Competitive Positioning Tab */}
       <TabsContent value="positioning">
         <Card className="border-2 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-t-lg">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <div className="p-2 bg-purple-100 rounded-full">
-                <Shield className="h-6 w-6 text-purple-600" />
+          <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-t-lg text-white">
+            <CardTitle className="flex items-center gap-3 text-2xl text-white">
+              <div className="p-2 bg-white/20 backdrop-blur rounded-full">
+                <Shield className="h-6 w-6 text-white" />
               </div>
               {recommendationsData.competitivePositioning?.title || 'Your Competitive Edge'}
             </CardTitle>
-            <CardDescription className="text-base mt-2">
+            <CardDescription className="text-base mt-2 text-purple-50">
               {recommendationsData.competitivePositioning?.description || '🏆 Understanding and leveraging your unique market position'}
             </CardDescription>
           </CardHeader>
@@ -441,14 +441,14 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
       {/* Future Projections Tab */}
       <TabsContent value="future">
         <Card className="border-2 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-t-lg">
-            <CardTitle className="flex items-center gap-3 text-2xl">
-              <div className="p-2 bg-indigo-100 rounded-full">
-                <Rocket className="h-6 w-6 text-indigo-600" />
+          <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-lg text-white">
+            <CardTitle className="flex items-center gap-3 text-2xl text-white">
+              <div className="p-2 bg-white/20 backdrop-blur rounded-full">
+                <Rocket className="h-6 w-6 text-white" />
               </div>
               Your Future Success Path
             </CardTitle>
-            <CardDescription className="text-base mt-2">
+            <CardDescription className="text-base mt-2 text-indigo-50">
               🔮 Data-driven projections and milestones for your business journey
             </CardDescription>
           </CardHeader>

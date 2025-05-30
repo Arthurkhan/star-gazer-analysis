@@ -32,7 +32,7 @@ interface DashboardDataReturn {
   
   // Actions
   handleBusinessChange: (businessName: string) => void;
-  refreshData: () => Promise<void>;
+  refreshData: (from?: Date, to?: Date) => Promise<void>;
   
   // Stats
   totalReviewCount: number;
@@ -287,34 +287,67 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
 
   /**
    * Fetch all reviews using pagination to overcome Supabase row limits
+   * Now supports optional date range filtering
    * 
    * This function implements efficient pagination to load all reviews from the database.
    * It fetches data in configurable chunks and processes them for optimal performance.
    * 
    * @private
+   * @param {Date} [from] - Optional start date for filtering
+   * @param {Date} [to] - Optional end date for filtering
    * @returns {Promise<Review[]>} Array of all reviews from the database
    * @throws {Error} Database or network errors
    */
-  const fetchAllReviewsWithPagination = async (): Promise<Review[]> => {
+  const fetchAllReviewsWithPagination = async (from?: Date, to?: Date): Promise<Review[]> => {
     const stopMeasurement = enablePerformanceMonitoring 
       ? PerformanceMonitor.startMeasurement('fetch-all-reviews')
       : () => 0;
     
-    console.log("🔍 Starting to fetch ALL reviews using pagination...");
+    console.log("🔍 Starting to fetch reviews using pagination...", { from, to });
     
     let allReviews: Review[] = [];
     let currentPage = 0;
     let hasMore = true;
     
+    // Build query
+    let query = supabase
+      .from('reviews')
+      .select(`
+        *,
+        businesses:business_id (
+          id,
+          name,
+          business_type
+        )
+      `)
+      .order('publishedatdate', { ascending: false });
+    
+    // Apply date filtering if provided
+    if (from) {
+      query = query.gte('publishedatdate', from.toISOString());
+    }
+    if (to) {
+      query = query.lte('publishedatdate', to.toISOString());
+    }
+    
     // Get total count for progress tracking
-    const { count, error: countError } = await supabase
+    const countQuery = supabase
       .from('reviews')
       .select('*', { count: 'exact', head: true });
+    
+    if (from) {
+      countQuery.gte('publishedatdate', from.toISOString());
+    }
+    if (to) {
+      countQuery.lte('publishedatdate', to.toISOString());
+    }
+    
+    const { count, error: countError } = await countQuery;
     
     if (countError) {
       console.error("❌ Error getting review count:", countError);
     } else {
-      console.log(`📊 Total reviews in database: ${count}`);
+      console.log(`📊 Total reviews in date range: ${count}`);
     }
     
     while (hasMore && currentPage < maxPages) {
@@ -323,7 +356,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       
       console.log(`📄 Fetching page ${currentPage + 1} (rows ${startRow + 1}-${endRow + 1})...`);
       
-      const { data: pageData, error } = await supabase
+      const pageQuery = supabase
         .from('reviews')
         .select(`
           *,
@@ -335,6 +368,16 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
         `)
         .order('publishedatdate', { ascending: false })
         .range(startRow, endRow);
+      
+      // Apply date filtering if provided
+      if (from) {
+        pageQuery.gte('publishedatdate', from.toISOString());
+      }
+      if (to) {
+        pageQuery.lte('publishedatdate', to.toISOString());
+      }
+      
+      const { data: pageData, error } = await pageQuery;
       
       if (error) {
         console.error(`❌ Error fetching page ${currentPage + 1}:`, error);
@@ -387,15 +430,18 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
 
   /**
    * Load all application data (businesses and reviews)
+   * Now supports optional date range filtering
    * 
    * This is the main data loading function that fetches all necessary data
    * for the dashboard. It handles errors gracefully and provides user feedback.
    * 
    * @async
    * @function loadAllData
+   * @param {Date} [from] - Optional start date for filtering
+   * @param {Date} [to] - Optional end date for filtering
    * @returns {Promise<void>}
    */
-  const loadAllData = useCallback(async () => {
+  const loadAllData = useCallback(async (from?: Date, to?: Date) => {
     setLoading(true);
     setDatabaseError(false);
     
@@ -404,41 +450,43 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       : () => 0;
     
     try {
-      console.log("🚀 Loading all application data...");
+      console.log("🚀 Loading application data...", { from, to });
       
-      // Load businesses first
-      const { data: businessesData, error: businessesError } = await supabase
-        .from('businesses')
-        .select('*')
-        .order('name');
-      
-      if (businessesError) {
-        console.error("❌ Error fetching businesses:", businessesError);
-        setDatabaseError(true);
-        toast({
-          title: "Database Error",
-          description: "Failed to load businesses. Please check your connection.",
-          variant: "destructive",
-        });
-        return;
+      // Load businesses first (only on initial load or when not provided dates)
+      if (businesses.length === 0 && !from && !to) {
+        const { data: businessesData, error: businessesError } = await supabase
+          .from('businesses')
+          .select('*')
+          .order('name');
+        
+        if (businessesError) {
+          console.error("❌ Error fetching businesses:", businessesError);
+          setDatabaseError(true);
+          toast({
+            title: "Database Error",
+            description: "Failed to load businesses. Please check your connection.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (!businessesData || businessesData.length === 0) {
+          console.error("❌ No businesses found");
+          setDatabaseError(true);
+          toast({
+            title: "No Data Found",
+            description: "No businesses found in the database.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        setBusinesses(businessesData);
+        console.log(`✅ Loaded ${businessesData.length} businesses`);
       }
       
-      if (!businessesData || businessesData.length === 0) {
-        console.error("❌ No businesses found");
-        setDatabaseError(true);
-        toast({
-          title: "No Data Found",
-          description: "No businesses found in the database.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setBusinesses(businessesData);
-      console.log(`✅ Loaded ${businessesData.length} businesses`);
-      
-      // Load all reviews using pagination
-      const allReviewsData = await fetchAllReviewsWithPagination();
+      // Load all reviews using pagination with optional date filtering
+      const allReviewsData = await fetchAllReviewsWithPagination(from, to);
       
       setAllReviews(allReviewsData);
       setLastFetched(Date.now());
@@ -453,9 +501,13 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       console.log("📊 Final review counts per business:", businessCounts);
       console.log(`🎯 Total reviews loaded: ${allReviewsData.length}`);
       
+      const dateRangeText = from && to 
+        ? ` from ${from.toLocaleDateString()} to ${to.toLocaleDateString()}`
+        : '';
+      
       toast({
         title: "Data loaded successfully",
-        description: `Loaded ${allReviewsData.length} reviews from ${businessesData.length} businesses`,
+        description: `Loaded ${allReviewsData.length} reviews${dateRangeText}`,
       });
       
       if (enablePerformanceMonitoring) {
@@ -478,7 +530,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     } finally {
       setLoading(false);
     }
-  }, [toast, enablePerformanceMonitoring, pageSize, maxPages]);
+  }, [businesses.length, toast, enablePerformanceMonitoring, pageSize, maxPages]);
 
   /**
    * Handle business selection change
@@ -495,17 +547,20 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
 
   /**
    * Refresh all data from the database
+   * Now supports optional date range filtering
    * 
    * Reloads all businesses and reviews, useful for getting latest data
    * without requiring a full page refresh.
    * 
    * @async
    * @function refreshData
+   * @param {Date} [from] - Optional start date for filtering
+   * @param {Date} [to] - Optional end date for filtering
    * @returns {Promise<void>}
    */
-  const refreshData = useCallback(async () => {
-    console.log("🔄 Refreshing all data...");
-    await loadAllData();
+  const refreshData = useCallback(async (from?: Date, to?: Date) => {
+    console.log("🔄 Refreshing data...", { from, to });
+    await loadAllData(from, to);
   }, [loadAllData]);
 
   /**
@@ -518,7 +573,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
   // Auto-refresh functionality
   useEffect(() => {
     if (autoRefreshInterval > 0) {
-      const interval = setInterval(refreshData, autoRefreshInterval);
+      const interval = setInterval(() => refreshData(), autoRefreshInterval);
       return () => clearInterval(interval);
     }
   }, [refreshData, autoRefreshInterval]);

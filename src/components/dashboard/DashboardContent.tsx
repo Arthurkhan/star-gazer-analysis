@@ -12,6 +12,7 @@ interface DashboardContentProps {
   loadingMore?: boolean;
   onLoadMore?: () => void;
   hasMoreData?: boolean;
+  selectedBusiness?: string; // Add selected business prop
 }
 
 // Use React.memo to prevent unnecessary re-renders
@@ -22,7 +23,8 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
   totalReviewCount,
   loadingMore,
   onLoadMore,
-  hasMoreData
+  hasMoreData,
+  selectedBusiness = "all" // Default to "all" if not provided
 }) => {
   const [activeTab, setActiveTab] = useState("all-reviews");
   
@@ -71,6 +73,7 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
               loadingMore={loadingMore}
               onLoadMore={onLoadMore}
               hasMoreData={hasMoreData}
+              selectedBusiness={selectedBusiness} // Pass selected business
             />
           </TabsContent>
           

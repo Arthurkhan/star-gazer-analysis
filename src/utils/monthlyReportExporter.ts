@@ -82,7 +82,7 @@ export class MonthlyReportExporter {
       
       pdf.setFontSize(16);
       pdf.setFont(undefined, 'normal');
-      pdf.text(`${businessName}`, margin, yPosition);
+      pdf.text(businessName || 'Business Report', margin, yPosition);
       yPosition += 10;
       
       const dateFrom = dateRange.from.toLocaleDateString();
@@ -204,9 +204,9 @@ export class MonthlyReportExporter {
           }
           
           // Review text (truncated if too long)
-          const reviewText = review.text.length > 200 
-            ? review.text.substring(0, 200) + '...' 
-            : review.text;
+          const reviewText = (review.text || '').length > 200 
+            ? (review.text || '').substring(0, 200) + '...' 
+            : (review.text || '');
           
           const textLines = pdf.splitTextToSize(reviewText, pageWidth - 2 * margin);
           pdf.text(textLines, margin + 5, yPosition);
@@ -248,7 +248,8 @@ export class MonthlyReportExporter {
       }
       
       // Save the PDF
-      const fileName = `${businessName.replace(/[^a-z0-9]/gi, '_')}_Monthly_Report_${dateFrom.replace(/\//g, '-')}.pdf`;
+      const safeBusinessName = (businessName || 'Business').replace(/[^a-z0-9]/gi, '_');
+      const fileName = `${safeBusinessName}_Monthly_Report_${dateFrom.replace(/\//g, '-')}.pdf`;
       pdf.save(fileName);
       
     } catch (error) {
@@ -274,7 +275,7 @@ export class MonthlyReportExporter {
       // Summary Sheet
       const summaryData_sheet = [
         ['Monthly Review Report'],
-        ['Business Name', businessName],
+        ['Business Name', businessName || 'Unknown Business'],
         ['Report Period', `${dateRange.from.toLocaleDateString()} - ${dateRange.to?.toLocaleDateString() || 'Present'}`],
         ['Generated On', new Date().toLocaleDateString()],
         [],
@@ -314,7 +315,7 @@ export class MonthlyReportExporter {
           'Date': new Date(review.publishedAtDate).toLocaleDateString(),
           'Rating': review.stars,
           'Reviewer': review.name || 'Anonymous',
-          'Review Text': review.text,
+          'Review Text': review.text || '',
           'Sentiment': review.sentiment || 'Not analyzed',
           'Staff Mentioned': review.staffMentioned || 'None',
           'Main Themes': review.mainThemes || 'Not categorized',
@@ -353,7 +354,8 @@ export class MonthlyReportExporter {
       XLSX.utils.book_append_sheet(workbook, analyticsSheet, 'Analytics');
       
       // Save the workbook
-      const fileName = `${businessName.replace(/[^a-z0-9]/gi, '_')}_Monthly_Report_${dateRange.from.toLocaleDateString().replace(/\//g, '-')}.xlsx`;
+      const safeBusinessName = (businessName || 'Business').replace(/[^a-z0-9]/gi, '_');
+      const fileName = `${safeBusinessName}_Monthly_Report_${dateRange.from.toLocaleDateString().replace(/\//g, '-')}.xlsx`;
       XLSX.writeFile(workbook, fileName);
       
     } catch (error) {
@@ -429,7 +431,7 @@ export class MonthlyReportExporter {
     const dateTo = dateRange.to?.toLocaleDateString() || 'Present';
     
     return `
-Monthly Review Report - ${businessName}
+Monthly Review Report - ${businessName || 'Business Report'}
 Report Period: ${dateFrom} - ${dateTo}
 
 SUMMARY:

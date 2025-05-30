@@ -140,38 +140,38 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
   return (
     <Tabs defaultValue="urgent" className="w-full">
-      <TabsList className="grid grid-cols-5 mb-6 h-auto p-1 bg-gray-100/50 backdrop-blur">
+      <TabsList className="grid grid-cols-5 mb-6 h-auto p-1 bg-gray-700 backdrop-blur">
         <TabsTrigger 
           value="urgent" 
-          className="flex items-center gap-2 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+          className="flex items-center gap-2 transition-all text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md"
         >
           {categoryIcons.urgent}
           <span className="hidden sm:inline">Urgent</span>
         </TabsTrigger>
         <TabsTrigger 
           value="growth" 
-          className="flex items-center gap-2 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+          className="flex items-center gap-2 transition-all text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md"
         >
           {categoryIcons.growth}
           <span className="hidden sm:inline">Growth</span>
         </TabsTrigger>
         <TabsTrigger 
           value="marketing" 
-          className="flex items-center gap-2 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+          className="flex items-center gap-2 transition-all text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md"
         >
           {categoryIcons.marketing}
           <span className="hidden sm:inline">Marketing</span>
         </TabsTrigger>
         <TabsTrigger 
           value="positioning" 
-          className="flex items-center gap-2 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+          className="flex items-center gap-2 transition-all text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
         >
           {categoryIcons.positioning}
           <span className="hidden sm:inline">Position</span>
         </TabsTrigger>
         <TabsTrigger 
           value="future" 
-          className="flex items-center gap-2 transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md"
+          className="flex items-center gap-2 transition-all text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md"
         >
           {categoryIcons.future}
           <span className="hidden sm:inline">Future</span>
@@ -180,7 +180,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
       {/* Urgent Actions Tab */}
       <TabsContent value="urgent">
-        <Card className="border-2 shadow-lg">
+        <Card className="border-2 shadow-lg bg-gray-900">
           <CardHeader className="bg-gradient-to-r from-red-600 to-orange-600 rounded-t-lg text-white">
             <CardTitle className="flex items-center gap-3 text-2xl text-white">
               <div className="p-2 bg-white/20 backdrop-blur rounded-full">
@@ -196,11 +196,11 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
             {recommendationsData.urgentActions && recommendationsData.urgentActions.length > 0 ? (
               <div className="space-y-4">
                 {recommendationsData.urgentActions.map((action, index) => (
-                  <Card key={`urgent-${index}`} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-red-400">
+                  <Card key={`urgent-${index}`} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-red-400 bg-gray-800 border-gray-700">
                     <CardHeader className="pb-3">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                        <CardTitle className="text-lg flex items-start gap-2">
-                          <span className="text-red-500 font-bold">#{index + 1}</span>
+                        <CardTitle className="text-lg flex items-start gap-2 text-white">
+                          <span className="text-red-400 font-bold">#{index + 1}</span>
                           {action.title || action}
                         </CardTitle>
                         <div className="flex gap-2 flex-wrap">
@@ -218,7 +218,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-800 leading-relaxed font-medium">
+                      <p className="text-gray-300 leading-relaxed">
                         {action.description || action}
                       </p>
                     </CardContent>
@@ -240,7 +240,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
       {/* Growth Strategies Tab */}
       <TabsContent value="growth">
-        <Card className="border-2 shadow-lg">
+        <Card className="border-2 shadow-lg bg-gray-900">
           <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg text-white">
             <CardTitle className="flex items-center gap-3 text-2xl text-white">
               <div className="p-2 bg-white/20 backdrop-blur rounded-full">
@@ -256,11 +256,11 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
             {recommendationsData.growthStrategies && recommendationsData.growthStrategies.length > 0 ? (
               <div className="space-y-4">
                 {recommendationsData.growthStrategies.map((strategy, index) => (
-                  <Card key={`growth-${index}`} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-green-400">
+                  <Card key={`growth-${index}`} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-green-400 bg-gray-800 border-gray-700">
                     <CardHeader className="pb-3">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                        <CardTitle className="text-lg flex items-start gap-2">
-                          <span className="text-green-600 font-bold">#{index + 1}</span>
+                        <CardTitle className="text-lg flex items-start gap-2 text-white">
+                          <span className="text-green-400 font-bold">#{index + 1}</span>
                           {strategy.title || strategy}
                         </CardTitle>
                         <div className="flex gap-2 flex-wrap">
@@ -278,7 +278,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-800 leading-relaxed font-medium">
+                      <p className="text-gray-300 leading-relaxed">
                         {strategy.description || strategy}
                       </p>
                     </CardContent>
@@ -300,7 +300,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
       {/* Marketing Plan Tab */}
       <TabsContent value="marketing">
-        <Card className="border-2 shadow-lg">
+        <Card className="border-2 shadow-lg bg-gray-900">
           <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg text-white">
             <CardTitle className="flex items-center gap-3 text-2xl text-white">
               <div className="p-2 bg-white/20 backdrop-blur rounded-full">
@@ -317,10 +317,10 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
              (recommendationsData.marketingPlan && recommendationsData.marketingPlan.length > 0) ? (
               <div className="space-y-4">
                 {(recommendationsData.customerAttractionPlan?.strategies || recommendationsData.marketingPlan || []).map((strategy, index) => (
-                  <Card key={`marketing-${index}`} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-400">
+                  <Card key={`marketing-${index}`} className="hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-400 bg-gray-800 border-gray-700">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg flex items-start gap-2">
-                        <span className="text-blue-600 font-bold">#{index + 1}</span>
+                      <CardTitle className="text-lg flex items-start gap-2 text-white">
+                        <span className="text-blue-400 font-bold">#{index + 1}</span>
                         {strategy.title || strategy}
                       </CardTitle>
                       <div className="flex flex-wrap gap-2 mt-2">
@@ -337,13 +337,13 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-800 leading-relaxed font-medium">
+                      <p className="text-gray-300 leading-relaxed">
                         {strategy.description || strategy}
                       </p>
                       {strategy.expectedOutcome && (
-                        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                          <p className="font-semibold text-blue-900 text-sm">🎯 Expected Result:</p>
-                          <p className="text-blue-800 text-sm mt-1">{strategy.expectedOutcome}</p>
+                        <div className="mt-4 p-3 bg-blue-900/50 rounded-lg border border-blue-700">
+                          <p className="font-semibold text-blue-200 text-sm">🎯 Expected Result:</p>
+                          <p className="text-blue-100 text-sm mt-1">{strategy.expectedOutcome}</p>
                         </div>
                       )}
                     </CardContent>
@@ -365,7 +365,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
       {/* Competitive Positioning Tab */}
       <TabsContent value="positioning">
-        <Card className="border-2 shadow-lg">
+        <Card className="border-2 shadow-lg bg-gray-900">
           <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-t-lg text-white">
             <CardTitle className="flex items-center gap-3 text-2xl text-white">
               <div className="p-2 bg-white/20 backdrop-blur rounded-full">
@@ -382,13 +382,13 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
               <div className="space-y-6">
                 {/* Competitive Insights */}
                 {recommendationsData.competitiveAnalysis && recommendationsData.competitiveAnalysis.length > 0 && (
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3 text-purple-900">💡 Key Insights</h3>
+                  <div className="p-4 bg-purple-900/30 rounded-lg border border-purple-700">
+                    <h3 className="text-lg font-semibold mb-3 text-purple-200">💡 Key Insights</h3>
                     <ul className="space-y-2">
                       {recommendationsData.competitiveAnalysis.map((insight, index) => (
                         <li key={`insight-${index}`} className="flex items-start gap-2">
-                          <ChevronRight className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
-                          <span className="text-purple-800">{insight}</span>
+                          <ChevronRight className="h-5 w-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                          <span className="text-purple-100">{insight}</span>
                         </li>
                       ))}
                     </ul>
@@ -397,13 +397,13 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
                 {/* Strengths */}
                 {recommendationsData.competitivePositioning?.strengths && recommendationsData.competitivePositioning.strengths.length > 0 && (
-                  <div className="p-4 bg-green-50 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3 text-green-900">💪 Your Strengths</h3>
+                  <div className="p-4 bg-green-900/30 rounded-lg border border-green-700">
+                    <h3 className="text-lg font-semibold mb-3 text-green-200">💪 Your Strengths</h3>
                     <ul className="space-y-2">
                       {recommendationsData.competitivePositioning.strengths.map((strength, index) => (
                         <li key={`strength-${index}`} className="flex items-start gap-2">
-                          <ChevronRight className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                          <span className="text-green-800">{strength}</span>
+                          <ChevronRight className="h-5 w-5 text-green-400 mt-0.5 flex-shrink-0" />
+                          <span className="text-green-100">{strength}</span>
                         </li>
                       ))}
                     </ul>
@@ -412,13 +412,13 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
                 {/* Opportunities */}
                 {recommendationsData.competitivePositioning?.opportunities && recommendationsData.competitivePositioning.opportunities.length > 0 && (
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3 text-blue-900">🚀 Growth Opportunities</h3>
+                  <div className="p-4 bg-blue-900/30 rounded-lg border border-blue-700">
+                    <h3 className="text-lg font-semibold mb-3 text-blue-200">🚀 Growth Opportunities</h3>
                     <ul className="space-y-2">
                       {recommendationsData.competitivePositioning.opportunities.map((opportunity, index) => (
                         <li key={`opportunity-${index}`} className="flex items-start gap-2">
-                          <ChevronRight className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <span className="text-blue-800">{opportunity}</span>
+                          <ChevronRight className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                          <span className="text-blue-100">{opportunity}</span>
                         </li>
                       ))}
                     </ul>
@@ -427,13 +427,13 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
                 {/* Recommendations */}
                 {recommendationsData.competitivePositioning?.recommendations && recommendationsData.competitivePositioning.recommendations.length > 0 && (
-                  <div className="p-4 bg-amber-50 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3 text-amber-900">🎯 Strategic Actions</h3>
+                  <div className="p-4 bg-amber-900/30 rounded-lg border border-amber-700">
+                    <h3 className="text-lg font-semibold mb-3 text-amber-200">🎯 Strategic Actions</h3>
                     <ul className="space-y-2">
                       {recommendationsData.competitivePositioning.recommendations.map((recommendation, index) => (
                         <li key={`positioning-rec-${index}`} className="flex items-start gap-2">
-                          <ChevronRight className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                          <span className="text-amber-800">{recommendation}</span>
+                          <ChevronRight className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
+                          <span className="text-amber-100">{recommendation}</span>
                         </li>
                       ))}
                     </ul>
@@ -455,7 +455,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
       {/* Future Projections Tab */}
       <TabsContent value="future">
-        <Card className="border-2 shadow-lg">
+        <Card className="border-2 shadow-lg bg-gray-900">
           <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-lg text-white">
             <CardTitle className="flex items-center gap-3 text-2xl text-white">
               <div className="p-2 bg-white/20 backdrop-blur rounded-full">
@@ -472,15 +472,15 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
               <div className="space-y-6">
                 {/* Short-Term Projections */}
                 {recommendationsData.futureProjections.shortTerm && recommendationsData.futureProjections.shortTerm.length > 0 && (
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3 text-indigo-900">📅 Next 3-6 Months</h3>
+                  <div className="p-4 bg-gradient-to-r from-blue-900/30 to-indigo-900/30 rounded-lg border border-indigo-700">
+                    <h3 className="text-lg font-semibold mb-3 text-indigo-200">📅 Next 3-6 Months</h3>
                     <ul className="space-y-3">
                       {recommendationsData.futureProjections.shortTerm.map((projection, index) => (
                         <li key={`short-term-${index}`} className="flex items-start gap-3">
-                          <div className="p-1 bg-indigo-100 rounded-full flex-shrink-0">
-                            <ChevronRight className="h-4 w-4 text-indigo-600" />
+                          <div className="p-1 bg-indigo-800 rounded-full flex-shrink-0">
+                            <ChevronRight className="h-4 w-4 text-indigo-200" />
                           </div>
-                          <span className="text-gray-800 font-medium">{projection}</span>
+                          <span className="text-gray-200">{projection}</span>
                         </li>
                       ))}
                     </ul>
@@ -489,15 +489,15 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
                 {/* Long-Term Projections */}
                 {recommendationsData.futureProjections.longTerm && recommendationsData.futureProjections.longTerm.length > 0 && (
-                  <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3 text-purple-900">🎯 1-2 Year Vision</h3>
+                  <div className="p-4 bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-lg border border-purple-700">
+                    <h3 className="text-lg font-semibold mb-3 text-purple-200">🎯 1-2 Year Vision</h3>
                     <ul className="space-y-3">
                       {recommendationsData.futureProjections.longTerm.map((projection, index) => (
                         <li key={`long-term-${index}`} className="flex items-start gap-3">
-                          <div className="p-1 bg-purple-100 rounded-full flex-shrink-0">
-                            <ChevronRight className="h-4 w-4 text-purple-600" />
+                          <div className="p-1 bg-purple-800 rounded-full flex-shrink-0">
+                            <ChevronRight className="h-4 w-4 text-purple-200" />
                           </div>
-                          <span className="text-gray-800 font-medium">{projection}</span>
+                          <span className="text-gray-200">{projection}</span>
                         </li>
                       ))}
                     </ul>

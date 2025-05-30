@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, Suspense } from "react";
+import React, { useMemo, useState, useCallback, Suspense, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,7 @@ import { Review } from "@/types/reviews";
 import { BusinessType } from "@/types/businessTypes";
 import { AnalysisSummaryData, AnalysisConfig } from "@/types/analysisSummary";
 import { generateAnalysisSummary } from "@/utils/analysisUtils";
-import { memoizeWithExpiry, PerformanceMonitor, debounce } from "@/utils/performanceOptimizations";
+import { PerformanceMonitor, debounce } from "@/utils/performanceOptimizations";
 import { errorLogger, AppError, ErrorType, ErrorSeverity, safeExecute } from "@/utils/errorHandling";
 import { SectionErrorBoundary, ComponentErrorBoundary } from "@/components/ErrorBoundary";
 import { 
@@ -92,26 +92,6 @@ const DEFAULT_VIEW_CONFIG: ViewConfig = {
   enableAnimations: true
 };
 
-// Phase 5: Memoized analysis data calculation
-const generateMemoizedAnalysis = memoizeWithExpiry(
-  (reviews: Review[], config: AnalysisConfig, businessName: string): AnalysisSummaryData => {
-    const stopMeasurement = PerformanceMonitor.startMeasurement('analysis-summary-generation');
-    
-    try {
-      const data = generateAnalysisSummary(reviews, config);
-      const result = { ...data, dataSource: { ...data.dataSource, businessName } };
-      stopMeasurement();
-      return result;
-    } catch (error) {
-      stopMeasurement();
-      throw error;
-    }
-  },
-  (reviews: Review[], config: AnalysisConfig, businessName: string) => 
-    `analysis-${reviews.length}-${JSON.stringify(config)}-${businessName}`,
-  10 * 60 * 1000 // 10 minutes cache
-);
-
 export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
   reviews,
   businessName = "Current Business",
@@ -143,6 +123,9 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
   const [fullscreenSection, setFullscreenSection] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  
+  // Track previous business name to detect changes
+  const [prevBusinessName, setPrevBusinessName] = useState(businessName);
 
   // Phase 5: Performance monitoring for component lifecycle
   React.useEffect(() => {
@@ -152,6 +135,19 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
     };
   }, []);
 
+  // Reset filtered reviews when business changes or reviews update
+  useEffect(() => {
+    if (businessName !== prevBusinessName) {
+      console.log(`Business changed from ${prevBusinessName} to ${businessName}, resetting filters`);
+      setFilteredReviews(reviews);
+      setActiveFilters(null);
+      setPrevBusinessName(businessName);
+    } else {
+      // Update filtered reviews if the source reviews changed
+      setFilteredReviews(reviews);
+    }
+  }, [businessName, prevBusinessName, reviews]);
+
   // Use filtered reviews for analysis with performance optimization
   const reviewsForAnalysis = useMemo(() => {
     const stopMeasurement = PerformanceMonitor.startMeasurement('reviews-filtering');
@@ -160,13 +156,20 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
     return result;
   }, [filteredReviews, reviews]);
 
-  // Phase 5: Memoized analysis data generation with error handling
+  // FIXED: Remove aggressive memoization and rely on React's useMemo
+  // This ensures the analysis updates when businessName or reviews change
   const analysisData: AnalysisSummaryData | null = useMemo(() => {
     if (!reviewsForAnalysis || reviewsForAnalysis.length === 0) return null;
     
+    const stopMeasurement = PerformanceMonitor.startMeasurement('analysis-summary-generation');
+    
     try {
-      return generateMemoizedAnalysis(reviewsForAnalysis, config, businessName);
+      const data = generateAnalysisSummary(reviewsForAnalysis, config);
+      const result = { ...data, dataSource: { ...data.dataSource, businessName } };
+      stopMeasurement();
+      return result;
     } catch (error) {
+      stopMeasurement();
       errorLogger.logError(new AppError(
         "Failed to generate analysis summary",
         ErrorType.CLIENT,

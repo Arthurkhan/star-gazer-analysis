@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AllReviewsContent from "./AllReviewsContent";
 import MonthlyReport from "@/components/monthly-report";
 import { Review } from "@/types/reviews";
+import { getBusinessTypeFromName } from "@/types/BusinessMappings";
 
 interface DashboardContentProps {
   loading: boolean;
@@ -51,6 +52,11 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
     );
   }
 
+  // Determine business type from selected business
+  const businessType = selectedBusiness === "all" 
+    ? "CAFE" // Default to CAFE for "all" businesses
+    : getBusinessTypeFromName(selectedBusiness);
+
   return (
     <Tabs 
       defaultValue="all-reviews" 
@@ -78,7 +84,11 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
           </TabsContent>
           
           <TabsContent value="monthly-report" className="mt-0">
-            <MonthlyReport reviews={reviews} />
+            <MonthlyReport 
+              reviews={reviews} 
+              businessName={selectedBusiness === "all" ? "All Businesses" : selectedBusiness}
+              businessType={businessType as "CAFE" | "BAR" | "GALLERY"}
+            />
           </TabsContent>
         </>
       )}

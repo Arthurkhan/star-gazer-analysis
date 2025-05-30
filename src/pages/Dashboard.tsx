@@ -386,6 +386,7 @@ const Dashboard: React.FC = React.memo(() => {
                     loading={loading}
                     reviews={filteredReviews}
                     chartData={chartData}
+                    selectedBusiness={selectedBusiness}
                   />
                 </Suspense>
               </SectionErrorBoundary>

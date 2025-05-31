@@ -4,12 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { format } from 'date-fns';
 import { testLegacyDateFiltering } from '@/services/legacyReviewService';
+import { usePeriodComparison } from '@/hooks/usePeriodComparison';
 
 interface PeriodComparisonDebuggerProps {
   selectedBusiness: string;
   loading: boolean;
-  refreshData: (from?: Date, to?: Date) => Promise<void>;
-  getFilteredReviews: () => any[];
 }
 
 /**
@@ -18,12 +17,12 @@ interface PeriodComparisonDebuggerProps {
  */
 export function PeriodComparisonDebugger({ 
   selectedBusiness, 
-  loading, 
-  refreshData, 
-  getFilteredReviews 
+  loading
 }: PeriodComparisonDebuggerProps) {
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const [isDebugging, setIsDebugging] = useState(false);
+  
+  const { comparePeriods } = usePeriodComparison();
 
   const runDebugTest = async () => {
     setIsDebugging(true);
@@ -43,17 +42,6 @@ export function PeriodComparisonDebugger({
       logs.push(`   From: ${format(mayStart, 'yyyy-MM-dd')}`);
       logs.push(`   To: ${format(mayEnd, 'yyyy-MM-dd')}`);
       
-      console.log('🔵 BEFORE refreshData for May 2025');
-      await refreshData(mayStart, mayEnd);
-      console.log('🔵 AFTER refreshData for May 2025');
-      
-      // Add a small delay to ensure state updates
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const mayReviews = getFilteredReviews();
-      console.log('🔵 May reviews from getFilteredReviews:', mayReviews.length);
-      logs.push(`   ✅ Reviews fetched: ${mayReviews.length}`);
-      
       // Test 2: Previous period (April 2025)
       const aprilStart = new Date('2025-04-01');
       const aprilEnd = new Date('2025-04-30');
@@ -63,64 +51,17 @@ export function PeriodComparisonDebugger({
       logs.push(`   From: ${format(aprilStart, 'yyyy-MM-dd')}`);
       logs.push(`   To: ${format(aprilEnd, 'yyyy-MM-dd')}`);
       
-      console.log('🔵 BEFORE refreshData for April 2025');
-      await refreshData(aprilStart, aprilEnd);
-      console.log('🔵 AFTER refreshData for April 2025');
+      // Run comparison using the new hook
+      logs.push(`\n🚀 Running period comparison...`);
       
-      // Add a small delay to ensure state updates
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await comparePeriods(
+        selectedBusiness,
+        { from: mayStart, to: mayEnd },
+        { from: aprilStart, to: aprilEnd }
+      );
       
-      const aprilReviews = getFilteredReviews();
-      console.log('🔵 April reviews from getFilteredReviews:', aprilReviews.length);
-      logs.push(`   ✅ Reviews fetched: ${aprilReviews.length}`);
-      
-      // Test 3: Full data (no date filter)
-      logs.push(`\n📅 Test 3: All Data (no date filter)`);
-      
-      console.log('🔵 BEFORE refreshData for all data');
-      await refreshData();
-      console.log('🔵 AFTER refreshData for all data');
-      
-      // Add a small delay to ensure state updates
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const allReviews = getFilteredReviews();
-      console.log('🔵 All reviews from getFilteredReviews:', allReviews.length);
-      logs.push(`   ✅ Total reviews: ${allReviews.length}`);
-      
-      // Summary
-      logs.push(`\n📊 Summary:`);
-      logs.push(`   May 2025 Reviews: ${mayReviews.length} (expected ~56)`);
-      logs.push(`   April 2025 Reviews: ${aprilReviews.length} (expected ~28)`);
-      logs.push(`   Total Reviews: ${allReviews.length}`);
-      
-      if (mayReviews.length === aprilReviews.length && aprilReviews.length === allReviews.length) {
-        logs.push(`\n⚠️ WARNING: All periods show the same count!`);
-        logs.push(`   The date filtering may not be working properly.`);
-        logs.push(`   Check the console for detailed logs.`);
-      } else {
-        logs.push(`\n✅ SUCCESS: Different counts for different periods!`);
-      }
-      
-      // Check date format of reviews
-      if (allReviews.length > 0) {
-        const sampleReview = allReviews[0];
-        logs.push(`\n🔍 Sample Review Date Check:`);
-        logs.push(`   publishedAtDate: ${sampleReview.publishedAtDate}`);
-        logs.push(`   publishedatdate: ${sampleReview.publishedatdate}`);
-        logs.push(`   Date type: ${typeof sampleReview.publishedAtDate}`);
-        
-        // Check a few more dates to see the range
-        if (allReviews.length > 1) {
-          logs.push(`\n📅 Date Range in Reviews:`);
-          const dates = allReviews
-            .map(r => r.publishedAtDate || r.publishedatdate)
-            .filter(d => d)
-            .sort();
-          logs.push(`   Oldest: ${dates[0]}`);
-          logs.push(`   Newest: ${dates[dates.length - 1]}`);
-        }
-      }
+      logs.push(`\n✅ Period comparison completed successfully!`);
+      logs.push(`   Check the console for detailed results`);
       
     } catch (error) {
       logs.push(`\n❌ ERROR: ${error.message}`);

@@ -3,13 +3,6 @@ import autoTable from 'jspdf-autotable';
 import { HistoricalTrend, ReviewCluster, TemporalPattern, SeasonalPattern } from '@/types/dataAnalysis';
 import { BusinessType } from '@/types/businessTypes';
 
-// Add type definition for jsPDF with autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: typeof autoTable;
-  }
-}
-
 export interface ExportOptions {
   businessName: string;
   businessType: BusinessType;
@@ -166,7 +159,7 @@ function addKeyMetricsSummary(doc: jsPDF, data: ExportData, startY: number): num
     reviewClusters.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0))[0]?.name || 'N/A' : 
     'N/A';
   
-  doc.autoTable({
+  autoTable(doc, {
     startY: startY + 5,
     head: [['Metric', 'Value', 'Change', 'Note']],
     body: [
@@ -336,8 +329,8 @@ function addReviewClusters(doc: jsPDF, clusters: ReviewCluster[], startY: number
       Array.isArray(cluster.keywords) ? cluster.keywords.slice(0, 3).join(', ') : ''
     ]);
   
-  // Add the table
-  doc.autoTable({
+  // Add the table using the imported autoTable function
+  autoTable(doc, {
     startY: startY + 5,
     head: [['Cluster', 'Reviews', 'Avg Rating', 'Sentiment', 'Top Keywords']],
     body: tableBody,
@@ -474,8 +467,8 @@ function addSeasonalPatterns(doc: jsPDF, patterns: SeasonalPattern[], startY: nu
         ''
     ]);
   
-  // Add the table
-  doc.autoTable({
+  // Add the table using the imported autoTable function
+  autoTable(doc, {
     startY: startY + 5,
     head: [['Season', 'Date Range', 'Avg Rating', 'Reviews', 'vs Avg', 'Top Themes']],
     body: tableBody,

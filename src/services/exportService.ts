@@ -158,12 +158,12 @@ function addKeyMetricsSummary(doc: jsPDF, data: ExportData, startY: number): num
   const previousPeriodData = historicalTrend.data[historicalTrend.data.length - 2] || { value: 0 };
   const changePercentage = ((latestPeriodData.percentageChange || 0)).toFixed(1) + '%';
   
-  // Calculate total reviews
-  const totalReviews = reviewClusters.reduce((total, cluster) => total + cluster.reviewCount, 0);
+  // Calculate total reviews with null safety
+  const totalReviews = reviewClusters.reduce((total, cluster) => total + (cluster.reviewCount || 0), 0);
   
-  // Get top cluster by review count
+  // Get top cluster by review count with null safety
   const topCluster = reviewClusters.length > 0 ? 
-    reviewClusters.sort((a, b) => b.reviewCount - a.reviewCount)[0].name : 
+    reviewClusters.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0))[0]?.name || 'N/A' : 
     'N/A';
   
   doc.autoTable({
@@ -315,7 +315,7 @@ function addReviewClusters(doc: jsPDF, clusters: ReviewCluster[], startY: number
   doc.text('Review Clusters', 14, startY);
   doc.setFont('helvetica', 'normal');
   
-  // Prepare cluster data for the table
+  // Prepare cluster data for the table with null safety
   const tableBody = clusters
     .sort((a, b) => {
       // Keep special clusters at top (Delighted and Dissatisfied)
@@ -324,16 +324,16 @@ function addReviewClusters(doc: jsPDF, clusters: ReviewCluster[], startY: number
       if (a.name === 'Dissatisfied Customers') return -1;
       if (b.name === 'Dissatisfied Customers') return 1;
       
-      // Otherwise sort by review count
-      return b.reviewCount - a.reviewCount;
+      // Otherwise sort by review count with null safety
+      return (b.reviewCount || 0) - (a.reviewCount || 0);
     })
     .slice(0, 6) // Limit to 6 clusters for space
     .map(cluster => [
-      cluster.name,
-      cluster.reviewCount.toString(),
-      cluster.averageRating.toFixed(1),
-      cluster.sentiment.charAt(0).toUpperCase() + cluster.sentiment.slice(1),
-      cluster.keywords.slice(0, 3).join(', ')
+      cluster.name || 'Unknown',
+      (cluster.reviewCount || 0).toString(),
+      (cluster.averageRating || 0).toFixed(1),
+      cluster.sentiment ? cluster.sentiment.charAt(0).toUpperCase() + cluster.sentiment.slice(1) : 'Unknown',
+      Array.isArray(cluster.keywords) ? cluster.keywords.slice(0, 3).join(', ') : ''
     ]);
   
   // Add the table
@@ -459,15 +459,19 @@ function addSeasonalPatterns(doc: jsPDF, patterns: SeasonalPattern[], startY: nu
   doc.text('Seasonal Analysis', 14, startY);
   doc.setFont('helvetica', 'normal');
   
-  // Prepare seasonal data for the table
+  // Prepare seasonal data for the table with null safety
   const tableBody = patterns
     .map(pattern => [
-      pattern.name,
-      `${pattern.dateRange.start} - ${pattern.dateRange.end}`,
-      pattern.metrics.avgRating.toFixed(1),
-      pattern.metrics.reviewVolume.toString(),
-      `${pattern.comparison.vsYearAverage > 0 ? '+' : ''}${pattern.comparison.vsYearAverage.toFixed(1)}%`,
-      pattern.metrics.topThemes.slice(0, 2).join(', ')
+      pattern.name || 'Unknown',
+      pattern.dateRange ? `${pattern.dateRange.start} - ${pattern.dateRange.end}` : 'N/A',
+      pattern.metrics?.avgRating ? pattern.metrics.avgRating.toFixed(1) : '0.0',
+      pattern.metrics?.reviewVolume ? pattern.metrics.reviewVolume.toString() : '0',
+      pattern.comparison?.vsYearAverage ? 
+        `${pattern.comparison.vsYearAverage > 0 ? '+' : ''}${pattern.comparison.vsYearAverage.toFixed(1)}%` : 
+        '0.0%',
+      pattern.metrics?.topThemes && Array.isArray(pattern.metrics.topThemes) ? 
+        pattern.metrics.topThemes.slice(0, 2).join(', ') : 
+        ''
     ]);
   
   // Add the table
@@ -527,23 +531,23 @@ export function exportToCSV(data: ExportData, options: ExportOptions): string {
   }
   csvContent += `# Generated: ${new Date().toLocaleDateString()}\n\n`;
   
-  // Add review clusters
+  // Add review clusters with null safety
   if (data?.reviewClusters?.length) {
     csvContent += '## REVIEW CLUSTERS\n';
     csvContent += 'Name,Reviews,Rating,Sentiment,Keywords\n';
     
     data.reviewClusters.forEach(cluster => {
-      csvContent += `"${cluster.name}",`;
-      csvContent += `${cluster.reviewCount},`;
-      csvContent += `${cluster.averageRating.toFixed(1)},`;
-      csvContent += `"${cluster.sentiment}",`;
-      csvContent += `"${cluster.keywords.slice(0, 5).join(', ')}"\n`;
+      csvContent += `"${cluster.name || 'Unknown'}",`;
+      csvContent += `${cluster.reviewCount || 0},`;
+      csvContent += `${(cluster.averageRating || 0).toFixed(1)},`;
+      csvContent += `"${cluster.sentiment || 'Unknown'}",`;
+      csvContent += `"${Array.isArray(cluster.keywords) ? cluster.keywords.slice(0, 5).join(', ') : ''}"\n`;
     });
     
     csvContent += '\n';
   }
   
-  // Add historical trends
+  // Add historical trends with null safety
   if (data?.historicalTrends?.length) {
     csvContent += '## HISTORICAL TRENDS\n';
     
@@ -551,11 +555,13 @@ export function exportToCSV(data: ExportData, options: ExportOptions): string {
       csvContent += `# ${trend.metric} (${trend.timeframe})\n`;
       csvContent += 'Period,Value,Change(%)\n';
       
-      trend.data.forEach(point => {
-        csvContent += `"${point.period}",`;
-        csvContent += `${point.value},`;
-        csvContent += `${point.percentageChange.toFixed(2)}\n`;
-      });
+      if (trend.data && Array.isArray(trend.data)) {
+        trend.data.forEach(point => {
+          csvContent += `"${point.period || 'Unknown'}",`;
+          csvContent += `${point.value || 0},`;
+          csvContent += `${(point.percentageChange || 0).toFixed(2)}\n`;
+        });
+      }
       
       csvContent += '\n';
     });

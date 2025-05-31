@@ -43,6 +43,10 @@ interface DashboardDataReturn {
   totalReviewCount: number;
   lastFetched: number;
   
+  // NEW: Expose temp filter state for period comparison
+  hasTemporaryFilter: boolean;
+  clearTemporaryFilter: () => void;
+  
   // Backward compatibility
   loadingMore: boolean;
   hasMoreData: boolean;
@@ -121,12 +125,14 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     
     // Use temporary filtered reviews if available (date filtering active)
     const reviewsToFilter = tempFilteredReviews !== null ? tempFilteredReviews : allReviews;
+    const hasTempFilter = tempFilteredReviews !== null;
     
     console.log(`🔍 Filtering reviews:`, {
-      source: tempFilteredReviews !== null ? 'tempFilteredReviews' : 'allReviews',
+      source: hasTempFilter ? 'tempFilteredReviews' : 'allReviews',
       totalCount: reviewsToFilter.length,
       selectedBusiness,
-      hasDateFilter: currentDateFilter !== null
+      hasDateFilter: currentDateFilter !== null,
+      hasTempFilter
     });
     
     let result: Review[];
@@ -147,7 +153,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       }
     }
     
-    console.log(`✅ Filtered result: ${result.length} reviews`);
+    console.log(`✅ Filtered result: ${result.length} reviews (hasTempFilter: ${hasTempFilter})`);
     return result;
   }, [allReviews, selectedBusiness, tempFilteredReviews, currentDateFilter, enablePerformanceMonitoring]);
 
@@ -538,12 +544,18 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     console.log(`🔄 Business selection changed to: ${businessName}`);
     setSelectedBusiness(businessName);
     
-    // Clear temporary date filter when business changes
-    if (tempFilteredReviews !== null) {
-      setTempFilteredReviews(null);
-      setCurrentDateFilter(null);
-    }
-  }, [tempFilteredReviews]);
+    // Don't clear temporary date filter on business change - let the consumer decide
+    // This allows period comparison to work properly
+  }, []);
+
+  /**
+   * Clear temporary filter - useful for period comparison
+   */
+  const clearTemporaryFilter = useCallback(() => {
+    console.log("🧹 Clearing temporary filter");
+    setTempFilteredReviews(null);
+    setCurrentDateFilter(null);
+  }, []);
 
   /**
    * Refresh all data from the database
@@ -561,7 +573,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     // If date parameters are provided, this is a temporary filter request
     const isInitialLoad = !from && !to && allReviews.length === 0;
     await loadAllData(from, to, isInitialLoad);
-  }, [loadAllData, allReviews.length]);
+  }, [loadAllData, allReviews.length, selectedBusiness]);
 
   /**
    * Get filtered reviews for the current business selection
@@ -569,13 +581,16 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
    * @returns {Review[]} Array of filtered reviews
    */
   const getFilteredReviews = useCallback(() => {
+    const hasTempFilter = tempFilteredReviews !== null;
     console.log(`📊 getFilteredReviews called:`, {
       filteredReviewsCount: filteredReviews.length,
-      hasTempFilter: tempFilteredReviews !== null,
-      selectedBusiness
+      hasTempFilter,
+      selectedBusiness,
+      tempFilteredReviewsCount: tempFilteredReviews?.length || 0,
+      currentDateFilter
     });
     return filteredReviews;
-  }, [filteredReviews, tempFilteredReviews, selectedBusiness]);
+  }, [filteredReviews, tempFilteredReviews, selectedBusiness, currentDateFilter]);
 
   // Auto-refresh functionality
   useEffect(() => {
@@ -607,9 +622,13 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     handleBusinessChange,
     refreshData,
     
-    // Statistics
+    // Stats
     totalReviewCount: filteredReviews.length,
     lastFetched,
+    
+    // NEW: Expose temp filter state for period comparison
+    hasTemporaryFilter: tempFilteredReviews !== null,
+    clearTemporaryFilter,
     
     // Backward compatibility props
     loadingMore: false,

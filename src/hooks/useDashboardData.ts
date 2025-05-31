@@ -120,7 +120,14 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       : () => 0;
     
     // Use temporary filtered reviews if available (date filtering active)
-    const reviewsToFilter = tempFilteredReviews || allReviews;
+    const reviewsToFilter = tempFilteredReviews !== null ? tempFilteredReviews : allReviews;
+    
+    console.log(`🔍 Filtering reviews:`, {
+      source: tempFilteredReviews !== null ? 'tempFilteredReviews' : 'allReviews',
+      totalCount: reviewsToFilter.length,
+      selectedBusiness,
+      hasDateFilter: currentDateFilter !== null
+    });
     
     let result: Review[];
     
@@ -140,8 +147,9 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       }
     }
     
+    console.log(`✅ Filtered result: ${result.length} reviews`);
     return result;
-  }, [allReviews, selectedBusiness, tempFilteredReviews, enablePerformanceMonitoring]);
+  }, [allReviews, selectedBusiness, tempFilteredReviews, currentDateFilter, enablePerformanceMonitoring]);
 
   /**
    * Memoized business statistics calculation
@@ -379,7 +387,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       : () => 0;
     
     try {
-      console.log("🚀 Loading application data...", { from, to, isInitialLoad });
+      console.log("🚀 Loading application data...", { from, to, isInitialLoad, selectedBusiness });
       
       // Check database structure first
       const dbStructure = await checkDatabaseStructure();
@@ -402,9 +410,13 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
         
         if ((from || to) && !isInitialLoad) {
           // Date filtering requested - fetch filtered data without replacing main dataset
+          console.log(`📅 Fetching date-filtered reviews for: ${selectedBusiness}`);
+          
+          // IMPORTANT: Always fetch from the specific business table when filtering by date
           if (selectedBusiness === "all" || selectedBusiness === "All Businesses") {
             reviewsData = await fetchAllLegacyReviewsWithDateFilter(from, to);
           } else {
+            // Fetch from the specific business table
             reviewsData = await fetchLegacyReviewsWithDateFilter(selectedBusiness, from, to);
           }
           
@@ -412,9 +424,10 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
           setTempFilteredReviews(reviewsData);
           setCurrentDateFilter({ from, to });
           
-          console.log(`📊 Date-filtered reviews loaded: ${reviewsData.length}`);
+          console.log(`📊 Date-filtered reviews loaded: ${reviewsData.length} for ${selectedBusiness}`);
         } else {
           // Initial load or no date filter - load all data
+          console.log(`📊 Loading all reviews (no date filter)`);
           reviewsData = await fetchAllLegacyReviewsWithDateFilter();
           setAllReviews(reviewsData);
           setTempFilteredReviews(null);
@@ -487,10 +500,12 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       
       const reviewCount = tempFilteredReviews ? tempFilteredReviews.length : allReviews.length;
       
-      toast({
-        title: "Data loaded successfully",
-        description: `Loaded ${reviewCount} reviews${dateRangeText}`,
-      });
+      if (!isInitialLoad) {
+        toast({
+          title: "Data loaded successfully",
+          description: `Loaded ${reviewCount} reviews${dateRangeText}`,
+        });
+      }
       
       if (enablePerformanceMonitoring) {
         const duration = stopMeasurement();
@@ -524,7 +539,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     setSelectedBusiness(businessName);
     
     // Clear temporary date filter when business changes
-    if (tempFilteredReviews) {
+    if (tempFilteredReviews !== null) {
       setTempFilteredReviews(null);
       setCurrentDateFilter(null);
     }
@@ -541,7 +556,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
    * @returns {Promise<void>}
    */
   const refreshData = useCallback(async (from?: Date, to?: Date) => {
-    console.log("🔄 Refreshing data...", { from, to });
+    console.log("🔄 Refreshing data...", { from, to, selectedBusiness });
     
     // If date parameters are provided, this is a temporary filter request
     const isInitialLoad = !from && !to && allReviews.length === 0;
@@ -553,7 +568,14 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
    * 
    * @returns {Review[]} Array of filtered reviews
    */
-  const getFilteredReviews = useCallback(() => filteredReviews, [filteredReviews]);
+  const getFilteredReviews = useCallback(() => {
+    console.log(`📊 getFilteredReviews called:`, {
+      filteredReviewsCount: filteredReviews.length,
+      hasTempFilter: tempFilteredReviews !== null,
+      selectedBusiness
+    });
+    return filteredReviews;
+  }, [filteredReviews, tempFilteredReviews, selectedBusiness]);
 
   // Auto-refresh functionality
   useEffect(() => {

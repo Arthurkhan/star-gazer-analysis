@@ -140,10 +140,38 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     if (selectedBusiness === "all" || selectedBusiness === "All Businesses") {
       result = reviewsToFilter;
     } else {
-      result = reviewsToFilter.filter(review => 
-        review.title === selectedBusiness || 
-        review.businesses?.name === selectedBusiness
-      );
+      // FIX: Ensure proper filtering for all businesses including "The Little Prince Cafe"
+      result = reviewsToFilter.filter(review => {
+        // For legacy data, check the title field (which is set to the table name)
+        if (review.title && review.title === selectedBusiness) {
+          return true;
+        }
+        
+        // For normalized data, check the businesses property
+        if (review.businesses?.name === selectedBusiness) {
+          return true;
+        }
+        
+        // Additional check for businessName field (legacy compatibility)
+        if (review.businessName === selectedBusiness) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+      // Debug logging for "The Little Prince Cafe"
+      if (selectedBusiness === "The Little Prince Cafe") {
+        console.log(`🔍 Debug - Filtering for "The Little Prince Cafe":`, {
+          totalReviews: reviewsToFilter.length,
+          filteredCount: result.length,
+          sampleReview: reviewsToFilter[0] ? {
+            title: reviewsToFilter[0].title,
+            businessName: reviewsToFilter[0].businessName,
+            businesses: reviewsToFilter[0].businesses
+          } : null
+        });
+      }
     }
     
     if (enablePerformanceMonitoring) {
@@ -153,7 +181,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       }
     }
     
-    console.log(`✅ Filtered result: ${result.length} reviews (hasTempFilter: ${hasTempFilter})`);
+    console.log(`✅ Filtered result: ${result.length} reviews for "${selectedBusiness}" (hasTempFilter: ${hasTempFilter})`);
     return result;
   }, [allReviews, selectedBusiness, tempFilteredReviews, currentDateFilter, enablePerformanceMonitoring]);
 
@@ -440,6 +468,13 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
           setCurrentDateFilter(null);
           
           console.log(`📊 All reviews loaded: ${reviewsData.length}`);
+          
+          // Debug log for The Little Prince Cafe
+          const littlePrinceReviews = reviewsData.filter(r => 
+            r.title === "The Little Prince Cafe" || 
+            r.businessName === "The Little Prince Cafe"
+          );
+          console.log(`🔍 The Little Prince Cafe reviews: ${littlePrinceReviews.length}`);
         }
         
       } else {

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { format } from 'date-fns';
+import { testLegacyDateFiltering } from '@/services/legacyReviewService';
 
 interface PeriodComparisonDebuggerProps {
   selectedBusiness: string;
@@ -53,7 +54,7 @@ export function PeriodComparisonDebugger({
       previousStart.setDate(previousStart.getDate() - 60);
       
       logs.push(`\n📅 Test 2: Previous Period`);
-      logs.push(`   From: ${format(previousStart, 'yyyy-MM-dd')}`);
+      logs.push(`   From: ${format(previousStart, 'yyyy-MM-dd')}`)
       logs.push(`   To: ${format(previousEnd, 'yyyy-MM-dd')}`);
       
       await refreshData(previousStart, previousEnd);
@@ -109,6 +110,29 @@ export function PeriodComparisonDebugger({
     setDebugInfo(logs);
     setIsDebugging(false);
   };
+  
+  const runDatabaseTest = async () => {
+    setIsDebugging(true);
+    const logs: string[] = [];
+    
+    logs.push(`🧪 Database Test Started at ${new Date().toISOString()}`);
+    logs.push(`📍 Testing direct database queries for: ${selectedBusiness}`);
+    
+    try {
+      // Run the test function from legacyReviewService
+      logs.push(`\n⚡ Running direct database test...`);
+      logs.push(`   Check browser console for detailed results`);
+      
+      await testLegacyDateFiltering(selectedBusiness);
+      
+      logs.push(`\n✅ Database test completed - check console for results`);
+    } catch (error) {
+      logs.push(`\n❌ Database test failed: ${error.message}`);
+    }
+    
+    setDebugInfo(logs);
+    setIsDebugging(false);
+  };
 
   const isAllBusinesses = selectedBusiness === 'all' || selectedBusiness === 'All Businesses';
 
@@ -130,12 +154,22 @@ export function PeriodComparisonDebugger({
             Current selection: <span className="font-medium">{selectedBusiness}</span>
           </p>
           
-          <Button 
-            onClick={runDebugTest} 
-            disabled={isDebugging || loading || isAllBusinesses}
-          >
-            {isDebugging ? 'Running Debug Test...' : 'Run Debug Test'}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={runDebugTest} 
+              disabled={isDebugging || loading || isAllBusinesses}
+            >
+              {isDebugging ? 'Running Debug Test...' : 'Run Debug Test'}
+            </Button>
+            
+            <Button 
+              onClick={runDatabaseTest}
+              disabled={isDebugging || loading || isAllBusinesses}
+              variant="outline"
+            >
+              Test Database Directly
+            </Button>
+          </div>
         </div>
         
         {isAllBusinesses && (

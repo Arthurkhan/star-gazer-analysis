@@ -2,23 +2,27 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useDashboardData } from '@/hooks/useDashboardData';
 import { format } from 'date-fns';
+
+interface PeriodComparisonDebuggerProps {
+  selectedBusiness: string;
+  loading: boolean;
+  refreshData: (from?: Date, to?: Date) => Promise<void>;
+  getFilteredReviews: () => any[];
+}
 
 /**
  * Debug component for testing the Period Comparison feature
  * This component helps identify issues with date filtering and data fetching
  */
-export function PeriodComparisonDebugger() {
+export function PeriodComparisonDebugger({ 
+  selectedBusiness, 
+  loading, 
+  refreshData, 
+  getFilteredReviews 
+}: PeriodComparisonDebuggerProps) {
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const [isDebugging, setIsDebugging] = useState(false);
-  
-  const { 
-    refreshData, 
-    getFilteredReviews,
-    selectedBusiness,
-    loading 
-  } = useDashboardData();
 
   const runDebugTest = async () => {
     setIsDebugging(true);
@@ -83,6 +87,17 @@ export function PeriodComparisonDebugger() {
         logs.push(`   publishedAtDate: ${sampleReview.publishedAtDate}`);
         logs.push(`   publishedatdate: ${sampleReview.publishedatdate}`);
         logs.push(`   Date type: ${typeof sampleReview.publishedAtDate}`);
+        
+        // Check a few more dates to see the range
+        if (allReviews.length > 1) {
+          logs.push(`\n📅 Date Range in Reviews:`);
+          const dates = allReviews
+            .map(r => r.publishedAtDate || r.publishedatdate)
+            .filter(d => d)
+            .sort();
+          logs.push(`   Oldest: ${dates[0]}`);
+          logs.push(`   Newest: ${dates[dates.length - 1]}`);
+        }
       }
       
     } catch (error) {
@@ -94,6 +109,8 @@ export function PeriodComparisonDebugger() {
     setDebugInfo(logs);
     setIsDebugging(false);
   };
+
+  const isAllBusinesses = selectedBusiness === 'all' || selectedBusiness === 'All Businesses';
 
   return (
     <Card>
@@ -108,17 +125,24 @@ export function PeriodComparisonDebugger() {
           </AlertDescription>
         </Alert>
         
-        <Button 
-          onClick={runDebugTest} 
-          disabled={isDebugging || loading || selectedBusiness === 'all'}
-        >
-          {isDebugging ? 'Running Debug Test...' : 'Run Debug Test'}
-        </Button>
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Current selection: <span className="font-medium">{selectedBusiness}</span>
+          </p>
+          
+          <Button 
+            onClick={runDebugTest} 
+            disabled={isDebugging || loading || isAllBusinesses}
+          >
+            {isDebugging ? 'Running Debug Test...' : 'Run Debug Test'}
+          </Button>
+        </div>
         
-        {selectedBusiness === 'all' && (
+        {isAllBusinesses && (
           <Alert variant="destructive">
             <AlertDescription>
               Please select a specific business before running the debug test.
+              Current selection: "{selectedBusiness}"
             </AlertDescription>
           </Alert>
         )}

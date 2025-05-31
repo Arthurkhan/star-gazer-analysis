@@ -36,46 +36,64 @@ export const fetchLegacyReviewsWithDateFilter = async (
     
     console.log(`📊 Using date column: ${dateColumn}`);
     
-    // Build the query
-    let query = supabase.from(tableName).select('*');
+    // Fetch all reviews with pagination to overcome Supabase limits
+    let allReviews: Review[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
     
-    // Apply date filtering at the database level
-    if (startDate && endDate) {
-      query = query
-        .gte(dateColumn, startDate.toISOString())
-        .lte(dateColumn, endDate.toISOString());
-    } else if (startDate) {
-      query = query.gte(dateColumn, startDate.toISOString());
-    } else if (endDate) {
-      query = query.lte(dateColumn, endDate.toISOString());
+    while (hasMore) {
+      // Build the query
+      let query = supabase
+        .from(tableName)
+        .select('*')
+        .range(page * pageSize, (page + 1) * pageSize - 1)
+        .order(dateColumn, { ascending: false });
+      
+      // Apply date filtering at the database level
+      if (startDate && endDate) {
+        query = query
+          .gte(dateColumn, startDate.toISOString())
+          .lte(dateColumn, endDate.toISOString());
+      } else if (startDate) {
+        query = query.gte(dateColumn, startDate.toISOString());
+      } else if (endDate) {
+        query = query.lte(dateColumn, endDate.toISOString());
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error(`❌ Error fetching page ${page} from ${tableName}:`, error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        hasMore = false;
+        break;
+      }
+      
+      allReviews.push(...data);
+      
+      // If we got less than pageSize, we've reached the end
+      if (data.length < pageSize) {
+        hasMore = false;
+      } else {
+        page++;
+      }
     }
     
-    // Order by date descending - use the correct column name
-    query = query.order(dateColumn, { ascending: false });
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error(`❌ Error fetching from ${tableName}:`, error);
-      throw error;
-    }
-    
-    if (!data) {
-      console.log(`📭 No data found in ${tableName}`);
-      return [];
-    }
-    
-    console.log(`✅ Retrieved ${data.length} reviews from ${tableName} with date filter`);
+    console.log(`✅ Retrieved ${allReviews.length} reviews from ${tableName} with date filter`);
     
     // Log sample of dates to verify filtering
-    if (data.length > 0) {
-      const firstDate = data[0].publishedAtDate || data[0].publishedatdate;
-      const lastDate = data[data.length - 1].publishedAtDate || data[data.length - 1].publishedatdate;
+    if (allReviews.length > 0) {
+      const firstDate = allReviews[0].publishedAtDate || allReviews[0].publishedatdate;
+      const lastDate = allReviews[allReviews.length - 1].publishedAtDate || allReviews[allReviews.length - 1].publishedatdate;
       console.log(`📅 Date range in results: ${lastDate} to ${firstDate}`);
     }
     
     // Process reviews to ensure consistent format
-    const processedReviews = data.map(review => ({
+    const processedReviews = allReviews.map(review => ({
       ...review,
       title: tableName, // Use table name as title for legacy compatibility
       businessName: tableName,

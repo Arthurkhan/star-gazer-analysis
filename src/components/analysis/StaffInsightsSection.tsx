@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, TrendingUp, TrendingDown, Star } from "lucide-react";
 import { StaffInsights } from "@/types/analysisSummary";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface StaffInsightsSectionProps {
   staffInsights: StaffInsights;
@@ -50,57 +51,124 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
             
             {mentions.length > 0 ? (
               <div className="space-y-4">
-                {mentions.slice(0, 6).map((staff) => {
-                  const performanceScore = getPerformanceScore(
-                    staff.positiveMentions, 
-                    staff.negativeMentions, 
-                    staff.totalMentions
-                  );
-                  
-                  return (
-                    <div key={staff.name} className="space-y-2 p-3 rounded-lg border">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{staff.name}</span>
-                          {getTrendIcon(staff.trend)}
-                        </div>
-                        <Badge 
-                          variant={performanceScore > 50 ? "default" : "secondary"}
-                          className={
-                            performanceScore > 70 ? "bg-green-100 text-green-700" :
-                            performanceScore > 30 ? "bg-yellow-100 text-yellow-700" :
-                            "bg-red-100 text-red-700"
-                          }
-                        >
-                          {performanceScore > 70 ? "Excellent" :
-                           performanceScore > 30 ? "Good" : "Needs Support"}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div className="text-center">
-                          <div className="font-semibold">{staff.totalMentions}</div>
-                          <div className="text-muted-foreground">Total</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-semibold text-green-600">{staff.positiveMentions}</div>
-                          <div className="text-muted-foreground">Positive</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-semibold text-red-600">{staff.negativeMentions}</div>
-                          <div className="text-muted-foreground">Negative</div>
-                        </div>
-                      </div>
+                {/* Show scrollable area if more than 6 staff members */}
+                {mentions.length > 6 ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Showing all {mentions.length} staff members
+                    </p>
+                    <ScrollArea className="h-[500px] pr-4">
+                      <div className="space-y-4">
+                        {mentions.map((staff) => {
+                          const performanceScore = getPerformanceScore(
+                            staff.positiveMentions, 
+                            staff.negativeMentions, 
+                            staff.totalMentions
+                          );
+                          
+                          return (
+                            <div key={staff.name} className="space-y-2 p-3 rounded-lg border">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{staff.name}</span>
+                                  {getTrendIcon(staff.trend)}
+                                </div>
+                                <Badge 
+                                  variant={performanceScore > 50 ? "default" : "secondary"}
+                                  className={
+                                    performanceScore > 70 ? "bg-green-100 text-green-700" :
+                                    performanceScore > 30 ? "bg-yellow-100 text-yellow-700" :
+                                    "bg-red-100 text-red-700"
+                                  }
+                                >
+                                  {performanceScore > 70 ? "Excellent" :
+                                   performanceScore > 30 ? "Good" : "Needs Support"}
+                                </Badge>
+                              </div>
+                              
+                              <div className="grid grid-cols-3 gap-2 text-sm">
+                                <div className="text-center">
+                                  <div className="font-semibold">{staff.totalMentions}</div>
+                                  <div className="text-muted-foreground">Total</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-green-600">{staff.positiveMentions}</div>
+                                  <div className="text-muted-foreground">Positive</div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-red-600">{staff.negativeMentions}</div>
+                                  <div className="text-muted-foreground">Negative</div>
+                                </div>
+                              </div>
 
-                      {staff.averageRatingInMentions > 0 && (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                          <span>{staff.averageRatingInMentions.toFixed(1)} avg rating</span>
+                              {staff.averageRatingInMentions > 0 && (
+                                <div className="flex items-center gap-1 text-sm">
+                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                  <span>{staff.averageRatingInMentions.toFixed(1)} avg rating</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  </>
+                ) : (
+                  // Show all staff without scroll if 6 or fewer
+                  <div className="space-y-4">
+                    {mentions.map((staff) => {
+                      const performanceScore = getPerformanceScore(
+                        staff.positiveMentions, 
+                        staff.negativeMentions, 
+                        staff.totalMentions
+                      );
+                      
+                      return (
+                        <div key={staff.name} className="space-y-2 p-3 rounded-lg border">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{staff.name}</span>
+                              {getTrendIcon(staff.trend)}
+                            </div>
+                            <Badge 
+                              variant={performanceScore > 50 ? "default" : "secondary"}
+                              className={
+                                performanceScore > 70 ? "bg-green-100 text-green-700" :
+                                performanceScore > 30 ? "bg-yellow-100 text-yellow-700" :
+                                "bg-red-100 text-red-700"
+                              }
+                            >
+                              {performanceScore > 70 ? "Excellent" :
+                               performanceScore > 30 ? "Good" : "Needs Support"}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-3 gap-2 text-sm">
+                            <div className="text-center">
+                              <div className="font-semibold">{staff.totalMentions}</div>
+                              <div className="text-muted-foreground">Total</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-semibold text-green-600">{staff.positiveMentions}</div>
+                              <div className="text-muted-foreground">Positive</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-semibold text-red-600">{staff.negativeMentions}</div>
+                              <div className="text-muted-foreground">Negative</div>
+                            </div>
+                          </div>
+
+                          {staff.averageRatingInMentions > 0 && (
+                            <div className="flex items-center gap-1 text-sm">
+                              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                              <span>{staff.averageRatingInMentions.toFixed(1)} avg rating</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">

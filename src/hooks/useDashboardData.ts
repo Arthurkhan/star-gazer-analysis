@@ -47,6 +47,9 @@ interface DashboardDataReturn {
   hasTemporaryFilter: boolean;
   clearTemporaryFilter: () => void;
   
+  // NEW: Expose allReviews for comparison
+  getAllReviews: () => Review[];
+  
   // Backward compatibility
   loadingMore: boolean;
   hasMoreData: boolean;
@@ -627,6 +630,18 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     return filteredReviews;
   }, [filteredReviews, tempFilteredReviews, selectedBusiness, currentDateFilter]);
 
+  /**
+   * NEW: Get all reviews regardless of business selection
+   * 
+   * @returns {Review[]} Array of all reviews
+   */
+  const getAllReviews = useCallback(() => {
+    console.log(`📊 getAllReviews called:`, {
+      allReviewsCount: allReviews.length
+    });
+    return allReviews;
+  }, [allReviews]);
+
   // Auto-refresh functionality
   useEffect(() => {
     if (autoRefreshInterval > 0) {
@@ -664,6 +679,9 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     // NEW: Expose temp filter state for period comparison
     hasTemporaryFilter: tempFilteredReviews !== null,
     clearTemporaryFilter,
+    
+    // NEW: Expose getAllReviews for comparison
+    getAllReviews,
     
     // Backward compatibility props
     loadingMore: false,

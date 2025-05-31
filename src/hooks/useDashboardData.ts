@@ -9,6 +9,11 @@ import {
   generateEnhancedAnalysis,
 } from "@/utils/reviewDataUtils";
 import { PerformanceMonitor } from "@/utils/performanceOptimizations";
+import { 
+  checkTableExists, 
+  fetchLegacyReviewsWithDateFilter, 
+  fetchAllLegacyReviewsWithDateFilter 
+} from "@/services/legacyReviewService";
 
 /**
  * Return type for the useDashboardData hook
@@ -69,100 +74,12 @@ interface DashboardDataConfig {
  * This hook provides centralized data fetching, state management, and business logic for the main dashboard.
  * 
  * ## Key Features
- * - ✅ **Eliminates infinite loops** - No circular dependencies between hooks
+ * - ✅ **Supports both legacy and normalized tables** - Automatically detects and uses appropriate data source
+ * - ✅ **Proper date filtering** - Server-side date filtering for legacy tables
  * - ✅ **Performance optimized** - Uses memoization and efficient data structures
  * - ✅ **Single data source** - Loads all data once and provides simple filtering
  * - ✅ **Error handling** - Comprehensive error states and user feedback
  * - ✅ **TypeScript support** - Full type safety with detailed interfaces
- * 
- * ## Performance Optimizations
- * - **Memoized computed values** - Prevents unnecessary recalculations
- * - **Efficient pagination** - Fetches all data in chunks to overcome API limits
- * - **Smart filtering** - Client-side filtering for fast business switching
- * - **Performance monitoring** - Tracks execution times in development mode
- * 
- * ## Data Architecture
- * ```
- * useDashboardData
- * ├── Core State (loading, error, businesses, reviews)
- * ├── Computed Values (filteredReviews, businessStats, businessData)
- * ├── Data Fetching (pagination-based loading)
- * └── Actions (business selection, refresh, etc.)
- * ```
- * 
- * ## Usage Examples
- * 
- * ### Basic Usage
- * ```tsx
- * function Dashboard() {
- *   const {
- *     loading,
- *     businesses,
- *     selectedBusiness,
- *     getFilteredReviews,
- *     handleBusinessChange
- *   } = useDashboardData();
- * 
- *   if (loading) return <Loading />;
- * 
- *   return (
- *     <div>
- *       <BusinessSelector 
- *         businesses={businesses}
- *         selected={selectedBusiness}
- *         onChange={handleBusinessChange}
- *       />
- *       <ReviewsDisplay reviews={getFilteredReviews()} />
- *     </div>
- *   );
- * }
- * ```
- * 
- * ### With Enhanced Analysis
- * ```tsx
- * function AnalyticsDashboard() {
- *   const { enhancedAnalysis, selectedBusiness } = useDashboardData();
- * 
- *   return (
- *     <div>
- *       {enhancedAnalysis && selectedBusiness !== 'all' && (
- *         <EnhancedAnalysisDisplay analysis={enhancedAnalysis} />
- *       )}
- *     </div>
- *   );
- * }
- * ```
- * 
- * ## Business Logic
- * - **Business Selection**: Supports 'all' for combined view or specific business names
- * - **Data Filtering**: Automatically filters reviews based on selected business
- * - **Enhanced Analysis**: Generates advanced analytics for individual businesses
- * - **Performance Stats**: Tracks loading times and provides business statistics
- * 
- * ## Error Handling
- * - Database connection errors are handled gracefully
- * - User-friendly error messages with retry options
- * - Fallback states for missing or corrupted data
- * - Comprehensive logging for debugging
- * 
- * @param config - Optional configuration for the hook
- * @returns {DashboardDataReturn} Hook state and actions
- * 
- * @example
- * ```tsx
- * // Basic usage
- * const dashboardData = useDashboardData();
- * 
- * // With configuration
- * const dashboardData = useDashboardData({
- *   pageSize: 2000,
- *   enablePerformanceMonitoring: true
- * });
- * ```
- * 
- * @author Star-Gazer Analysis Team
- * @version 5.0.0 - Phase 5 Performance & Polish
- * @since 1.0.0
  */
 export function useDashboardData(config: DashboardDataConfig = {}): DashboardDataReturn {
   const { toast } = useToast();
@@ -185,6 +102,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
   const [allReviews, setAllReviews] = useState<Review[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<string>("all");
   const [lastFetched, setLastFetched] = useState<number>(0);
+  const [isUsingLegacyTables, setIsUsingLegacyTables] = useState<boolean>(false);
 
   /**
    * Memoized filtered reviews based on business selection
@@ -286,11 +204,38 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
   }, [filteredReviews, selectedBusiness, enablePerformanceMonitoring]);
 
   /**
+   * Check if the database is using legacy or normalized tables
+   */
+  const checkDatabaseStructure = async (): Promise<'legacy' | 'normalized'> => {
+    // Check if normalized tables exist
+    const { error: reviewsError } = await supabase
+      .from('reviews')
+      .select('id')
+      .limit(1);
+    
+    const { error: businessesError } = await supabase
+      .from('businesses')
+      .select('id')
+      .limit(1);
+    
+    if (!reviewsError && !businessesError) {
+      console.log("✅ Using normalized database structure");
+      return 'normalized';
+    }
+    
+    // Check if legacy tables exist
+    const legacyExists = await checkTableExists("The Little Prince Cafe");
+    if (legacyExists) {
+      console.log("⚠️ Using legacy database structure");
+      return 'legacy';
+    }
+    
+    throw new Error("No valid database structure found");
+  };
+
+  /**
    * Fetch all reviews using pagination to overcome Supabase row limits
    * Now supports optional date range filtering
-   * 
-   * This function implements efficient pagination to load all reviews from the database.
-   * It fetches data in configurable chunks and processes them for optimal performance.
    * 
    * @private
    * @param {Date} [from] - Optional start date for filtering
@@ -348,7 +293,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
         .order('publishedatdate', { ascending: false })
         .range(startRow, endRow);
       
-      // Apply date filtering if provided - FIXED: Now properly capturing the returned query
+      // Apply date filtering if provided
       if (from) {
         pageQuery = pageQuery.gte('publishedatdate', from.toISOString());
       }
@@ -409,10 +354,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
 
   /**
    * Load all application data (businesses and reviews)
-   * Now supports optional date range filtering
-   * 
-   * This is the main data loading function that fetches all necessary data
-   * for the dashboard. It handles errors gracefully and provides user feedback.
+   * Now supports optional date range filtering and both legacy/normalized tables
    * 
    * @async
    * @function loadAllData
@@ -431,54 +373,88 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     try {
       console.log("🚀 Loading application data...", { from, to });
       
-      // Load businesses first (only on initial load or when not provided dates)
-      if (businesses.length === 0 && !from && !to) {
-        const { data: businessesData, error: businessesError } = await supabase
-          .from('businesses')
-          .select('*')
-          .order('name');
+      // Check database structure first
+      const dbStructure = await checkDatabaseStructure();
+      setIsUsingLegacyTables(dbStructure === 'legacy');
+      
+      if (dbStructure === 'legacy') {
+        console.log("📚 Using legacy table structure");
         
-        if (businessesError) {
-          console.error("❌ Error fetching businesses:", businessesError);
-          setDatabaseError(true);
-          toast({
-            title: "Database Error",
-            description: "Failed to load businesses. Please check your connection.",
-            variant: "destructive",
-          });
-          return;
+        // For legacy structure, businesses are derived from table names
+        const knownBusinesses = [
+          { id: '1', name: 'The Little Prince Cafe', business_type: 'cafe' },
+          { id: '2', name: 'Vol de Nuit, The Hidden Bar', business_type: 'bar' },
+          { id: '3', name: "L'Envol Art Space", business_type: 'gallery' }
+        ];
+        
+        setBusinesses(knownBusinesses);
+        
+        // Fetch reviews from legacy tables with date filtering
+        let allReviewsData: Review[];
+        
+        if (selectedBusiness === "all" || selectedBusiness === "All Businesses") {
+          // Fetch from all legacy tables
+          allReviewsData = await fetchAllLegacyReviewsWithDateFilter(from, to);
+        } else {
+          // Fetch from specific legacy table
+          allReviewsData = await fetchLegacyReviewsWithDateFilter(selectedBusiness, from, to);
         }
         
-        if (!businessesData || businessesData.length === 0) {
-          console.error("❌ No businesses found");
-          setDatabaseError(true);
-          toast({
-            title: "No Data Found",
-            description: "No businesses found in the database.",
-            variant: "destructive",
-          });
-          return;
+        setAllReviews(allReviewsData);
+        
+      } else {
+        // Use normalized structure
+        console.log("📚 Using normalized table structure");
+        
+        // Load businesses first (only on initial load or when not provided dates)
+        if (businesses.length === 0 && !from && !to) {
+          const { data: businessesData, error: businessesError } = await supabase
+            .from('businesses')
+            .select('*')
+            .order('name');
+          
+          if (businessesError) {
+            console.error("❌ Error fetching businesses:", businessesError);
+            setDatabaseError(true);
+            toast({
+              title: "Database Error",
+              description: "Failed to load businesses. Please check your connection.",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          if (!businessesData || businessesData.length === 0) {
+            console.error("❌ No businesses found");
+            setDatabaseError(true);
+            toast({
+              title: "No Data Found",
+              description: "No businesses found in the database.",
+              variant: "destructive",
+            });
+            return;
+          }
+          
+          setBusinesses(businessesData);
+          console.log(`✅ Loaded ${businessesData.length} businesses`);
         }
         
-        setBusinesses(businessesData);
-        console.log(`✅ Loaded ${businessesData.length} businesses`);
+        // Load all reviews using pagination with optional date filtering
+        const allReviewsData = await fetchAllReviewsWithPagination(from, to);
+        setAllReviews(allReviewsData);
       }
       
-      // Load all reviews using pagination with optional date filtering
-      const allReviewsData = await fetchAllReviewsWithPagination(from, to);
-      
-      setAllReviews(allReviewsData);
       setLastFetched(Date.now());
       
       // Generate verification statistics
-      const businessCounts = allReviewsData.reduce((acc, review) => {
+      const businessCounts = allReviews.reduce((acc, review) => {
         const businessName = review.businessName || review.title || 'Unknown';
         acc[businessName] = (acc[businessName] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
       
       console.log("📊 Final review counts per business:", businessCounts);
-      console.log(`🎯 Total reviews loaded: ${allReviewsData.length}`);
+      console.log(`🎯 Total reviews loaded: ${allReviews.length}`);
       
       const dateRangeText = from && to 
         ? ` from ${from.toLocaleDateString()} to ${to.toLocaleDateString()}`
@@ -486,7 +462,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       
       toast({
         title: "Data loaded successfully",
-        description: `Loaded ${allReviewsData.length} reviews${dateRangeText}`,
+        description: `Loaded ${allReviews.length} reviews${dateRangeText}`,
       });
       
       if (enablePerformanceMonitoring) {
@@ -509,13 +485,10 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
     } finally {
       setLoading(false);
     }
-  }, [businesses.length, toast, enablePerformanceMonitoring, pageSize, maxPages]);
+  }, [businesses.length, selectedBusiness, allReviews, toast, enablePerformanceMonitoring, pageSize, maxPages]);
 
   /**
    * Handle business selection change
-   * 
-   * Updates the selected business and triggers UI updates.
-   * This is optimized to only update state when necessary.
    * 
    * @param {string} businessName - Name of the selected business or 'all'
    */
@@ -527,9 +500,6 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
   /**
    * Refresh all data from the database
    * Now supports optional date range filtering
-   * 
-   * Reloads all businesses and reviews, useful for getting latest data
-   * without requiring a full page refresh.
    * 
    * @async
    * @function refreshData

@@ -99,7 +99,8 @@ const Dashboard: React.FC = React.memo(() => {
     getChartData,
     enhancedAnalysis,
     handleBusinessChange,
-    refreshData
+    refreshData,
+    getAllReviews // NEW: Get the getAllReviews function
   } = useDashboardData();
 
   // Phase 5: Memoized filtered reviews and chart data
@@ -291,16 +292,24 @@ const Dashboard: React.FC = React.memo(() => {
     [handleBusinessChange]
   );
 
-  // Get all reviews for comparison - we need to access this from the hook
+  // Get all reviews for comparison
   const allReviews = useMemo(() => {
-    // When "all" is selected, filteredReviews contains all reviews
-    if (selectedBusiness === "all" || selectedBusiness === "All Businesses") {
-      return filteredReviews;
+    const stopMeasurement = PerformanceMonitor.startMeasurement('all-reviews-calculation');
+    try {
+      const result = getAllReviews();
+      stopMeasurement();
+      return result;
+    } catch (error) {
+      stopMeasurement();
+      errorLogger.logError(new AppError(
+        "Failed to get all reviews",
+        ErrorType.CLIENT,
+        ErrorSeverity.MEDIUM,
+        { error: error.message }
+      ));
+      return [];
     }
-    // Otherwise, we need to get all reviews from the hook
-    // This is a bit of a workaround, but we can call getFilteredReviews with saved state
-    return filteredReviews; // For now, use filtered reviews
-  }, [filteredReviews, selectedBusiness]);
+  }, [getAllReviews]);
 
   return (
     <PageErrorBoundary>
@@ -509,6 +518,7 @@ const Dashboard: React.FC = React.memo(() => {
                 <div>Tab Change Time: {PerformanceMonitor.getAverageTime('tab-change').toFixed(2)}ms</div>
                 <div>Filtered Reviews Time: {PerformanceMonitor.getAverageTime('filtered-reviews-calculation').toFixed(2)}ms</div>
                 <div>Chart Data Time: {PerformanceMonitor.getAverageTime('chart-data-calculation').toFixed(2)}ms</div>
+                <div>All Reviews Time: {PerformanceMonitor.getAverageTime('all-reviews-calculation').toFixed(2)}ms</div>
               </div>
             </details>
           </ComponentErrorBoundary>

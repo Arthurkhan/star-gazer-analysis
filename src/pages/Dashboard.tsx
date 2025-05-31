@@ -12,11 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { getBusinessTypeFromName } from "@/types/BusinessMappings";
-import { Sparkles, RefreshCw, BarChart3, GitCompare, Mail as MailIcon, KeyRound, Bug } from "lucide-react";
+import { Sparkles, RefreshCw, BarChart3, GitCompare, Mail as MailIcon, KeyRound } from "lucide-react";
 import { DatabaseErrorDisplay } from "@/components/diagnostic/DatabaseErrorDisplay";
 import { MissingEnvAlert } from "@/components/diagnostic/MissingEnvAlert";
 import { NoReviewsAlert } from "@/components/diagnostic/NoReviewsAlert";
-import { PeriodComparisonDebugger } from "@/components/debug/PeriodComparisonDebugger";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -53,7 +52,6 @@ import { LoadingFallback } from "@/utils/lazyLoading";
  * - Memory management
  * - Enhanced error handling and logging
  * - Fixed infinite loop in AI recommendations
- * - Temporary debug tab for period comparison testing
  */
 
 // Phase 5: Memoized business type calculation
@@ -372,16 +370,12 @@ const Dashboard: React.FC = React.memo(() => {
         {/* Phase 5: Enhanced Main Content Tabs with error boundaries and lazy loading */}
         <SectionErrorBoundary>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="enhanced">Enhanced Analysis</TabsTrigger>
               <TabsTrigger value="comparison">Period Comparison</TabsTrigger>
               <TabsTrigger value="recommendations">AI Recommendations</TabsTrigger>
               <TabsTrigger value="notifications">Notifications</TabsTrigger>
-              <TabsTrigger value="debug" className="text-orange-500">
-                <Bug className="w-4 h-4 mr-1" />
-                Debug
-              </TabsTrigger>
             </TabsList>
             
             {/* Overview Tab with error boundary */}
@@ -486,38 +480,6 @@ const Dashboard: React.FC = React.memo(() => {
                     </p>
                   </div>
                 )}
-              </SectionErrorBoundary>
-            </TabsContent>
-            
-            {/* Debug Tab - Temporary for testing Period Comparison */}
-            <TabsContent value="debug" className="mt-6">
-              <SectionErrorBoundary>
-                <div className="space-y-4">
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-orange-800 mb-2">Debug Mode</h3>
-                    <p className="text-sm text-orange-700">
-                      This tab is temporary and will be removed once the Period Comparison feature is verified to be working correctly.
-                    </p>
-                  </div>
-                  
-                  <PeriodComparisonDebugger 
-                    selectedBusiness={selectedBusiness}
-                    loading={loading}
-                    refreshData={refreshData}
-                    getFilteredReviews={getFilteredReviews}
-                  />
-                  
-                  <div className="mt-8 p-4 bg-muted rounded-lg">
-                    <h4 className="font-medium mb-2">Troubleshooting Steps:</h4>
-                    <ol className="list-decimal list-inside space-y-1 text-sm">
-                      <li>Select a specific business (not "All Businesses")</li>
-                      <li>Click "Run Debug Test" above</li>
-                      <li>Check the output for any errors or warnings</li>
-                      <li>Open browser console (F12) to see detailed logs</li>
-                      <li>If no reviews are found, check the date format in the output</li>
-                    </ol>
-                  </div>
-                </div>
               </SectionErrorBoundary>
             </TabsContent>
           </Tabs>

@@ -23,14 +23,12 @@ const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, bus
   // Extract business names
   const businessNames = Object.keys(businessData.businesses);
 
-  // Calculate monthly review trends for each business
+  // Calculate monthly review trends for each business - ALL DATA
   const monthlyComparison = useMemo(() => {
     const monthlyData = new Map<string, Record<string, number>>();
     
+    // Initialize all months with 0 values
     allReviews.forEach(review => {
-      const businessName = review.title || review.businessName || review.businesses?.name;
-      if (!businessName || !businessNames.includes(businessName)) return;
-      
       const date = new Date(review.publishedAtDate || review.publishedatdate);
       const monthKey = format(startOfMonth(date), 'yyyy-MM');
       
@@ -40,22 +38,30 @@ const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, bus
           monthlyData.get(monthKey)![name] = 0;
         });
       }
+    });
+    
+    // Count reviews per business per month
+    allReviews.forEach(review => {
+      const businessName = review.title || review.businessName || review.businesses?.name;
+      if (!businessName || !businessNames.includes(businessName)) return;
+      
+      const date = new Date(review.publishedAtDate || review.publishedatdate);
+      const monthKey = format(startOfMonth(date), 'yyyy-MM');
       
       const monthData = monthlyData.get(monthKey)!;
       monthData[businessName] = (monthData[businessName] || 0) + 1;
     });
     
-    // Convert to array and sort by date
+    // Convert to array and sort by date - NO SLICING
     return Array.from(monthlyData.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-12) // Last 12 months
       .map(([month, counts]) => ({
         month: format(new Date(month), 'MMM yyyy'),
         ...counts
       }));
   }, [allReviews, businessNames]);
 
-  // Calculate cumulative reviews for each business
+  // Calculate cumulative reviews for each business - ALL DATA
   const cumulativeComparison = useMemo(() => {
     const cumulative: Record<string, number> = {};
     businessNames.forEach(name => { cumulative[name] = 0; });
@@ -76,16 +82,12 @@ const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, bus
       const date = new Date(review.publishedAtDate || review.publishedatdate);
       const monthKey = format(startOfMonth(date), 'yyyy-MM');
       
-      if (!monthlyData.has(monthKey)) {
-        monthlyData.set(monthKey, { ...cumulative });
-      } else {
-        monthlyData.set(monthKey, { ...cumulative });
-      }
+      monthlyData.set(monthKey, { ...cumulative });
     });
     
+    // Convert to array and sort by date - NO SLICING
     return Array.from(monthlyData.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-12) // Last 12 months
       .map(([month, counts]) => ({
         month: format(new Date(month), 'MMM yyyy'),
         ...counts
@@ -251,7 +253,12 @@ const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, bus
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthlyComparison}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis 
+                  dataKey="month" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
                 <YAxis />
                 <Tooltip />
                 <Legend />
@@ -283,7 +290,12 @@ const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, bus
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={cumulativeComparison}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis 
+                  dataKey="month" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
                 <YAxis />
                 <Tooltip />
                 <Legend />
@@ -406,49 +418,47 @@ const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, bus
         </CardContent>
       </Card>
 
-      {/* Rating Distribution */}
+      {/* Rating Distribution - COMPACT HORIZONTAL LAYOUT */}
       <Card>
         <CardHeader>
           <CardTitle>Rating Distribution</CardTitle>
           <CardDescription>Breakdown of star ratings for each business</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {ratingsComparison.map((business) => (
-              <div key={business.name}>
-                <h4 className="font-medium mb-3 flex items-center gap-2">
+              <div key={business.name} className="space-y-2">
+                <h4 className="font-medium flex items-center gap-2 mb-3">
                   <div 
                     className="w-3 h-3 rounded-full" 
                     style={{ backgroundColor: BUSINESS_COLORS[business.name as keyof typeof BUSINESS_COLORS] }}
                   />
                   {business.name}
                 </h4>
-                <div className="space-y-2">
-                  {[5, 4, 3, 2, 1].map((rating) => {
-                    const count = business.ratingDistribution.find(r => r.rating === rating)?.count || 0;
-                    const percentage = business.totalReviews > 0 
-                      ? (count / business.totalReviews * 100).toFixed(1)
-                      : 0;
-                    
-                    return (
-                      <div key={rating} className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 w-20">
-                          <span className="text-sm">{rating}</span>
-                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                        </div>
-                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
-                          <div 
-                            className="h-full bg-yellow-500 transition-all duration-300"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-muted-foreground w-16 text-right">
-                          {count} ({percentage}%)
-                        </span>
+                {[5, 4, 3, 2, 1].map((rating) => {
+                  const count = business.ratingDistribution.find(r => r.rating === rating)?.count || 0;
+                  const percentage = business.totalReviews > 0 
+                    ? (count / business.totalReviews * 100).toFixed(1)
+                    : 0;
+                  
+                  return (
+                    <div key={rating} className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 w-12">
+                        <span className="text-sm">{rating}</span>
+                        <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                        <div 
+                          className="h-full bg-yellow-500 transition-all duration-300"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground w-14 text-right">
+                        {percentage}%
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>

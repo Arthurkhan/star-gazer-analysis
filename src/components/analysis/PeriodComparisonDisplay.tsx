@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { DateRangeSelector } from '@/components/monthly-report/DateRangeSelector';
 import { useSelectedDateRange } from '@/components/monthly-report/hooks/useSelectedDateRange';
 import { Button } from '@/components/ui/button';
@@ -8,23 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { useDashboardData } from '@/hooks/useDashboardData';
-import { compareDataPeriods } from '@/services/comparisonService';
-import { EnhancedAnalysis } from '@/types/dataAnalysis';
-import { Review } from '@/types/reviews';
-import { generateEnhancedAnalysis } from '@/utils/reviewDataUtils';
-
-export interface ComparisonResult {
-  ratingChange: number;
-  reviewCountChange: number;
-  reviewCountChangePercent: number;
-  sentimentChange: number;
-  improvingThemes: string[];
-  decliningThemes: string[];
-  newThemes: string[];
-  removedThemes: string[];
-  staffPerformanceChanges: Record<string, number>;
-}
+import { usePeriodComparison } from '@/hooks/usePeriodComparison';
 
 export function PeriodComparisonDisplay({ 
   businessName 
@@ -51,113 +35,25 @@ export function PeriodComparisonDisplay({
     initialTo: oneMonthAgo
   });
   
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingMessage, setLoadingMessage] = useState('');
-  const [currentData, setCurrentData] = useState<EnhancedAnalysis | null>(null);
-  const [previousData, setPreviousData] = useState<EnhancedAnalysis | null>(null);
-  const [currentReviews, setCurrentReviews] = useState<Review[]>([]);
-  const [previousReviews, setPreviousReviews] = useState<Review[]>([]);
-  const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
+  // Use the new period comparison hook
+  const {
+    isLoading,
+    loadingProgress,
+    loadingMessage,
+    currentData,
+    previousData,
+    comparisonResult,
+    comparePeriods,
+  } = usePeriodComparison();
   
-  const { 
-    loading: dashboardLoading, 
-    getFilteredReviews,
-    refreshData 
-  } = useDashboardData();
-  
-  // Handle comparison with proper loading management
-  const handleCompare = useCallback(async () => {
-    setIsLoading(true);
-    setLoadingProgress(0);
-    setLoadingMessage('Initializing comparison...');
-    
-    try {
-      // Ensure both date ranges have valid 'to' dates
-      if (!currentPeriod.dateRange.to || !previousPeriod.dateRange.to) {
-        setLoadingMessage('Please select complete date ranges for both periods.');
-        setTimeout(() => {
-          setIsLoading(false);
-          setLoadingProgress(0);
-          setLoadingMessage('');
-        }, 2000);
-        return;
-      }
-      
-      // Step 1: Load current period data (33%)
-      setLoadingMessage('Loading current period data...');
-      setLoadingProgress(10);
-      
-      await refreshData(currentPeriod.dateRange.from, currentPeriod.dateRange.to);
-      const currentPeriodReviews = getFilteredReviews();
-      
-      // Filter reviews by business if not "all"
-      const filteredCurrentReviews = businessName === 'all' 
-        ? currentPeriodReviews 
-        : currentPeriodReviews.filter(review => 
-            review.title === businessName || 
-            review.businesses?.name === businessName
-          );
-      
-      setCurrentReviews(filteredCurrentReviews);
-      const currentAnalysis = generateEnhancedAnalysis(filteredCurrentReviews, businessName);
-      setCurrentData(currentAnalysis);
-      
-      setLoadingProgress(33);
-      
-      // Step 2: Load previous period data (66%)
-      setLoadingMessage('Loading previous period data...');
-      
-      await refreshData(previousPeriod.dateRange.from, previousPeriod.dateRange.to);
-      const previousPeriodReviews = getFilteredReviews();
-      
-      // Filter reviews by business if not "all"
-      const filteredPreviousReviews = businessName === 'all' 
-        ? previousPeriodReviews 
-        : previousPeriodReviews.filter(review => 
-            review.title === businessName || 
-            review.businesses?.name === businessName
-          );
-      
-      setPreviousReviews(filteredPreviousReviews);
-      const previousAnalysis = generateEnhancedAnalysis(filteredPreviousReviews, businessName);
-      setPreviousData(previousAnalysis);
-      
-      setLoadingProgress(66);
-      
-      // Step 3: Generate comparison (100%)
-      setLoadingMessage('Generating comparison report...');
-      
-      if (currentAnalysis && previousAnalysis) {
-        const result = compareDataPeriods(
-          currentAnalysis, 
-          previousAnalysis,
-          filteredCurrentReviews,
-          filteredPreviousReviews
-        );
-        setComparisonResult(result);
-      }
-      
-      setLoadingProgress(100);
-      setLoadingMessage('Comparison complete!');
-      
-      // Small delay to show completion
-      setTimeout(() => {
-        setIsLoading(false);
-        setLoadingProgress(0);
-        setLoadingMessage('');
-      }, 500);
-      
-    } catch (error) {
-      console.error("Error during comparison:", error);
-      setLoadingMessage('Error during comparison. Please try again.');
-      setTimeout(() => {
-        setIsLoading(false);
-        setLoadingProgress(0);
-        setLoadingMessage('');
-      }, 2000);
-    }
-  }, [businessName, currentPeriod.dateRange, previousPeriod.dateRange, refreshData, getFilteredReviews]);
+  // Handle comparison
+  const handleCompare = () => {
+    comparePeriods(
+      businessName,
+      currentPeriod.dateRange,
+      previousPeriod.dateRange
+    );
+  };
   
   return (
     <div className="space-y-6">
@@ -218,7 +114,7 @@ export function PeriodComparisonDisplay({
         <CardFooter className="flex justify-center">
           <Button 
             onClick={handleCompare}
-            disabled={isLoading || dashboardLoading || !currentPeriod.dateRange.to || !previousPeriod.dateRange.to}
+            disabled={isLoading || !currentPeriod.dateRange.to || !previousPeriod.dateRange.to}
             size="lg"
           >
             {isLoading ? (
@@ -425,13 +321,13 @@ export function PeriodComparisonDisplay({
                           <div>
                             <p className="text-sm text-muted-foreground">Previous Period</p>
                             <p className="text-xl font-semibold">
-                              {previousReviews.length} reviews
+                              {previousData?.reviews.length || 0} reviews
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Current Period</p>
                             <p className="text-xl font-semibold">
-                              {currentReviews.length} reviews
+                              {currentData?.reviews.length || 0} reviews
                             </p>
                           </div>
                         </div>
@@ -445,16 +341,16 @@ export function PeriodComparisonDisplay({
                           <div>
                             <p className="text-sm text-muted-foreground">Previous Period Average</p>
                             <p className="text-xl font-semibold">
-                              {previousReviews.length > 0 
-                                ? (previousReviews.reduce((sum, r) => sum + (r.stars || 0), 0) / previousReviews.filter(r => r.stars).length).toFixed(2)
+                              {previousData && previousData.reviews.length > 0 
+                                ? (previousData.reviews.reduce((sum, r) => sum + (r.stars || 0), 0) / previousData.reviews.filter(r => r.stars).length).toFixed(2)
                                 : 'N/A'}
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Current Period Average</p>
                             <p className="text-xl font-semibold">
-                              {currentReviews.length > 0 
-                                ? (currentReviews.reduce((sum, r) => sum + (r.stars || 0), 0) / currentReviews.filter(r => r.stars).length).toFixed(2)
+                              {currentData && currentData.reviews.length > 0 
+                                ? (currentData.reviews.reduce((sum, r) => sum + (r.stars || 0), 0) / currentData.reviews.filter(r => r.stars).length).toFixed(2)
                                 : 'N/A'}
                             </p>
                           </div>

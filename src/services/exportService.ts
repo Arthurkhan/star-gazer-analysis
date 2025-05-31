@@ -68,27 +68,27 @@ export function generatePDF(data: ExportData, options: ExportOptions): jsPDF {
   let yPosition = 35;
   
   // Add key metrics summary
-  if (data.historicalTrends?.length) {
+  if (data?.historicalTrends?.length) {
     yPosition = addKeyMetricsSummary(doc, data, yPosition);
   }
   
   // Add insights
-  if (data.insights) {
+  if (data?.insights) {
     yPosition = addInsightsSection(doc, data.insights, yPosition);
   }
   
   // Add review clusters if requested
-  if (options.includeTables && data.reviewClusters?.length) {
+  if (options.includeTables && data?.reviewClusters?.length) {
     yPosition = addReviewClusters(doc, data.reviewClusters, yPosition);
   }
   
   // Add recommendations if requested
-  if (options.includeRecommendations && data.recommendations) {
+  if (options.includeRecommendations && data?.recommendations) {
     yPosition = addRecommendations(doc, data.recommendations, yPosition);
   }
   
   // Add seasonal patterns
-  if (data.seasonalPatterns?.length) {
+  if (data?.seasonalPatterns?.length) {
     yPosition = addSeasonalPatterns(doc, data.seasonalPatterns, yPosition);
   }
   
@@ -134,10 +134,19 @@ function addHeader(doc: jsPDF, options: ExportOptions): void {
  * Add key metrics summary to the PDF
  */
 function addKeyMetricsSummary(doc: jsPDF, data: ExportData, startY: number): number {
-  const historicalTrend = data.historicalTrends?.[0]; // Use first trend for summary
-  const reviewClusters = data.reviewClusters || [];
+  // Add safety checks for data
+  if (!data || !data.historicalTrends || data.historicalTrends.length === 0) {
+    return startY;
+  }
   
-  if (!historicalTrend) return startY;
+  const historicalTrend = data.historicalTrends[0]; // Use first trend for summary
+  
+  // Check if historicalTrend has valid data
+  if (!historicalTrend || !historicalTrend.data || historicalTrend.data.length === 0) {
+    return startY;
+  }
+  
+  const reviewClusters = data.reviewClusters || [];
   
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
@@ -147,13 +156,13 @@ function addKeyMetricsSummary(doc: jsPDF, data: ExportData, startY: number): num
   // Create metrics table
   const latestPeriodData = historicalTrend.data[historicalTrend.data.length - 1];
   const previousPeriodData = historicalTrend.data[historicalTrend.data.length - 2] || { value: 0 };
-  const changePercentage = (latestPeriodData.percentageChange || 0).toFixed(1) + '%';
+  const changePercentage = ((latestPeriodData.percentageChange || 0)).toFixed(1) + '%';
   
   // Calculate total reviews
   const totalReviews = reviewClusters.reduce((total, cluster) => total + cluster.reviewCount, 0);
   
   // Get top cluster by review count
-  const topCluster = reviewClusters.length ? 
+  const topCluster = reviewClusters.length > 0 ? 
     reviewClusters.sort((a, b) => b.reviewCount - a.reviewCount)[0].name : 
     'N/A';
   
@@ -196,7 +205,7 @@ function addInsightsSection(doc: jsPDF, insights: ExportData['insights'], startY
   let currentY = startY + 7;
   
   // Add key findings
-  if (insights.keyFindings.length) {
+  if (insights.keyFindings && insights.keyFindings.length > 0) {
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text('Key Findings:', 14, currentY);
@@ -223,7 +232,7 @@ function addInsightsSection(doc: jsPDF, insights: ExportData['insights'], startY
   }
   
   // Add opportunities
-  if (insights.opportunities.length) {
+  if (insights.opportunities && insights.opportunities.length > 0) {
     // Check if we need a new page
     if (currentY > 250) {
       doc.addPage();
@@ -256,7 +265,7 @@ function addInsightsSection(doc: jsPDF, insights: ExportData['insights'], startY
   }
   
   // Add risks
-  if (insights.risks.length) {
+  if (insights.risks && insights.risks.length > 0) {
     // Check if we need a new page
     if (currentY > 250) {
       doc.addPage();
@@ -519,7 +528,7 @@ export function exportToCSV(data: ExportData, options: ExportOptions): string {
   csvContent += `# Generated: ${new Date().toLocaleDateString()}\n\n`;
   
   // Add review clusters
-  if (data.reviewClusters?.length) {
+  if (data?.reviewClusters?.length) {
     csvContent += '## REVIEW CLUSTERS\n';
     csvContent += 'Name,Reviews,Rating,Sentiment,Keywords\n';
     
@@ -535,7 +544,7 @@ export function exportToCSV(data: ExportData, options: ExportOptions): string {
   }
   
   // Add historical trends
-  if (data.historicalTrends?.length) {
+  if (data?.historicalTrends?.length) {
     csvContent += '## HISTORICAL TRENDS\n';
     
     data.historicalTrends.forEach(trend => {
@@ -553,10 +562,10 @@ export function exportToCSV(data: ExportData, options: ExportOptions): string {
   }
   
   // Add insights
-  if (data.insights) {
+  if (data?.insights) {
     csvContent += '## INSIGHTS\n';
     
-    if (data.insights.keyFindings.length) {
+    if (data.insights.keyFindings?.length) {
       csvContent += '# Key Findings\n';
       data.insights.keyFindings.forEach(finding => {
         csvContent += `"${finding}"\n`;
@@ -564,7 +573,7 @@ export function exportToCSV(data: ExportData, options: ExportOptions): string {
       csvContent += '\n';
     }
     
-    if (data.insights.opportunities.length) {
+    if (data.insights.opportunities?.length) {
       csvContent += '# Opportunities\n';
       data.insights.opportunities.forEach(opportunity => {
         csvContent += `"${opportunity}"\n`;
@@ -572,7 +581,7 @@ export function exportToCSV(data: ExportData, options: ExportOptions): string {
       csvContent += '\n';
     }
     
-    if (data.insights.risks.length) {
+    if (data.insights.risks?.length) {
       csvContent += '# Risks\n';
       data.insights.risks.forEach(risk => {
         csvContent += `"${risk}"\n`;
@@ -582,7 +591,7 @@ export function exportToCSV(data: ExportData, options: ExportOptions): string {
   }
   
   // Add recommendations
-  if (data.recommendations) {
+  if (data?.recommendations) {
     csvContent += '## RECOMMENDATIONS\n';
     
     if (data.recommendations.urgent?.length) {

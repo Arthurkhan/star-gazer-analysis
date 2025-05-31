@@ -30,13 +30,18 @@ const BusinessSelector = ({
   const [businessDropdownOpen, setBusinessDropdownOpen] = useState(false);
 
   // Generate business options dynamically from the businessData
+  // FIX: Use business name as the ID for consistency
   const businessOptions = [
     { id: "all", name: "All Businesses" },
-    ...Object.entries(businessData.businesses).map(([id, data]) => ({
-      id,
-      name: data.name,
+    ...Object.entries(businessData.businesses).map(([businessName, data]) => ({
+      id: businessName, // Use the business name as the ID
+      name: data.name || businessName, // Fallback to key if name is not set
     })),
   ];
+
+  // Debug logging for The Little Prince Cafe
+  console.log("BusinessSelector - businessOptions:", businessOptions);
+  console.log("BusinessSelector - selectedBusiness:", selectedBusiness);
 
   // Automatically determine business type from business name
   const businessType = selectedBusiness === "all" 
@@ -100,6 +105,7 @@ const BusinessSelector = ({
                     <DropdownMenu.RadioGroup 
                       value={selectedBusiness}
                       onValueChange={(value) => {
+                        console.log("BusinessSelector - Changing to:", value);
                         onBusinessChange(value);
                         setBusinessDropdownOpen(false);
                       }}

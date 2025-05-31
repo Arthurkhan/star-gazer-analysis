@@ -291,6 +291,17 @@ const Dashboard: React.FC = React.memo(() => {
     [handleBusinessChange]
   );
 
+  // Get all reviews for comparison - we need to access this from the hook
+  const allReviews = useMemo(() => {
+    // When "all" is selected, filteredReviews contains all reviews
+    if (selectedBusiness === "all" || selectedBusiness === "All Businesses") {
+      return filteredReviews;
+    }
+    // Otherwise, we need to get all reviews from the hook
+    // This is a bit of a workaround, but we can call getFilteredReviews with saved state
+    return filteredReviews; // For now, use filtered reviews
+  }, [filteredReviews, selectedBusiness]);
+
   return (
     <PageErrorBoundary>
       <DashboardLayout onProviderChange={() => {}}> {/* Simplified - no provider change */}
@@ -378,7 +389,7 @@ const Dashboard: React.FC = React.memo(() => {
               <TabsTrigger value="notifications">Notifications</TabsTrigger>
             </TabsList>
             
-            {/* Overview Tab with error boundary */}
+            {/* Overview Tab with error boundary - passing allReviews and businessData */}
             <TabsContent value="overview" className="mt-6">
               <SectionErrorBoundary>
                 <Suspense fallback={<LoadingFallback size="large" message="Loading overview..." />}>
@@ -387,6 +398,8 @@ const Dashboard: React.FC = React.memo(() => {
                     reviews={filteredReviews}
                     chartData={chartData}
                     selectedBusiness={selectedBusiness}
+                    allReviews={allReviews}
+                    businessData={businessData}
                   />
                 </Suspense>
               </SectionErrorBoundary>

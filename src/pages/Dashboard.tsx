@@ -500,7 +500,12 @@ const Dashboard: React.FC = React.memo(() => {
                     </p>
                   </div>
                   
-                  <PeriodComparisonDebugger />
+                  <PeriodComparisonDebugger 
+                    selectedBusiness={selectedBusiness}
+                    loading={loading}
+                    refreshData={refreshData}
+                    getFilteredReviews={getFilteredReviews}
+                  />
                   
                   <div className="mt-8 p-4 bg-muted rounded-lg">
                     <h4 className="font-medium mb-2">Troubleshooting Steps:</h4>

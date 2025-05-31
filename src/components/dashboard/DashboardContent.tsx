@@ -2,6 +2,7 @@ import React, { useState, memo, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AllReviewsContent from "./AllReviewsContent";
 import MonthlyReport from "@/components/monthly-report";
+import BusinessComparison from "./BusinessComparison";
 import { Review } from "@/types/reviews";
 
 interface DashboardContentProps {
@@ -12,7 +13,12 @@ interface DashboardContentProps {
   loadingMore?: boolean;
   onLoadMore?: () => void;
   hasMoreData?: boolean;
-  selectedBusiness?: string; // Add selected business prop
+  selectedBusiness?: string;
+  allReviews?: Review[]; // Add all reviews for comparison
+  businessData?: { // Add business data for comparison
+    allBusinesses: { name: string; count: number };
+    businesses: Record<string, any>;
+  };
 }
 
 // Use React.memo to prevent unnecessary re-renders
@@ -24,12 +30,17 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
   loadingMore,
   onLoadMore,
   hasMoreData,
-  selectedBusiness = "all" // Default to "all" if not provided
+  selectedBusiness = "all",
+  allReviews = [],
+  businessData
 }) => {
   const [activeTab, setActiveTab] = useState("all-reviews");
   
   // Force delayed rendering to avoid chunk errors
   const [renderContent, setRenderContent] = useState(false);
+  
+  // Check if we should show the comparison tab
+  const showComparisonTab = selectedBusiness === "all" || selectedBusiness === "All Businesses";
   
   useEffect(() => {
     // Only render content after component has mounted
@@ -58,9 +69,12 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
       onValueChange={setActiveTab}
       className="w-full"
     >
-      <TabsList className="mb-6">
+      <TabsList className={`mb-6 ${showComparisonTab ? 'grid-cols-3' : 'grid-cols-2'} grid w-full`}>
         <TabsTrigger value="all-reviews">All Reviews</TabsTrigger>
         <TabsTrigger value="monthly-report">Monthly Report</TabsTrigger>
+        {showComparisonTab && (
+          <TabsTrigger value="comparison">Business Comparison</TabsTrigger>
+        )}
       </TabsList>
       
       {renderContent && (
@@ -73,7 +87,7 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
               loadingMore={loadingMore}
               onLoadMore={onLoadMore}
               hasMoreData={hasMoreData}
-              selectedBusiness={selectedBusiness} // Pass selected business
+              selectedBusiness={selectedBusiness}
             />
           </TabsContent>
           
@@ -83,6 +97,15 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
               businessName={selectedBusiness === "all" ? "All Businesses" : selectedBusiness}
             />
           </TabsContent>
+          
+          {showComparisonTab && businessData && (
+            <TabsContent value="comparison" className="mt-0">
+              <BusinessComparison 
+                allReviews={allReviews}
+                businessData={businessData}
+              />
+            </TabsContent>
+          )}
         </>
       )}
     </Tabs>

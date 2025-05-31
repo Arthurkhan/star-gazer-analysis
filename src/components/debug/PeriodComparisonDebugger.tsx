@@ -34,51 +34,72 @@ export function PeriodComparisonDebugger({
     logs.push(`📍 Selected Business: ${selectedBusiness}`);
     
     try {
-      // Test 1: Current period (last 30 days)
-      const currentEnd = new Date();
-      const currentStart = new Date();
-      currentStart.setDate(currentStart.getDate() - 30);
+      // Test 1: Current period (May 2025)
+      const mayStart = new Date('2025-05-01');
+      const mayEnd = new Date('2025-05-31');
+      mayEnd.setHours(23, 59, 59, 999);
       
-      logs.push(`\n📅 Test 1: Current Period`);
-      logs.push(`   From: ${format(currentStart, 'yyyy-MM-dd')}`);
-      logs.push(`   To: ${format(currentEnd, 'yyyy-MM-dd')}`);
+      logs.push(`\n📅 Test 1: May 2025`);
+      logs.push(`   From: ${format(mayStart, 'yyyy-MM-dd')}`);
+      logs.push(`   To: ${format(mayEnd, 'yyyy-MM-dd')}`);
       
-      await refreshData(currentStart, currentEnd);
-      const currentReviews = getFilteredReviews();
-      logs.push(`   ✅ Reviews fetched: ${currentReviews.length}`);
+      console.log('🔵 BEFORE refreshData for May 2025');
+      await refreshData(mayStart, mayEnd);
+      console.log('🔵 AFTER refreshData for May 2025');
       
-      // Test 2: Previous period (31-60 days ago)
-      const previousEnd = new Date();
-      previousEnd.setDate(previousEnd.getDate() - 31);
-      const previousStart = new Date();
-      previousStart.setDate(previousStart.getDate() - 60);
+      // Add a small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      logs.push(`\n📅 Test 2: Previous Period`);
-      logs.push(`   From: ${format(previousStart, 'yyyy-MM-dd')}`)
-      logs.push(`   To: ${format(previousEnd, 'yyyy-MM-dd')}`);
+      const mayReviews = getFilteredReviews();
+      console.log('🔵 May reviews from getFilteredReviews:', mayReviews.length);
+      logs.push(`   ✅ Reviews fetched: ${mayReviews.length}`);
       
-      await refreshData(previousStart, previousEnd);
-      const previousReviews = getFilteredReviews();
-      logs.push(`   ✅ Reviews fetched: ${previousReviews.length}`);
+      // Test 2: Previous period (April 2025)
+      const aprilStart = new Date('2025-04-01');
+      const aprilEnd = new Date('2025-04-30');
+      aprilEnd.setHours(23, 59, 59, 999);
+      
+      logs.push(`\n📅 Test 2: April 2025`);
+      logs.push(`   From: ${format(aprilStart, 'yyyy-MM-dd')}`);
+      logs.push(`   To: ${format(aprilEnd, 'yyyy-MM-dd')}`);
+      
+      console.log('🔵 BEFORE refreshData for April 2025');
+      await refreshData(aprilStart, aprilEnd);
+      console.log('🔵 AFTER refreshData for April 2025');
+      
+      // Add a small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const aprilReviews = getFilteredReviews();
+      console.log('🔵 April reviews from getFilteredReviews:', aprilReviews.length);
+      logs.push(`   ✅ Reviews fetched: ${aprilReviews.length}`);
       
       // Test 3: Full data (no date filter)
       logs.push(`\n📅 Test 3: All Data (no date filter)`);
+      
+      console.log('🔵 BEFORE refreshData for all data');
       await refreshData();
+      console.log('🔵 AFTER refreshData for all data');
+      
+      // Add a small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const allReviews = getFilteredReviews();
+      console.log('🔵 All reviews from getFilteredReviews:', allReviews.length);
       logs.push(`   ✅ Total reviews: ${allReviews.length}`);
       
       // Summary
       logs.push(`\n📊 Summary:`);
-      logs.push(`   Current Period Reviews: ${currentReviews.length}`);
-      logs.push(`   Previous Period Reviews: ${previousReviews.length}`);
+      logs.push(`   May 2025 Reviews: ${mayReviews.length} (expected ~56)`);
+      logs.push(`   April 2025 Reviews: ${aprilReviews.length} (expected ~28)`);
       logs.push(`   Total Reviews: ${allReviews.length}`);
       
-      if (currentReviews.length === 0 && previousReviews.length === 0) {
-        logs.push(`\n⚠️ WARNING: No reviews found in either period!`);
-        logs.push(`   This could mean:`);
-        logs.push(`   - No reviews exist in these date ranges`);
-        logs.push(`   - Date filtering is not working`);
-        logs.push(`   - The 'publishedatdate' column has invalid data`);
+      if (mayReviews.length === aprilReviews.length && aprilReviews.length === allReviews.length) {
+        logs.push(`\n⚠️ WARNING: All periods show the same count!`);
+        logs.push(`   The date filtering may not be working properly.`);
+        logs.push(`   Check the console for detailed logs.`);
+      } else {
+        logs.push(`\n✅ SUCCESS: Different counts for different periods!`);
       }
       
       // Check date format of reviews

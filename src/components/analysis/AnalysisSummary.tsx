@@ -327,7 +327,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
                     healthScore >= 60 ? AlertTriangle : AlertTriangle;
   const HealthIcon = healthIcon;
 
-  // Phase 5: Optimized main content rendering
+  // Phase 5: Optimized main content rendering - UPDATED SECTION ORDER
   const renderMainContent = useCallback(() => {
     const sections = [
       {
@@ -356,6 +356,18 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
           </ComponentErrorBoundary>
         )
       },
+      // MOVED STAFF INSIGHTS TO BE RIGHT AFTER PERFORMANCE METRICS
+      {
+        id: 'staff-insights',
+        title: 'Staff Insights',
+        component: config.includeStaffAnalysis && analysisData.staffInsights.mentions.length > 0 ? (
+          <ComponentErrorBoundary>
+            <StaffInsightsSection 
+              staffInsights={analysisData.staffInsights}
+            />
+          </ComponentErrorBoundary>
+        ) : null
+      },
       {
         id: 'sentiment-analysis',
         title: 'Sentiment Analysis',
@@ -374,17 +386,6 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
           <ComponentErrorBoundary>
             <ThematicAnalysisSection 
               thematicAnalysis={analysisData.thematicAnalysis}
-            />
-          </ComponentErrorBoundary>
-        ) : null
-      },
-      {
-        id: 'staff-insights',
-        title: 'Staff Insights',
-        component: config.includeStaffAnalysis && analysisData.staffInsights.mentions.length > 0 ? (
-          <ComponentErrorBoundary>
-            <StaffInsightsSection 
-              staffInsights={analysisData.staffInsights}
             />
           </ComponentErrorBoundary>
         ) : null

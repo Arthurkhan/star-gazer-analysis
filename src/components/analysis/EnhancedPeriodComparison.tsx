@@ -165,6 +165,57 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
     })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [currentData, previousData]);
   
+  // New: Review volume data
+  const reviewVolumeData = React.useMemo(() => {
+    if (!currentData || !previousData) return [];
+    
+    // Group reviews by day for both periods
+    const groupByDay = (reviews: any[]) => {
+      const grouped = new Map<string, { date: string; count: number }>();
+      
+      reviews.forEach(review => {
+        if (!review.publishedAtDate) return;
+        const reviewDate = new Date(review.publishedAtDate);
+        if (!isValid(reviewDate)) return;
+        
+        const date = format(reviewDate, 'yyyy-MM-dd');
+        const existing = grouped.get(date) || { date, count: 0 };
+        existing.count += 1;
+        grouped.set(date, existing);
+      });
+      
+      return Array.from(grouped.values())
+        .map(item => ({
+          date: format(new Date(item.date), 'MMM dd'),
+          fullDate: item.date,
+          count: item.count
+        }))
+        .sort((a, b) => new Date(a.fullDate).getTime() - new Date(b.fullDate).getTime());
+    };
+    
+    const currentVolume = groupByDay(currentData.reviews);
+    const previousVolume = groupByDay(previousData.reviews);
+    
+    // Get all unique dates from both periods
+    const allDates = new Set([
+      ...currentVolume.map(d => d.date),
+      ...previousVolume.map(d => d.date)
+    ]);
+    
+    return Array.from(allDates).map(date => ({
+      date,
+      currentCount: currentVolume.find(d => d.date === date)?.count || 0,
+      previousCount: previousVolume.find(d => d.date === date)?.count || 0
+    })).sort((a, b) => {
+      // Sort by date
+      const dateA = currentVolume.find(d => d.date === a.date)?.fullDate || 
+                    previousVolume.find(d => d.date === a.date)?.fullDate || '';
+      const dateB = currentVolume.find(d => d.date === b.date)?.fullDate || 
+                    previousVolume.find(d => d.date === b.date)?.fullDate || '';
+      return new Date(dateA).getTime() - new Date(dateB).getTime();
+    });
+  }, [currentData, previousData]);
+  
   const sentimentData = React.useMemo(() => {
     if (!comparisonResult) return [];
     
@@ -523,6 +574,41 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                             connectNulls
                           />
                         </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* New Review Volume Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Review Volume Per Day</CardTitle>
+                    <CardDescription>
+                      Number of reviews received each day in both periods
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={reviewVolumeData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar 
+                            dataKey="previousCount" 
+                            fill={CHART_COLORS.secondary} 
+                            name="Previous Period"
+                            opacity={0.8}
+                          />
+                          <Bar 
+                            dataKey="currentCount" 
+                            fill={CHART_COLORS.primary} 
+                            name="Current Period"
+                            opacity={0.8}
+                          />
+                        </BarChart>
                       </ResponsiveContainer>
                     </div>
                   </CardContent>

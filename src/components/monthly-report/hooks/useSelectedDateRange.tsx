@@ -20,21 +20,39 @@ interface UseSelectedDateRangeProps {
 }
 
 export function useSelectedDateRange({ initialFrom, initialTo }: UseSelectedDateRangeProps) {
+  // Ensure initial dates are valid
+  const validInitialFrom = isValid(initialFrom) ? initialFrom : new Date();
+  const validInitialTo = isValid(initialTo) ? initialTo : new Date();
+  
   // Date range state
   const [dateRange, setDateRange] = useState<{
     from: Date;
     to: Date | undefined;
   }>({
-    from: initialFrom,
-    to: initialTo
+    from: validInitialFrom,
+    to: validInitialTo
   });
 
   // Track which date we're currently selecting (start or end)
   const [selectingDate, setSelectingDate] = useState<'from' | 'to'>('from');
   
-  // For manual date inputs
-  const [fromDateInput, setFromDateInput] = useState(format(dateRange.from, "yyyy-MM-dd"));
-  const [toDateInput, setToDateInput] = useState(dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : "");
+  // For manual date inputs - safely format initial dates
+  const [fromDateInput, setFromDateInput] = useState(() => {
+    try {
+      return isValid(dateRange.from) ? format(dateRange.from, "yyyy-MM-dd") : "";
+    } catch {
+      return "";
+    }
+  });
+  
+  const [toDateInput, setToDateInput] = useState(() => {
+    try {
+      return dateRange.to && isValid(dateRange.to) ? format(dateRange.to, "yyyy-MM-dd") : "";
+    } catch {
+      return "";
+    }
+  });
+  
   const [dateInputError, setDateInputError] = useState("");
 
   // Date range preset options
@@ -74,9 +92,15 @@ export function useSelectedDateRange({ initialFrom, initialTo }: UseSelectedDate
 
   // Update input fields when dateRange changes
   const updateDateInputs = () => {
-    setFromDateInput(format(dateRange.from, "yyyy-MM-dd"));
-    if (dateRange.to) {
-      setToDateInput(format(dateRange.to, "yyyy-MM-dd"));
+    try {
+      if (isValid(dateRange.from)) {
+        setFromDateInput(format(dateRange.from, "yyyy-MM-dd"));
+      }
+      if (dateRange.to && isValid(dateRange.to)) {
+        setToDateInput(format(dateRange.to, "yyyy-MM-dd"));
+      }
+    } catch (error) {
+      console.error("Error formatting dates:", error);
     }
   };
 
@@ -89,7 +113,7 @@ export function useSelectedDateRange({ initialFrom, initialTo }: UseSelectedDate
 
   // Handle date selection in calendar
   const handleDateSelect = (date: Date | undefined) => {
-    if (!date) return;
+    if (!date || !isValid(date)) return;
 
     // If we're selecting the 'from' date
     if (selectingDate === 'from') {
@@ -157,10 +181,23 @@ export function useSelectedDateRange({ initialFrom, initialTo }: UseSelectedDate
   // Helper function to create date modifier to highlight the range
   const createDateModifier = (dateRange: { from: Date; to: Date | undefined }) => {
     return (date: Date) => {
+      if (!isValid(date) || !isValid(dateRange.from)) {
+        return false;
+      }
+      
       if (!dateRange.to) {
         return date.getTime() === dateRange.from.getTime();
       }
-      return isWithinInterval(date, { start: dateRange.from, end: dateRange.to });
+      
+      if (!isValid(dateRange.to)) {
+        return false;
+      }
+      
+      try {
+        return isWithinInterval(date, { start: dateRange.from, end: dateRange.to });
+      } catch {
+        return false;
+      }
     };
   };
 

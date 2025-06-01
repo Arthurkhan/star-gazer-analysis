@@ -76,7 +76,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
   if (isLoadingState) {
     return (
-      <Card className="w-full border-2 shadow-lg bg-gradient-to-br from-white to-gray-50">
+      <Card className="w-full border-2 shadow-lg bg-gradient-to-br from-gray-800 to-gray-900">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-2xl">
             <div className="p-2 bg-primary/10 rounded-full">
@@ -86,7 +86,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
               Crafting Your Success Strategy
             </span>
           </CardTitle>
-          <CardDescription className="text-base mt-2">
+          <CardDescription className="text-base mt-2 text-gray-300">
             {progress?.message || generatingMessage || 'Our AI is analyzing your reviews and creating personalized recommendations...'}
           </CardDescription>
         </CardHeader>

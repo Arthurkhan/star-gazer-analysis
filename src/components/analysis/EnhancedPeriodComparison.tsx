@@ -40,6 +40,23 @@ const CHART_COLORS = {
   neutral: '#6B7280'
 };
 
+// Custom Tooltip component for dark mode support
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-popover text-popover-foreground border rounded-lg shadow-lg p-3">
+        <p className="font-medium">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} className="text-sm" style={{ color: entry.color }}>
+            {entry.name}: {entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodComparisonProps) {
   const [showDateSelectors, setShowDateSelectors] = useState(false);
   
@@ -554,7 +571,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="date" />
                           <YAxis domain={[0, 5]} />
-                          <Tooltip />
+                          <Tooltip content={<CustomTooltip />} />
                           <Legend />
                           <Line
                             type="monotone"
@@ -579,7 +596,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                   </CardContent>
                 </Card>
                 
-                {/* New Review Volume Chart */}
+                {/* Review Volume Chart - Changed to Line Chart */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Review Volume Per Day</CardTitle>
@@ -590,25 +607,32 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                   <CardContent>
                     <div className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={reviewVolumeData}>
+                        <LineChart data={reviewVolumeData}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="date" />
                           <YAxis />
-                          <Tooltip />
+                          <Tooltip content={<CustomTooltip />} />
                           <Legend />
-                          <Bar 
-                            dataKey="previousCount" 
-                            fill={CHART_COLORS.secondary} 
-                            name="Previous Period"
-                            opacity={0.8}
-                          />
-                          <Bar 
-                            dataKey="currentCount" 
-                            fill={CHART_COLORS.primary} 
+                          <Line
+                            type="monotone"
+                            dataKey="currentCount"
+                            stroke={CHART_COLORS.primary}
+                            strokeWidth={2}
                             name="Current Period"
-                            opacity={0.8}
+                            dot={{ r: 4 }}
+                            activeDot={{ r: 6 }}
                           />
-                        </BarChart>
+                          <Line
+                            type="monotone"
+                            dataKey="previousCount"
+                            stroke={CHART_COLORS.secondary}
+                            strokeWidth={2}
+                            strokeDasharray="5 5"
+                            name="Previous Period"
+                            dot={{ r: 4 }}
+                            activeDot={{ r: 6 }}
+                          />
+                        </LineChart>
                       </ResponsiveContainer>
                     </div>
                   </CardContent>
@@ -627,7 +651,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis />
-                          <Tooltip />
+                          <Tooltip content={<CustomTooltip />} />
                           <Legend />
                           <Bar dataKey="positive" fill={CHART_COLORS.positive} name="Positive" />
                           <Bar dataKey="neutral" fill={CHART_COLORS.neutral} name="Neutral" />
@@ -651,7 +675,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="theme" angle={-45} textAnchor="end" height={80} />
                           <YAxis />
-                          <Tooltip />
+                          <Tooltip content={<CustomTooltip />} />
                           <Legend />
                           <Area
                             type="monotone"
@@ -733,7 +757,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="language" />
                           <YAxis />
-                          <Tooltip />
+                          <Tooltip content={<CustomTooltip />} />
                           <Legend />
                           <Bar dataKey="previous" fill={CHART_COLORS.secondary} name="Previous Period" />
                           <Bar dataKey="current" fill={CHART_COLORS.primary} name="Current Period" />

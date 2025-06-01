@@ -33,7 +33,7 @@ interface ErrorBoundaryProps {
 
 interface ErrorFallbackProps {
   error: Error;
-  errorInfo: React.ErrorInfo;
+  errorInfo: React.ErrorInfo | undefined;
   resetError: () => void;
   level: 'page' | 'section' | 'component';
 }
@@ -85,7 +85,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         return (
           <Fallback
             error={this.state.error!}
-            errorInfo={this.state.errorInfo!}
+            errorInfo={this.state.errorInfo}
             resetError={this.handleReset}
             level={level}
           />
@@ -95,7 +95,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       return (
         <DefaultErrorFallback
           error={this.state.error!}
-          errorInfo={this.state.errorInfo!}
+          errorInfo={this.state.errorInfo}
           resetError={this.handleReset}
           level={level}
           retryCount={this.retryCount}
@@ -243,11 +243,15 @@ function DefaultErrorFallback({
                 Error Details (Development)
               </summary>
               <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto">
-                {error.message}
+                {error?.message || 'Unknown error'}
                 {'\n\n'}
-                {error.stack}
-                {'\n\nComponent Stack:'}
-                {errorInfo.componentStack}
+                {error?.stack || 'No stack trace available'}
+                {errorInfo && (
+                  <>
+                    {'\n\nComponent Stack:'}
+                    {errorInfo.componentStack || 'No component stack available'}
+                  </>
+                )}
               </pre>
             </details>
           )}
@@ -257,12 +261,12 @@ function DefaultErrorFallback({
               variant="ghost"
               size="sm"
               onClick={() => {
-                const subject = encodeURIComponent(`Error Report: ${error.message}`);
+                const subject = encodeURIComponent(`Error Report: ${error?.message || 'Unknown error'}`);
                 const body = encodeURIComponent(
                   `Error occurred in ${level}:\n\n` +
-                  `Message: ${error.message}\n` +
-                  `Stack: ${error.stack}\n` +
-                  `Component Stack: ${errorInfo.componentStack}\n` +
+                  `Message: ${error?.message || 'Unknown error'}\n` +
+                  `Stack: ${error?.stack || 'No stack trace'}\n` +
+                  `Component Stack: ${errorInfo?.componentStack || 'No component stack'}\n` +
                   `User Agent: ${navigator.userAgent}\n` +
                   `URL: ${window.location.href}\n` +
                   `Timestamp: ${new Date().toISOString()}`

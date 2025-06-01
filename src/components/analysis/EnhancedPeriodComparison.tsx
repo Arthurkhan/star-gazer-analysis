@@ -452,7 +452,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                 formatter={(val) => `${val > 0 ? '+' : ''}${val.toFixed(2)}`}
                 positive={comparisonResult.ratingChange > 0}
                 icon={TrendingUp}
-                subtitle={`Current: ${currentData?.metrics.avgRating.toFixed(2) || 'N/A'}`}
+                subtitle={`Current: ${currentData?.metrics?.avgRating?.toFixed(2) || 'N/A'}`}
               />
               <MetricCard
                 title="Review Volume"
@@ -472,12 +472,12 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
               />
               <MetricCard
                 title="Response Rate"
-                value={currentData?.metrics.responseRate ? 
-                  currentData.metrics.responseRate - (previousData?.metrics.responseRate || 0) : 0}
+                value={currentData?.metrics?.responseRate ? 
+                  currentData.metrics.responseRate - (previousData?.metrics?.responseRate || 0) : 0}
                 formatter={(val) => `${val > 0 ? '+' : ''}${val.toFixed(1)}%`}
-                positive={currentData?.metrics.responseRate > (previousData?.metrics.responseRate || 0)}
+                positive={(currentData?.metrics?.responseRate || 0) > (previousData?.metrics?.responseRate || 0)}
                 icon={Globe}
-                subtitle={`Current: ${currentData?.metrics.responseRate.toFixed(1) || '0'}%`}
+                subtitle={`Current: ${currentData?.metrics?.responseRate?.toFixed(1) || '0'}%`}
               />
             </div>
             

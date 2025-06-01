@@ -19,7 +19,7 @@ import {
 import { 
   ErrorBoundaryState, 
   ErrorBoundaryError, 
-  errorLogger, 
+  logError, 
   ErrorSeverity 
 } from '@/utils/errorHandling';
 
@@ -52,10 +52,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    const boundaryError = new ErrorBoundaryError(error, errorInfo);
+    const boundaryError = new ErrorBoundaryError(error.message, error);
     
-    // Log the error
-    errorLogger.logError(boundaryError);
+    // Log the error using the standalone logError function
+    logError(boundaryError, `ErrorBoundary-${this.props.level || 'component'}`);
     
     // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
@@ -322,7 +322,7 @@ export function useAsyncError() {
 
   return React.useCallback((error: Error) => {
     // Log async error
-    errorLogger.logError(error);
+    logError(error, 'AsyncError');
     
     // Throw to nearest error boundary
     throwError(error);

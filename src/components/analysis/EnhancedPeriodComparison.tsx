@@ -14,7 +14,7 @@ import {
   Download, ChevronDown, Clock, Globe, MessageCircle,
   CalendarDays, CalendarRange, CalendarClock, FileText, FileSpreadsheet
 } from 'lucide-react';
-import { format, subMonths, subQuarters, subYears, startOfMonth, endOfMonth } from 'date-fns';
+import { format, subMonths, subQuarters, subYears, startOfMonth, endOfMonth, isValid } from 'date-fns';
 import { usePeriodComparison } from '@/hooks/usePeriodComparison';
 import { DateRangeSelector } from '@/components/monthly-report/DateRangeSelector';
 import { useSelectedDateRange } from '@/components/monthly-report/hooks/useSelectedDateRange';
@@ -43,20 +43,26 @@ const CHART_COLORS = {
 export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodComparisonProps) {
   const [showDateSelectors, setShowDateSelectors] = useState(false);
   
-  // Initialize with last month vs previous month
+  // Initialize with last month vs previous month - ensure valid dates
   const today = new Date();
   const oneMonthAgo = subMonths(today, 1);
   const twoMonthsAgo = subMonths(today, 2);
   
-  // Date range hooks
+  // Ensure dates are valid before using them
+  const initialCurrentFrom = isValid(oneMonthAgo) ? startOfMonth(oneMonthAgo) : startOfMonth(today);
+  const initialCurrentTo = isValid(oneMonthAgo) ? endOfMonth(oneMonthAgo) : endOfMonth(today);
+  const initialPreviousFrom = isValid(twoMonthsAgo) ? startOfMonth(twoMonthsAgo) : startOfMonth(subMonths(today, 2));
+  const initialPreviousTo = isValid(twoMonthsAgo) ? endOfMonth(twoMonthsAgo) : endOfMonth(subMonths(today, 2));
+  
+  // Date range hooks with validated dates
   const currentPeriod = useSelectedDateRange({
-    initialFrom: startOfMonth(oneMonthAgo),
-    initialTo: endOfMonth(oneMonthAgo)
+    initialFrom: initialCurrentFrom,
+    initialTo: initialCurrentTo
   });
   
   const previousPeriod = useSelectedDateRange({
-    initialFrom: startOfMonth(twoMonthsAgo),
-    initialTo: endOfMonth(twoMonthsAgo)
+    initialFrom: initialPreviousFrom,
+    initialTo: initialPreviousTo
   });
   
   // Period comparison hook
@@ -96,8 +102,8 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
         break;
     }
     
-    currentPeriod.handleDateSelect({ from: currentStart, to: currentEnd });
-    previousPeriod.handleDateSelect({ from: previousStart, to: previousEnd });
+    currentPeriod.setDateRange({ from: currentStart, to: currentEnd });
+    previousPeriod.setDateRange({ from: previousStart, to: previousEnd });
     
     comparePeriods(
       businessName,
@@ -124,7 +130,11 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
       const grouped = new Map<string, { date: string; rating: number; count: number }>();
       
       reviews.forEach(review => {
-        const date = format(new Date(review.publishedAtDate), 'yyyy-MM-dd');
+        if (!review.publishedAtDate) return;
+        const reviewDate = new Date(review.publishedAtDate);
+        if (!isValid(reviewDate)) return;
+        
+        const date = format(reviewDate, 'yyyy-MM-dd');
         const existing = grouped.get(date) || { date, rating: 0, count: 0 };
         existing.rating += review.stars || 0;
         existing.count += 1;
@@ -257,6 +267,12 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
         previousSentimentScore: previousData.metrics.sentimentScore
       }
     });
+  };
+  
+  // Safe date formatting helper
+  const formatDate = (date: Date | undefined) => {
+    if (!date || !isValid(date)) return 'N/A';
+    return format(date, 'MMM dd, yyyy');
   };
   
   return (
@@ -406,8 +422,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">Previous Period</p>
                 <p className="font-medium">
-                  {previousData && format(new Date(previousPeriod.dateRange.from!), 'MMM dd, yyyy')} - 
-                  {previousData && format(new Date(previousPeriod.dateRange.to!), 'MMM dd, yyyy')}
+                  {formatDate(previousPeriod.dateRange.from)} - {formatDate(previousPeriod.dateRange.to)}
                 </p>
                 <Badge variant="secondary" className="mt-1">
                   {previousData?.reviews.length || 0} reviews
@@ -421,8 +436,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
               <div className="text-center">
                 <p className="text-sm text-muted-foreground">Current Period</p>
                 <p className="font-medium">
-                  {currentData && format(new Date(currentPeriod.dateRange.from!), 'MMM dd, yyyy')} - 
-                  {currentData && format(new Date(currentPeriod.dateRange.to!), 'MMM dd, yyyy')}
+                  {formatDate(currentPeriod.dateRange.from)} - {formatDate(currentPeriod.dateRange.to)}
                 </p>
                 <Badge variant="secondary" className="mt-1">
                   {currentData?.reviews.length || 0} reviews

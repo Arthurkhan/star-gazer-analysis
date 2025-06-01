@@ -12,12 +12,13 @@ import {
 import { 
   Calendar, TrendingUp, TrendingDown, Minus, Loader2, 
   Download, ChevronDown, Clock, Globe, MessageCircle,
-  CalendarDays, CalendarRange, CalendarClock
+  CalendarDays, CalendarRange, CalendarClock, FileText, FileSpreadsheet
 } from 'lucide-react';
 import { format, subMonths, subQuarters, subYears, startOfMonth, endOfMonth } from 'date-fns';
 import { usePeriodComparison } from '@/hooks/usePeriodComparison';
 import { DateRangeSelector } from '@/components/monthly-report/DateRangeSelector';
 import { useSelectedDateRange } from '@/components/monthly-report/hooks/useSelectedDateRange';
+import { exportPeriodComparisonReport, exportPeriodComparisonCSV } from '@/utils/periodComparisonExport';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -212,9 +213,50 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
   }, [currentData, previousData]);
   
   // Export functionality
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log('Export comparison report');
+  const handleExportPDF = () => {
+    if (!currentData || !previousData || !comparisonResult) return;
+    
+    exportPeriodComparisonReport({
+      businessName,
+      currentPeriod: {
+        from: currentPeriod.dateRange.from!,
+        to: currentPeriod.dateRange.to!,
+        reviews: currentData.reviews
+      },
+      previousPeriod: {
+        from: previousPeriod.dateRange.from!,
+        to: previousPeriod.dateRange.to!,
+        reviews: previousData.reviews
+      },
+      comparisonResult: {
+        ...comparisonResult,
+        currentSentimentScore: currentData.metrics.sentimentScore,
+        previousSentimentScore: previousData.metrics.sentimentScore
+      }
+    });
+  };
+  
+  const handleExportCSV = () => {
+    if (!currentData || !previousData || !comparisonResult) return;
+    
+    exportPeriodComparisonCSV({
+      businessName,
+      currentPeriod: {
+        from: currentPeriod.dateRange.from!,
+        to: currentPeriod.dateRange.to!,
+        reviews: currentData.reviews
+      },
+      previousPeriod: {
+        from: previousPeriod.dateRange.from!,
+        to: previousPeriod.dateRange.to!,
+        reviews: previousData.reviews
+      },
+      comparisonResult: {
+        ...comparisonResult,
+        currentSentimentScore: currentData.metrics.sentimentScore,
+        previousSentimentScore: previousData.metrics.sentimentScore
+      }
+    });
   };
   
   return (
@@ -262,13 +304,23 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
             </Button>
             
             {comparisonResult && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExport}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportPDF}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Export as PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportCSV}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Export as CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>

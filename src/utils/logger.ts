@@ -1,37 +1,80 @@
 /**
- * Consolidated Logging System - Phase 1 Optimization
+ * Consolidated Logging System with Test-Compatible API
  * 
- * This module provides a simple, efficient logging system that consolidates
- * functionality from logger.ts, debugger.ts, and loggingService.ts
+ * This module provides a logging system that supports both the new consolidated
+ * approach and the test-expected API for backward compatibility
  */
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'success';
+type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
 
 interface LogEntry {
   level: LogLevel;
   message: string;
   timestamp: Date;
-  namespace: string;
+  context?: string;
   data?: any;
 }
 
-class ConsolidatedLogger {
-  private namespace: string;
-  private isDevelopment: boolean;
+class Logger {
+  private level: LogLevel = 'INFO';
+  private context: string = '';
   private logs: LogEntry[] = [];
   private maxLogs: number = 100;
+  private isDevelopment: boolean;
 
-  constructor(namespace: string) {
-    this.namespace = namespace;
+  constructor() {
     this.isDevelopment = import.meta.env.DEV || import.meta.env.MODE === 'development';
   }
 
+  /**
+   * Set the logging level
+   */
+  setLevel(level: LogLevel): void {
+    this.level = level;
+  }
+
+  /**
+   * Set the logging context
+   */
+  setContext(context: string): void {
+    this.context = context;
+  }
+
+  /**
+   * Get current context
+   */
+  getContext(): string {
+    return this.context;
+  }
+
+  /**
+   * Check if a log level should be logged based on current level
+   */
+  private shouldLog(msgLevel: LogLevel): boolean {
+    const levels: LogLevel[] = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
+    const currentLevelIndex = levels.indexOf(this.level);
+    const msgLevelIndex = levels.indexOf(msgLevel);
+    return msgLevelIndex >= currentLevelIndex;
+  }
+
+  /**
+   * Format log message with context and timestamp
+   */
+  private formatMessage(message: string): string {
+    const timestamp = new Date().toISOString();
+    const contextStr = this.context ? `[${this.context}] ` : '';
+    return `[${timestamp}] ${contextStr}${message}`;
+  }
+
+  /**
+   * Add log entry to history
+   */
   private addToHistory(level: LogLevel, message: string, data?: any): void {
     const logEntry: LogEntry = {
       level,
       message,
       timestamp: new Date(),
-      namespace: this.namespace,
+      context: this.context,
       data
     };
 
@@ -44,74 +87,151 @@ class ConsolidatedLogger {
   }
 
   /**
-   * Log an informational message
+   * Log a debug message
    */
-  public log(message: string, ...optionalParams: any[]): void {
-    this.addToHistory('info', message, optionalParams.length > 0 ? optionalParams : undefined);
-    console.log(`[${this.namespace}]`, message, ...optionalParams);
+  debug(message: string, ...args: any[]): void {
+    if (this.shouldLog('DEBUG')) {
+      this.addToHistory('DEBUG', message, args.length > 0 ? args : undefined);
+      const formattedMsg = this.formatMessage(message);
+      console.debug(formattedMsg, ...args);
+    }
   }
 
   /**
-   * Log an informational message (alias for log)
+   * Log an info message
    */
-  public info(message: string, ...optionalParams: any[]): void {
-    this.addToHistory('info', message, optionalParams.length > 0 ? optionalParams : undefined);
-    console.info(`[${this.namespace}] ℹ️`, message, ...optionalParams);
+  info(message: string, ...args: any[]): void {
+    if (this.shouldLog('INFO')) {
+      this.addToHistory('INFO', message, args.length > 0 ? args : undefined);
+      const formattedMsg = this.formatMessage(message);
+      console.info(formattedMsg, ...args);
+    }
   }
 
   /**
    * Log a warning message
    */
-  public warn(message: string, ...optionalParams: any[]): void {
-    this.addToHistory('warn', message, optionalParams.length > 0 ? optionalParams : undefined);
-    console.warn(`[${this.namespace}] ⚠️`, message, ...optionalParams);
+  warn(message: string, ...args: any[]): void {
+    if (this.shouldLog('WARN')) {
+      this.addToHistory('WARN', message, args.length > 0 ? args : undefined);
+      const formattedMsg = this.formatMessage(message);
+      console.warn(formattedMsg, ...args);
+    }
   }
 
   /**
    * Log an error message
    */
-  public error(message: string, ...optionalParams: any[]): void {
-    this.addToHistory('error', message, optionalParams.length > 0 ? optionalParams : undefined);
-    console.error(`[${this.namespace}] 🔴`, message, ...optionalParams);
-  }
-
-  /**
-   * Log a debug message (only in development mode)
-   */
-  public debug(message: string, ...optionalParams: any[]): void {
-    if (this.isDevelopment) {
-      this.addToHistory('debug', message, optionalParams.length > 0 ? optionalParams : undefined);
-      console.debug(`[${this.namespace}] 🔍`, message, ...optionalParams);
+  error(message: string, ...args: any[]): void {
+    if (this.shouldLog('ERROR')) {
+      this.addToHistory('ERROR', message, args.length > 0 ? args : undefined);
+      const formattedMsg = this.formatMessage(message);
+      console.error(formattedMsg, ...args);
     }
   }
 
   /**
-   * Log a success message
+   * Create a log group
    */
-  public success(message: string, ...optionalParams: any[]): void {
-    this.addToHistory('success', message, optionalParams.length > 0 ? optionalParams : undefined);
-    console.log(`[${this.namespace}] ✅`, message, ...optionalParams);
+  group(label: string): void {
+    console.group(label);
   }
 
   /**
-   * Get recent log entries
+   * End a log group
    */
-  public getLogs(): LogEntry[] {
+  groupEnd(): void {
+    console.groupEnd();
+  }
+
+  /**
+   * Start performance timing
+   */
+  time(label: string): void {
+    console.time(label);
+  }
+
+  /**
+   * End performance timing
+   */
+  timeEnd(label: string): void {
+    console.timeEnd(label);
+  }
+
+  /**
+   * Get log history
+   */
+  getLogs(): LogEntry[] {
     return [...this.logs];
   }
 
   /**
    * Clear log history
    */
-  public clearLogs(): void {
+  clearLogs(): void {
     this.logs = [];
   }
+}
 
-  /**
-   * Export logs as JSON string
-   */
+// Create and export the default logger instance
+export const logger = new Logger();
+
+// Export function to create a new logger with configuration
+export function createLogger(config?: { level?: LogLevel; context?: string }): Logger {
+  const newLogger = new Logger();
+  if (config?.level) {
+    newLogger.setLevel(config.level);
+  }
+  if (config?.context) {
+    newLogger.setContext(config.context);
+  }
+  return newLogger;
+}
+
+// For backward compatibility with ConsolidatedLogger usage
+export class ConsolidatedLogger {
+  private namespace: string;
+  private loggerInstance: Logger;
+
+  constructor(namespace: string) {
+    this.namespace = namespace;
+    this.loggerInstance = createLogger({ context: namespace });
+  }
+
+  public log(message: string, ...optionalParams: any[]): void {
+    this.loggerInstance.info(message, ...optionalParams);
+  }
+
+  public info(message: string, ...optionalParams: any[]): void {
+    this.loggerInstance.info(message, ...optionalParams);
+  }
+
+  public warn(message: string, ...optionalParams: any[]): void {
+    this.loggerInstance.warn(message, ...optionalParams);
+  }
+
+  public error(message: string, ...optionalParams: any[]): void {
+    this.loggerInstance.error(message, ...optionalParams);
+  }
+
+  public debug(message: string, ...optionalParams: any[]): void {
+    this.loggerInstance.debug(message, ...optionalParams);
+  }
+
+  public success(message: string, ...optionalParams: any[]): void {
+    console.log(`[${this.namespace}] ✅`, message, ...optionalParams);
+  }
+
+  public getLogs(): LogEntry[] {
+    return this.loggerInstance.getLogs();
+  }
+
+  public clearLogs(): void {
+    this.loggerInstance.clearLogs();
+  }
+
   public exportLogs(): string {
-    return JSON.stringify(this.logs, null, 2);
+    return JSON.stringify(this.loggerInstance.getLogs(), null, 2);
   }
 }
 
@@ -122,7 +242,7 @@ export const appLogger = new ConsolidatedLogger('App');
 export const Logger = ConsolidatedLogger;
 
 // Default export
-export default ConsolidatedLogger;
+export default logger;
 
 // Global error handling setup
 export function setupGlobalErrorHandling(): void {

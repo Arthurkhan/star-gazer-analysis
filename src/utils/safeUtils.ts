@@ -12,6 +12,56 @@ import { logError } from './errorHandling';
 // ========================
 
 /**
+ * Safely access nested properties using dot notation
+ */
+export function safeAccess<T = any>(obj: any, path: string, defaultValue?: T): T | undefined {
+  if (!obj || !path) return defaultValue;
+  
+  const keys = path.split('.');
+  let result = obj;
+  
+  for (const key of keys) {
+    if (result === null || result === undefined) {
+      return defaultValue;
+    }
+    result = result[key];
+  }
+  
+  return result !== undefined ? result : defaultValue;
+}
+
+/**
+ * Parse JSON safely
+ */
+export function safeParseJSON<T = any>(jsonString: string | null | undefined, defaultValue?: T): T | null {
+  if (!jsonString || jsonString === '') {
+    return defaultValue !== undefined ? defaultValue : null;
+  }
+  
+  try {
+    return JSON.parse(jsonString) as T;
+  } catch (error) {
+    logError(error as Error, 'safeParseJSON');
+    return defaultValue !== undefined ? defaultValue : null;
+  }
+}
+
+/**
+ * Execute a function safely and return result with success status
+ */
+export async function safeExecute<T = any>(
+  fn: Function,
+  ...args: any[]
+): Promise<{ success: boolean; data?: T; error?: Error }> {
+  try {
+    const result = await Promise.resolve(fn(...args));
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: error as Error };
+  }
+}
+
+/**
  * Safely get a nested property (use obj?.prop?.nested ?? defaultValue for simple cases)
  */
 export function safeGet<T>(obj: any, path: string, defaultValue: T): T {
@@ -66,7 +116,7 @@ export function safeString(value: any, defaultValue: string = ''): string {
 }
 
 /**
- * Parse JSON safely
+ * Parse JSON safely (alias for backward compatibility)
  */
 export function safeJsonParse<T>(jsonString: string | null | undefined, defaultValue: T): T {
   if (!jsonString) return defaultValue;
@@ -107,35 +157,40 @@ class SafeStorage {
     }
   }
 
-  setItem(key: string, value: string): void {
+  setItem(key: string, value: string): boolean {
     try {
       if (this.available) {
         localStorage.setItem(key, value);
       }
       this.memoryFallback.set(key, value);
+      return true;
     } catch (error) {
       // Handle quota exceeded
       if ((error as Error).name === 'QuotaExceededError') {
         this.clearOldItems();
         try {
           localStorage.setItem(key, value);
+          return true;
         } catch {
           // Fall back to memory only
         }
       }
       this.memoryFallback.set(key, value);
       logError(error as Error, `localStorage.setItem(${key})`);
+      return false;
     }
   }
 
-  removeItem(key: string): void {
+  removeItem(key: string): boolean {
     try {
       if (this.available) {
         localStorage.removeItem(key);
       }
       this.memoryFallback.delete(key);
+      return true;
     } catch (error) {
       logError(error as Error, `localStorage.removeItem(${key})`);
+      return false;
     }
   }
 
@@ -144,22 +199,25 @@ class SafeStorage {
     return value ? safeJsonParse(value, defaultValue) : defaultValue;
   }
 
-  setJSON<T>(key: string, value: T): void {
+  setJSON<T>(key: string, value: T): boolean {
     try {
-      this.setItem(key, JSON.stringify(value));
+      return this.setItem(key, JSON.stringify(value));
     } catch (error) {
       logError(error as Error, `localStorage.setJSON(${key})`);
+      return false;
     }
   }
 
-  clear(): void {
+  clear(): boolean {
     try {
       if (this.available) {
         localStorage.clear();
       }
       this.memoryFallback.clear();
+      return true;
     } catch (error) {
       logError(error as Error, 'localStorage.clear');
+      return false;
     }
   }
 
@@ -189,6 +247,9 @@ export const safeStorage = new SafeStorage();
 
 // Export all utilities
 export default {
+  safeAccess,
+  safeParseJSON,
+  safeExecute,
   safeGet,
   safeArrayGet,
   safeCall,

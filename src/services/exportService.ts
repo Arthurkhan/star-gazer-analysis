@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import 'jspdf-autotable';
 import { EnhancedAnalysis } from '@/types/dataAnalysis';
 import { BusinessType } from '@/types/businessTypes';
 
@@ -475,7 +475,7 @@ function addTemporalAnalysis(doc: jsPDF, temporalData: any): number {
       day.count > (max?.count || 0) ? day : max, null
     );
     
-    autoTable(doc, {
+    (doc as any).autoTable({
       startY: yPosition,
       head: [['Day', 'Reviews', 'Percentage', 'Trend']],
       body: temporalData.dayOfWeek.map((day: any) => {
@@ -499,7 +499,7 @@ function addTemporalAnalysis(doc: jsPDF, temporalData: any): number {
     doc.text('Review Distribution by Time of Day', 15, yPosition);
     yPosition += 10;
     
-    autoTable(doc, {
+    (doc as any).autoTable({
       startY: yPosition,
       head: [['Time Period', 'Reviews', 'Percentage']],
       body: temporalData.timeOfDay.map((time: any) => {
@@ -554,7 +554,7 @@ function addReviewClustersEnhanced(doc: jsPDF, clusters: any[]): number {
     });
   
   // Add cluster table
-  autoTable(doc, {
+  (doc as any).autoTable({
     startY: yPosition,
     head: [['Cluster Name', 'Review Count', 'Sentiment', 'Key Themes']],
     body: clusterData,
@@ -821,7 +821,7 @@ function addAppendix(doc: jsPDF, data: any): number {
     }
   ];
   
-  autoTable(doc, {
+  (doc as any).autoTable({
     startY: yPosition,
     head: [['Data Category', 'Items', 'Status']],
     body: dataSummary.map(item => [item.category, item.count.toString(), item.status]),

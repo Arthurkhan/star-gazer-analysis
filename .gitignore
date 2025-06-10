@@ -34,3 +34,7 @@ dist-ssr
 
 # Build analysis
 stats.html
+
+# TypeScript build info
+*.tsbuildinfo
+.tsbuildinfo*

@@ -182,7 +182,7 @@ describe('safeUtils', () => {
       
       expect(result.success).toBe(true)
       expect(result.data).toBe('success')
-      expect(result.error).toBeNull()
+      expect(result.error).toBeUndefined()
     })
 
     it('should handle synchronous functions', async () => {
@@ -191,7 +191,7 @@ describe('safeUtils', () => {
       
       expect(result.success).toBe(true)
       expect(result.data).toBe('sync-result')
-      expect(result.error).toBeNull()
+      expect(result.error).toBeUndefined()
     })
 
     it('should catch and handle errors', async () => {
@@ -199,7 +199,7 @@ describe('safeUtils', () => {
       const result = await safeExecute(errorFn)
       
       expect(result.success).toBe(false)
-      expect(result.data).toBeNull()
+      expect(result.data).toBeUndefined()
       expect(result.error).toBeInstanceOf(Error)
       expect(result.error?.message).toBe('Test error')
     })
@@ -211,7 +211,7 @@ describe('safeUtils', () => {
       const result = await safeExecute(syncErrorFn)
       
       expect(result.success).toBe(false)
-      expect(result.data).toBeNull()
+      expect(result.data).toBeUndefined()
       expect(result.error).toBeInstanceOf(Error)
       expect(result.error?.message).toBe('Sync error')
     })

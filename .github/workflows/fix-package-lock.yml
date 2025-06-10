@@ -1,0 +1,41 @@
+name: Fix Package Lock
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'package.json'
+
+jobs:
+  fix-lock:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Remove package-lock.json
+        run: rm -f package-lock.json
+      
+      - name: Install dependencies and regenerate lock file
+        run: npm install
+      
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "fix: regenerate package-lock.json to sync with package.json"
+            git push
+          fi

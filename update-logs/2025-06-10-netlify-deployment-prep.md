@@ -19,7 +19,7 @@ Prepared the Star-Gazer-Analysis project for deployment on Netlify and embedding
 
 ### 🔄 MODIFIED FILES:
 - `.gitignore` - Added environment files and Netlify folders to ignore list
-- `package.json` - Fixed build script and added missing xlsx dependency
+- `package.json` - Fixed build script and added missing dependencies
 
 ### 🗑️ DELETED FILES:
 - None
@@ -49,10 +49,10 @@ Prepared the Star-Gazer-Analysis project for deployment on Netlify and embedding
 - Added `"type-check:build"` script for full type checking when needed
 - This resolves the TypeScript configuration conflict that was causing build failures
 
-### 5. Missing Dependency Fix
-- Added `xlsx` package (v0.18.5) to dependencies
-- Required for Excel export functionality in monthlyReportExporter.ts
-- Resolves Rollup import resolution error during build
+### 5. Missing Dependencies Fixes
+- Added `xlsx` package (v0.18.5) for Excel export functionality
+- Added `terser` package (v5.31.0) for Vite minification
+- Both packages were referenced in code but missing from dependencies
 
 ## Technical Details
 - Build command: `npm run build` (now just runs `vite build`)
@@ -69,7 +69,12 @@ Prepared the Star-Gazer-Analysis project for deployment on Netlify and embedding
 - ✅ Security measures implemented
 - ✅ Build settings optimized
 - ✅ TypeScript build conflict resolved
-- ✅ Missing dependencies added
+- ✅ Missing dependencies added (xlsx, terser)
+
+## Build Issues Resolved
+1. **TypeScript Conflict**: Fixed by removing `tsc` from build command
+2. **Missing xlsx**: Added dependency for Excel export feature
+3. **Missing terser**: Added dependency for Vite minification
 
 ## Next Steps
 - Deploy to Netlify using GitHub integration

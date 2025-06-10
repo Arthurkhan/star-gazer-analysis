@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import 'jspdf-autotable';
 import { format } from 'date-fns';
 import { Review } from '@/types/reviews';
 
@@ -43,7 +43,7 @@ export function exportPeriodComparisonReport({
   doc.setFontSize(14);
   doc.text('Key Metrics', 20, 75);
   
-  autoTable(doc, {
+  (doc as any).autoTable({
     startY: 80,
     head: [['Metric', 'Previous Period', 'Current Period', 'Change']],
     body: [
@@ -96,7 +96,7 @@ export function exportPeriodComparisonReport({
       themeData.push(['Removed Themes', comparisonResult.removedThemes.join(', ')]);
     }
     
-    autoTable(doc, {
+    (doc as any).autoTable({
       startY: currentY + 5,
       head: [['Category', 'Themes']],
       body: themeData,
@@ -120,7 +120,7 @@ export function exportPeriodComparisonReport({
         change > 0.05 ? 'Improved' : change < -0.05 ? 'Declined' : 'Stable'
       ]);
     
-    autoTable(doc, {
+    (doc as any).autoTable({
       startY: staffY + 5,
       head: [['Staff Member', 'Sentiment Change', 'Status']],
       body: staffData

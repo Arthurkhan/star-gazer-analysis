@@ -23,23 +23,35 @@ A simple, powerful Google Maps review analysis tool with AI-powered recommendati
    ```bash
    git clone https://github.com/Arthurkhan/star-gazer-analysis.git
    cd star-gazer-analysis
-   git checkout phase-2-state-simplification  # Use the stable branch
    npm install
    ```
 
 2. **Environment setup**
    ```bash
+   # Copy the example environment file
    cp .env.example .env.local
-   # Edit .env.local with your Supabase credentials
    ```
+   
+   Edit `.env.local` and add your Supabase credentials:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+   
+   **Where to find these:**
+   - Go to your [Supabase Dashboard](https://app.supabase.com)
+   - Select your project
+   - Navigate to Settings → API
+   - Copy the "Project URL" → `VITE_SUPABASE_URL`
+   - Copy the "anon public" key → `VITE_SUPABASE_ANON_KEY`
 
 3. **Database setup**
    ```bash
-   # Run the final migration (if not already done)
+   # Run the migrations (if using Supabase CLI)
    supabase db reset
    ```
 
-4. **Deploy edge functions**
+4. **Deploy edge functions** (optional, for AI features)
    ```bash
    supabase functions deploy generate-recommendations
    ```
@@ -48,9 +60,11 @@ A simple, powerful Google Maps review analysis tool with AI-powered recommendati
    ```bash
    npm run dev
    ```
+   
+   Open [http://localhost:5173](http://localhost:5173)
 
-6. **Add OpenAI API key**
-   - Open browser console
+6. **Add OpenAI API key** (for AI recommendations)
+   - Open browser DevTools console (F12)
    - Run: `localStorage.setItem('OPENAI_API_KEY', 'your-key-here')`
 
 ## 🏗️ Architecture
@@ -94,13 +108,22 @@ saved_recommendations (id, business_id, recommendations, created_at)
 
 ### Environment Variables
 ```bash
+# Required - Supabase Configuration
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Optional - Set in browser localStorage
+# OPENAI_API_KEY=your_openai_api_key
 ```
 
-### Optional Settings
-- **OpenAI API Key**: Add in browser for AI recommendations
-- **Email notifications**: Configure in dashboard settings
+### Troubleshooting Environment Variables
+
+If you see the error: **"supabaseKey is required"**
+
+1. Make sure you've created `.env.local` (not `.env`)
+2. Ensure the file is in the project root directory
+3. Double-check your credentials from Supabase dashboard
+4. Restart the development server after adding the variables
 
 ## 🚀 Deployment
 
@@ -131,6 +154,8 @@ npm run build        # Build for production
 npm run preview      # Preview production build
 npm run lint         # Run ESLint
 npm run type-check   # TypeScript type checking
+npm run test         # Run tests
+npm run format       # Format code with Prettier
 ```
 
 ### Key Development Commands
@@ -143,7 +168,7 @@ supabase functions deploy generate-recommendations
 # Git workflow  
 git add .
 git commit -m "feat: your feature"
-git push origin phase-2-state-simplification
+git push origin main
 ```
 
 ## 📁 Project Structure
@@ -168,7 +193,7 @@ supabase/
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch from `phase-2-state-simplification`
+2. Create a feature branch from `main`
 3. Make your changes
 4. Submit a pull request
 
@@ -180,7 +205,7 @@ MIT License - see LICENSE file for details
 
 - **Issues**: GitHub Issues tab
 - **Documentation**: This README
-- **Updates**: Check the updateLog.md file
+- **Update Logs**: Check the `/update-logs` directory
 
 ---
 

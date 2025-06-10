@@ -5,7 +5,7 @@
  * approach and the test-expected API for backward compatibility
  */
 
-type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
+export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
 
 interface LogEntry {
   level: LogLevel;
@@ -15,7 +15,7 @@ interface LogEntry {
   data?: any;
 }
 
-class Logger {
+class LoggerClass {
   private level: LogLevel = 'INFO';
   private context: string = '';
   private logs: LogEntry[] = [];
@@ -174,11 +174,11 @@ class Logger {
 }
 
 // Create and export the default logger instance
-export const logger = new Logger();
+export const logger = new LoggerClass();
 
 // Export function to create a new logger with configuration
-export function createLogger(config?: { level?: LogLevel; context?: string }): Logger {
-  const newLogger = new Logger();
+export function createLogger(config?: { level?: LogLevel; context?: string }): LoggerClass {
+  const newLogger = new LoggerClass();
   if (config?.level) {
     newLogger.setLevel(config.level);
   }
@@ -191,7 +191,7 @@ export function createLogger(config?: { level?: LogLevel; context?: string }): L
 // For backward compatibility with ConsolidatedLogger usage
 export class ConsolidatedLogger {
   private namespace: string;
-  private loggerInstance: Logger;
+  private loggerInstance: LoggerClass;
 
   constructor(namespace: string) {
     this.namespace = namespace;

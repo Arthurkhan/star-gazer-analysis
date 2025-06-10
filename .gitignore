@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# Netlify
+.netlify
+
+# Build analysis
+stats.html

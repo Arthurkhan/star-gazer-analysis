@@ -45,7 +45,7 @@
 
     /* Performance */
     "incremental": true,
-    "tsBuildInfoFile": ".tsbuildinfo"
+    "tsBuildInfoFile": ".tsbuildinfo.app"
   },
   "include": [
     "src/**/*.ts",

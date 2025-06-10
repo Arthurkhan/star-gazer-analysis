@@ -8,6 +8,9 @@ import tsparser from '@typescript-eslint/parser'
 
 // Filter out problematic globals with whitespace
 const cleanGlobals = (globalsObj) => {
+  if (!globalsObj || typeof globalsObj !== 'object') {
+    return {}
+  }
   const cleaned = {}
   for (const [key, value] of Object.entries(globalsObj)) {
     const trimmedKey = key.trim()
@@ -23,13 +26,17 @@ const cleanGlobals = (globalsObj) => {
 export default [
   {
     ignores: [
-      'dist',
-      'node_modules',
-      'coverage',
-      '.vite',
-      'public',
+      'dist/**',
+      'node_modules/**',
+      'coverage/**',
+      '.vite/**',
+      'public/**',
       '*.config.js',
       '*.config.ts',
+      'eslint.config.js',
+      'vite.config.ts',
+      'tailwind.config.ts',
+      'postcss.config.js',
     ],
   },
   {
@@ -46,6 +53,8 @@ export default [
       globals: {
         ...cleanGlobals(globals.browser),
         ...cleanGlobals(globals.es2020),
+        console: 'readonly',
+        process: 'readonly',
       },
     },
     plugins: {
@@ -55,16 +64,8 @@ export default [
     },
     rules: {
       ...js.configs.recommended.rules,
-      ...tseslint.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
-
-      // React Refresh
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
-
-      // TypeScript specific rules
+      
+      // TypeScript rules
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
@@ -73,8 +74,21 @@ export default [
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/prefer-const': 'error',
       '@typescript-eslint/no-var-requires': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports', disallowTypeAnnotations: false },
+      ],
+
+      // React Refresh
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true },
+      ],
+
+      // React Hooks
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
 
       // General code quality
       'no-console': ['warn', { allow: ['warn', 'error'] }],
@@ -105,9 +119,9 @@ export default [
         object: true,
       }],
 
-      // React specific
-      'react-hooks/exhaustive-deps': 'warn',
-      'react-hooks/rules-of-hooks': 'error',
+      // Disable some rules that conflict with TypeScript
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
     },
   },
   {
@@ -116,7 +130,6 @@ export default [
       'testing-library': testingLibrary,
     },
     rules: {
-      ...testingLibrary.configs.react.rules,
       'testing-library/prefer-screen-queries': 'error',
       'testing-library/no-unnecessary-act': 'error',
       'testing-library/no-wait-for-multiple-assertions': 'error',

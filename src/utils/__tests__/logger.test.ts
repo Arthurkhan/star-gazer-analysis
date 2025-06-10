@@ -28,37 +28,37 @@ describe('logger', () => {
     it('should log debug messages when level is DEBUG', () => {
       logger.setLevel('DEBUG')
       logger.debug('Debug message')
-      expect(mockConsole.debug).toHaveBeenCalled()
-      const call = mockConsole.debug.mock.calls[0]
-      expect(call[0]).toMatch(/Debug message/)
-      expect(call[1]).toBe('Debug message')
+      expect(mockConsole.debug).toHaveBeenCalledWith(
+        expect.stringContaining('Debug message'),
+        'Debug message'
+      )
     })
 
     it('should log info messages when level is INFO', () => {
       logger.setLevel('INFO')
       logger.info('Info message')
-      expect(mockConsole.info).toHaveBeenCalled()
-      const call = mockConsole.info.mock.calls[0]
-      expect(call[0]).toMatch(/Info message/)
-      expect(call[1]).toBe('Info message')
+      expect(mockConsole.info).toHaveBeenCalledWith(
+        expect.stringContaining('Info message'),
+        'Info message'
+      )
     })
 
     it('should log warn messages when level is WARN', () => {
       logger.setLevel('WARN')
       logger.warn('Warning message')
-      expect(mockConsole.warn).toHaveBeenCalled()
-      const call = mockConsole.warn.mock.calls[0]
-      expect(call[0]).toMatch(/Warning message/)
-      expect(call[1]).toBe('Warning message')
+      expect(mockConsole.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Warning message'),
+        'Warning message'
+      )
     })
 
     it('should log error messages when level is ERROR', () => {
       logger.setLevel('ERROR')
       logger.error('Error message')
-      expect(mockConsole.error).toHaveBeenCalled()
-      const call = mockConsole.error.mock.calls[0]
-      expect(call[0]).toMatch(/Error message/)
-      expect(call[1]).toBe('Error message')
+      expect(mockConsole.error).toHaveBeenCalledWith(
+        expect.stringContaining('Error message'),
+        'Error message'
+      )
     })
 
     it('should respect log level hierarchy', () => {
@@ -81,20 +81,20 @@ describe('logger', () => {
       logger.setContext('TestComponent')
       logger.info('Test message')
       
-      expect(mockConsole.info).toHaveBeenCalled()
-      const call = mockConsole.info.mock.calls[0]
-      expect(call[0]).toMatch(/\[TestComponent\]/)
-      expect(call[1]).toBe('Test message')
+      expect(mockConsole.info).toHaveBeenCalledWith(
+        expect.stringContaining('[TestComponent]'),
+        'Test message'
+      )
     })
 
     it('should not include context when not set', () => {
       logger.setContext('')
       logger.info('Test message')
       
-      expect(mockConsole.info).toHaveBeenCalled()
-      const call = mockConsole.info.mock.calls[0]
-      expect(call[0]).not.toMatch(/\[TestComponent\]/)
-      expect(call[1]).toBe('Test message')
+      expect(mockConsole.info).toHaveBeenCalledWith(
+        expect.not.stringContaining('[TestComponent]'),
+        'Test message'
+      )
     })
   })
 
@@ -123,11 +123,11 @@ describe('logger', () => {
       const error = new Error('Test error')
       logger.error('Error occurred', error)
       
-      expect(mockConsole.error).toHaveBeenCalled()
-      const call = mockConsole.error.mock.calls[0]
-      expect(call[0]).toMatch(/Error occurred/)
-      expect(call[1]).toBe('Error occurred')
-      expect(call[2]).toBe(error)
+      expect(mockConsole.error).toHaveBeenCalledWith(
+        expect.stringContaining('Error occurred'),
+        'Error occurred',
+        error
+      )
     })
   })
 
@@ -162,10 +162,10 @@ describe('logger', () => {
       customLogger.warn('Warning message')
       
       expect(mockConsole.info).not.toHaveBeenCalled()
-      expect(mockConsole.warn).toHaveBeenCalled()
-      const call = mockConsole.warn.mock.calls[0]
-      expect(call[0]).toMatch(/\[CustomLogger\]/)
-      expect(call[1]).toBe('Warning message')
+      expect(mockConsole.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[CustomLogger]'),
+        'Warning message'
+      )
     })
   })
 
@@ -176,12 +176,12 @@ describe('logger', () => {
       
       logger.info('Message with objects', obj, array)
       
-      expect(mockConsole.info).toHaveBeenCalled()
-      const call = mockConsole.info.mock.calls[0]
-      expect(call[0]).toMatch(/Message with objects/)
-      expect(call[1]).toBe('Message with objects')
-      expect(call[2]).toBe(obj)
-      expect(call[3]).toBe(array)
+      expect(mockConsole.info).toHaveBeenCalledWith(
+        expect.stringContaining('Message with objects'),
+        'Message with objects',
+        obj,
+        array
+      )
     })
   })
 

@@ -6,6 +6,20 @@ import testingLibrary from 'eslint-plugin-testing-library'
 import tseslint from '@typescript-eslint/eslint-plugin'
 import tsparser from '@typescript-eslint/parser'
 
+// Filter out problematic globals with whitespace
+const cleanGlobals = (globalsObj) => {
+  const cleaned = {}
+  for (const [key, value] of Object.entries(globalsObj)) {
+    const trimmedKey = key.trim()
+    if (trimmedKey !== key) {
+      console.warn(`Skipping global "${key}" due to whitespace`)
+      continue
+    }
+    cleaned[trimmedKey] = value
+  }
+  return cleaned
+}
+
 export default [
   {
     ignores: [
@@ -30,8 +44,8 @@ export default [
         },
       },
       globals: {
-        ...globals.browser,
-        ...globals.es2020,
+        ...cleanGlobals(globals.browser),
+        ...cleanGlobals(globals.es2020),
       },
     },
     plugins: {

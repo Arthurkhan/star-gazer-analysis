@@ -19,14 +19,216 @@ export interface BusinessData {
 }
 
 interface EdgeFunctionResponse {
-  data?: Recommendations | { error: string; fallback?: Recommendations };
+  data?: any;
   error?: { message: string };
+}
+
+// Interface for the actual response from edge function
+interface EdgeFunctionRecommendations {
+  urgentActions: Array<{
+    title: string;
+    description: string;
+    impact: string;
+    effort: string;
+  }>;
+  growthStrategies: Array<{
+    title: string;
+    description: string;
+    impact: string;
+    effort: string;
+  }>;
+  customerAttractionPlan: {
+    title: string;
+    description: string;
+    strategies: Array<{
+      title: string;
+      description: string;
+      timeline: string;
+      cost: string;
+      expectedOutcome: string;
+    }>;
+  };
+  competitivePositioning: {
+    title: string;
+    description: string;
+    strengths: string[];
+    opportunities: string[];
+    recommendations: string[];
+  };
+  futureProjections: {
+    shortTerm: string[];
+    longTerm: string[];
+  };
 }
 
 /**
  * Enhanced Recommendation Service with timeout and better error handling
  */
 export class RecommendationService {
+  /**
+   * Transform edge function response to frontend format
+   */
+  private transformRecommendations(edgeResponse: EdgeFunctionRecommendations, businessData: BusinessData): Recommendations {
+    const transformedRecommendations: Recommendations = {
+      businessName: businessData.businessName,
+      
+      // Transform urgent actions
+      urgentActions: edgeResponse.urgentActions.map((action, index) => ({
+        id: `urgent-${index}`,
+        title: action.title,
+        description: action.description,
+        category: 'operations',
+        timeframe: 'immediate'
+      })),
+      
+      // Transform pattern insights from growth strategies
+      patternInsights: edgeResponse.growthStrategies.slice(0, 3).map((strategy, index) => ({
+        id: `pattern-${index}`,
+        pattern: strategy.title,
+        frequency: 1,
+        sentiment: 'neutral' as const,
+        impact: strategy.impact as 'high' | 'medium' | 'low',
+        recommendation: strategy.description,
+        examples: []
+      })),
+      
+      // Transform long term strategies
+      longTermStrategies: edgeResponse.futureProjections.longTerm.map((projection, index) => ({
+        id: `strategy-${index}`,
+        name: `Strategy ${index + 1}`,
+        description: projection,
+        objectives: [projection],
+        tactics: [{
+          name: 'Implementation',
+          description: projection,
+          timeline: '1-2 years',
+          owner: 'Management',
+          kpis: []
+        }],
+        expectedOutcomes: [projection],
+        category: 'growth',
+        title: projection,
+        riskLevel: 'medium',
+        timeframe: 'long_term',
+        expectedROI: 'high',
+        actions: []
+      })),
+      
+      // Create competitive position from positioning data
+      competitivePosition: {
+        overview: edgeResponse.competitivePositioning.description,
+        competitors: [],
+        strengthsWeaknesses: {
+          strengths: edgeResponse.competitivePositioning.strengths,
+          weaknesses: [],
+          opportunities: edgeResponse.competitivePositioning.opportunities,
+          threats: []
+        },
+        recommendations: edgeResponse.competitivePositioning.recommendations,
+        position: 'average' as const,
+        metrics: {},
+        strengths: edgeResponse.competitivePositioning.strengths,
+        weaknesses: [],
+        opportunities: edgeResponse.competitivePositioning.opportunities
+      },
+      
+      // Transform customer attraction plan
+      customerAttractionPlan: {
+        overview: edgeResponse.customerAttractionPlan.description,
+        objectives: edgeResponse.customerAttractionPlan.strategies.map(s => s.expectedOutcome),
+        tactics: edgeResponse.customerAttractionPlan.strategies.map(strategy => ({
+          name: strategy.title,
+          description: strategy.description,
+          channel: 'multi-channel',
+          timeline: strategy.timeline,
+          budget: strategy.cost,
+          kpis: []
+        })),
+        budget: {
+          total: 'Variable',
+          breakdown: {}
+        },
+        timeline: {
+          start: 'Immediate',
+          end: 'Ongoing',
+          milestones: []
+        },
+        targetAudiences: {
+          primary: [],
+          secondary: [],
+          untapped: []
+        },
+        channels: [],
+        messaging: {
+          uniqueValue: edgeResponse.customerAttractionPlan.title,
+          keyPoints: [],
+          callToAction: ''
+        }
+      },
+      
+      // Create analysis result
+      analysis: {
+        sentimentAnalysis: [],
+        staffMentions: [],
+        commonTerms: [],
+        overallAnalysis: `${edgeResponse.urgentActions.length} urgent actions identified, ${edgeResponse.growthStrategies.length} growth strategies recommended.`
+      },
+      
+      // Create suggestions from all recommendations
+      suggestions: [
+        ...edgeResponse.urgentActions.map((action, index) => ({
+          category: 'operations' as const,
+          priority: action.impact.toLowerCase() as 'high' | 'medium' | 'low',
+          title: action.title,
+          description: action.description,
+          impact: action.impact.toLowerCase() as 'high' | 'medium' | 'low',
+          effort: action.effort.toLowerCase() as 'high' | 'medium' | 'low',
+          timeframe: 'immediate' as const
+        })),
+        ...edgeResponse.growthStrategies.map((strategy, index) => ({
+          category: 'marketing' as const,
+          priority: strategy.impact.toLowerCase() as 'high' | 'medium' | 'low',
+          title: strategy.title,
+          description: strategy.description,
+          impact: strategy.impact.toLowerCase() as 'high' | 'medium' | 'low',
+          effort: strategy.effort.toLowerCase() as 'high' | 'medium' | 'low',
+          timeframe: 'short_term' as const
+        }))
+      ],
+      
+      // Create action plan
+      actionPlan: {
+        title: 'Comprehensive Business Improvement Plan',
+        description: 'A strategic roadmap based on AI analysis of customer feedback',
+        steps: edgeResponse.urgentActions.slice(0, 3).map((action, index) => ({
+          title: action.title,
+          description: action.description,
+          status: 'pending' as const
+        })),
+        expectedResults: edgeResponse.futureProjections.shortTerm[0] || 'Improved customer satisfaction and business growth',
+        timeframe: 'ongoing' as const
+      },
+      
+      // Transform growth strategies
+      growthStrategies: edgeResponse.growthStrategies.map((strategy, index) => ({
+        id: `growth-${index}`,
+        type: 'operations' as const,
+        title: strategy.title,
+        description: strategy.description,
+        steps: [strategy.description],
+        potentialImpact: strategy.impact.toLowerCase() as 'high' | 'medium' | 'low',
+        resourceRequirements: strategy.effort.toLowerCase() as 'high' | 'medium' | 'low',
+        timeframe: 'short_term' as const,
+        category: 'growth',
+        expectedImpact: strategy.impact,
+        implementation: [strategy.description],
+        kpis: []
+      }))
+    };
+    
+    return transformedRecommendations;
+  }
+
   /**
    * Generate recommendations using OpenAI via Supabase Edge Function
    */
@@ -54,7 +256,7 @@ export class RecommendationService {
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     try {
-      const response = await supabase.functions.invoke<Recommendations | { error: string; fallback?: Recommendations }>('generate-recommendations', {
+      const response = await supabase.functions.invoke('generate-recommendations', {
         body: { 
           businessData,
           apiKey,
@@ -93,7 +295,7 @@ export class RecommendationService {
 
       // Handle both success and error responses from edge function
       if (response.data && typeof response.data === 'object' && 'error' in response.data) {
-        const errorData = response.data as { error: string; fallback?: Recommendations };
+        const errorData = response.data as { error: string; fallback?: EdgeFunctionRecommendations };
         logger.warn('Edge function returned error, using fallback:', errorData.error);
         
         // Provide more helpful error messages
@@ -111,14 +313,14 @@ export class RecommendationService {
         
         // Return fallback recommendations if available
         if (errorData.fallback) {
-          return errorData.fallback;
+          return this.transformRecommendations(errorData.fallback, businessData);
         }
         
         throw new Error(errorData.error);
       }
 
       logger.info('Successfully generated AI recommendations');
-      return response.data as Recommendations;
+      return this.transformRecommendations(response.data as EdgeFunctionRecommendations, businessData);
 
     } catch (error: unknown) {
       clearTimeout(timeoutId);
@@ -166,16 +368,16 @@ export class RecommendationService {
 Generated on: ${timestamp}
 
 ## Urgent Actions
-${recommendations.urgentActions?.map(action => `• ${action}`).join('\n') || 'No urgent actions needed.'}
+${recommendations.urgentActions?.map(action => `• ${action.title}: ${action.description}`).join('\n') || 'No urgent actions needed.'}
 
 ## Growth Strategies  
-${recommendations.growthStrategies?.map(strategy => `• ${strategy}`).join('\n') || 'No growth strategies available.'}
+${recommendations.growthStrategies?.map(strategy => `• ${strategy.title}: ${strategy.description}`).join('\n') || 'No growth strategies available.'}
 
 ## Marketing Plan
-${recommendations.marketingPlan?.map(plan => `• ${plan}`).join('\n') || 'No marketing plans available.'}
+${recommendations.customerAttractionPlan?.tactics?.map(tactic => `• ${tactic.name}: ${tactic.description}`).join('\n') || 'No marketing plans available.'}
 
 ## Competitive Analysis
-${recommendations.competitiveAnalysis?.map(insight => `• ${insight}`).join('\n') || 'No competitive insights available.'}
+${recommendations.competitivePosition?.recommendations?.map(insight => `• ${insight}`).join('\n') || 'No competitive insights available.'}
     `.trim();
   }
 }

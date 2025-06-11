@@ -292,6 +292,105 @@ async function callGemini(apiKey: string, model: string, systemPrompt: string, u
   return JSON.parse(content);
 }
 
+// Fallback response for errors
+const getFallbackResponse = (errorMessage: string) => ({
+  error: errorMessage,
+  timestamp: new Date().toISOString(),
+  fallback: {
+    urgentActions: [
+      {
+        title: 'Enhance Customer Response Time',
+        description: 'Respond to all reviews within 24 hours to show customers you care.',
+        impact: 'High',
+        effort: 'Low',
+      },
+      {
+        title: 'Create Staff Recognition Program',
+        description: 'Celebrate employees mentioned positively in reviews.',
+        impact: 'High',
+        effort: 'Medium',
+      },
+      {
+        title: 'Address Common Pain Points',
+        description: 'Analyze negative feedback patterns and create action plans.',
+        impact: 'High',
+        effort: 'Medium',
+      },
+    ],
+    growthStrategies: [
+      {
+        title: 'Community Ambassador Program',
+        description: 'Recruit loyal customers as brand ambassadors.',
+        impact: 'High',
+        effort: 'Medium',
+      },
+      {
+        title: 'Create Instagrammable Moments',
+        description: 'Design photo-worthy areas for social media sharing.',
+        impact: 'High',
+        effort: 'Medium',
+      },
+      {
+        title: 'Launch Limited-Time Events',
+        description: 'Create monthly special events to drive repeat visits.',
+        impact: 'Medium',
+        effort: 'Medium',
+      },
+    ],
+    customerAttractionPlan: {
+      title: 'Customer Growth Strategy',
+      description: 'Multi-channel approach to attract customers',
+      strategies: [
+        {
+          title: 'Social Media Stories',
+          description: 'Share behind-the-scenes content',
+          timeline: 'Start now',
+          cost: '$200/month',
+          expectedOutcome: '20% more engagement',
+        },
+        {
+          title: 'Local Partnerships',
+          description: 'Cross-promote with nearby businesses',
+          timeline: '2 weeks',
+          cost: 'Free',
+          expectedOutcome: '15% new customers',
+        },
+      ],
+    },
+    competitivePositioning: {
+      title: 'Your Market Position',
+      description: 'Leverage strengths to stand out',
+      strengths: [
+        'Strong customer loyalty',
+        'Unique atmosphere',
+      ],
+      opportunities: [
+        'Growing local market',
+        'Untapped segments',
+      ],
+      recommendations: [
+        'Focus on unique features',
+        'Fill competitor gaps',
+      ],
+    },
+    futureProjections: {
+      shortTerm: [
+        '25% more positive reviews in 3 months',
+        '15% repeat customer growth',
+      ],
+      longTerm: [
+        'Local market leader in 1 year',
+        '40% customer base growth',
+      ],
+    },
+    metadata: {
+      source: 'fallback',
+      reason: errorMessage,
+      timestamp: new Date().toISOString()
+    }
+  },
+});
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -301,7 +400,32 @@ serve(async (req) => {
   try {
     log.info('Edge function invoked at:', new Date().toISOString());
     
-    const { businessData, provider, apiKey, model, test } = await req.json();
+    // Parse request body with better error handling
+    let requestData;
+    try {
+      const bodyText = await req.text();
+      log.info('Request body length:', bodyText.length);
+      
+      if (!bodyText || bodyText.trim() === '') {
+        throw new Error('Request body is empty');
+      }
+      
+      requestData = JSON.parse(bodyText);
+    } catch (parseError) {
+      log.error('Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify(getFallbackResponse('Invalid request format. Please ensure the request body is valid JSON.')),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+          status: 200,
+        },
+      );
+    }
+    
+    const { businessData, provider, apiKey, model, test } = requestData;
     
     // Test mode - return immediately without calling AI
     if (test === true) {
@@ -332,7 +456,7 @@ serve(async (req) => {
 
     if (!apiKey) {
       log.error('No API key provided');
-      throw new Error(`${provider} API key is required`);
+      throw new Error(`${provider || 'AI'} API key is required`);
     }
 
     if (!businessData || !businessData.reviews || businessData.reviews.length === 0) {
@@ -426,107 +550,8 @@ serve(async (req) => {
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    // Return fallback with error
-    const fallbackResponse = {
-      error: errorMessage,
-      timestamp: new Date().toISOString(),
-      fallback: {
-        urgentActions: [
-          {
-            title: 'Enhance Customer Response Time',
-            description: 'Respond to all reviews within 24 hours to show customers you care.',
-            impact: 'High',
-            effort: 'Low',
-          },
-          {
-            title: 'Create Staff Recognition Program',
-            description: 'Celebrate employees mentioned positively in reviews.',
-            impact: 'High',
-            effort: 'Medium',
-          },
-          {
-            title: 'Address Common Pain Points',
-            description: 'Analyze negative feedback patterns and create action plans.',
-            impact: 'High',
-            effort: 'Medium',
-          },
-        ],
-        growthStrategies: [
-          {
-            title: 'Community Ambassador Program',
-            description: 'Recruit loyal customers as brand ambassadors.',
-            impact: 'High',
-            effort: 'Medium',
-          },
-          {
-            title: 'Create Instagrammable Moments',
-            description: 'Design photo-worthy areas for social media sharing.',
-            impact: 'High',
-            effort: 'Medium',
-          },
-          {
-            title: 'Launch Limited-Time Events',
-            description: 'Create monthly special events to drive repeat visits.',
-            impact: 'Medium',
-            effort: 'Medium',
-          },
-        ],
-        customerAttractionPlan: {
-          title: 'Customer Growth Strategy',
-          description: 'Multi-channel approach to attract customers',
-          strategies: [
-            {
-              title: 'Social Media Stories',
-              description: 'Share behind-the-scenes content',
-              timeline: 'Start now',
-              cost: '$200/month',
-              expectedOutcome: '20% more engagement',
-            },
-            {
-              title: 'Local Partnerships',
-              description: 'Cross-promote with nearby businesses',
-              timeline: '2 weeks',
-              cost: 'Free',
-              expectedOutcome: '15% new customers',
-            },
-          ],
-        },
-        competitivePositioning: {
-          title: 'Your Market Position',
-          description: 'Leverage strengths to stand out',
-          strengths: [
-            'Strong customer loyalty',
-            'Unique atmosphere',
-          ],
-          opportunities: [
-            'Growing local market',
-            'Untapped segments',
-          ],
-          recommendations: [
-            'Focus on unique features',
-            'Fill competitor gaps',
-          ],
-        },
-        futureProjections: {
-          shortTerm: [
-            '25% more positive reviews in 3 months',
-            '15% repeat customer growth',
-          ],
-          longTerm: [
-            'Local market leader in 1 year',
-            '40% customer base growth',
-          ],
-        },
-        metadata: {
-          source: 'fallback',
-          reason: errorMessage,
-          timestamp: new Date().toISOString()
-        }
-      },
-    };
-
     return new Response(
-      JSON.stringify(fallbackResponse),
+      JSON.stringify(getFallbackResponse(errorMessage)),
       {
         headers: {
           ...corsHeaders,

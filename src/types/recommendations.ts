@@ -1,5 +1,13 @@
 export type BusinessType = "cafe" | "restaurant" | "bar" | "hotel" | "retail" | "art_gallery" | "other";
 
+export interface RecommendationMetadata {
+  source: 'openai' | 'fallback';
+  model?: string;
+  reason?: string;
+  timestamp: string;
+  responseTime?: number;
+}
+
 export interface Recommendations {
   // Business information
   businessId?: string;
@@ -17,6 +25,9 @@ export interface Recommendations {
   longTermStrategies: Strategy[];
   competitivePosition: CompetitiveAnalysis;
   customerAttractionPlan: MarketingPlan;
+  
+  // Metadata to track source
+  metadata?: RecommendationMetadata;
 }
 
 export interface AnalysisResult {

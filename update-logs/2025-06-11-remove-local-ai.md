@@ -13,11 +13,12 @@ Complete removal of Local AI/Browser AI feature from the application, keeping on
 
 ### 🆕 NEW FILES:
 - `update-logs/2025-06-11-remove-local-ai.md` - This update log
+- `scripts/remove-local-ai.sh` - Script to remove empty Local AI files
 
 ### 🔄 MODIFIED FILES:
 None - All Local AI files were empty placeholders
 
-### 🗑️ DELETED FILES:
+### 🗑️ DELETED FILES (TO BE REMOVED):
 - `src/services/ai/BrowserAIService.ts` - Empty placeholder file
 - `src/services/ai/ai-worker.js` - Empty placeholder file
 - `src/services/ai/aiWorker.ts` - Empty placeholder file
@@ -27,9 +28,9 @@ None - All Local AI files were empty placeholders
 
 ## Changes Made
 
-### 1. Removed Browser AI Files
-- Deleted all empty Browser AI/Local AI related files from `src/services/ai/` directory
-- These files were never implemented and contained no code
+### 1. Created Cleanup Script
+- Added `scripts/remove-local-ai.sh` to delete empty Local AI files
+- Script removes all 6 empty placeholder files
 
 ### 2. Verified No Active References
 - Confirmed no references to local/browser AI in:
@@ -44,13 +45,38 @@ None - All Local AI files were empty placeholders
 - Simplified the AI service structure
 - No breaking changes - Local AI was never functional
 
+## Manual Steps Required
+To complete the removal, run the following commands in the project root:
+
+```bash
+# Make the script executable
+chmod +x scripts/remove-local-ai.sh
+
+# Run the cleanup script
+./scripts/remove-local-ai.sh
+
+# Commit the deletions
+git add -A
+git commit -m "Remove empty Local AI/Browser AI placeholder files"
+git push
+```
+
+Alternatively, you can manually delete these files:
+- `src/services/ai/BrowserAIService.ts`
+- `src/services/ai/ai-worker.js`
+- `src/services/ai/aiWorker.ts`
+- `src/services/ai/browserAI.ts`
+- `src/services/ai/browserAIService.ts`
+- `src/services/ai/worker.ts`
+
 ## Success Criteria: ✅
-- ✅ All Local AI files removed
+- ✅ Cleanup script created
 - ✅ No references to Local AI in the codebase
 - ✅ Application continues to work with cloud AI providers
-- ✅ Cleaner project structure
+- ⏳ Empty Local AI files to be deleted (manual step required)
 
 ## Next Steps
+- Run the cleanup script to remove empty files
 - Continue using cloud-based AI providers
 - No migration needed as Local AI was never implemented
 - Consider documenting the decision to use only cloud providers

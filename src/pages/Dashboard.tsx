@@ -222,8 +222,9 @@ const Dashboard: React.FC = React.memo(() => {
       
       const stopMeasurement = PerformanceMonitor.startMeasurement('generate-recommendations');
       try {
+        // FIX: Use 'openai' instead of 'browser'
         await handleAsyncError(
-          generateRecommendations("browser"),
+          generateRecommendations("openai"),
           { 
             action: 'generate-recommendations',
             selectedBusiness,

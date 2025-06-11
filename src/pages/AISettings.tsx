@@ -15,7 +15,10 @@ import { Loader2, Check, X, ArrowLeft, Settings } from 'lucide-react';
 // Model configurations for each provider
 const providerModels: Record<AIProviderType, { value: string; label: string }[]> = {
   openai: [
-    { value: 'gpt-4o', label: 'GPT-4o (Latest, most capable)' },
+    { value: 'gpt-4.1', label: 'GPT-4.1 (Latest generation)' },
+    { value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini (Efficient)' },
+    { value: 'gpt-4.1-nano', label: 'GPT-4.1 Nano (Ultra-fast)' },
+    { value: 'gpt-4o', label: 'GPT-4o (Most capable)' },
     { value: 'gpt-4o-mini', label: 'GPT-4o Mini (Faster, cheaper)' },
     { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
     { value: 'gpt-4', label: 'GPT-4' },

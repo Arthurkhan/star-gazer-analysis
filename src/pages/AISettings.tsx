@@ -12,6 +12,27 @@ import { AIServiceFactory, defaultConfigs } from '@/services/ai/aiServiceFactory
 import { AIProviderType } from '@/types/aiService';
 import { Loader2, Check, X, ArrowLeft, Settings } from 'lucide-react';
 
+// Model configurations for each provider
+const providerModels: Record<AIProviderType, { value: string; label: string }[]> = {
+  openai: [
+    { value: 'gpt-4o', label: 'GPT-4o (Latest, most capable)' },
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini (Faster, cheaper)' },
+    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+    { value: 'gpt-4', label: 'GPT-4' },
+    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (Budget option)' }
+  ],
+  claude: [
+    { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus (Most capable)' },
+    { value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet (Balanced)' },
+    { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku (Fast & affordable)' }
+  ],
+  gemini: [
+    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Latest)' },
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Fast)' },
+    { value: 'gemini-pro', label: 'Gemini Pro' }
+  ]
+};
+
 const AISettings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -20,6 +41,11 @@ const AISettings = () => {
     openai: '',
     claude: '',
     gemini: ''
+  });
+  const [selectedModels, setSelectedModels] = useState<Record<AIProviderType, string>>({
+    openai: 'gpt-4o',
+    claude: 'claude-3-opus-20240229',
+    gemini: 'gemini-1.5-pro'
   });
   const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState<Record<AIProviderType, boolean | null>>({
@@ -41,6 +67,14 @@ const AISettings = () => {
       gemini: localStorage.getItem('GEMINI_API_KEY') || ''
     };
     setApiKeys(savedKeys);
+
+    // Load saved models
+    const savedModels: Record<AIProviderType, string> = {
+      openai: localStorage.getItem('OPENAI_MODEL') || 'gpt-4o',
+      claude: localStorage.getItem('CLAUDE_MODEL') || 'claude-3-opus-20240229',
+      gemini: localStorage.getItem('GEMINI_MODEL') || 'gemini-1.5-pro'
+    };
+    setSelectedModels(savedModels);
   }, []);
 
   // Back navigation handler
@@ -52,13 +86,18 @@ const AISettings = () => {
     // Save provider selection
     localStorage.setItem('AI_PROVIDER', selectedProvider);
 
-    // Save API keys
+    // Save API keys and models
     Object.entries(apiKeys).forEach(([provider, key]) => {
       if (key) {
         localStorage.setItem(`${provider.toUpperCase()}_API_KEY`, key);
       } else {
         localStorage.removeItem(`${provider.toUpperCase()}_API_KEY`);
       }
+    });
+
+    // Save selected models
+    Object.entries(selectedModels).forEach(([provider, model]) => {
+      localStorage.setItem(`${provider.toUpperCase()}_MODEL`, model);
     });
 
     toast({
@@ -85,6 +124,7 @@ const AISettings = () => {
       const config = {
         provider,
         apiKey,
+        model: selectedModels[provider],
         ...defaultConfigs[provider]
       };
 
@@ -94,7 +134,7 @@ const AISettings = () => {
       toast({
         title: success ? 'Connection successful' : 'Connection failed',
         description: success 
-          ? `Successfully connected to ${provider}`
+          ? `Successfully connected to ${provider} with model ${selectedModels[provider]}`
           : `Failed to connect to ${provider}. Please check your API key.`,
         variant: success ? 'default' : 'destructive'
       });
@@ -113,17 +153,17 @@ const AISettings = () => {
   const providers: { value: AIProviderType; label: string; description: string }[] = [
     {
       value: 'openai',
-      label: 'OpenAI (GPT-4)',
-      description: 'Most advanced language model with excellent reasoning capabilities'
+      label: 'OpenAI',
+      description: 'Most advanced language models with excellent reasoning capabilities'
     },
     {
       value: 'claude',
-      label: 'Anthropic (Claude)',
+      label: 'Anthropic Claude',
       description: 'Excellent for detailed analysis and creative solutions'
     },
     {
       value: 'gemini',
-      label: 'Google (Gemini)',
+      label: 'Google Gemini',
       description: 'Fast and efficient for general business analysis'
     }
   ];
@@ -229,6 +269,28 @@ const AISettings = () => {
                     {provider.value === 'openai' && 'Get your API key from platform.openai.com'}
                     {provider.value === 'claude' && 'Get your API key from console.anthropic.com'}
                     {provider.value === 'gemini' && 'Get your API key from makersuite.google.com'}
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor={`${provider.value}-model`}>Model</Label>
+                  <Select 
+                    value={selectedModels[provider.value]} 
+                    onValueChange={(value) => setSelectedModels(prev => ({ ...prev, [provider.value]: value }))}
+                  >
+                    <SelectTrigger id={`${provider.value}-model`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {providerModels[provider.value].map(model => (
+                        <SelectItem key={model.value} value={model.value}>
+                          {model.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Select the AI model to use for recommendations
                   </p>
                 </div>
               </div>

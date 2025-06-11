@@ -1,8 +1,7 @@
 echo "🔍 Running pre-commit checks..."
 
-# TEMPORARILY DISABLED - Remove this comment block to re-enable
-# Run lint-staged
-# npx lint-staged
+# Run lint-staged (re-enabled after fixing tests)
+npx lint-staged
 
 # Run type check
 echo "🔧 Type checking..."

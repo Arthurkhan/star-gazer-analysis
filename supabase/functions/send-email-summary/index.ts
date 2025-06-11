@@ -17,7 +17,7 @@ serve(async (req) => {
   }
   
   try {
-    const { recipient, subject, html, includeAttachments, attachments } = await req.json();
+    const { recipient, subject, html, attachments } = await req.json();
     
     if (!recipient || !subject || !html) {
       return new Response(
@@ -39,7 +39,7 @@ serve(async (req) => {
     });
     
     if (error) {
-      console.error('Email sending error:', error);
+      // Email sending error
       return new Response(
         JSON.stringify({ error: error.message }),
         { 
@@ -61,9 +61,10 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Function error:', error);
+    // Function error
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
-      JSON.stringify({ error: error.message || 'Unknown error occurred' }),
+      JSON.stringify({ error: errorMessage }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

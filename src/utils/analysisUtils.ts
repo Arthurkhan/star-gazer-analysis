@@ -1,4 +1,8 @@
-import { Review } from "@/types/reviews";
+import { 
+  Review,
+  reviewFieldAccessor, 
+  hasOwnerResponse 
+} from '@/types/reviews';
 import { 
   BusinessHealthScore, 
   PerformanceMetrics, 
@@ -14,7 +18,7 @@ import {
   TrendCalculation,
   PeriodData,
   TimePeriodConfig
-} from "@/types/analysisSummary";
+} from '@/types/analysisSummary';
 import { 
   calculateAverageRating, 
   countReviewsByRating, 
@@ -22,13 +26,12 @@ import {
   extractStaffMentions_sync,
   extractCommonTerms_sync,
   countReviewsByLanguage
-} from "@/utils/dataUtils";
+} from '@/utils/dataUtils';
 import { 
   memoizeWithExpiry, 
   generateAnalysisCacheKey, 
   PerformanceMonitor 
-} from "@/utils/performanceOptimizations";
-import { reviewFieldAccessor, hasOwnerResponse } from "@/types/reviews";
+} from '@/utils/performanceOptimizations';
 
 // Helper function to filter reviews by date range
 export const filterReviewsByDateRange = (reviews: Review[], start: Date, end: Date): Review[] => {
@@ -48,45 +51,51 @@ export const createTimePeriods = (config: AnalysisConfig): TimePeriodConfig => {
   let label: string;
 
   switch (config.timePeriod) {
-    case "last30days":
+    case 'last30days': {
       currentStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       previousStart = new Date(currentStart.getTime() - 30 * 24 * 60 * 60 * 1000);
       previousEnd = currentStart;
-      label = "Last 30 Days";
+      label = 'Last 30 Days';
       break;
-    case "last90days":
+    }
+    case 'last90days': {
       currentStart = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
       previousStart = new Date(currentStart.getTime() - 90 * 24 * 60 * 60 * 1000);
       previousEnd = currentStart;
-      label = "Last 90 Days";
+      label = 'Last 90 Days';
       break;
-    case "last6months":
+    }
+    case 'last6months': {
       currentStart = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
       previousStart = new Date(currentStart.getFullYear(), currentStart.getMonth() - 6, currentStart.getDate());
       previousEnd = currentStart;
-      label = "Last 6 Months";
+      label = 'Last 6 Months';
       break;
-    case "last12months":
+    }
+    case 'last12months': {
       currentStart = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
       previousStart = new Date(currentStart.getFullYear() - 1, currentStart.getMonth(), currentStart.getDate());
       previousEnd = currentStart;
-      label = "Last 12 Months";
+      label = 'Last 12 Months';
       break;
-    case "custom":
-      if (!config.customRange) throw new Error("Custom range required for custom time period");
+    }
+    case 'custom': {
+      if (!config.customRange) throw new Error('Custom range required for custom time period');
       currentStart = config.customRange.start;
       currentEnd = config.customRange.end;
       const daysDiff = Math.floor((currentEnd.getTime() - currentStart.getTime()) / (24 * 60 * 60 * 1000));
       previousStart = new Date(currentStart.getTime() - daysDiff * 24 * 60 * 60 * 1000);
       previousEnd = currentStart;
-      label = "Custom Period";
+      label = 'Custom Period';
       break;
-    default: // "all"
+    }
+    default: { // "all"
       // Use the oldest review date as start
       currentStart = new Date('2020-01-01'); // Default start date
       previousStart = currentStart;
       previousEnd = currentStart;
-      label = "All Time";
+      label = 'All Time';
+    }
   }
 
   return {
@@ -100,7 +109,7 @@ export const createTimePeriods = (config: AnalysisConfig): TimePeriodConfig => {
       end: previousEnd,
       label: `Previous ${label}`
     },
-    comparison: config.comparisonPeriod === "yearOverYear" ? "year" : "month"
+    comparison: config.comparisonPeriod === 'yearOverYear' ? 'year' : 'month'
   };
 };
 
@@ -109,18 +118,18 @@ export const calculateTrend = (current: number, previous: number): TrendCalculat
   const change = current - previous;
   const changePercentage = previous !== 0 ? (change / previous) * 100 : 0;
   
-  let direction: "up" | "down" | "stable" = "stable";
-  let significance: "significant" | "minor" | "negligible" = "negligible";
+  let direction: 'up' | 'down' | 'stable' = 'stable';
+  let significance: 'significant' | 'minor' | 'negligible' = 'negligible';
 
   if (Math.abs(changePercentage) < 2) {
-    direction = "stable";
-    significance = "negligible";
+    direction = 'stable';
+    significance = 'negligible';
   } else if (changePercentage > 0) {
-    direction = "up";
-    significance = changePercentage > 10 ? "significant" : "minor";
+    direction = 'up';
+    significance = changePercentage > 10 ? 'significant' : 'minor';
   } else {
-    direction = "down";
-    significance = Math.abs(changePercentage) > 10 ? "significant" : "minor";
+    direction = 'down';
+    significance = Math.abs(changePercentage) > 10 ? 'significant' : 'minor';
   }
 
   return {
@@ -222,12 +231,12 @@ export const calculatePerformanceMetrics = memoizeWithExpiry(
     const last12Months = filterReviewsByDateRange(reviews, last12MonthsStart, now).length;
 
     // Determine seasonal pattern
-    let seasonalPattern: "stable" | "seasonal" | "declining" | "growing" = "stable";
-    if (growthRate > 20) seasonalPattern = "growing";
-    else if (growthRate < -20) seasonalPattern = "declining";
+    let seasonalPattern: 'stable' | 'seasonal' | 'declining' | 'growing' = 'stable';
+    if (growthRate > 20) seasonalPattern = 'growing';
+    else if (growthRate < -20) seasonalPattern = 'declining';
     else if (monthlyEntries.length > 3) {
       const variation = Math.max(...monthlyEntries.map(e => e[1])) - Math.min(...monthlyEntries.map(e => e[1]));
-      if (variation > reviewsPerMonth * 2) seasonalPattern = "seasonal";
+      if (variation > reviewsPerMonth * 2) seasonalPattern = 'seasonal';
     }
 
     stopMeasurement();
@@ -277,9 +286,9 @@ export const calculateRatingAnalysis = memoizeWithExpiry(
     const previous = previousReviews ? calculateAverageRating(previousReviews) : current;
     const change = current - previous;
     
-    let direction: "up" | "down" | "stable" = "stable";
+    let direction: 'up' | 'down' | 'stable' = 'stable';
     if (Math.abs(change) > 0.1) {
-      direction = change > 0 ? "up" : "down";
+      direction = change > 0 ? 'up' : 'down';
     }
 
     // Calculate benchmarks
@@ -360,15 +369,15 @@ export const calculateSentimentAnalysis = memoizeWithExpiry(
 
     const distribution = {
       positive: {
-        count: sentimentData.find(s => s.name === "Positive")?.value || 0,
+        count: sentimentData.find(s => s.name === 'Positive')?.value || 0,
         percentage: 0
       },
       neutral: {
-        count: sentimentData.find(s => s.name === "Neutral")?.value || 0,
+        count: sentimentData.find(s => s.name === 'Neutral')?.value || 0,
         percentage: 0
       },
       negative: {
-        count: sentimentData.find(s => s.name === "Negative")?.value || 0,
+        count: sentimentData.find(s => s.name === 'Negative')?.value || 0,
         percentage: 0
       }
     };
@@ -392,13 +401,15 @@ export const calculateSentimentAnalysis = memoizeWithExpiry(
         quarterlyData.set(quarter, { positive: 0, neutral: 0, negative: 0, total: 0 });
       }
       
-      const data = quarterlyData.get(quarter)!;
-      data.total++;
-      
-      const sentiment = review.sentiment?.toLowerCase() || 'neutral';
-      if (sentiment.includes('positive')) data.positive++;
-      else if (sentiment.includes('negative')) data.negative++;
-      else data.neutral++;
+      const data = quarterlyData.get(quarter);
+      if (data) {
+        data.total++;
+        
+        const sentiment = review.sentiment?.toLowerCase() || 'neutral';
+        if (sentiment.includes('positive')) data.positive++;
+        else if (sentiment.includes('negative')) data.negative++;
+        else data.neutral++;
+      }
     });
 
     // Convert to percentage trends
@@ -430,12 +441,12 @@ export const calculateSentimentAnalysis = memoizeWithExpiry(
 
     const correlationWithRating = {
       highRating: {
-        positive: highRatingSentiment.find(s => s.name === "Positive")?.value || 0,
-        negative: highRatingSentiment.find(s => s.name === "Negative")?.value || 0
+        positive: highRatingSentiment.find(s => s.name === 'Positive')?.value || 0,
+        negative: highRatingSentiment.find(s => s.name === 'Negative')?.value || 0
       },
       lowRating: {
-        positive: lowRatingSentiment.find(s => s.name === "Positive")?.value || 0,
-        negative: lowRatingSentiment.find(s => s.name === "Negative")?.value || 0
+        positive: lowRatingSentiment.find(s => s.name === 'Positive')?.value || 0,
+        negative: lowRatingSentiment.find(s => s.name === 'Negative')?.value || 0
       }
     };
 
@@ -468,19 +479,21 @@ export const calculateThematicAnalysis = memoizeWithExpiry(
         categoryMap.set(category, { terms: [], totalCount: 0, ratings: [] });
       }
       
-      const categoryData = categoryMap.get(category)!;
-      categoryData.terms.push(term);
-      categoryData.totalCount += term.count;
-      
-      // Find reviews mentioning this term to get average rating - FIXED
-      const mentioningReviews = reviews.filter(review => {
-        const mainThemes = reviewFieldAccessor.getMainThemes(review);
-        const commonTermsField = review["common terms"];
-        return (mainThemes?.toLowerCase().includes(term.text.toLowerCase())) ||
-               (commonTermsField?.toLowerCase().includes(term.text.toLowerCase()));
-      });
-      
-      mentioningReviews.forEach(review => categoryData.ratings.push(review.stars));
+      const categoryData = categoryMap.get(category);
+      if (categoryData) {
+        categoryData.terms.push(term);
+        categoryData.totalCount += term.count;
+        
+        // Find reviews mentioning this term to get average rating - FIXED
+        const mentioningReviews = reviews.filter(review => {
+          const mainThemes = reviewFieldAccessor.getMainThemes(review);
+          const commonTermsField = review['common terms'];
+          return (mainThemes?.toLowerCase().includes(term.text.toLowerCase())) ||
+                 (commonTermsField?.toLowerCase().includes(term.text.toLowerCase()));
+        });
+        
+        mentioningReviews.forEach(review => categoryData.ratings.push(review.stars));
+      }
     });
 
     // Convert to top categories
@@ -493,9 +506,9 @@ export const calculateThematicAnalysis = memoizeWithExpiry(
         const percentage = reviews.length > 0 ? (data.totalCount / reviews.length) * 100 : 0;
         
         // Determine sentiment based on average rating
-        let sentiment: "positive" | "negative" | "neutral" = "neutral";
-        if (averageRating >= 4) sentiment = "positive";
-        else if (averageRating <= 2) sentiment = "negative";
+        let sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
+        if (averageRating >= 4) sentiment = 'positive';
+        else if (averageRating <= 2) sentiment = 'negative';
         
         return {
           category,
@@ -515,8 +528,8 @@ export const calculateThematicAnalysis = memoizeWithExpiry(
         theme: category.category,
         negativeCount: Math.floor(category.count * (1 - category.averageRating / 5)),
         averageRating: category.averageRating,
-        urgency: category.averageRating < 2.5 ? "high" as const : 
-                 category.averageRating < 3.0 ? "medium" as const : "low" as const
+        urgency: category.averageRating < 2.5 ? 'high' as const : 
+                 category.averageRating < 3.0 ? 'medium' as const : 'low' as const
       }))
       .sort((a, b) => a.averageRating - b.averageRating);
 
@@ -533,9 +546,9 @@ export const calculateThematicAnalysis = memoizeWithExpiry(
         const recentPercentage = recentReviews.length > 0 ? (recentCount / recentReviews.length) * 100 : 0;
         const overallPercentage = reviews.length > 0 ? (term.count / reviews.length) * 100 : 0;
         
-        let trend: "rising" | "declining" | "stable" = "stable";
-        if (recentPercentage > overallPercentage * 1.2) trend = "rising";
-        else if (recentPercentage < overallPercentage * 0.8) trend = "declining";
+        let trend: 'rising' | 'declining' | 'stable' = 'stable';
+        if (recentPercentage > overallPercentage * 1.2) trend = 'rising';
+        else if (recentPercentage < overallPercentage * 0.8) trend = 'declining';
         
         return {
           topic: term.text,
@@ -546,8 +559,8 @@ export const calculateThematicAnalysis = memoizeWithExpiry(
       })
       .filter(topic => topic.recentMentions > 0)
       .sort((a, b) => {
-        if (a.trend === "rising" && b.trend !== "rising") return -1;
-        if (b.trend === "rising" && a.trend !== "rising") return 1;
+        if (a.trend === 'rising' && b.trend !== 'rising') return -1;
+        if (b.trend === 'rising' && a.trend !== 'rising') return 1;
         return b.recentMentions - a.recentMentions;
       })
       .slice(0, 6);
@@ -570,24 +583,24 @@ export const generateAnalysisSummary = memoizeWithExpiry(
   (
     reviews: Review[],
     config: AnalysisConfig = {
-      timePeriod: "all",
+      timePeriod: 'all',
       includeStaffAnalysis: true,
       includeThematicAnalysis: true,
       includeActionItems: true,
-      comparisonPeriod: "previous"
+      comparisonPeriod: 'previous'
     }
   ): AnalysisSummaryData => {
     const stopMeasurement = PerformanceMonitor.startMeasurement('analysis-summary-generation');
     
     if (!reviews || reviews.length === 0) {
-      throw new Error("No reviews provided for analysis");
+      throw new Error('No reviews provided for analysis');
     }
 
     const timePeriod = createTimePeriods(config);
-    const currentReviews = config.timePeriod === "all" ? reviews : 
+    const currentReviews = config.timePeriod === 'all' ? reviews : 
       filterReviewsByDateRange(reviews, timePeriod.current.start, timePeriod.current.end);
     
-    const previousReviews = config.comparisonPeriod === "none" ? undefined :
+    const previousReviews = config.comparisonPeriod === 'none' ? undefined :
       filterReviewsByDateRange(reviews, timePeriod.previous.start, timePeriod.previous.end);
 
     // Create period data for health score calculation
@@ -618,16 +631,16 @@ export const generateAnalysisSummary = memoizeWithExpiry(
     // Calculate response analytics first to get response rate
     const responseAnalytics = calculateResponseAnalytics(currentReviews);
     currentPeriodData.metrics.responseRate = responseAnalytics.responseRate;
-    if (previousPeriodData) {
-      const prevResponseAnalytics = calculateResponseAnalytics(previousReviews!);
+    if (previousPeriodData && previousReviews) {
+      const prevResponseAnalytics = calculateResponseAnalytics(previousReviews);
       previousPeriodData.metrics.responseRate = prevResponseAnalytics.responseRate;
     }
 
     // Calculate sentiment analysis to get sentiment score
     const sentimentAnalysis = calculateSentimentAnalysis(currentReviews);
     currentPeriodData.metrics.sentimentScore = sentimentAnalysis.distribution.positive.percentage;
-    if (previousPeriodData) {
-      const prevSentimentAnalysis = calculateSentimentAnalysis(previousReviews!);
+    if (previousPeriodData && previousReviews) {
+      const prevSentimentAnalysis = calculateSentimentAnalysis(previousReviews);
       previousPeriodData.metrics.sentimentScore = prevSentimentAnalysis.distribution.positive.percentage;
     }
 
@@ -648,7 +661,7 @@ export const generateAnalysisSummary = memoizeWithExpiry(
         positiveMentions: mention.sentiment === 'positive' ? mention.count : 0,
         negativeMentions: mention.sentiment === 'negative' ? mention.count : 0,
         averageRatingInMentions: 0, // TODO: Calculate in future phases
-        trend: "stable" as const,
+        trend: 'stable' as const,
         examples: mention.examples || []
       })),
       overallStaffScore: staffMentions.length > 0 ? 75 : 0, // Placeholder
@@ -686,11 +699,11 @@ export const generateAnalysisSummary = memoizeWithExpiry(
       
       if (unrespondedNegative.length > 0) {
         actionItems.urgent.push({
-          type: "unresponded_negative",
+          type: 'unresponded_negative',
           description: `${unrespondedNegative.length} negative reviews need responses`,
-          priority: "high",
+          priority: 'high',
           affectedReviews: unrespondedNegative.length,
-          suggestedAction: "Respond to negative reviews to show customer care"
+          suggestedAction: 'Respond to negative reviews to show customer care'
         });
       }
 
@@ -699,21 +712,21 @@ export const generateAnalysisSummary = memoizeWithExpiry(
         actionItems.improvements.push({
           area: area.theme,
           description: `${area.theme} has below-average ratings`,
-          potentialImpact: area.urgency === "high" ? "high" : "medium",
-          effort: "medium",
-          suggestedActions: [`Focus on improving ${area.theme.toLowerCase()}`, "Train staff on related areas"]
+          potentialImpact: area.urgency === 'high' ? 'high' : 'medium',
+          effort: 'medium',
+          suggestedActions: [`Focus on improving ${area.theme.toLowerCase()}`, 'Train staff on related areas']
         });
       });
 
       // Add strengths
       thematicAnalysis.topCategories
-        .filter(cat => cat.sentiment === "positive")
+        .filter(cat => cat.sentiment === 'positive')
         .slice(0, 3)
         .forEach(strength => {
           actionItems.strengths.push({
             area: strength.category,
             description: `${strength.category} receives positive feedback`,
-            leverageOpportunities: [`Highlight ${strength.category.toLowerCase()} in marketing`, "Maintain current standards"]
+            leverageOpportunities: [`Highlight ${strength.category.toLowerCase()} in marketing`, 'Maintain current standards']
           });
         });
     }
@@ -738,7 +751,7 @@ export const generateAnalysisSummary = memoizeWithExpiry(
           start: timePeriod.current.start,
           end: timePeriod.current.end
         },
-        businessName: "Current Business" // TODO: Pass business name
+        businessName: 'Current Business' // TODO: Pass business name
       }
     };
   },

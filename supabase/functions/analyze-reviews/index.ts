@@ -6,9 +6,7 @@ import {
   getSystemMessage, 
   parseAIResponse, 
   createCompleteAnalysis,
-  extractIndividualReviewAnalysis,
-  formatOverallAnalysis,
-  getDefaultPrompt
+  formatOverallAnalysis
 } from "./prompt-utils.ts";
 import { testApiKey, getApiKeyAndModel } from "./api-key-manager.ts";
 
@@ -19,6 +17,30 @@ const CACHE_TTL = 1000 * 60 * 60; // 1 hour cache TTL
 // Storage for custom prompt
 let customPrompt = "";
 
+interface Review {
+  rating?: number;
+  stars?: number;
+  date?: string;
+  reviewUrl?: string;
+  language?: string;
+  originalLanguage?: string;
+}
+
+interface RequestData {
+  action?: string;
+  provider?: string;
+  prompt?: string;
+  apiKey?: string;
+  reviews?: Review[];
+  fullAnalysis?: boolean;
+  dateRange?: {
+    startDate: string;
+    endDate: string;
+  };
+  reportType?: string;
+  comparisonData?: unknown;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -26,7 +48,7 @@ serve(async (req) => {
   }
 
   try {
-    const requestData = await req.json();
+    const requestData: RequestData = await req.json();
     const { action, provider } = requestData;
     
     // Handle custom prompt operations
@@ -53,24 +75,24 @@ serve(async (req) => {
     
     // Test mode - just check if API key exists/is valid
     if (action === "test") {
-      console.log(`Testing ${provider} API key...`);
+      // Testing API key...
       
       try {
-        await testApiKey(provider, requestData.apiKey);
+        await testApiKey(provider!, requestData.apiKey!);
         
         return new Response(
           JSON.stringify({ success: true }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } catch (error) {
-        console.error(`Error validating ${provider} API key:`, error);
+        // Error validating API key
         throw new Error(`Error validating ${provider} API key: ${error.message}`);
       }
     }
     
     // Standard analysis mode
     const { 
-      reviews, 
+      reviews = [], 
       provider: analysisProvider, 
       fullAnalysis = true, 
       dateRange,
@@ -80,7 +102,7 @@ serve(async (req) => {
     } = requestData;
     
     // Get the appropriate API key and model - PASS REQUEST API KEY
-    const { apiKey, model } = getApiKeyAndModel(analysisProvider, requestApiKey);
+    const { apiKey, model } = getApiKeyAndModel(analysisProvider!, requestApiKey);
     
     // Filter reviews by date range if provided
     let filteredReviews = reviews;
@@ -88,17 +110,17 @@ serve(async (req) => {
       const startDate = new Date(dateRange.startDate);
       const endDate = new Date(dateRange.endDate);
       
-      filteredReviews = reviews.filter(review => {
-        const reviewDate = new Date(review.date);
+      filteredReviews = reviews.filter((review: Review) => {
+        const reviewDate = new Date(review.date!);
         return reviewDate >= startDate && reviewDate <= endDate;
       });
       
-      console.log(`Filtered reviews by date range: ${filteredReviews.length} reviews remain`);
+      // Filtered reviews by date range
     }
     
     // Create a cache key based on the request parameters
     const cacheKey = JSON.stringify({
-      reviewIds: filteredReviews.map(r => r.date || r.reviewUrl).sort(),
+      reviewIds: filteredReviews.map((r: Review) => r.date || r.reviewUrl).sort(),
       provider: analysisProvider,
       model,
       fullAnalysis,
@@ -110,14 +132,14 @@ serve(async (req) => {
     // Check if we have a cached result
     const cachedResult = analysisCache.get(cacheKey);
     if (cachedResult && cachedResult.timestamp > Date.now() - CACHE_TTL) {
-      console.log('Returning cached analysis result');
+      // Returning cached analysis result
       return new Response(
         JSON.stringify(cachedResult.data),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log(`Analyzing ${filteredReviews.length} reviews with ${analysisProvider} model: ${model}`);
+    // Analyzing reviews with AI
     
     // Get custom prompt if available - first from memory, then from env var
     const currentCustomPrompt = customPrompt || Deno.env.get("OPENAI_CUSTOM_PROMPT");
@@ -150,7 +172,7 @@ serve(async (req) => {
     const data = await analysisPromise;
 
     // Parse the response accordingly
-    const analysis = parseAIResponse(data, analysisProvider);
+    const analysis = parseAIResponse(data, analysisProvider!);
 
     // Format the overall analysis for better readability
     if (analysis.overallAnalysis) {
@@ -187,7 +209,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error("AI analysis failed:", error);
+    // AI analysis failed
     return new Response(
       JSON.stringify({
         error: error.message,
@@ -205,7 +227,7 @@ serve(async (req) => {
 });
 
 // Calculate rating breakdown statistics - FIXED STAR/STARS REFERENCES
-function calculateRatingBreakdown(reviews) {
+function calculateRatingBreakdown(reviews: Review[]) {
   const totalReviews = reviews.length;
   const counts = {
     1: reviews.filter(r => r.rating === 1 || r.stars === 1).length,
@@ -225,9 +247,9 @@ function calculateRatingBreakdown(reviews) {
 }
 
 // Calculate language distribution statistics
-function calculateLanguageDistribution(reviews) {
+function calculateLanguageDistribution(reviews: Review[]) {
   const totalReviews = reviews.length;
-  const languages = {};
+  const languages: Record<string, number> = {};
   
   // Count occurrences of each language
   reviews.forEach(review => {

@@ -86,10 +86,10 @@ serve(async (req) => {
       log.info('Business context provided - using enhanced recommendations');
     }
 
-    // Prepare data for OpenAI
-    const reviewsSummary = businessData.reviews.slice(0, 50).map((review: Review) => ({
+    // Prepare data for OpenAI - limit to 30 reviews to save tokens
+    const reviewsSummary = businessData.reviews.slice(0, 30).map((review: Review) => ({
       rating: review.stars,
-      text: review.text || review.textTranslated || '',
+      text: (review.text || review.textTranslated || '').substring(0, 200), // Limit text length
       date: review.publishedAtDate || review.publishedatdate || '',
     }));
 
@@ -125,67 +125,64 @@ ${ctx.additionalContext ? `Additional Context: ${ctx.additionalContext}` : ''}
 `.trim();
     }
 
-    // Build the enhanced system prompt
+    // Simplified prompt to reduce token usage and ensure complete JSON
     const systemPrompt = `You are an expert business consultant analyzing customer reviews for ${businessInfo.name}, a ${businessInfo.type}. 
 
 ${contextualInfo ? contextualInfo + '\n' : ''}
 
-Based on the review data and business context provided, generate creative, specific, and actionable recommendations. Your tone should be professional but friendly, using engaging language that inspires action.
+Based on the review data provided, generate specific, actionable recommendations. Be concise but helpful.
 
-Return JSON with exactly this structure:
+Return ONLY valid JSON with exactly this structure:
 {
   "urgentActions": [
     {
-      "title": "Clear, action-oriented title (e.g., 'Transform Negative Reviews into Loyalty')",
-      "description": "2-3 sentences explaining what to do, why it matters, and the expected impact. Be specific and engaging.",
-      "impact": "High|Medium|Low",
-      "effort": "High|Medium|Low"
+      "title": "Clear action title",
+      "description": "1-2 sentences explaining what to do and why",
+      "impact": "High",
+      "effort": "Low"
     }
   ],
   "growthStrategies": [
     {
-      "title": "Strategic initiative title (e.g., 'Launch VIP Experience Program')",
-      "description": "Detailed explanation of the strategy, implementation approach, and expected outcomes. Make it exciting and achievable.",
-      "impact": "High|Medium|Low",
-      "effort": "High|Medium|Low"
+      "title": "Strategy title",
+      "description": "Brief explanation of the strategy",
+      "impact": "High",
+      "effort": "Medium"
     }
   ],
   "customerAttractionPlan": {
-    "title": "Creative marketing plan name (e.g., 'The Neighborhood Ambassador Strategy')",
-    "description": "Brief overview of the marketing approach",
+    "title": "Marketing Plan Name",
+    "description": "Brief overview",
     "strategies": [
       {
-        "title": "Specific tactic (e.g., 'Instagram Story Takeovers')",
-        "description": "How to implement this tactic and why it will work for this specific business",
-        "timeline": "e.g., '2 weeks to launch'",
-        "cost": "e.g., '$200/month'",
-        "expectedOutcome": "What results to expect"
+        "title": "Tactic name",
+        "description": "How to implement",
+        "timeline": "2 weeks",
+        "cost": "$200/month",
+        "expectedOutcome": "Expected result"
       }
     ]
   },
   "competitivePositioning": {
     "title": "Your Competitive Edge",
-    "description": "Overview of market position",
-    "strengths": ["Unique strength 1", "Unique strength 2", "etc"],
-    "opportunities": ["Market opportunity 1", "Market opportunity 2", "etc"],
-    "recommendations": ["How to leverage strengths", "How to capture opportunities", "etc"]
+    "description": "Market position overview",
+    "strengths": ["Strength 1", "Strength 2"],
+    "opportunities": ["Opportunity 1", "Opportunity 2"],
+    "recommendations": ["Action 1", "Action 2"]
   },
   "futureProjections": {
-    "shortTerm": ["3-6 month projection with specific metrics", "Another projection", "etc"],
-    "longTerm": ["1-2 year vision with growth targets", "Another projection", "etc"]
+    "shortTerm": ["3-month projection", "Another projection"],
+    "longTerm": ["1-year projection", "Another projection"]
   }
 }
 
 Requirements:
-- Generate AT LEAST 5 items for urgentActions and growthStrategies
-- Generate AT LEAST 4 strategies in customerAttractionPlan
-- Make titles catchy and action-oriented, not generic
-- Descriptions should provide real value, not repeat the title
-- Use conversational but professional language
-- Include specific examples relevant to the business type
-- Consider cultural and regional factors
-- Be optimistic and solution-focused
-- Avoid corporate jargon - be clear and inspiring`;
+- Generate EXACTLY 3 urgentActions
+- Generate EXACTLY 3 growthStrategies  
+- Generate EXACTLY 2 strategies in customerAttractionPlan
+- Keep all text concise
+- Ensure valid JSON structure
+- Use only "High", "Medium", or "Low" for impact/effort`;
 
     log.info('Calling OpenAI API...');
     const startTime = Date.now();
@@ -216,8 +213,8 @@ Requirements:
             },
           ],
           response_format: { type: 'json_object' },
-          max_tokens: 3000, // Increased for more detailed recommendations
-          temperature: 0.8, // Slightly higher for more creative responses
+          max_tokens: 2000, // Reduced to ensure complete response
+          temperature: 0.7, // Slightly lower for more consistent output
         }),
       });
     } catch (fetchError: unknown) {
@@ -279,6 +276,33 @@ Requirements:
     try {
       recommendations = JSON.parse(messageContent);
       log.info('Successfully parsed recommendations');
+      
+      // Ensure we have the required structure
+      if (!recommendations.urgentActions) recommendations.urgentActions = [];
+      if (!recommendations.growthStrategies) recommendations.growthStrategies = [];
+      if (!recommendations.customerAttractionPlan) {
+        recommendations.customerAttractionPlan = {
+          title: 'Customer Growth Strategy',
+          description: 'Strategic approach to attract and retain customers',
+          strategies: []
+        };
+      }
+      if (!recommendations.competitivePositioning) {
+        recommendations.competitivePositioning = {
+          title: 'Market Position',
+          description: 'Your competitive standing',
+          strengths: [],
+          opportunities: [],
+          recommendations: []
+        };
+      }
+      if (!recommendations.futureProjections) {
+        recommendations.futureProjections = {
+          shortTerm: [],
+          longTerm: []
+        };
+      }
+      
     } catch (parseError) {
       log.error('Failed to parse recommendations JSON:', parseError);
       log.error('Raw content (first 500 chars):', messageContent?.substring(0, 500));

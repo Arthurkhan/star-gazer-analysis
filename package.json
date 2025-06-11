@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix",
+    "lint:fix-critical": "node scripts/quick-fix-eslint.js",
+    "lint:fix-all": "node scripts/fix-eslint.js",
     "type-check": "tsc --noEmit",
     "type-check:build": "tsc && vite build",
     "clean": "rm -rf dist node_modules/.vite",

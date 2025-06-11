@@ -57,6 +57,83 @@ const log = {
   }
 };
 
+// Test function to verify edge function is working
+async function testFunction() {
+  return {
+    urgentActions: [
+      {
+        title: 'Test Action 1',
+        description: 'This is a test action to verify the edge function works',
+        impact: 'High',
+        effort: 'Low'
+      },
+      {
+        title: 'Test Action 2',
+        description: 'Another test action',
+        impact: 'Medium',
+        effort: 'Medium'
+      },
+      {
+        title: 'Test Action 3',
+        description: 'Third test action',
+        impact: 'Low',
+        effort: 'High'
+      }
+    ],
+    growthStrategies: [
+      {
+        title: 'Test Strategy 1',
+        description: 'Test growth strategy',
+        impact: 'High',
+        effort: 'Low'
+      },
+      {
+        title: 'Test Strategy 2',
+        description: 'Another test strategy',
+        impact: 'Medium',
+        effort: 'Medium'
+      },
+      {
+        title: 'Test Strategy 3',
+        description: 'Third test strategy',
+        impact: 'Low',
+        effort: 'High'
+      }
+    ],
+    customerAttractionPlan: {
+      title: 'Test Marketing Plan',
+      description: 'Test description',
+      strategies: [
+        {
+          title: 'Test Tactic 1',
+          description: 'Test implementation',
+          timeline: '1 week',
+          cost: '$100',
+          expectedOutcome: 'Test outcome'
+        },
+        {
+          title: 'Test Tactic 2',
+          description: 'Another test',
+          timeline: '2 weeks',
+          cost: '$200',
+          expectedOutcome: 'Another outcome'
+        }
+      ]
+    },
+    competitivePositioning: {
+      title: 'Test Competitive Edge',
+      description: 'Test market position',
+      strengths: ['Test strength 1', 'Test strength 2'],
+      opportunities: ['Test opportunity 1', 'Test opportunity 2'],
+      recommendations: ['Test recommendation 1', 'Test recommendation 2']
+    },
+    futureProjections: {
+      shortTerm: ['Test short term 1', 'Test short term 2'],
+      longTerm: ['Test long term 1', 'Test long term 2']
+    }
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -66,7 +143,32 @@ serve(async (req) => {
   try {
     log.info('Edge function invoked at:', new Date().toISOString());
     
-    const { businessData, apiKey } = await req.json();
+    const { businessData, apiKey, test } = await req.json();
+    
+    // Test mode - return immediately without calling OpenAI
+    if (test === true) {
+      log.info('Running in test mode');
+      const testRecommendations = await testFunction();
+      
+      return new Response(
+        JSON.stringify({
+          ...testRecommendations,
+          metadata: {
+            source: 'test',
+            timestamp: new Date().toISOString(),
+            message: 'Edge function is working correctly'
+          }
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+          status: 200,
+        },
+      );
+    }
+    
     log.info('Received request with business:', businessData?.businessName);
 
     if (!apiKey) {
@@ -81,113 +183,58 @@ serve(async (req) => {
 
     log.info(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`);
 
-    // Log if business context is provided
-    if (businessData.businessContext) {
-      log.info('Business context provided - using enhanced recommendations');
-    }
-
-    // Prepare data for OpenAI - limit to 30 reviews to save tokens
-    const reviewsSummary = businessData.reviews.slice(0, 30).map((review: Review) => ({
+    // Prepare data for OpenAI - limit to 20 reviews to save tokens
+    const reviewsSummary = businessData.reviews.slice(0, 20).map((review: Review) => ({
       rating: review.stars,
-      text: (review.text || review.textTranslated || '').substring(0, 200), // Limit text length
-      date: review.publishedAtDate || review.publishedatdate || '',
+      text: (review.text || review.textTranslated || '').substring(0, 150), // Even shorter
     }));
 
     const businessInfo = {
       name: businessData.businessName,
       type: businessData.businessType || 'business',
       totalReviews: businessData.reviews.length,
-      averageRating: businessData.reviews.reduce((sum: number, r: Review) => sum + (r.stars || 0), 0) / businessData.reviews.length,
+      averageRating: Math.round((businessData.reviews.reduce((sum: number, r: Review) => sum + (r.stars || 0), 0) / businessData.reviews.length) * 10) / 10,
     };
 
-    // Build comprehensive context from BusinessContext if available
-    let contextualInfo = '';
-    if (businessData.businessContext) {
-      const ctx = businessData.businessContext;
+    // Ultra-simplified prompt
+    const systemPrompt = `You are a business consultant for ${businessInfo.name}. Based on customer reviews, provide recommendations.
 
-      contextualInfo = `
-BUSINESS CONTEXT:
-${ctx.location ? `Location: ${ctx.location.city}, ${ctx.location.country}${ctx.location.neighborhood ? `, ${ctx.location.neighborhood}` : ''}` : ''}
-${ctx.operatingDays?.length ? `Operating Days: ${ctx.operatingDays.join(', ')}` : ''}
-${ctx.peakHours ? `Peak Hours: ${ctx.peakHours}` : ''}
-${ctx.averageTransaction ? `Average Transaction: ${ctx.averageTransaction}` : ''}
-${ctx.seatingCapacity ? `Seating Capacity: ${ctx.seatingCapacity}` : ''}
-${ctx.priceRange ? `Price Range: ${ctx.priceRange}` : ''}
-${ctx.specialties?.length ? `Specialties: ${ctx.specialties.join(', ')}` : ''}
-${ctx.customerTypes?.length ? `Target Customers: ${ctx.customerTypes.join(', ')}` : ''}
-${ctx.mainCompetitors?.length ? `Main Competitors: ${ctx.mainCompetitors.join(', ')}` : ''}
-${ctx.uniqueSellingPoints?.length ? `Unique Selling Points: ${ctx.uniqueSellingPoints.join(', ')}` : ''}
-${ctx.onlinePresence ? `Online Presence: ${Object.entries(ctx.onlinePresence).filter(([k, v]) => v && k !== 'deliveryApps').map(([k]) => k).join(', ')}` : ''}
-${ctx.onlinePresence?.deliveryApps?.length ? `Delivery Apps: ${(ctx.onlinePresence.deliveryApps as string[]).join(', ')}` : ''}
-${ctx.currentChallenges?.length ? `Current Challenges: ${ctx.currentChallenges.join(', ')}` : ''}
-${ctx.businessGoals ? `Business Goals: ${ctx.businessGoals}` : ''}
-${ctx.additionalContext ? `Additional Context: ${ctx.additionalContext}` : ''}
-`.trim();
-    }
-
-    // Simplified prompt to reduce token usage and ensure complete JSON
-    const systemPrompt = `You are an expert business consultant analyzing customer reviews for ${businessInfo.name}, a ${businessInfo.type}. 
-
-${contextualInfo ? contextualInfo + '\n' : ''}
-
-Based on the review data provided, generate specific, actionable recommendations. Be concise but helpful.
-
-Return ONLY valid JSON with exactly this structure:
+Return ONLY this exact JSON structure (no extra text):
 {
   "urgentActions": [
-    {
-      "title": "Clear action title",
-      "description": "1-2 sentences explaining what to do and why",
-      "impact": "High",
-      "effort": "Low"
-    }
+    {"title": "Short action", "description": "Brief explanation", "impact": "High", "effort": "Low"},
+    {"title": "Short action", "description": "Brief explanation", "impact": "Medium", "effort": "Medium"},
+    {"title": "Short action", "description": "Brief explanation", "impact": "Low", "effort": "High"}
   ],
   "growthStrategies": [
-    {
-      "title": "Strategy title",
-      "description": "Brief explanation of the strategy",
-      "impact": "High",
-      "effort": "Medium"
-    }
+    {"title": "Strategy name", "description": "Brief explanation", "impact": "High", "effort": "Low"},
+    {"title": "Strategy name", "description": "Brief explanation", "impact": "Medium", "effort": "Medium"},
+    {"title": "Strategy name", "description": "Brief explanation", "impact": "Low", "effort": "High"}
   ],
   "customerAttractionPlan": {
-    "title": "Marketing Plan Name",
+    "title": "Plan Name",
     "description": "Brief overview",
     "strategies": [
-      {
-        "title": "Tactic name",
-        "description": "How to implement",
-        "timeline": "2 weeks",
-        "cost": "$200/month",
-        "expectedOutcome": "Expected result"
-      }
+      {"title": "Tactic 1", "description": "How to do it", "timeline": "1 week", "cost": "$100", "expectedOutcome": "Result"},
+      {"title": "Tactic 2", "description": "How to do it", "timeline": "2 weeks", "cost": "$200", "expectedOutcome": "Result"}
     ]
   },
   "competitivePositioning": {
-    "title": "Your Competitive Edge",
-    "description": "Market position overview",
+    "title": "Market Position",
+    "description": "Overview",
     "strengths": ["Strength 1", "Strength 2"],
     "opportunities": ["Opportunity 1", "Opportunity 2"],
     "recommendations": ["Action 1", "Action 2"]
   },
   "futureProjections": {
-    "shortTerm": ["3-month projection", "Another projection"],
-    "longTerm": ["1-year projection", "Another projection"]
+    "shortTerm": ["3-month goal", "Another goal"],
+    "longTerm": ["1-year goal", "Another goal"]
   }
-}
-
-Requirements:
-- Generate EXACTLY 3 urgentActions
-- Generate EXACTLY 3 growthStrategies  
-- Generate EXACTLY 2 strategies in customerAttractionPlan
-- Keep all text concise
-- Ensure valid JSON structure
-- Use only "High", "Medium", or "Low" for impact/effort`;
+}`;
 
     log.info('Calling OpenAI API...');
     const startTime = Date.now();
 
-    // OpenAI API call with better error handling
     let openaiResponse;
     try {
       openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -197,7 +244,7 @@ Requirements:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo-1106', // Using stable model with JSON mode support
+          model: 'gpt-3.5-turbo',  // Try the base model
           messages: [
             {
               role: 'system',
@@ -205,16 +252,18 @@ Requirements:
             },
             {
               role: 'user',
-              content: JSON.stringify({
-                businessInfo,
-                recentReviews: reviewsSummary,
-                hasBusinessContext: !!businessData.businessContext,
-              }),
+              content: `Business: ${businessInfo.name} (${businessInfo.type})
+Average rating: ${businessInfo.averageRating}/5
+Total reviews: ${businessInfo.totalReviews}
+
+Recent reviews summary:
+${reviewsSummary.slice(0, 10).map(r => `- ${r.rating}★: ${r.text}`).join('\n')}
+
+Generate recommendations in the exact JSON format specified.`
             },
           ],
-          response_format: { type: 'json_object' },
-          max_tokens: 2000, // Reduced to ensure complete response
-          temperature: 0.7, // Slightly lower for more consistent output
+          max_tokens: 1500,  // Further reduced
+          temperature: 0.5,  // Lower temperature for more consistent output
         }),
       });
     } catch (fetchError: unknown) {
@@ -226,105 +275,62 @@ Requirements:
     log.info(`OpenAI API responded in ${responseTime}ms with status: ${openaiResponse.status}`);
 
     if (!openaiResponse.ok) {
-      // deno-lint-ignore no-explicit-any
       let errorData: any;
       try {
         errorData = await openaiResponse.json();
-        log.error('OpenAI API error response:', errorData);
       } catch {
         errorData = await openaiResponse.text();
-        log.error('OpenAI API error text:', errorData);
       }
+      log.error('OpenAI API error:', errorData);
       
-      // Check for specific error types
       if (openaiResponse.status === 401) {
         throw new Error('Invalid API key. Please check your OpenAI API key.');
       } else if (openaiResponse.status === 429) {
         throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-      } else if (openaiResponse.status === 404) {
-        throw new Error('Model not found. The specified model may not be available.');
       } else {
-        throw new Error(`OpenAI API error: ${openaiResponse.status} - ${JSON.stringify(errorData)}`);
+        throw new Error(`OpenAI API error: ${openaiResponse.status}`);
       }
     }
 
     let openaiData;
-    let openaiResponseText;
     try {
-      // First get the raw text to debug
-      openaiResponseText = await openaiResponse.text();
-      log.info('Raw OpenAI response length:', openaiResponseText.length);
-      
-      // Try to parse it
-      openaiData = JSON.parse(openaiResponseText);
-    } catch (jsonError) {
-      log.error('Failed to parse OpenAI response as JSON:', jsonError);
-      log.error('Raw response (first 1000 chars):', openaiResponseText?.substring(0, 1000));
-      log.error('Raw response (last 1000 chars):', openaiResponseText?.substring(openaiResponseText.length - 1000));
-      throw new Error(`Failed to parse OpenAI response: ${jsonError instanceof Error ? jsonError.message : 'Invalid JSON'}`);
+      const responseText = await openaiResponse.text();
+      log.info('Response length:', responseText.length);
+      openaiData = JSON.parse(responseText);
+    } catch (error) {
+      log.error('Failed to parse OpenAI response:', error);
+      throw new Error('Failed to parse OpenAI response');
     }
 
-    if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
-      log.error('Invalid OpenAI response structure:', JSON.stringify(openaiData).substring(0, 500));
-      throw new Error('Invalid response structure from OpenAI API');
+    if (!openaiData.choices?.[0]?.message?.content) {
+      log.error('Invalid OpenAI response structure');
+      throw new Error('Invalid response from OpenAI');
     }
 
     let recommendations;
-    const messageContent = openaiData.choices[0].message.content;
-    log.info('Message content length:', messageContent?.length);
+    const content = openaiData.choices[0].message.content;
     
     try {
-      recommendations = JSON.parse(messageContent);
+      // Try to extract JSON from the content
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        recommendations = JSON.parse(jsonMatch[0]);
+      } else {
+        recommendations = JSON.parse(content);
+      }
       log.info('Successfully parsed recommendations');
-      
-      // Ensure we have the required structure
-      if (!recommendations.urgentActions) recommendations.urgentActions = [];
-      if (!recommendations.growthStrategies) recommendations.growthStrategies = [];
-      if (!recommendations.customerAttractionPlan) {
-        recommendations.customerAttractionPlan = {
-          title: 'Customer Growth Strategy',
-          description: 'Strategic approach to attract and retain customers',
-          strategies: []
-        };
-      }
-      if (!recommendations.competitivePositioning) {
-        recommendations.competitivePositioning = {
-          title: 'Market Position',
-          description: 'Your competitive standing',
-          strengths: [],
-          opportunities: [],
-          recommendations: []
-        };
-      }
-      if (!recommendations.futureProjections) {
-        recommendations.futureProjections = {
-          shortTerm: [],
-          longTerm: []
-        };
-      }
-      
-    } catch (parseError) {
-      log.error('Failed to parse recommendations JSON:', parseError);
-      log.error('Raw content (first 500 chars):', messageContent?.substring(0, 500));
-      log.error('Raw content (last 500 chars):', messageContent?.substring(messageContent.length - 500));
-      
-      // Check if content was truncated
-      if (messageContent && !messageContent.trim().endsWith('}')) {
-        log.error('Content appears to be truncated - does not end with }');
-      }
-      
-      throw new Error(`Failed to parse AI recommendations: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`);
+    } catch (error) {
+      log.error('Failed to parse recommendations:', error);
+      log.error('Content:', content.substring(0, 500));
+      throw new Error('Failed to parse AI recommendations');
     }
 
-    log.info('Successfully generated AI recommendations');
-
-    // Always return 200 with success response and indicate it's from AI
     return new Response(
       JSON.stringify({
         ...recommendations,
         metadata: {
           source: 'openai',
-          model: 'gpt-3.5-turbo-1106',
+          model: 'gpt-3.5-turbo',
           timestamp: new Date().toISOString(),
           responseTime: responseTime
         }
@@ -343,7 +349,7 @@ Requirements:
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    // Always return 200 status with error info and fallback
+    // Return fallback with error
     return new Response(
       JSON.stringify({
         error: errorMessage,
@@ -352,135 +358,87 @@ Requirements:
           urgentActions: [
             {
               title: 'Enhance Customer Response Time',
-              description: 'Implement a system to respond to all reviews within 24 hours. This shows customers you care and can turn negative experiences into positive ones.',
+              description: 'Respond to all reviews within 24 hours to show customers you care.',
               impact: 'High',
               effort: 'Low',
             },
             {
-              title: 'Create a Staff Recognition Program',
-              description: 'Celebrate employees mentioned positively in reviews. This boosts morale and encourages excellent service across the team.',
+              title: 'Create Staff Recognition Program',
+              description: 'Celebrate employees mentioned positively in reviews.',
               impact: 'High',
               effort: 'Medium',
             },
             {
               title: 'Address Common Pain Points',
-              description: 'Analyze negative feedback patterns and create action plans for the top 3 issues. Quick wins here can dramatically improve ratings.',
+              description: 'Analyze negative feedback patterns and create action plans.',
               impact: 'High',
               effort: 'Medium',
-            },
-            {
-              title: 'Implement Real-Time Feedback System',
-              description: 'Set up QR codes or tablets for instant feedback before customers leave. This helps catch issues before they become negative reviews.',
-              impact: 'Medium',
-              effort: 'Low',
-            },
-            {
-              title: 'Launch a Review Incentive Campaign',
-              description: 'Encourage satisfied customers to share their experiences with small incentives. This can boost your review volume and overall rating.',
-              impact: 'High',
-              effort: 'Low',
             },
           ],
           growthStrategies: [
             {
-              title: 'Build a Community Ambassador Program',
-              description: 'Recruit your most loyal customers as brand ambassadors. Give them exclusive perks and early access to new offerings in exchange for spreading the word.',
+              title: 'Community Ambassador Program',
+              description: 'Recruit loyal customers as brand ambassadors.',
               impact: 'High',
               effort: 'Medium',
             },
             {
               title: 'Create Instagrammable Moments',
-              description: 'Design specific areas or experiences that customers will want to photograph and share. This creates free marketing and attracts new visitors.',
+              description: 'Design photo-worthy areas for social media sharing.',
               impact: 'High',
               effort: 'Medium',
             },
             {
-              title: 'Launch Limited-Time Experiences',
-              description: 'Introduce seasonal or monthly special events that create urgency and give customers reasons to return frequently.',
+              title: 'Launch Limited-Time Events',
+              description: 'Create monthly special events to drive repeat visits.',
               impact: 'Medium',
               effort: 'Medium',
             },
-            {
-              title: 'Partner with Local Influencers',
-              description: 'Collaborate with micro-influencers in your area for authentic content creation. Their followers trust their recommendations.',
-              impact: 'High',
-              effort: 'Low',
-            },
-            {
-              title: 'Develop a Signature Experience',
-              description: 'Create something unique that only your business offers. This becomes your calling card and differentiates you from competitors.',
-              impact: 'High',
-              effort: 'High',
-            },
           ],
           customerAttractionPlan: {
-            title: 'The Magnetism Strategy',
-            description: 'A multi-channel approach to attract and retain customers',
+            title: 'Customer Growth Strategy',
+            description: 'Multi-channel approach to attract customers',
             strategies: [
               {
-                title: 'Social Media Storytelling',
-                description: 'Share behind-the-scenes content and customer stories to build emotional connections',
-                timeline: 'Start immediately',
-                cost: '$100-300/month',
-                expectedOutcome: '20% increase in social engagement within 2 months',
+                title: 'Social Media Stories',
+                description: 'Share behind-the-scenes content',
+                timeline: 'Start now',
+                cost: '$200/month',
+                expectedOutcome: '20% more engagement',
               },
               {
-                title: 'Neighborhood Partnership Network',
-                description: 'Cross-promote with complementary local businesses to expand reach',
-                timeline: '2 weeks to establish',
-                cost: 'Time investment only',
-                expectedOutcome: '15% new customer acquisition',
-              },
-              {
-                title: 'First-Timer Welcome Program',
-                description: 'Create special offers and experiences for new customers to ensure great first impressions',
-                timeline: '1 week to launch',
-                cost: '5-10% discount cost',
-                expectedOutcome: '30% conversion to repeat customers',
-              },
-              {
-                title: 'Digital Word-of-Mouth Campaign',
-                description: 'Encourage and facilitate online sharing with hashtags and photo opportunities',
-                timeline: 'Ongoing',
-                cost: '$50-100/month',
-                expectedOutcome: 'Increased organic reach by 25%',
+                title: 'Local Partnerships',
+                description: 'Cross-promote with nearby businesses',
+                timeline: '2 weeks',
+                cost: 'Free',
+                expectedOutcome: '15% new customers',
               },
             ],
           },
           competitivePositioning: {
-            title: 'Your Unique Market Position',
-            description: 'Leveraging your strengths to stand out',
+            title: 'Your Market Position',
+            description: 'Leverage strengths to stand out',
             strengths: [
-              'Strong customer loyalty base',
-              'Unique atmosphere and ambiance',
-              'Quality products/services',
-              'Experienced team',
+              'Strong customer loyalty',
+              'Unique atmosphere',
             ],
             opportunities: [
-              'Growing local market demand',
-              'Untapped customer segments',
-              'Digital presence expansion',
-              'Partnership possibilities',
+              'Growing local market',
+              'Untapped segments',
             ],
             recommendations: [
-              'Double down on what makes you unique',
-              'Fill service gaps competitors miss',
-              'Build stronger emotional connections with customers',
-              'Leverage technology for better customer experience',
+              'Focus on unique features',
+              'Fill competitor gaps',
             ],
           },
           futureProjections: {
             shortTerm: [
-              '25% increase in positive reviews within 3 months',
-              '15% growth in repeat customer rate',
-              '20% improvement in average transaction value',
-              '30% boost in social media following',
+              '25% more positive reviews in 3 months',
+              '15% repeat customer growth',
             ],
             longTerm: [
-              'Establish as the go-to destination in your category locally',
-              'Expand customer base by 40% within 18 months',
-              'Launch 2-3 new revenue streams',
-              'Build a recognizable brand beyond immediate area',
+              'Local market leader in 1 year',
+              '40% customer base growth',
             ],
           },
           metadata: {
@@ -495,7 +453,7 @@ Requirements:
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-        status: 200, // Always return 200 to ensure response body is properly handled
+        status: 200,
       },
     );
   }

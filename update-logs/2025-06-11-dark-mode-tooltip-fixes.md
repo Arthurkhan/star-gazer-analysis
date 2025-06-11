@@ -1,12 +1,12 @@
 # Dark Mode Tooltip Fixes and API Error Resolution - 2025-06-11
 
 ## Overview
-Fixed dark mode issues with Recharts tooltips showing white text on white background, and resolved API errors for recommendation generation.
+Fixed dark mode issues with Recharts tooltips showing white text on white background, and enhanced error handling for API calls.
 
 ## Objectives
 - Fix white text on white background in dark mode for tooltips
 - Resolve edge function errors for recommendation generation
-- Fix email_settings table error
+- Add better error logging for debugging
 
 ## Files Modified/Created
 
@@ -23,32 +23,36 @@ Fixed dark mode issues with Recharts tooltips showing white text on white backgr
 
 ### 1. Recharts Dark Mode Styling
 - Created custom CSS to handle Recharts tooltips in dark mode
-- Applied dark backgrounds and light text for tooltips
+- Applied dark backgrounds (#1f2937) and light text (#f3f4f6) for tooltips
 - Fixed hover states and popup visibility
+- Added proper styling for all chart elements (axes, legends, etc.)
 
 ### 2. Tooltip Component Updates
 - Added contentStyle prop to all Tooltip components
-- Implemented dark mode detection and conditional styling
+- Implemented dark mode specific styling with proper colors
 - Fixed contrast issues for better readability
+- Applied consistent styling across all charts
 
 ### 3. Error Handling Improvements
-- Enhanced error logging in edge function
-- Added more detailed error messages
-- Improved API key validation
+- Enhanced error logging in edge function with timestamps
+- Added detailed console logs for debugging
+- Improved error messages with more context
+- Added response time logging for API calls
 
 ## Technical Details
 - Recharts doesn't natively support dark mode for tooltips
 - Custom styling applied through contentStyle prop and CSS
 - Dark mode detection uses Tailwind's dark class
+- Edge function now logs all critical steps for debugging
 
 ## Success Criteria: ✅
 - ✅ All tooltips readable in dark mode
 - ✅ No white on white text issues
 - ✅ Consistent styling across all charts
-- ✅ Better error handling for API calls
+- ✅ Better error logging for API debugging
 
 ## Next Steps
-- Monitor edge function performance
+- Deploy the updated edge function to Supabase
+- Monitor edge function logs to identify root cause of 500 errors
 - Consider implementing retry logic for API calls
-- Add loading states for better UX
-- Create email_settings table if needed
+- Verify the email_settings table exists or create it if needed

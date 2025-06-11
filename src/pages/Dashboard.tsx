@@ -7,6 +7,7 @@ import { EnhancedAnalysisDisplay } from "@/components/analysis/EnhancedAnalysisD
 import { PeriodComparisonDisplay } from "@/components/analysis/PeriodComparisonDisplay";
 import { EmailSettingsForm } from "@/components/emails/EmailSettingsForm";
 import { ExportButton } from "@/components/exports/ExportButton";
+import { EdgeFunctionTest } from "@/components/diagnostic/EdgeFunctionTest";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -88,6 +89,7 @@ const Dashboard: React.FC = React.memo(() => {
 
   // Single state variable for tab management
   const [activeTab, setActiveTab] = useState("overview");
+  const [showDebugTools, setShowDebugTools] = useState(false);
   
   // Use simplified dashboard data hook with error handling
   const { 
@@ -471,6 +473,25 @@ const Dashboard: React.FC = React.memo(() => {
             {/* AI Recommendations Tab with error boundary - now passing progress */}
             <TabsContent value="recommendations" className="mt-6">
               <SectionErrorBoundary>
+                {/* Debug toggle button */}
+                <div className="mb-4 flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDebugTools(!showDebugTools)}
+                    className="text-xs"
+                  >
+                    {showDebugTools ? 'Hide' : 'Show'} Debug Tools
+                  </Button>
+                </div>
+                
+                {/* Edge Function Test Component */}
+                {showDebugTools && (
+                  <ComponentErrorBoundary>
+                    <EdgeFunctionTest />
+                  </ComponentErrorBoundary>
+                )}
+                
                 <Suspense fallback={<LoadingFallback size="large" message="Loading recommendations..." />}>
                   <RecommendationsDashboard
                     recommendations={recommendations}

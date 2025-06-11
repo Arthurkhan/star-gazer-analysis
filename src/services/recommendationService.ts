@@ -67,7 +67,7 @@ interface EdgeFunctionRecommendations {
  */
 export class RecommendationService {
   /**
-   * Test the edge function without calling OpenAI
+   * Test the edge function without calling AI
    */
   async testEdgeFunction(): Promise<{ success: boolean; message: string; data?: any }> {
     logger.info('Testing edge function...');
@@ -81,7 +81,9 @@ export class RecommendationService {
             businessType: 'test',
             reviews: []
           },
-          apiKey: 'test-key'
+          provider: 'openai',
+          apiKey: 'test-key',
+          model: 'gpt-4o'
         },
         headers: {
           'Content-Type': 'application/json',
@@ -289,13 +291,16 @@ export class RecommendationService {
   }
 
   /**
-   * Generate recommendations using OpenAI via Supabase Edge Function
+   * Generate recommendations using AI via Supabase Edge Function
    */
   async generateRecommendations(businessData: BusinessData): Promise<Recommendations> {
-    const apiKey = localStorage.getItem('OPENAI_API_KEY');
+    // Get the selected provider and API key
+    const provider = localStorage.getItem('AI_PROVIDER') || 'openai';
+    const apiKey = localStorage.getItem(`${provider.toUpperCase()}_API_KEY`);
+    const model = localStorage.getItem(`${provider.toUpperCase()}_MODEL`);
     
     if (!apiKey) {
-      throw new Error('OpenAI API key is required. Please add it in your browser settings or local storage.');
+      throw new Error(`${provider} API key is required. Please add it in AI Settings.`);
     }
 
     if (!businessData.reviews || businessData.reviews.length === 0) {
@@ -303,6 +308,7 @@ export class RecommendationService {
     }
 
     logger.info(`Generating recommendations for ${businessData.businessName}`);
+    logger.info(`Using ${provider} with model ${model || 'default'}`);
     logger.info(`Using ${businessData.reviews.length} reviews for analysis`);
     
     // Log if business context is included
@@ -318,7 +324,9 @@ export class RecommendationService {
       const response = await supabase.functions.invoke('generate-recommendations', {
         body: { 
           businessData,
+          provider,
           apiKey,
+          model,
         },
         headers: {
           'Content-Type': 'application/json',
@@ -359,15 +367,15 @@ export class RecommendationService {
         
         // Provide more helpful error messages
         if (responseData.error.includes('401') || responseData.error.includes('Invalid API key')) {
-          throw new Error('Invalid OpenAI API key. Please check your API key in AI Settings.');
+          throw new Error(`Invalid ${provider} API key. Please check your API key in AI Settings.`);
         }
         
         if (responseData.error.includes('429') || responseData.error.includes('Rate limit')) {
-          throw new Error('OpenAI rate limit exceeded. Please wait a moment and try again.');
+          throw new Error(`${provider} rate limit exceeded. Please wait a moment and try again.`);
         }
         
         if (responseData.error.includes('500') || responseData.error.includes('503')) {
-          logger.info('OpenAI service is temporarily unavailable, using fallback recommendations');
+          logger.info(`${provider} service is temporarily unavailable, using fallback recommendations`);
           return this.transformRecommendations(responseData.fallback, businessData);
         }
         
@@ -383,16 +391,22 @@ export class RecommendationService {
       }
 
       // Log whether we're using AI or fallback
-      if (responseData.metadata?.source === 'openai') {
-        logger.info('✅ Successfully generated AI recommendations using OpenAI');
-        logger.info(`Model: ${responseData.metadata.model || 'Unknown'}`);
-        if (responseData.metadata.responseTime) {
-          logger.info(`Response time: ${responseData.metadata.responseTime}ms`);
-        }
-      } else if (responseData.metadata?.source === 'fallback') {
-        logger.info('🔄 Using FALLBACK recommendations');
-        if (responseData.metadata.reason) {
-          logger.info(`Reason: ${responseData.metadata.reason}`);
+      if (responseData.metadata?.source) {
+        const source = responseData.metadata.source;
+        const providerName = responseData.metadata.provider || provider;
+        const modelName = responseData.metadata.model || model || 'Unknown';
+        
+        if (source === 'ai' || source === 'openai' || source === 'claude' || source === 'gemini') {
+          logger.info(`✅ Successfully generated AI recommendations using ${providerName}`);
+          logger.info(`Model: ${modelName}`);
+          if (responseData.metadata.responseTime) {
+            logger.info(`Response time: ${responseData.metadata.responseTime}ms`);
+          }
+        } else if (source === 'fallback') {
+          logger.info('🔄 Using FALLBACK recommendations');
+          if (responseData.metadata.reason) {
+            logger.info(`Reason: ${responseData.metadata.reason}`);
+          }
         }
       }
 

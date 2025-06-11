@@ -44,20 +44,16 @@ interface BusinessData {
   reviews: Review[];
 }
 
-// Function to log messages (can be disabled in production)
+// Always enable logging for debugging
 const log = {
   info: (message: string, ...args: unknown[]) => {
-    if (Deno.env.get('DEBUG') === 'true') {
-      console.log(`[INFO] ${message}`, ...args);
-    }
+    console.log(`[INFO] ${message}`, ...args);
   },
   error: (message: string, ...args: unknown[]) => {
     console.error(`[ERROR] ${message}`, ...args);
   },
   warn: (message: string, ...args: unknown[]) => {
-    if (Deno.env.get('DEBUG') === 'true') {
-      console.warn(`[WARN] ${message}`, ...args);
-    }
+    console.warn(`[WARN] ${message}`, ...args);
   }
 };
 
@@ -256,25 +252,44 @@ Requirements:
     }
 
     let openaiData;
+    let openaiResponseText;
     try {
-      openaiData = await openaiResponse.json();
+      // First get the raw text to debug
+      openaiResponseText = await openaiResponse.text();
+      log.info('Raw OpenAI response length:', openaiResponseText.length);
+      
+      // Try to parse it
+      openaiData = JSON.parse(openaiResponseText);
     } catch (jsonError) {
-      log.error('Failed to parse OpenAI response:', jsonError);
-      throw new Error('Failed to parse OpenAI response');
+      log.error('Failed to parse OpenAI response as JSON:', jsonError);
+      log.error('Raw response (first 1000 chars):', openaiResponseText?.substring(0, 1000));
+      log.error('Raw response (last 1000 chars):', openaiResponseText?.substring(openaiResponseText.length - 1000));
+      throw new Error(`Failed to parse OpenAI response: ${jsonError instanceof Error ? jsonError.message : 'Invalid JSON'}`);
     }
 
     if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
-      log.error('Invalid OpenAI response structure:', openaiData);
-      throw new Error('Invalid response from OpenAI API');
+      log.error('Invalid OpenAI response structure:', JSON.stringify(openaiData).substring(0, 500));
+      throw new Error('Invalid response structure from OpenAI API');
     }
 
     let recommendations;
+    const messageContent = openaiData.choices[0].message.content;
+    log.info('Message content length:', messageContent?.length);
+    
     try {
-      recommendations = JSON.parse(openaiData.choices[0].message.content);
+      recommendations = JSON.parse(messageContent);
+      log.info('Successfully parsed recommendations');
     } catch (parseError) {
       log.error('Failed to parse recommendations JSON:', parseError);
-      log.error('Raw content:', openaiData.choices[0].message.content);
-      throw new Error('Failed to parse AI recommendations');
+      log.error('Raw content (first 500 chars):', messageContent?.substring(0, 500));
+      log.error('Raw content (last 500 chars):', messageContent?.substring(messageContent.length - 500));
+      
+      // Check if content was truncated
+      if (messageContent && !messageContent.trim().endsWith('}')) {
+        log.error('Content appears to be truncated - does not end with }');
+      }
+      
+      throw new Error(`Failed to parse AI recommendations: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`);
     }
 
     log.info('Successfully generated AI recommendations');

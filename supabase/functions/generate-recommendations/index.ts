@@ -204,9 +204,9 @@ Requirements:
           temperature: 0.8, // Slightly higher for more creative responses
         }),
       });
-    } catch (fetchError) {
+    } catch (fetchError: unknown) {
       console.error('Fetch error:', fetchError);
-      throw new Error(`Network error calling OpenAI API: ${fetchError.message}`);
+      throw new Error(`Network error calling OpenAI API: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
     }
 
     const responseTime = Date.now() - startTime;

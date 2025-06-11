@@ -48,22 +48,26 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Edge function invoked at:', new Date().toISOString());
+    
     const { businessData, apiKey } = await req.json();
+    console.log('Received request with business:', businessData?.businessName);
 
     if (!apiKey) {
+      console.error('No API key provided');
       throw new Error('OpenAI API key is required');
     }
 
     if (!businessData || !businessData.reviews || businessData.reviews.length === 0) {
+      console.error('Invalid business data:', businessData);
       throw new Error('Business data with reviews is required');
     }
 
-    // Generating recommendations for business
-    // Processing reviews
+    console.log(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`);
 
     // Log if business context is provided
     if (businessData.businessContext) {
-      // Using comprehensive business context for enhanced recommendations
+      console.log('Business context provided - using enhanced recommendations');
     }
 
     // Prepare data for OpenAI
@@ -167,6 +171,9 @@ Requirements:
 - Be optimistic and solution-focused
 - Avoid corporate jargon - be clear and inspiring`;
 
+    console.log('Calling OpenAI API...');
+    const startTime = Date.now();
+
     // OpenAI API call
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -196,16 +203,19 @@ Requirements:
       }),
     });
 
+    const responseTime = Date.now() - startTime;
+    console.log(`OpenAI API responded in ${responseTime}ms with status: ${openaiResponse.status}`);
+
     if (!openaiResponse.ok) {
       const errorData = await openaiResponse.text();
-      // OpenAI API error
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorData}`);
     }
 
     const openaiData = await openaiResponse.json();
     const recommendations = JSON.parse(openaiData.choices[0].message.content);
 
-    // Successfully generated enhanced recommendations via OpenAI
+    console.log('Successfully generated recommendations');
 
     return new Response(
       JSON.stringify(recommendations),
@@ -218,13 +228,14 @@ Requirements:
     );
 
   } catch (error) {
-    // Error in generate-recommendations function
+    console.error('Error in generate-recommendations function:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     return new Response(
       JSON.stringify({
         error: errorMessage,
+        timestamp: new Date().toISOString(),
         fallback: {
           urgentActions: [
             {

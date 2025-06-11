@@ -84,12 +84,12 @@ export function generatePrompt(
   if (comparisonData) {
     prompt = prompt.replace(/\[X reviews\]/g, comparisonData.current.count.toString());
     prompt = prompt.replace(/\[Y reviews\]/g, comparisonData.previous.count > 0 ? comparisonData.previous.count.toString() : "No data available");
-    prompt = prompt.replace(/\[+/- percentage\]/g, comparisonData.change.percentage !== "N/A" ? `${parseFloat(comparisonData.change.percentage).toFixed(1)}%` : "New period");
+    prompt = prompt.replace(/\[\+\/- percentage\]/g, comparisonData.change.percentage !== "N/A" ? `${parseFloat(comparisonData.change.percentage).toFixed(1)}%` : "New period");
     prompt = prompt.replace(/\[Increasing\/Decreasing\/Stable\/New\]/g, comparisonData.change.description);
   } else {
     prompt = prompt.replace(/\[X reviews\]/g, reviews.length.toString());
     prompt = prompt.replace(/\[Y reviews\]/g, "No data available");
-    prompt = prompt.replace(/\[+/- percentage\]/g, "New period");
+    prompt = prompt.replace(/\[\+\/- percentage\]/g, "New period");
     prompt = prompt.replace(/\[Increasing\/Decreasing\/Stable\/New\]/g, "New");
   }
   

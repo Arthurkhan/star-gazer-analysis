@@ -196,41 +196,52 @@ serve(async (req) => {
       averageRating: Math.round((businessData.reviews.reduce((sum: number, r: Review) => sum + (r.stars || 0), 0) / businessData.reviews.length) * 10) / 10,
     };
 
-    // Ultra-simplified prompt
-    const systemPrompt = `You are a business consultant for ${businessInfo.name}. Based on customer reviews, provide recommendations.
+    // Ultra-simplified prompt with strict JSON instructions
+    const systemPrompt = `You are a business consultant. Generate recommendations based on reviews.
 
-Return ONLY this exact JSON structure (no extra text):
+CRITICAL: Return ONLY valid JSON, no text before or after. The response must start with { and end with }
+
+Return this exact structure:
 {
   "urgentActions": [
-    {"title": "Short action", "description": "Brief explanation", "impact": "High", "effort": "Low"},
-    {"title": "Short action", "description": "Brief explanation", "impact": "Medium", "effort": "Medium"},
-    {"title": "Short action", "description": "Brief explanation", "impact": "Low", "effort": "High"}
+    {"title": "Action title", "description": "Brief description", "impact": "High", "effort": "Low"},
+    {"title": "Action title", "description": "Brief description", "impact": "Medium", "effort": "Medium"},
+    {"title": "Action title", "description": "Brief description", "impact": "Low", "effort": "High"}
   ],
   "growthStrategies": [
-    {"title": "Strategy name", "description": "Brief explanation", "impact": "High", "effort": "Low"},
-    {"title": "Strategy name", "description": "Brief explanation", "impact": "Medium", "effort": "Medium"},
-    {"title": "Strategy name", "description": "Brief explanation", "impact": "Low", "effort": "High"}
+    {"title": "Strategy title", "description": "Brief description", "impact": "High", "effort": "Low"},
+    {"title": "Strategy title", "description": "Brief description", "impact": "Medium", "effort": "Medium"},
+    {"title": "Strategy title", "description": "Brief description", "impact": "Low", "effort": "High"}
   ],
   "customerAttractionPlan": {
-    "title": "Plan Name",
+    "title": "Marketing Plan",
     "description": "Brief overview",
     "strategies": [
-      {"title": "Tactic 1", "description": "How to do it", "timeline": "1 week", "cost": "$100", "expectedOutcome": "Result"},
-      {"title": "Tactic 2", "description": "How to do it", "timeline": "2 weeks", "cost": "$200", "expectedOutcome": "Result"}
+      {"title": "Tactic 1", "description": "Implementation", "timeline": "1 week", "cost": "$100", "expectedOutcome": "Result"},
+      {"title": "Tactic 2", "description": "Implementation", "timeline": "2 weeks", "cost": "$200", "expectedOutcome": "Result"}
     ]
   },
   "competitivePositioning": {
     "title": "Market Position",
-    "description": "Overview",
+    "description": "Brief overview",
     "strengths": ["Strength 1", "Strength 2"],
     "opportunities": ["Opportunity 1", "Opportunity 2"],
-    "recommendations": ["Action 1", "Action 2"]
+    "recommendations": ["Recommendation 1", "Recommendation 2"]
   },
   "futureProjections": {
-    "shortTerm": ["3-month goal", "Another goal"],
-    "longTerm": ["1-year goal", "Another goal"]
+    "shortTerm": ["3-month projection", "Another projection"],
+    "longTerm": ["1-year projection", "Another projection"]
   }
 }`;
+
+    const userPrompt = `Business: ${businessInfo.name} (${businessInfo.type})
+Average rating: ${businessInfo.averageRating}/5
+Total reviews: ${businessInfo.totalReviews}
+
+Recent reviews:
+${reviewsSummary.slice(0, 10).map(r => `- ${r.rating}★: ${r.text}`).join('\n')}
+
+Generate recommendations in the exact JSON format specified. Remember: ONLY return JSON, no other text.`;
 
     log.info('Calling OpenAI API...');
     const startTime = Date.now();
@@ -244,7 +255,7 @@ Return ONLY this exact JSON structure (no extra text):
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',  // Try the base model
+          model: 'gpt-3.5-turbo',
           messages: [
             {
               role: 'system',
@@ -252,18 +263,12 @@ Return ONLY this exact JSON structure (no extra text):
             },
             {
               role: 'user',
-              content: `Business: ${businessInfo.name} (${businessInfo.type})
-Average rating: ${businessInfo.averageRating}/5
-Total reviews: ${businessInfo.totalReviews}
-
-Recent reviews summary:
-${reviewsSummary.slice(0, 10).map(r => `- ${r.rating}★: ${r.text}`).join('\n')}
-
-Generate recommendations in the exact JSON format specified.`
+              content: userPrompt
             },
           ],
-          max_tokens: 1500,  // Further reduced
-          temperature: 0.5,  // Lower temperature for more consistent output
+          max_tokens: 1500,
+          temperature: 0.5,
+          response_format: { type: "json_object" } // Force JSON response
         }),
       });
     } catch (fetchError: unknown) {
@@ -293,17 +298,20 @@ Generate recommendations in the exact JSON format specified.`
     }
 
     let openaiData;
+    let responseText;
     try {
-      const responseText = await openaiResponse.text();
+      responseText = await openaiResponse.text();
       log.info('Response length:', responseText.length);
+      log.info('First 200 chars of response:', responseText.substring(0, 200));
       openaiData = JSON.parse(responseText);
-    } catch (error) {
-      log.error('Failed to parse OpenAI response:', error);
+    } catch (parseError) {
+      log.error('Failed to parse OpenAI response:', parseError);
+      log.error('Raw response text:', responseText);
       throw new Error('Failed to parse OpenAI response');
     }
 
     if (!openaiData.choices?.[0]?.message?.content) {
-      log.error('Invalid OpenAI response structure');
+      log.error('Invalid OpenAI response structure:', openaiData);
       throw new Error('Invalid response from OpenAI');
     }
 
@@ -311,30 +319,52 @@ Generate recommendations in the exact JSON format specified.`
     const content = openaiData.choices[0].message.content;
     
     try {
+      // Log the content for debugging
+      log.info('Content to parse (first 500 chars):', content.substring(0, 500));
+      
       // Try to extract JSON from the content
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        recommendations = JSON.parse(jsonMatch[0]);
+      // Remove any potential whitespace or newlines
+      const trimmedContent = content.trim();
+      
+      // If content starts with { and ends with }, parse directly
+      if (trimmedContent.startsWith('{') && trimmedContent.endsWith('}')) {
+        recommendations = JSON.parse(trimmedContent);
       } else {
-        recommendations = JSON.parse(content);
+        // Try to extract JSON from the content
+        const jsonMatch = trimmedContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          recommendations = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No valid JSON found in response');
+        }
       }
+      
       log.info('Successfully parsed recommendations');
-    } catch (error) {
-      log.error('Failed to parse recommendations:', error);
-      log.error('Content:', content.substring(0, 500));
-      throw new Error('Failed to parse AI recommendations');
+      
+      // Validate the structure
+      if (!recommendations.urgentActions || !recommendations.growthStrategies) {
+        throw new Error('Missing required fields in recommendations');
+      }
+      
+    } catch (parseError) {
+      log.error('Failed to parse recommendations:', parseError);
+      log.error('Content that failed to parse:', content);
+      throw new Error(`Failed to parse AI recommendations: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
     }
 
+    // Return successful response
+    const successResponse = {
+      ...recommendations,
+      metadata: {
+        source: 'openai',
+        model: 'gpt-3.5-turbo',
+        timestamp: new Date().toISOString(),
+        responseTime: responseTime
+      }
+    };
+
     return new Response(
-      JSON.stringify({
-        ...recommendations,
-        metadata: {
-          source: 'openai',
-          model: 'gpt-3.5-turbo',
-          timestamp: new Date().toISOString(),
-          responseTime: responseTime
-        }
-      }),
+      JSON.stringify(successResponse),
       {
         headers: {
           ...corsHeaders,
@@ -350,104 +380,106 @@ Generate recommendations in the exact JSON format specified.`
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     // Return fallback with error
-    return new Response(
-      JSON.stringify({
-        error: errorMessage,
-        timestamp: new Date().toISOString(),
-        fallback: {
-          urgentActions: [
+    const fallbackResponse = {
+      error: errorMessage,
+      timestamp: new Date().toISOString(),
+      fallback: {
+        urgentActions: [
+          {
+            title: 'Enhance Customer Response Time',
+            description: 'Respond to all reviews within 24 hours to show customers you care.',
+            impact: 'High',
+            effort: 'Low',
+          },
+          {
+            title: 'Create Staff Recognition Program',
+            description: 'Celebrate employees mentioned positively in reviews.',
+            impact: 'High',
+            effort: 'Medium',
+          },
+          {
+            title: 'Address Common Pain Points',
+            description: 'Analyze negative feedback patterns and create action plans.',
+            impact: 'High',
+            effort: 'Medium',
+          },
+        ],
+        growthStrategies: [
+          {
+            title: 'Community Ambassador Program',
+            description: 'Recruit loyal customers as brand ambassadors.',
+            impact: 'High',
+            effort: 'Medium',
+          },
+          {
+            title: 'Create Instagrammable Moments',
+            description: 'Design photo-worthy areas for social media sharing.',
+            impact: 'High',
+            effort: 'Medium',
+          },
+          {
+            title: 'Launch Limited-Time Events',
+            description: 'Create monthly special events to drive repeat visits.',
+            impact: 'Medium',
+            effort: 'Medium',
+          },
+        ],
+        customerAttractionPlan: {
+          title: 'Customer Growth Strategy',
+          description: 'Multi-channel approach to attract customers',
+          strategies: [
             {
-              title: 'Enhance Customer Response Time',
-              description: 'Respond to all reviews within 24 hours to show customers you care.',
-              impact: 'High',
-              effort: 'Low',
+              title: 'Social Media Stories',
+              description: 'Share behind-the-scenes content',
+              timeline: 'Start now',
+              cost: '$200/month',
+              expectedOutcome: '20% more engagement',
             },
             {
-              title: 'Create Staff Recognition Program',
-              description: 'Celebrate employees mentioned positively in reviews.',
-              impact: 'High',
-              effort: 'Medium',
-            },
-            {
-              title: 'Address Common Pain Points',
-              description: 'Analyze negative feedback patterns and create action plans.',
-              impact: 'High',
-              effort: 'Medium',
+              title: 'Local Partnerships',
+              description: 'Cross-promote with nearby businesses',
+              timeline: '2 weeks',
+              cost: 'Free',
+              expectedOutcome: '15% new customers',
             },
           ],
-          growthStrategies: [
-            {
-              title: 'Community Ambassador Program',
-              description: 'Recruit loyal customers as brand ambassadors.',
-              impact: 'High',
-              effort: 'Medium',
-            },
-            {
-              title: 'Create Instagrammable Moments',
-              description: 'Design photo-worthy areas for social media sharing.',
-              impact: 'High',
-              effort: 'Medium',
-            },
-            {
-              title: 'Launch Limited-Time Events',
-              description: 'Create monthly special events to drive repeat visits.',
-              impact: 'Medium',
-              effort: 'Medium',
-            },
-          ],
-          customerAttractionPlan: {
-            title: 'Customer Growth Strategy',
-            description: 'Multi-channel approach to attract customers',
-            strategies: [
-              {
-                title: 'Social Media Stories',
-                description: 'Share behind-the-scenes content',
-                timeline: 'Start now',
-                cost: '$200/month',
-                expectedOutcome: '20% more engagement',
-              },
-              {
-                title: 'Local Partnerships',
-                description: 'Cross-promote with nearby businesses',
-                timeline: '2 weeks',
-                cost: 'Free',
-                expectedOutcome: '15% new customers',
-              },
-            ],
-          },
-          competitivePositioning: {
-            title: 'Your Market Position',
-            description: 'Leverage strengths to stand out',
-            strengths: [
-              'Strong customer loyalty',
-              'Unique atmosphere',
-            ],
-            opportunities: [
-              'Growing local market',
-              'Untapped segments',
-            ],
-            recommendations: [
-              'Focus on unique features',
-              'Fill competitor gaps',
-            ],
-          },
-          futureProjections: {
-            shortTerm: [
-              '25% more positive reviews in 3 months',
-              '15% repeat customer growth',
-            ],
-            longTerm: [
-              'Local market leader in 1 year',
-              '40% customer base growth',
-            ],
-          },
-          metadata: {
-            source: 'fallback',
-            reason: errorMessage,
-            timestamp: new Date().toISOString()
-          }
         },
-      }),
+        competitivePositioning: {
+          title: 'Your Market Position',
+          description: 'Leverage strengths to stand out',
+          strengths: [
+            'Strong customer loyalty',
+            'Unique atmosphere',
+          ],
+          opportunities: [
+            'Growing local market',
+            'Untapped segments',
+          ],
+          recommendations: [
+            'Focus on unique features',
+            'Fill competitor gaps',
+          ],
+        },
+        futureProjections: {
+          shortTerm: [
+            '25% more positive reviews in 3 months',
+            '15% repeat customer growth',
+          ],
+          longTerm: [
+            'Local market leader in 1 year',
+            '40% customer base growth',
+          ],
+        },
+        metadata: {
+          source: 'fallback',
+          reason: errorMessage,
+          timestamp: new Date().toISOString()
+        }
+      },
+    };
+
+    return new Response(
+      JSON.stringify(fallbackResponse),
       {
         headers: {
           ...corsHeaders,

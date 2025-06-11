@@ -87,7 +87,7 @@ export class RecommendationService {
         pattern: strategy.title,
         frequency: 1,
         sentiment: 'neutral' as const,
-        impact: strategy.impact as 'high' | 'medium' | 'low',
+        impact: (strategy.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
         recommendation: strategy.description,
         examples: []
       })),
@@ -178,20 +178,20 @@ export class RecommendationService {
       suggestions: [
         ...edgeResponse.urgentActions.map((action, index) => ({
           category: 'operations' as const,
-          priority: action.impact.toLowerCase() as 'high' | 'medium' | 'low',
+          priority: (action.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
           title: action.title,
           description: action.description,
-          impact: action.impact.toLowerCase() as 'high' | 'medium' | 'low',
-          effort: action.effort.toLowerCase() as 'high' | 'medium' | 'low',
+          impact: (action.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
+          effort: (action.effort?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
           timeframe: 'immediate' as const
         })),
         ...edgeResponse.growthStrategies.map((strategy, index) => ({
           category: 'marketing' as const,
-          priority: strategy.impact.toLowerCase() as 'high' | 'medium' | 'low',
+          priority: (strategy.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
           title: strategy.title,
           description: strategy.description,
-          impact: strategy.impact.toLowerCase() as 'high' | 'medium' | 'low',
-          effort: strategy.effort.toLowerCase() as 'high' | 'medium' | 'low',
+          impact: (strategy.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
+          effort: (strategy.effort?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
           timeframe: 'short_term' as const
         }))
       ],
@@ -216,8 +216,8 @@ export class RecommendationService {
         title: strategy.title,
         description: strategy.description,
         steps: [strategy.description],
-        potentialImpact: strategy.impact.toLowerCase() as 'high' | 'medium' | 'low',
-        resourceRequirements: strategy.effort.toLowerCase() as 'high' | 'medium' | 'low',
+        potentialImpact: (strategy.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
+        resourceRequirements: (strategy.effort?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
         timeframe: 'short_term' as const,
         category: 'growth',
         expectedImpact: strategy.impact,
@@ -253,7 +253,7 @@ export class RecommendationService {
 
     // Create abort controller for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
 
     try {
       const response = await supabase.functions.invoke('generate-recommendations', {
@@ -287,6 +287,13 @@ export class RecommendationService {
           throw new Error('Invalid OpenAI API key. Please check your API key in AI Settings.');
         }
         
+        // For 500 errors, check if we have data with fallback
+        if (response.data && typeof response.data === 'object' && 'fallback' in response.data) {
+          logger.warn('Using fallback recommendations due to edge function error');
+          const fallbackData = response.data as { error: string; fallback: EdgeFunctionRecommendations };
+          return this.transformRecommendations(fallbackData.fallback, businessData);
+        }
+        
         throw new Error(`Failed to generate recommendations: ${response.error.message}`);
       }
 
@@ -304,11 +311,11 @@ export class RecommendationService {
           logger.warn('Edge function returned error, using fallback:', errorData.error);
           
           // Provide more helpful error messages
-          if (errorData.error.includes('401') || errorData.error.includes('Unauthorized')) {
+          if (errorData.error.includes('401') || errorData.error.includes('Invalid API key')) {
             throw new Error('Invalid OpenAI API key. Please check your API key in AI Settings.');
           }
           
-          if (errorData.error.includes('429')) {
+          if (errorData.error.includes('429') || errorData.error.includes('Rate limit')) {
             throw new Error('OpenAI rate limit exceeded. Please wait a moment and try again.');
           }
           
@@ -340,7 +347,7 @@ export class RecommendationService {
       
       // Handle abort/timeout
       if (errorName === 'AbortError' || errorMessage?.includes('aborted')) {
-        throw new Error('Request timed out after 30 seconds. Please check your internet connection and try again.');
+        throw new Error('Request timed out after 45 seconds. Please check your internet connection and try again.');
       }
       
       // Network errors

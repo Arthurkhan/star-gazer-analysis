@@ -176,7 +176,7 @@ export class RecommendationService {
       
       // Create suggestions from all recommendations
       suggestions: [
-        ...edgeResponse.urgentActions.map((action, _index) => ({
+        ...edgeResponse.urgentActions.map((action) => ({
           category: 'operations' as const,
           priority: (action.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
           title: action.title,
@@ -185,7 +185,7 @@ export class RecommendationService {
           effort: (action.effort?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
           timeframe: 'immediate' as const
         })),
-        ...edgeResponse.growthStrategies.map((strategy, _index) => ({
+        ...edgeResponse.growthStrategies.map((strategy) => ({
           category: 'marketing' as const,
           priority: (strategy.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
           title: strategy.title,
@@ -200,7 +200,7 @@ export class RecommendationService {
       actionPlan: {
         title: 'Comprehensive Business Improvement Plan',
         description: 'A strategic roadmap based on AI analysis of customer feedback',
-        steps: edgeResponse.urgentActions.slice(0, 3).map((action, _index) => ({
+        steps: edgeResponse.urgentActions.slice(0, 3).map((action) => ({
           title: action.title,
           description: action.description,
           status: 'pending' as const

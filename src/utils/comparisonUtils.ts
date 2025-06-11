@@ -1,5 +1,4 @@
 import { Review } from '@/types/reviews';
-import { BusinessHealthScore, PerformanceMetrics } from '@/types/analysisSummary';
 
 export interface PeriodData {
   reviews: Review[];

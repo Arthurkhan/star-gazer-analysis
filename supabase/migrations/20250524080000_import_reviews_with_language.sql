@@ -204,11 +204,14 @@ $$ LANGUAGE plpgsql;
 CREATE INDEX IF NOT EXISTS idx_reviews_reviewurl_unique ON reviews(reviewurl) 
 WHERE reviewurl IS NOT NULL;
 
--- Log completion
-RAISE NOTICE 'Import functions created successfully. Available functions:';
-RAISE NOTICE '1. import_reviews_with_language(business_name, reviews_json)';
-RAISE NOTICE '2. update_reviews_language_from_json(language_mappings_json)';
-RAISE NOTICE '3. analyze_language_distribution()';
-RAISE NOTICE '4. validate_import_data()';
+-- Log completion using a DO block
+DO $$
+BEGIN
+    RAISE NOTICE 'Import functions created successfully. Available functions:';
+    RAISE NOTICE '1. import_reviews_with_language(business_name, reviews_json)';
+    RAISE NOTICE '2. update_reviews_language_from_json(language_mappings_json)';
+    RAISE NOTICE '3. analyze_language_distribution()';
+    RAISE NOTICE '4. validate_import_data()';
+END $$;
 
 COMMIT;

@@ -42,6 +42,14 @@ import { MonthlyReportExporter } from "@/utils/monthlyReportExporter";
 const RATING_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#84CC16', '#22C55E'];
 const TREND_COLORS = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B'];
 
+// Dark mode tooltip style
+const tooltipStyle = {
+  backgroundColor: '#1f2937',
+  border: '1px solid #374151',
+  borderRadius: '6px',
+  color: '#f3f4f6'
+};
+
 interface EnhancedSummaryCardsProps {
   summaryData: {
     totalReviews: number;
@@ -336,7 +344,8 @@ export function EnhancedSummaryCards({
                   <YAxis />
                   <Tooltip 
                     formatter={(value) => [`${value} reviews`, 'Count']}
-                    contentStyle={{ borderRadius: '6px' }}
+                    contentStyle={tooltipStyle}
+                    labelStyle={{ color: '#f3f4f6' }}
                   />
                   <Bar dataKey="value" name="Count">
                     {summaryData.ratingDistribution.map((entry, index) => (

@@ -1,16 +1,32 @@
-# A simplified configuration for debugging the 404 error.
+# Final, recommended Netlify configuration
 
 [build]
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  NODE_VERSION = "18"
+
+# This is the essential rule for your Single Page Application (SPA) to work.
+# It ensures all paths load your index.html so React Router can take over.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# This header is essential for embedding your site in the Squarespace iframe.
+# These headers are for security and allowing your app to be embedded.
 [[headers]]
   for = "/*"
   [headers.values]
+    # Allows your site to be embedded in the Squarespace iframe
     X-Frame-Options = "ALLOWALL"
+    # CORS headers for API requests if needed
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
+
+# This header improves performance by caching your assets in the browser for one year.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

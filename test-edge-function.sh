@@ -67,8 +67,10 @@ if [ "$HTTP_CODE" = "200" ]; then
     echo -e "\n${GREEN}✓ Function is working correctly!${NC}"
 else
     echo -e "\n${RED}✗ Function returned an error. Status: $HTTP_CODE${NC}"
-    echo -e "${YELLOW}Check the logs with: npm run functions:logs${NC}"
+    echo -e "${YELLOW}To view logs, run: npm run functions:logs${NC}"
 fi
 
-echo -e "\n${YELLOW}Getting recent function logs...${NC}"
-supabase functions logs generate-recommendations --tail 10
+echo -e "\n${YELLOW}Note: To view function logs, use:${NC}"
+echo "npm run functions:logs"
+echo "or"
+echo "supabase functions logs generate-recommendations"

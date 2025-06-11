@@ -273,6 +273,20 @@ export class RecommendationService {
 
       clearTimeout(timeoutId);
 
+      // Debug logging
+      logger.info('Raw edge function response:', response);
+      if (response.data) {
+        logger.info('Response data type:', typeof response.data);
+        logger.info('Response data keys:', Object.keys(response.data as any));
+        
+        // Log first 500 chars of stringified response
+        const responseStr = JSON.stringify(response.data);
+        logger.info('Response data preview:', responseStr.substring(0, 500));
+        if (responseStr.length > 500) {
+          logger.info('Response data end:', responseStr.substring(responseStr.length - 500));
+        }
+      }
+
       // The edge function now returns 200 status always, so check the response data
       if (!response.data) {
         throw new Error('No data returned from recommendation service');

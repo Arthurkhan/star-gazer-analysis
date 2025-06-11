@@ -12,6 +12,21 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Check for required environment variables
+if [ -z "$OPENAI_API_KEY" ]; then
+    echo -e "${RED}Error: OPENAI_API_KEY environment variable is not set${NC}"
+    echo "Please set it before running this script:"
+    echo "export OPENAI_API_KEY='your-api-key'"
+    exit 1
+fi
+
+if [ -z "$SUPABASE_ANON_KEY" ]; then
+    echo -e "${YELLOW}Warning: SUPABASE_ANON_KEY environment variable is not set${NC}"
+    echo "Using placeholder value. Set it for production testing:"
+    echo "export SUPABASE_ANON_KEY='your-supabase-anon-key'"
+    SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY"
+fi
+
 # Check if the edge function is deployed
 echo -e "${YELLOW}Checking function deployment...${NC}"
 supabase functions list
@@ -21,7 +36,7 @@ echo -e "\n${YELLOW}Testing function with curl...${NC}"
 # Get the function URL
 FUNCTION_URL="https://nmlrvkcvzzeewhamjxgj.supabase.co/functions/v1/generate-recommendations"
 
-# Test payload
+# Test payload - using environment variable for API key
 read -r -d '' TEST_PAYLOAD << EOM
 {
   "businessData": {
@@ -40,18 +55,18 @@ read -r -d '' TEST_PAYLOAD << EOM
       }
     ]
   },
-  "apiKey": "YOUR_OPENAI_API_KEY_HERE"
+  "apiKey": "$OPENAI_API_KEY"
 }
 EOM
 
 echo -e "${YELLOW}Sending test request...${NC}"
 echo "URL: $FUNCTION_URL"
-echo "Payload: $TEST_PAYLOAD"
+echo "Payload: (API key hidden for security)"
 
 # Send the request
 RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$FUNCTION_URL" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_SUPABASE_ANON_KEY" \
+  -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
   -d "$TEST_PAYLOAD")
 
 # Extract HTTP status code

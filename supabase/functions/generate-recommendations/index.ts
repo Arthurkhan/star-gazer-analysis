@@ -277,11 +277,19 @@ Requirements:
       throw new Error('Failed to parse AI recommendations');
     }
 
-    log.info('Successfully generated recommendations');
+    log.info('Successfully generated AI recommendations');
 
-    // Always return 200 with success response
+    // Always return 200 with success response and indicate it's from AI
     return new Response(
-      JSON.stringify(recommendations),
+      JSON.stringify({
+        ...recommendations,
+        metadata: {
+          source: 'openai',
+          model: 'gpt-3.5-turbo-1106',
+          timestamp: new Date().toISOString(),
+          responseTime: responseTime
+        }
+      }),
       {
         headers: {
           ...corsHeaders,
@@ -436,6 +444,11 @@ Requirements:
               'Build a recognizable brand beyond immediate area',
             ],
           },
+          metadata: {
+            source: 'fallback',
+            reason: errorMessage,
+            timestamp: new Date().toISOString()
+          }
         },
       }),
       {

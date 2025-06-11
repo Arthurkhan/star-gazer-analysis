@@ -73,8 +73,8 @@ serve(async (req) => {
     // Prepare data for OpenAI
     const reviewsSummary = businessData.reviews.slice(0, 50).map((review: Review) => ({
       rating: review.stars,
-      text: review.text || review.textTranslated,
-      date: review.publishedAtDate || review.publishedatdate,
+      text: review.text || review.textTranslated || '',
+      date: review.publishedAtDate || review.publishedatdate || '',
     }));
 
     const businessInfo = {
@@ -174,46 +174,87 @@ Requirements:
     console.log('Calling OpenAI API...');
     const startTime = Date.now();
 
-    // OpenAI API call
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt,
-          },
-          {
-            role: 'user',
-            content: JSON.stringify({
-              businessInfo,
-              recentReviews: reviewsSummary,
-              hasBusinessContext: !!businessData.businessContext,
-            }),
-          },
-        ],
-        response_format: { type: 'json_object' },
-        max_tokens: 2500, // Increased for more detailed recommendations
-        temperature: 0.8, // Slightly higher for more creative responses
-      }),
-    });
+    // OpenAI API call with better error handling
+    let openaiResponse;
+    try {
+      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo-1106', // Using stable model with JSON mode support
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: JSON.stringify({
+                businessInfo,
+                recentReviews: reviewsSummary,
+                hasBusinessContext: !!businessData.businessContext,
+              }),
+            },
+          ],
+          response_format: { type: 'json_object' },
+          max_tokens: 3000, // Increased for more detailed recommendations
+          temperature: 0.8, // Slightly higher for more creative responses
+        }),
+      });
+    } catch (fetchError) {
+      console.error('Fetch error:', fetchError);
+      throw new Error(`Network error calling OpenAI API: ${fetchError.message}`);
+    }
 
     const responseTime = Date.now() - startTime;
     console.log(`OpenAI API responded in ${responseTime}ms with status: ${openaiResponse.status}`);
 
     if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.text();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorData}`);
+      let errorData;
+      try {
+        errorData = await openaiResponse.json();
+        console.error('OpenAI API error response:', errorData);
+      } catch {
+        errorData = await openaiResponse.text();
+        console.error('OpenAI API error text:', errorData);
+      }
+      
+      // Check for specific error types
+      if (openaiResponse.status === 401) {
+        throw new Error('Invalid API key. Please check your OpenAI API key.');
+      } else if (openaiResponse.status === 429) {
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      } else if (openaiResponse.status === 404) {
+        throw new Error('Model not found. The specified model may not be available.');
+      } else {
+        throw new Error(`OpenAI API error: ${openaiResponse.status} - ${JSON.stringify(errorData)}`);
+      }
     }
 
-    const openaiData = await openaiResponse.json();
-    const recommendations = JSON.parse(openaiData.choices[0].message.content);
+    let openaiData;
+    try {
+      openaiData = await openaiResponse.json();
+    } catch (jsonError) {
+      console.error('Failed to parse OpenAI response:', jsonError);
+      throw new Error('Failed to parse OpenAI response');
+    }
+
+    if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
+      console.error('Invalid OpenAI response structure:', openaiData);
+      throw new Error('Invalid response from OpenAI API');
+    }
+
+    let recommendations;
+    try {
+      recommendations = JSON.parse(openaiData.choices[0].message.content);
+    } catch (parseError) {
+      console.error('Failed to parse recommendations JSON:', parseError);
+      console.error('Raw content:', openaiData.choices[0].message.content);
+      throw new Error('Failed to parse AI recommendations');
+    }
 
     console.log('Successfully generated recommendations');
 
@@ -232,6 +273,7 @@ Requirements:
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
+    // Return fallback recommendations with error info
     return new Response(
       JSON.stringify({
         error: errorMessage,

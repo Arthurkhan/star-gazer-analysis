@@ -399,33 +399,37 @@ serve(async (req) => {
 
   try {
     log.info('Edge function invoked at:', new Date().toISOString());
+    log.info('Request method:', req.method);
+    log.info('Request headers:', JSON.stringify(Object.fromEntries(req.headers.entries())));
     
     // Parse request body with better error handling
     let requestData;
     try {
+      // Get the raw body text
       const bodyText = await req.text();
-      log.info('Request body length:', bodyText.length);
+      log.info('Request body received, length:', bodyText.length);
+      log.info('First 500 chars of body:', bodyText.substring(0, 500));
       
       if (!bodyText || bodyText.trim() === '') {
-        throw new Error('Request body is empty');
+        log.warn('Empty request body received, using default test data');
+        requestData = { test: true };
+      } else {
+        try {
+          requestData = JSON.parse(bodyText);
+          log.info('Successfully parsed request data');
+        } catch (parseErr) {
+          log.error('JSON parse error:', parseErr);
+          log.error('Failed to parse body:', bodyText);
+          throw new Error('Invalid JSON in request body');
+        }
       }
-      
-      requestData = JSON.parse(bodyText);
-    } catch (parseError) {
-      log.error('Failed to parse request body:', parseError);
-      return new Response(
-        JSON.stringify(getFallbackResponse('Invalid request format. Please ensure the request body is valid JSON.')),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-          status: 200,
-        },
-      );
+    } catch (bodyError) {
+      log.error('Failed to read request body:', bodyError);
+      // If we can't read the body at all, assume it's a test request
+      requestData = { test: true };
     }
     
-    const { businessData, provider, apiKey, model, test } = requestData;
+    const { businessData, provider, apiKey, model, test } = requestData || {};
     
     // Test mode - return immediately without calling AI
     if (test === true) {

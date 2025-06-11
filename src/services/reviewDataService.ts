@@ -1,6 +1,9 @@
-import { supabase } from "@/integrations/supabase/client";
-import { Review, Business } from "@/types/reviews";
-import { Recommendations } from "@/types/recommendations";
+import { supabase } from '@/integrations/supabase/client';
+import { Review, Business } from '@/types/reviews';
+import { Recommendations } from '@/types/recommendations';
+import { ConsolidatedLogger } from '@/utils/logger';
+
+const logger = new ConsolidatedLogger('ReviewDataService');
 
 /**
  * Simplified Review Data Service
@@ -8,12 +11,22 @@ import { Recommendations } from "@/types/recommendations";
  * Uses only normalized schema with direct data fetching
  */
 
+interface BusinessData {
+  id: string;
+  name: string;
+  business_type: string;
+}
+
+interface ReviewWithBusiness extends Review {
+  businesses?: BusinessData | null;
+}
+
 /**
  * Fetch all businesses from the normalized schema
  */
 export const fetchBusinesses = async (): Promise<Business[]> => {
   try {
-    console.log("Fetching businesses from normalized schema...");
+    logger.info('Fetching businesses from normalized schema...');
     
     const { data, error } = await supabase
       .from('businesses')
@@ -21,19 +34,19 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
       .order('name');
     
     if (error) {
-      console.error("Error fetching businesses:", error);
+      logger.error('Error fetching businesses:', error);
       throw new Error(`Failed to fetch businesses: ${error.message}`);
     }
     
     if (!data || data.length === 0) {
-      console.warn("No businesses found in database");
+      logger.warn('No businesses found in database');
       return [];
     }
     
-    console.log(`Fetched ${data.length} businesses successfully`);
+    logger.info(`Fetched ${data.length} businesses successfully`);
     return data;
   } catch (error) {
-    console.error("Failed to fetch businesses:", error);
+    logger.error('Failed to fetch businesses:', error);
     throw error;
   }
 };
@@ -43,7 +56,7 @@ export const fetchBusinesses = async (): Promise<Business[]> => {
  */
 export const fetchAllReviews = async (): Promise<Review[]> => {
   try {
-    console.log("Fetching all reviews from normalized schema...");
+    logger.info('Fetching all reviews from normalized schema...');
     
     const { data, error } = await supabase
       .from('reviews')
@@ -58,18 +71,18 @@ export const fetchAllReviews = async (): Promise<Review[]> => {
       .order('publishedatdate', { ascending: false });
     
     if (error) {
-      console.error("Error fetching reviews:", error);
+      logger.error('Error fetching reviews:', error);
       throw new Error(`Failed to fetch reviews: ${error.message}`);
     }
     
     if (!data) {
-      console.log("No reviews found");
+      logger.info('No reviews found');
       return [];
     }
     
     // Process reviews for backward compatibility
-    const processedReviews = data.map(review => {
-      const business = review.businesses as any;
+    const processedReviews = data.map((review: ReviewWithBusiness) => {
+      const business = review.businesses as BusinessData | null;
       return {
         ...review,
         title: business?.name || 'Unknown Business',
@@ -78,10 +91,10 @@ export const fetchAllReviews = async (): Promise<Review[]> => {
       };
     });
     
-    console.log(`Fetched ${processedReviews.length} reviews successfully`);
+    logger.info(`Fetched ${processedReviews.length} reviews successfully`);
     return processedReviews;
   } catch (error) {
-    console.error("Failed to fetch reviews:", error);
+    logger.error('Failed to fetch reviews:', error);
     throw error;
   }
 };
@@ -91,7 +104,7 @@ export const fetchAllReviews = async (): Promise<Review[]> => {
  */
 export const fetchReviewsForBusiness = async (businessName: string): Promise<Review[]> => {
   try {
-    console.log(`Fetching reviews for business: ${businessName}`);
+    logger.info(`Fetching reviews for business: ${businessName}`);
     
     // First get the business ID
     const { data: businessData, error: businessError } = await supabase
@@ -101,7 +114,7 @@ export const fetchReviewsForBusiness = async (businessName: string): Promise<Rev
       .single();
     
     if (businessError || !businessData) {
-      console.error(`Business not found: ${businessName}`);
+      logger.error(`Business not found: ${businessName}`);
       return [];
     }
     
@@ -120,7 +133,7 @@ export const fetchReviewsForBusiness = async (businessName: string): Promise<Rev
       .order('publishedatdate', { ascending: false });
     
     if (error) {
-      console.error("Error fetching business reviews:", error);
+      logger.error('Error fetching business reviews:', error);
       throw new Error(`Failed to fetch reviews for ${businessName}: ${error.message}`);
     }
     
@@ -129,8 +142,8 @@ export const fetchReviewsForBusiness = async (businessName: string): Promise<Rev
     }
     
     // Process reviews for backward compatibility
-    const processedReviews = data.map(review => {
-      const business = review.businesses as any;
+    const processedReviews = data.map((review: ReviewWithBusiness) => {
+      const business = review.businesses as BusinessData | null;
       return {
         ...review,
         title: business?.name || businessName,
@@ -139,10 +152,10 @@ export const fetchReviewsForBusiness = async (businessName: string): Promise<Rev
       };
     });
     
-    console.log(`Fetched ${processedReviews.length} reviews for ${businessName}`);
+    logger.info(`Fetched ${processedReviews.length} reviews for ${businessName}`);
     return processedReviews;
   } catch (error) {
-    console.error(`Failed to fetch reviews for business ${businessName}:`, error);
+    logger.error(`Failed to fetch reviews for business ${businessName}:`, error);
     throw error;
   }
 };
@@ -150,9 +163,9 @@ export const fetchReviewsForBusiness = async (businessName: string): Promise<Rev
 /**
  * Get the latest recommendation for a business
  */
-export const getLatestRecommendation = async (businessId: string): Promise<any | null> => {
+export const getLatestRecommendation = async (businessId: string): Promise<Recommendations | null> => {
   try {
-    console.log(`Fetching latest recommendation for business ${businessId}`);
+    logger.info(`Fetching latest recommendation for business ${businessId}`);
     
     const { data, error } = await supabase
       .from('saved_recommendations')
@@ -162,19 +175,19 @@ export const getLatestRecommendation = async (businessId: string): Promise<any |
       .limit(1);
     
     if (error) {
-      console.error('Error fetching recommendation:', error);
+      logger.error('Error fetching recommendation:', error);
       return null;
     }
     
     if (!data || data.length === 0) {
-      console.log(`No recommendations found for business ${businessId}`);
+      logger.info(`No recommendations found for business ${businessId}`);
       return null;
     }
     
-    console.log(`Found recommendation for business ${businessId}`);
-    return data[0];
+    logger.info(`Found recommendation for business ${businessId}`);
+    return data[0] as Recommendations;
   } catch (error) {
-    console.error('Failed to fetch latest recommendation:', error);
+    logger.error('Failed to fetch latest recommendation:', error);
     return null;
   }
 };
@@ -184,12 +197,12 @@ export const getLatestRecommendation = async (businessId: string): Promise<any |
  */
 export const saveRecommendation = async (businessId: string, recommendations: Recommendations): Promise<boolean> => {
   try {
-    console.log(`Saving recommendation for business ${businessId}`);
+    logger.info(`Saving recommendation for business ${businessId}`);
     
     // Add timestamp to recommendations
     const recommendationWithTimestamp = {
       ...recommendations,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     };
     
     const { error } = await supabase
@@ -197,18 +210,18 @@ export const saveRecommendation = async (businessId: string, recommendations: Re
       .insert({
         business_id: businessId,
         recommendations: recommendationWithTimestamp,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
     
     if (error) {
-      console.error('Error saving recommendation:', error);
+      logger.error('Error saving recommendation:', error);
       return false;
     }
     
-    console.log(`Recommendation saved successfully for business ${businessId}`);
+    logger.info(`Recommendation saved successfully for business ${businessId}`);
     return true;
   } catch (error) {
-    console.error('Failed to save recommendation:', error);
+    logger.error('Failed to save recommendation:', error);
     return false;
   }
 };
@@ -221,32 +234,32 @@ export const checkDatabaseHealth = async (): Promise<boolean> => {
     // Check if required tables exist by trying to query them
     const [businessesResult, reviewsResult] = await Promise.all([
       supabase.from('businesses').select('id').limit(1),
-      supabase.from('reviews').select('id').limit(1)
+      supabase.from('reviews').select('id').limit(1),
     ]);
     
     return !businessesResult.error && !reviewsResult.error;
   } catch (error) {
-    console.error('Database health check failed:', error);
+    logger.error('Database health check failed:', error);
     return false;
   }
 };
 
 // Legacy compatibility exports (now simplified)
-export const fetchAvailableTables = async () => {
+export const fetchAvailableTables = async (): Promise<string[]> => {
   // Return empty array since we no longer use legacy tables
   return [];
 };
 
 export const fetchPaginatedReviews = async (
-  page: number = 0,
-  pageSize: number = 1000,
+  _page: number = 0,
+  _pageSize: number = 1000,
   businessName?: string,
   startDate?: Date,
   endDate?: Date
-): Promise<{ data: Review[], total: number, hasMore: boolean }> => {
+): Promise<{ data: Review[]; total: number; hasMore: boolean }> => {
   // For compatibility, just return all reviews
   try {
-    const allReviews = businessName && businessName !== "all" && businessName !== "All Businesses"
+    const allReviews = businessName && businessName !== 'all' && businessName !== 'All Businesses'
       ? await fetchReviewsForBusiness(businessName)
       : await fetchAllReviews();
     
@@ -264,15 +277,15 @@ export const fetchPaginatedReviews = async (
     return {
       data: filteredReviews,
       total: filteredReviews.length,
-      hasMore: false // No pagination needed for small datasets
+      hasMore: false, // No pagination needed for small datasets
     };
   } catch (error) {
-    console.error('Failed to fetch paginated reviews:', error);
+    logger.error('Failed to fetch paginated reviews:', error);
     return { data: [], total: 0, hasMore: false };
   }
 };
 
 // Remove complex caching since it's not needed for small datasets
-export const clearAllCaches = () => {
-  console.log("Cache clearing is no longer needed with simplified architecture");
+export const clearAllCaches = (): void => {
+  logger.info('Cache clearing is no longer needed with simplified architecture');
 };

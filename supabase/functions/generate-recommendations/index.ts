@@ -279,6 +279,7 @@ Requirements:
 
     log.info('Successfully generated recommendations');
 
+    // Always return 200 with success response
     return new Response(
       JSON.stringify(recommendations),
       {
@@ -286,6 +287,7 @@ Requirements:
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
+        status: 200,
       },
     );
 
@@ -294,7 +296,7 @@ Requirements:
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    // Return fallback recommendations with error info
+    // Always return 200 status with error info and fallback
     return new Response(
       JSON.stringify({
         error: errorMessage,
@@ -437,11 +439,11 @@ Requirements:
         },
       }),
       {
-        status: 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
+        status: 200, // Always return 200 to ensure response body is properly handled
       },
     );
   }

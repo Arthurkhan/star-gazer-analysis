@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { safeAccess, safeParseJSON, safeStorage, safeExecute } from '../safeUtils'
 
 describe('safeUtils', () => {
@@ -94,6 +94,11 @@ describe('safeUtils', () => {
       // Clear localStorage before each test
       localStorage.clear()
       vi.clearAllMocks()
+    })
+
+    afterEach(() => {
+      // Restore all mocks after each test
+      vi.restoreAllMocks()
     })
 
     describe('getItem', () => {

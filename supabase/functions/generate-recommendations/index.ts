@@ -1,3 +1,6 @@
+// @ts-check
+/* eslint-disable no-console */
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const corsHeaders = {
@@ -41,6 +44,23 @@ interface BusinessData {
   reviews: Review[];
 }
 
+// Function to log messages (can be disabled in production)
+const log = {
+  info: (message: string, ...args: unknown[]) => {
+    if (Deno.env.get('DEBUG') === 'true') {
+      console.log(`[INFO] ${message}`, ...args);
+    }
+  },
+  error: (message: string, ...args: unknown[]) => {
+    console.error(`[ERROR] ${message}`, ...args);
+  },
+  warn: (message: string, ...args: unknown[]) => {
+    if (Deno.env.get('DEBUG') === 'true') {
+      console.warn(`[WARN] ${message}`, ...args);
+    }
+  }
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -48,26 +68,26 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Edge function invoked at:', new Date().toISOString());
+    log.info('Edge function invoked at:', new Date().toISOString());
     
     const { businessData, apiKey } = await req.json();
-    console.log('Received request with business:', businessData?.businessName);
+    log.info('Received request with business:', businessData?.businessName);
 
     if (!apiKey) {
-      console.error('No API key provided');
+      log.error('No API key provided');
       throw new Error('OpenAI API key is required');
     }
 
     if (!businessData || !businessData.reviews || businessData.reviews.length === 0) {
-      console.error('Invalid business data:', businessData);
+      log.error('Invalid business data:', businessData);
       throw new Error('Business data with reviews is required');
     }
 
-    console.log(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`);
+    log.info(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`);
 
     // Log if business context is provided
     if (businessData.businessContext) {
-      console.log('Business context provided - using enhanced recommendations');
+      log.info('Business context provided - using enhanced recommendations');
     }
 
     // Prepare data for OpenAI
@@ -171,7 +191,7 @@ Requirements:
 - Be optimistic and solution-focused
 - Avoid corporate jargon - be clear and inspiring`;
 
-    console.log('Calling OpenAI API...');
+    log.info('Calling OpenAI API...');
     const startTime = Date.now();
 
     // OpenAI API call with better error handling
@@ -205,21 +225,22 @@ Requirements:
         }),
       });
     } catch (fetchError: unknown) {
-      console.error('Fetch error:', fetchError);
+      log.error('Fetch error:', fetchError);
       throw new Error(`Network error calling OpenAI API: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
     }
 
     const responseTime = Date.now() - startTime;
-    console.log(`OpenAI API responded in ${responseTime}ms with status: ${openaiResponse.status}`);
+    log.info(`OpenAI API responded in ${responseTime}ms with status: ${openaiResponse.status}`);
 
     if (!openaiResponse.ok) {
-      let errorData;
+      // deno-lint-ignore no-explicit-any
+      let errorData: any;
       try {
         errorData = await openaiResponse.json();
-        console.error('OpenAI API error response:', errorData);
+        log.error('OpenAI API error response:', errorData);
       } catch {
         errorData = await openaiResponse.text();
-        console.error('OpenAI API error text:', errorData);
+        log.error('OpenAI API error text:', errorData);
       }
       
       // Check for specific error types
@@ -238,12 +259,12 @@ Requirements:
     try {
       openaiData = await openaiResponse.json();
     } catch (jsonError) {
-      console.error('Failed to parse OpenAI response:', jsonError);
+      log.error('Failed to parse OpenAI response:', jsonError);
       throw new Error('Failed to parse OpenAI response');
     }
 
     if (!openaiData.choices || !openaiData.choices[0] || !openaiData.choices[0].message) {
-      console.error('Invalid OpenAI response structure:', openaiData);
+      log.error('Invalid OpenAI response structure:', openaiData);
       throw new Error('Invalid response from OpenAI API');
     }
 
@@ -251,12 +272,12 @@ Requirements:
     try {
       recommendations = JSON.parse(openaiData.choices[0].message.content);
     } catch (parseError) {
-      console.error('Failed to parse recommendations JSON:', parseError);
-      console.error('Raw content:', openaiData.choices[0].message.content);
+      log.error('Failed to parse recommendations JSON:', parseError);
+      log.error('Raw content:', openaiData.choices[0].message.content);
       throw new Error('Failed to parse AI recommendations');
     }
 
-    console.log('Successfully generated recommendations');
+    log.info('Successfully generated recommendations');
 
     return new Response(
       JSON.stringify(recommendations),
@@ -269,7 +290,7 @@ Requirements:
     );
 
   } catch (error) {
-    console.error('Error in generate-recommendations function:', error);
+    log.error('Error in generate-recommendations function:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 

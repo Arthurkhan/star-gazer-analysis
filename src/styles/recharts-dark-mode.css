@@ -1,0 +1,85 @@
+/* Recharts Dark Mode Styling */
+
+/* Default tooltip styles for light mode */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.recharts-default-tooltip {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.recharts-tooltip-label {
+  color: #111827 !important;
+  font-weight: 600 !important;
+  margin-bottom: 4px !important;
+}
+
+.recharts-tooltip-item {
+  color: #374151 !important;
+}
+
+/* Dark mode overrides */
+.dark .recharts-default-tooltip {
+  background-color: #1f2937 !important;
+  border: 1px solid #374151 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .recharts-tooltip-label {
+  color: #f3f4f6 !important;
+}
+
+.dark .recharts-tooltip-item {
+  color: #d1d5db !important;
+}
+
+/* Fix for custom tooltip content */
+.dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+}
+
+.dark .recharts-tooltip-wrapper .recharts-default-tooltip p {
+  color: #f3f4f6 !important;
+}
+
+/* Ensure text is always visible */
+.dark .recharts-tooltip-item-list li {
+  color: #d1d5db !important;
+}
+
+.dark .recharts-tooltip-cursor {
+  fill: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Legend text in dark mode */
+.dark .recharts-legend-item-text {
+  color: #d1d5db !important;
+}
+
+/* Axis text in dark mode */
+.dark .recharts-cartesian-axis-tick-value {
+  fill: #9ca3af !important;
+}
+
+.dark .recharts-label {
+  fill: #d1d5db !important;
+}
+
+/* Hover states */
+.dark .recharts-pie-sector:hover {
+  filter: brightness(1.2);
+}
+
+.dark .recharts-bar:hover {
+  filter: brightness(1.2);
+}
+
+/* Responsive container background */
+.dark .recharts-responsive-container {
+  background-color: transparent !important;
+}

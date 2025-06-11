@@ -29,8 +29,7 @@ describe('logger', () => {
       logger.setLevel('DEBUG')
       logger.debug('Debug message')
       expect(mockConsole.debug).toHaveBeenCalledWith(
-        expect.stringContaining('Debug message'),
-        'Debug message'
+        expect.stringContaining('Debug message')
       )
     })
 
@@ -38,8 +37,7 @@ describe('logger', () => {
       logger.setLevel('INFO')
       logger.info('Info message')
       expect(mockConsole.info).toHaveBeenCalledWith(
-        expect.stringContaining('Info message'),
-        'Info message'
+        expect.stringContaining('Info message')
       )
     })
 
@@ -47,8 +45,7 @@ describe('logger', () => {
       logger.setLevel('WARN')
       logger.warn('Warning message')
       expect(mockConsole.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Warning message'),
-        'Warning message'
+        expect.stringContaining('Warning message')
       )
     })
 
@@ -56,8 +53,7 @@ describe('logger', () => {
       logger.setLevel('ERROR')
       logger.error('Error message')
       expect(mockConsole.error).toHaveBeenCalledWith(
-        expect.stringContaining('Error message'),
-        'Error message'
+        expect.stringContaining('Error message')
       )
     })
 
@@ -82,8 +78,7 @@ describe('logger', () => {
       logger.info('Test message')
       
       expect(mockConsole.info).toHaveBeenCalledWith(
-        expect.stringContaining('[TestComponent]'),
-        'Test message'
+        expect.stringContaining('[TestComponent]')
       )
     })
 
@@ -91,10 +86,9 @@ describe('logger', () => {
       logger.setContext('')
       logger.info('Test message')
       
-      expect(mockConsole.info).toHaveBeenCalledWith(
-        expect.not.stringContaining('[TestComponent]'),
-        'Test message'
-      )
+      const logMessage = mockConsole.info.mock.calls[0][0]
+      expect(logMessage).toContain('Test message')
+      expect(logMessage).not.toContain('[TestComponent]')
     })
   })
 
@@ -125,7 +119,6 @@ describe('logger', () => {
       
       expect(mockConsole.error).toHaveBeenCalledWith(
         expect.stringContaining('Error occurred'),
-        'Error occurred',
         error
       )
     })
@@ -163,8 +156,7 @@ describe('logger', () => {
       
       expect(mockConsole.info).not.toHaveBeenCalled()
       expect(mockConsole.warn).toHaveBeenCalledWith(
-        expect.stringContaining('[CustomLogger]'),
-        'Warning message'
+        expect.stringContaining('[CustomLogger]')
       )
     })
   })
@@ -178,7 +170,6 @@ describe('logger', () => {
       
       expect(mockConsole.info).toHaveBeenCalledWith(
         expect.stringContaining('Message with objects'),
-        'Message with objects',
         obj,
         array
       )

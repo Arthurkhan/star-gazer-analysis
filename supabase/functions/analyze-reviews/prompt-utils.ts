@@ -1,11 +1,50 @@
+// Define proper types
+interface Review {
+  rating: number;
+  text: string;
+  id?: string;
+  sentiment?: string;
+  keyPhrases?: string[];
+}
+
+interface DateRange {
+  startDate: string;
+  endDate: string;
+}
+
+interface ComparisonData {
+  current: { count: number };
+  previous: { count: number };
+  change: {
+    percentage: string;
+    description: string;
+  };
+}
+
+interface AIResponseChoice {
+  message?: { content: string };
+  text?: string;
+}
+
+interface AIResponse {
+  choices?: AIResponseChoice[];
+}
+
+interface Analysis {
+  sentimentAnalysis: unknown[];
+  staffMentions: unknown[];
+  commonTerms: unknown[];
+  overallAnalysis: string;
+}
+
 // Generate the prompt for AI
 export function generatePrompt(
-  reviews: any[], 
+  reviews: Review[], 
   fullAnalysis: boolean, 
   reportType: string,
-  dateRange: any,
+  dateRange: DateRange | undefined,
   customPrompt: string | undefined,
-  comparisonData: any | null = null
+  comparisonData: ComparisonData | null = null
 ): string {
   // Use custom prompt if available, otherwise use default prompt
   const analysisPrompt = customPrompt || getDefaultPrompt();
@@ -45,12 +84,12 @@ export function generatePrompt(
   if (comparisonData) {
     prompt = prompt.replace(/\[X reviews\]/g, comparisonData.current.count.toString());
     prompt = prompt.replace(/\[Y reviews\]/g, comparisonData.previous.count > 0 ? comparisonData.previous.count.toString() : "No data available");
-    prompt = prompt.replace(/\[\+\/\- percentage\]/g, comparisonData.change.percentage !== "N/A" ? `${parseFloat(comparisonData.change.percentage).toFixed(1)}%` : "New period");
+    prompt = prompt.replace(/\[+/- percentage\]/g, comparisonData.change.percentage !== "N/A" ? `${parseFloat(comparisonData.change.percentage).toFixed(1)}%` : "New period");
     prompt = prompt.replace(/\[Increasing\/Decreasing\/Stable\/New\]/g, comparisonData.change.description);
   } else {
     prompt = prompt.replace(/\[X reviews\]/g, reviews.length.toString());
     prompt = prompt.replace(/\[Y reviews\]/g, "No data available");
-    prompt = prompt.replace(/\[\+\/\- percentage\]/g, "New period");
+    prompt = prompt.replace(/\[+/- percentage\]/g, "New period");
     prompt = prompt.replace(/\[Increasing\/Decreasing\/Stable\/New\]/g, "New");
   }
   
@@ -77,9 +116,9 @@ export function getSystemMessage(fullAnalysis: boolean, reportType: string): str
 }
 
 // Parse the AI response
-export function parseAIResponse(data: any, provider: string): any {
+export function parseAIResponse(data: AIResponse, _provider: string): Analysis {
   if (!data || !data.choices || data.choices.length === 0) {
-    console.warn("Invalid AI response:", data);
+    // Invalid AI response
     return {
       sentimentAnalysis: [],
       staffMentions: [],
@@ -92,23 +131,23 @@ export function parseAIResponse(data: any, provider: string): any {
   
   try {
     // Attempt to parse the AI's response as JSON
-    const parsedResponse = JSON.parse(response);
+    const parsedResponse = JSON.parse(response || '{}');
     return parsedResponse;
   } catch (error) {
     // If it's not JSON, treat the entire response as the overall analysis
-    console.log("AI response is not JSON, treating as overall analysis.");
+    // AI response is not JSON, treating as overall analysis
     return {
       sentimentAnalysis: [],
       staffMentions: [],
       commonTerms: [],
-      overallAnalysis: response,
+      overallAnalysis: response || '',
     };
   }
 }
 
 // Create a complete analysis structure
-export function createCompleteAnalysis(analysis: any, fullAnalysis: boolean): any {
-  const defaultAnalysis = {
+export function createCompleteAnalysis(analysis: Analysis, fullAnalysis: boolean): Analysis {
+  const defaultAnalysis: Analysis = {
     sentimentAnalysis: [],
     staffMentions: [],
     commonTerms: [],
@@ -128,7 +167,7 @@ export function createCompleteAnalysis(analysis: any, fullAnalysis: boolean): an
 }
 
 // Extract individual review analysis (not fully implemented)
-export function extractIndividualReviewAnalysis(reviews: any[]): any[] {
+export function extractIndividualReviewAnalysis(reviews: Review[]): unknown[] {
   return reviews.map(review => ({
     reviewId: review.id,
     sentiment: review.sentiment,

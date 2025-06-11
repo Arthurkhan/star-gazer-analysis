@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Review } from "@/types/reviews";
+import { logger } from "@/utils/logger";
 
 /**
  * Legacy Review Service for handling business-named tables
@@ -15,8 +16,8 @@ export const fetchLegacyReviewsWithDateFilter = async (
   endDate?: Date
 ): Promise<Review[]> => {
   try {
-    console.log(`🔍 Fetching reviews from legacy table: ${tableName}`);
-    console.log(`📅 Date range: ${startDate?.toISOString()} to ${endDate?.toISOString()}`);
+    logger.info(`🔍 Fetching reviews from legacy table: ${tableName}`);
+    logger.info(`📅 Date range: ${startDate?.toISOString()} to ${endDate?.toISOString()}`);
     
     // First, let's check which column name is used
     const { data: sampleData, error: sampleError } = await supabase
@@ -25,16 +26,16 @@ export const fetchLegacyReviewsWithDateFilter = async (
       .limit(1);
     
     if (sampleError) {
-      console.error(`❌ Error checking table structure:`, sampleError);
+      logger.error(`❌ Error checking table structure:`, sampleError);
       throw sampleError;
     }
     
-    // Determine the correct column name
-    const dateColumn = sampleData && sampleData.length > 0 && sampleData[0].hasOwnProperty('publishedAtDate') 
+    // Determine the correct column name - use Object.prototype.hasOwnProperty.call instead
+    const dateColumn = sampleData && sampleData.length > 0 && Object.prototype.hasOwnProperty.call(sampleData[0], 'publishedAtDate') 
       ? 'publishedAtDate' 
       : 'publishedatdate';
     
-    console.log(`📊 Using date column: ${dateColumn}`);
+    logger.info(`📊 Using date column: ${dateColumn}`);
     
     // Fetch all reviews with pagination to overcome Supabase limits
     let allReviews: Review[] = [];
@@ -64,7 +65,7 @@ export const fetchLegacyReviewsWithDateFilter = async (
       const { data, error } = await query;
       
       if (error) {
-        console.error(`❌ Error fetching page ${page} from ${tableName}:`, error);
+        logger.error(`❌ Error fetching page ${page} from ${tableName}:`, error);
         throw error;
       }
       
@@ -83,13 +84,13 @@ export const fetchLegacyReviewsWithDateFilter = async (
       }
     }
     
-    console.log(`✅ Retrieved ${allReviews.length} reviews from ${tableName} with date filter`);
+    logger.info(`✅ Retrieved ${allReviews.length} reviews from ${tableName} with date filter`);
     
     // Log sample of dates to verify filtering
     if (allReviews.length > 0) {
       const firstDate = allReviews[0].publishedAtDate || allReviews[0].publishedatdate;
       const lastDate = allReviews[allReviews.length - 1].publishedAtDate || allReviews[allReviews.length - 1].publishedatdate;
-      console.log(`📅 Date range in results: ${lastDate} to ${firstDate}`);
+      logger.info(`📅 Date range in results: ${lastDate} to ${firstDate}`);
     }
     
     // Process reviews to ensure consistent format
@@ -104,7 +105,7 @@ export const fetchLegacyReviewsWithDateFilter = async (
     
     return processedReviews;
   } catch (error) {
-    console.error(`❌ Failed to fetch reviews from legacy table ${tableName}:`, error);
+    logger.error(`❌ Failed to fetch reviews from legacy table ${tableName}:`, error);
     throw error;
   }
 };
@@ -155,7 +156,7 @@ export const fetchAllLegacyReviewsWithDateFilter = async (
 ): Promise<Review[]> => {
   try {
     const tables = await getLegacyBusinessTables();
-    console.log(`📊 Found ${tables.length} legacy business tables`);
+    logger.info(`📊 Found ${tables.length} legacy business tables`);
     
     const allReviews: Review[] = [];
     
@@ -171,10 +172,10 @@ export const fetchAllLegacyReviewsWithDateFilter = async (
       return dateB.getTime() - dateA.getTime();
     });
     
-    console.log(`🎯 Total reviews fetched from all legacy tables: ${allReviews.length}`);
+    logger.info(`🎯 Total reviews fetched from all legacy tables: ${allReviews.length}`);
     return allReviews;
   } catch (error) {
-    console.error('Failed to fetch reviews from legacy tables:', error);
+    logger.error('Failed to fetch reviews from legacy tables:', error);
     throw error;
   }
 };

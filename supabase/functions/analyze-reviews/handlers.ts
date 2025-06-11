@@ -9,7 +9,7 @@ export const corsHeaders = {
 
 // Call OpenAI API
 export async function callOpenAI(apiKey: string, model: string, systemMessage: string, prompt: string) {
-  console.log("Calling OpenAI API...");
+  // Calling OpenAI API...
   
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -35,7 +35,7 @@ export async function callOpenAI(apiKey: string, model: string, systemMessage: s
 
   if (!response.ok) {
     const errorData = await response.text();
-    console.error(`OpenAI API call failed with status: ${response.status}`, errorData);
+    // OpenAI API call failed
     throw new Error(`OpenAI API call failed with status: ${response.status}. Details: ${errorData}`);
   }
 
@@ -44,7 +44,7 @@ export async function callOpenAI(apiKey: string, model: string, systemMessage: s
 
 // Call Anthropic API
 export async function callAnthropic(apiKey: string, model: string, systemMessage: string, prompt: string) {
-  console.log("Calling Anthropic API...");
+  // Calling Anthropic API...
   
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -69,7 +69,7 @@ export async function callAnthropic(apiKey: string, model: string, systemMessage
 
   if (!response.ok) {
     const errorData = await response.text();
-    console.error(`Anthropic API call failed with status: ${response.status}`, errorData);
+    // Anthropic API call failed
     throw new Error(`Anthropic API call failed with status: ${response.status}. Details: ${errorData}`);
   }
 
@@ -78,7 +78,7 @@ export async function callAnthropic(apiKey: string, model: string, systemMessage
 
 // Call Gemini API
 export async function callGemini(apiKey: string, model: string, systemMessage: string, prompt: string) {
-  console.log("Calling Gemini API...");
+  // Calling Gemini API...
   
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
     method: "POST",
@@ -103,7 +103,7 @@ export async function callGemini(apiKey: string, model: string, systemMessage: s
 
   if (!response.ok) {
     const errorData = await response.text();
-    console.error(`Gemini API call failed with status: ${response.status}`, errorData);
+    // Gemini API call failed
     throw new Error(`Gemini API call failed with status: ${response.status}. Details: ${errorData}`);
   }
 
@@ -120,6 +120,6 @@ export async function getCustomPrompt() {
 export async function setCustomPrompt(prompt: string) {
   // Note: In a real deployment, this would write to a database
   // Since Edge Functions are stateless, this is just a placeholder
-  console.log("Custom prompt set:", prompt);
+  // Custom prompt set
   return { success: true };
 }

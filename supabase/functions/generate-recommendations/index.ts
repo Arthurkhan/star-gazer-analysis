@@ -134,70 +134,9 @@ async function testFunction() {
   };
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  try {
-    log.info('Edge function invoked at:', new Date().toISOString());
-    
-    const { businessData, apiKey, test } = await req.json();
-    
-    // Test mode - return immediately without calling OpenAI
-    if (test === true) {
-      log.info('Running in test mode');
-      const testRecommendations = await testFunction();
-      
-      return new Response(
-        JSON.stringify({
-          ...testRecommendations,
-          metadata: {
-            source: 'test',
-            timestamp: new Date().toISOString(),
-            message: 'Edge function is working correctly'
-          }
-        }),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-          status: 200,
-        },
-      );
-    }
-    
-    log.info('Received request with business:', businessData?.businessName);
-
-    if (!apiKey) {
-      log.error('No API key provided');
-      throw new Error('OpenAI API key is required');
-    }
-
-    if (!businessData || !businessData.reviews || businessData.reviews.length === 0) {
-      log.error('Invalid business data:', businessData);
-      throw new Error('Business data with reviews is required');
-    }
-
-    log.info(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`);
-
-    // Prepare data for OpenAI - limit to 20 reviews to save tokens
-    const reviewsSummary = businessData.reviews.slice(0, 20).map((review: Review) => ({
-      rating: review.stars,
-      text: (review.text || review.textTranslated || '').substring(0, 150), // Even shorter
-    }));
-
-    const businessInfo = {
-      name: businessData.businessName,
-      type: businessData.businessType || 'business',
-      totalReviews: businessData.reviews.length,
-      averageRating: Math.round((businessData.reviews.reduce((sum: number, r: Review) => sum + (r.stars || 0), 0) / businessData.reviews.length) * 10) / 10,
-    };
-
-    // Ultra-simplified prompt with strict JSON instructions
-    const systemPrompt = `You are a business consultant. Generate recommendations based on reviews.
+// Unified prompt for all providers
+const getUnifiedPrompt = (businessInfo: any, reviewsSummary: any[]) => {
+  const systemPrompt = `You are a business consultant. Generate recommendations based on reviews.
 
 CRITICAL: Return ONLY valid JSON, no text before or after. The response must start with { and end with }
 
@@ -234,7 +173,7 @@ Return this exact structure:
   }
 }`;
 
-    const userPrompt = `Business: ${businessInfo.name} (${businessInfo.type})
+  const userPrompt = `Business: ${businessInfo.name} (${businessInfo.type})
 Average rating: ${businessInfo.averageRating}/5
 Total reviews: ${businessInfo.totalReviews}
 
@@ -243,121 +182,229 @@ ${reviewsSummary.slice(0, 10).map(r => `- ${r.rating}★: ${r.text}`).join('\n')
 
 Generate recommendations in the exact JSON format specified. Remember: ONLY return JSON, no other text.`;
 
-    log.info('Calling OpenAI API...');
+  return { systemPrompt, userPrompt };
+};
+
+// AI Provider implementations
+async function callOpenAI(apiKey: string, model: string, systemPrompt: string, userPrompt: string) {
+  const openaiModel = model || 'gpt-4o';
+  log.info(`Using OpenAI model: ${openaiModel}`);
+  
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: openaiModel,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      max_tokens: 1500,
+      temperature: 0.5,
+      response_format: { type: "json_object" }
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    log.error('OpenAI API error:', errorData);
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices[0].message.content;
+  return JSON.parse(content);
+}
+
+async function callClaude(apiKey: string, model: string, systemPrompt: string, userPrompt: string) {
+  const claudeModel = model || 'claude-3-opus-20240229';
+  log.info(`Using Claude model: ${claudeModel}`);
+  
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: claudeModel,
+      messages: [
+        { role: 'user', content: `${systemPrompt}\n\n${userPrompt}` }
+      ],
+      max_tokens: 1500,
+      temperature: 0.5
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    log.error('Claude API error:', errorData);
+    throw new Error(`Claude API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const content = data.content[0].text;
+  
+  // Extract JSON from Claude's response
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('No valid JSON found in Claude response');
+  }
+  
+  return JSON.parse(jsonMatch[0]);
+}
+
+async function callGemini(apiKey: string, model: string, systemPrompt: string, userPrompt: string) {
+  const geminiModel = model || 'gemini-1.5-pro';
+  log.info(`Using Gemini model: ${geminiModel}`);
+  
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${geminiModel}:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: `${systemPrompt}\n\n${userPrompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.5,
+        maxOutputTokens: 1500,
+        responseMimeType: "application/json"
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    log.error('Gemini API error:', errorData);
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const content = data.candidates[0].content.parts[0].text;
+  return JSON.parse(content);
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    log.info('Edge function invoked at:', new Date().toISOString());
+    
+    const { businessData, provider, apiKey, model, test } = await req.json();
+    
+    // Test mode - return immediately without calling AI
+    if (test === true) {
+      log.info('Running in test mode');
+      const testRecommendations = await testFunction();
+      
+      return new Response(
+        JSON.stringify({
+          ...testRecommendations,
+          metadata: {
+            source: 'test',
+            timestamp: new Date().toISOString(),
+            message: 'Edge function is working correctly'
+          }
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+          status: 200,
+        },
+      );
+    }
+    
+    log.info(`Received request with business: ${businessData?.businessName}`);
+    log.info(`Using provider: ${provider}, model: ${model}`);
+
+    if (!apiKey) {
+      log.error('No API key provided');
+      throw new Error(`${provider} API key is required`);
+    }
+
+    if (!businessData || !businessData.reviews || businessData.reviews.length === 0) {
+      log.error('Invalid business data:', businessData);
+      throw new Error('Business data with reviews is required');
+    }
+
+    log.info(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`);
+
+    // Prepare data for AI - limit to 20 reviews to save tokens
+    const reviewsSummary = businessData.reviews.slice(0, 20).map((review: Review) => ({
+      rating: review.stars,
+      text: (review.text || review.textTranslated || '').substring(0, 150),
+    }));
+
+    const businessInfo = {
+      name: businessData.businessName,
+      type: businessData.businessType || 'business',
+      totalReviews: businessData.reviews.length,
+      averageRating: Math.round((businessData.reviews.reduce((sum: number, r: Review) => sum + (r.stars || 0), 0) / businessData.reviews.length) * 10) / 10,
+    };
+
+    // Get unified prompt
+    const { systemPrompt, userPrompt } = getUnifiedPrompt(businessInfo, reviewsSummary);
+
+    log.info(`Calling ${provider} API...`);
     const startTime = Date.now();
 
-    let openaiResponse;
+    let recommendations;
     try {
-      openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: systemPrompt,
-            },
-            {
-              role: 'user',
-              content: userPrompt
-            },
-          ],
-          max_tokens: 1500,
-          temperature: 0.5,
-          response_format: { type: "json_object" } // Force JSON response
-        }),
-      });
-    } catch (fetchError: unknown) {
-      log.error('Fetch error:', fetchError);
-      throw new Error(`Network error calling OpenAI API: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+      switch (provider) {
+        case 'openai':
+          recommendations = await callOpenAI(apiKey, model, systemPrompt, userPrompt);
+          break;
+        case 'claude':
+          recommendations = await callClaude(apiKey, model, systemPrompt, userPrompt);
+          break;
+        case 'gemini':
+          recommendations = await callGemini(apiKey, model, systemPrompt, userPrompt);
+          break;
+        default:
+          throw new Error(`Unknown provider: ${provider}`);
+      }
+    } catch (error: unknown) {
+      log.error(`${provider} API call failed:`, error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('401')) {
+        throw new Error(`Invalid API key. Please check your ${provider} API key.`);
+      } else if (errorMessage.includes('429')) {
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      } else {
+        throw new Error(`${provider} API error: ${errorMessage}`);
+      }
     }
 
     const responseTime = Date.now() - startTime;
-    log.info(`OpenAI API responded in ${responseTime}ms with status: ${openaiResponse.status}`);
+    log.info(`${provider} API responded in ${responseTime}ms`);
 
-    if (!openaiResponse.ok) {
-      let errorData: any;
-      try {
-        errorData = await openaiResponse.json();
-      } catch {
-        errorData = await openaiResponse.text();
-      }
-      log.error('OpenAI API error:', errorData);
-      
-      if (openaiResponse.status === 401) {
-        throw new Error('Invalid API key. Please check your OpenAI API key.');
-      } else if (openaiResponse.status === 429) {
-        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-      } else {
-        throw new Error(`OpenAI API error: ${openaiResponse.status}`);
-      }
-    }
-
-    let openaiData;
-    let responseText;
-    try {
-      responseText = await openaiResponse.text();
-      log.info('Response length:', responseText.length);
-      log.info('First 200 chars of response:', responseText.substring(0, 200));
-      openaiData = JSON.parse(responseText);
-    } catch (parseError) {
-      log.error('Failed to parse OpenAI response:', parseError);
-      log.error('Raw response text:', responseText);
-      throw new Error('Failed to parse OpenAI response');
-    }
-
-    if (!openaiData.choices?.[0]?.message?.content) {
-      log.error('Invalid OpenAI response structure:', openaiData);
-      throw new Error('Invalid response from OpenAI');
-    }
-
-    let recommendations;
-    const content = openaiData.choices[0].message.content;
-    
-    try {
-      // Log the content for debugging
-      log.info('Content to parse (first 500 chars):', content.substring(0, 500));
-      
-      // Try to extract JSON from the content
-      // Remove any potential whitespace or newlines
-      const trimmedContent = content.trim();
-      
-      // If content starts with { and ends with }, parse directly
-      if (trimmedContent.startsWith('{') && trimmedContent.endsWith('}')) {
-        recommendations = JSON.parse(trimmedContent);
-      } else {
-        // Try to extract JSON from the content
-        const jsonMatch = trimmedContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          recommendations = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No valid JSON found in response');
-        }
-      }
-      
-      log.info('Successfully parsed recommendations');
-      
-      // Validate the structure
-      if (!recommendations.urgentActions || !recommendations.growthStrategies) {
-        throw new Error('Missing required fields in recommendations');
-      }
-      
-    } catch (parseError) {
-      log.error('Failed to parse recommendations:', parseError);
-      log.error('Content that failed to parse:', content);
-      throw new Error(`Failed to parse AI recommendations: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+    // Validate the response structure
+    if (!recommendations.urgentActions || !recommendations.growthStrategies) {
+      throw new Error('Invalid recommendations structure received from AI');
     }
 
     // Return successful response
     const successResponse = {
       ...recommendations,
       metadata: {
-        source: 'openai',
-        model: 'gpt-3.5-turbo',
+        source: 'ai',
+        provider: provider,
+        model: model || 'default',
         timestamp: new Date().toISOString(),
         responseTime: responseTime
       }

@@ -274,6 +274,7 @@ export class RecommendationService {
         throw new Error('AI recommendation service is not deployed. Please deploy the Supabase edge function using: supabase functions deploy generate-recommendations');
       }
 
+      // The edge function returns a 500 status with data containing error and fallback
       if (response.error) {
         logger.error('Supabase function error:', response.error);
         
@@ -293,34 +294,43 @@ export class RecommendationService {
         throw new Error('No data returned from recommendation service');
       }
 
-      // Handle both success and error responses from edge function
-      if (response.data && typeof response.data === 'object' && 'error' in response.data) {
-        const errorData = response.data as { error: string; fallback?: EdgeFunctionRecommendations };
-        logger.warn('Edge function returned error, using fallback:', errorData.error);
-        
-        // Provide more helpful error messages
-        if (errorData.error.includes('401') || errorData.error.includes('Unauthorized')) {
-          throw new Error('Invalid OpenAI API key. Please check your API key in AI Settings.');
+      // The edge function returns either:
+      // 1. Success: recommendations object directly
+      // 2. Error: { error: string, fallback: recommendations }
+      if (response.data && typeof response.data === 'object') {
+        // Check if it's an error response with fallback
+        if ('error' in response.data && 'fallback' in response.data) {
+          const errorData = response.data as { error: string; fallback?: EdgeFunctionRecommendations };
+          logger.warn('Edge function returned error, using fallback:', errorData.error);
+          
+          // Provide more helpful error messages
+          if (errorData.error.includes('401') || errorData.error.includes('Unauthorized')) {
+            throw new Error('Invalid OpenAI API key. Please check your API key in AI Settings.');
+          }
+          
+          if (errorData.error.includes('429')) {
+            throw new Error('OpenAI rate limit exceeded. Please wait a moment and try again.');
+          }
+          
+          if (errorData.error.includes('500') || errorData.error.includes('503')) {
+            throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
+          }
+          
+          // Use fallback recommendations if available
+          if (errorData.fallback) {
+            logger.info('Using fallback recommendations due to API error');
+            return this.transformRecommendations(errorData.fallback, businessData);
+          }
+          
+          throw new Error(errorData.error);
         }
         
-        if (errorData.error.includes('429')) {
-          throw new Error('OpenAI rate limit exceeded. Please wait a moment and try again.');
-        }
-        
-        if (errorData.error.includes('500') || errorData.error.includes('503')) {
-          throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
-        }
-        
-        // Return fallback recommendations if available
-        if (errorData.fallback) {
-          return this.transformRecommendations(errorData.fallback, businessData);
-        }
-        
-        throw new Error(errorData.error);
+        // Otherwise it's a success response with recommendations
+        logger.info('Successfully generated AI recommendations');
+        return this.transformRecommendations(response.data as EdgeFunctionRecommendations, businessData);
       }
 
-      logger.info('Successfully generated AI recommendations');
-      return this.transformRecommendations(response.data as EdgeFunctionRecommendations, businessData);
+      throw new Error('Unexpected response format from recommendation service');
 
     } catch (error: unknown) {
       clearTimeout(timeoutId);

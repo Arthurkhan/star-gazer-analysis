@@ -67,6 +67,61 @@ interface EdgeFunctionRecommendations {
  */
 export class RecommendationService {
   /**
+   * Test the edge function without calling OpenAI
+   */
+  async testEdgeFunction(): Promise<{ success: boolean; message: string; data?: any }> {
+    logger.info('Testing edge function...');
+    
+    try {
+      const response = await supabase.functions.invoke('generate-recommendations', {
+        body: { 
+          test: true,
+          businessData: {
+            businessName: 'Test Business',
+            businessType: 'test',
+            reviews: []
+          },
+          apiKey: 'test-key'
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }) as EdgeFunctionResponse;
+
+      logger.info('Test response:', response);
+
+      if (!response.data) {
+        return {
+          success: false,
+          message: 'No data returned from edge function'
+        };
+      }
+
+      const responseData = response.data as any;
+      
+      if (responseData.metadata?.source === 'test') {
+        return {
+          success: true,
+          message: 'Edge function is working correctly!',
+          data: responseData
+        };
+      } else {
+        return {
+          success: false,
+          message: 'Unexpected response from edge function',
+          data: responseData
+        };
+      }
+    } catch (error) {
+      logger.error('Edge function test failed:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  /**
    * Transform edge function response to frontend format
    */
   private transformRecommendations(edgeResponse: EdgeFunctionRecommendations, businessData: BusinessData): Recommendations {
@@ -300,6 +355,7 @@ export class RecommendationService {
         
         // Log whether we're using fallback
         logger.info('🔄 Using FALLBACK recommendations (not AI-generated)');
+        logger.info(`Fallback reason: ${responseData.error}`);
         
         // Provide more helpful error messages
         if (responseData.error.includes('401') || responseData.error.includes('Invalid API key')) {

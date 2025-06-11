@@ -5,6 +5,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface Review {
+  stars: number;
+  text?: string;
+  textTranslated?: string;
+  publishedAtDate?: string;
+  publishedatdate?: string;
+}
+
+interface BusinessContext {
+  location?: {
+    city: string;
+    country: string;
+    neighborhood?: string;
+  };
+  operatingDays?: string[];
+  peakHours?: string;
+  averageTransaction?: string;
+  seatingCapacity?: number;
+  priceRange?: string;
+  specialties?: string[];
+  customerTypes?: string[];
+  mainCompetitors?: string[];
+  uniqueSellingPoints?: string[];
+  onlinePresence?: Record<string, boolean | string[]>;
+  currentChallenges?: string[];
+  businessGoals?: string;
+  additionalContext?: string;
+}
+
+interface BusinessData {
+  businessName?: string;
+  businessType?: string;
+  businessContext?: BusinessContext;
+  reviews: Review[];
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -22,16 +58,16 @@ serve(async (req) => {
       throw new Error('Business data with reviews is required');
     }
 
-    console.log(`Generating recommendations for ${businessData.businessName || 'Unknown Business'}`);
-    console.log(`Processing ${businessData.reviews.length} reviews`);
+    // Generating recommendations for business
+    // Processing reviews
 
     // Log if business context is provided
     if (businessData.businessContext) {
-      console.log('Using comprehensive business context for enhanced recommendations');
+      // Using comprehensive business context for enhanced recommendations
     }
 
     // Prepare data for OpenAI
-    const reviewsSummary = businessData.reviews.slice(0, 50).map((review: any) => ({
+    const reviewsSummary = businessData.reviews.slice(0, 50).map((review: Review) => ({
       rating: review.stars,
       text: review.text || review.textTranslated,
       date: review.publishedAtDate || review.publishedatdate,
@@ -41,7 +77,7 @@ serve(async (req) => {
       name: businessData.businessName,
       type: businessData.businessType || 'business',
       totalReviews: businessData.reviews.length,
-      averageRating: businessData.reviews.reduce((sum: number, r: any) => sum + (r.stars || 0), 0) / businessData.reviews.length,
+      averageRating: businessData.reviews.reduce((sum: number, r: Review) => sum + (r.stars || 0), 0) / businessData.reviews.length,
     };
 
     // Build comprehensive context from BusinessContext if available
@@ -62,7 +98,7 @@ ${ctx.customerTypes?.length ? `Target Customers: ${ctx.customerTypes.join(', ')}
 ${ctx.mainCompetitors?.length ? `Main Competitors: ${ctx.mainCompetitors.join(', ')}` : ''}
 ${ctx.uniqueSellingPoints?.length ? `Unique Selling Points: ${ctx.uniqueSellingPoints.join(', ')}` : ''}
 ${ctx.onlinePresence ? `Online Presence: ${Object.entries(ctx.onlinePresence).filter(([k, v]) => v && k !== 'deliveryApps').map(([k]) => k).join(', ')}` : ''}
-${ctx.onlinePresence?.deliveryApps?.length ? `Delivery Apps: ${ctx.onlinePresence.deliveryApps.join(', ')}` : ''}
+${ctx.onlinePresence?.deliveryApps?.length ? `Delivery Apps: ${(ctx.onlinePresence.deliveryApps as string[]).join(', ')}` : ''}
 ${ctx.currentChallenges?.length ? `Current Challenges: ${ctx.currentChallenges.join(', ')}` : ''}
 ${ctx.businessGoals ? `Business Goals: ${ctx.businessGoals}` : ''}
 ${ctx.additionalContext ? `Additional Context: ${ctx.additionalContext}` : ''}
@@ -162,14 +198,14 @@ Requirements:
 
     if (!openaiResponse.ok) {
       const errorData = await openaiResponse.text();
-      console.error('OpenAI API error:', errorData);
+      // OpenAI API error
       throw new Error(`OpenAI API error: ${openaiResponse.status}`);
     }
 
     const openaiData = await openaiResponse.json();
     const recommendations = JSON.parse(openaiData.choices[0].message.content);
 
-    console.log('Successfully generated enhanced recommendations via OpenAI');
+    // Successfully generated enhanced recommendations via OpenAI
 
     return new Response(
       JSON.stringify(recommendations),
@@ -181,12 +217,14 @@ Requirements:
       },
     );
 
-  } catch (error: any) {
-    console.error('Error in generate-recommendations function:', error);
+  } catch (error) {
+    // Error in generate-recommendations function
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     return new Response(
       JSON.stringify({
-        error: error.message,
+        error: errorMessage,
         fallback: {
           urgentActions: [
             {

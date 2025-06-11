@@ -14,6 +14,7 @@
     "lint:fix-critical": "node scripts/quick-fix-eslint.js",
     "lint:fix-all": "node scripts/fix-eslint.js",
     "lint:fix-comprehensive": "node scripts/fix-eslint-comprehensive.js",
+    "lint:fix-targeted": "node scripts/fix-eslint-targeted.js",
     "type-check": "tsc --noEmit",
     "type-check:build": "tsc && vite build",
     "clean": "rm -rf dist node_modules/.vite",

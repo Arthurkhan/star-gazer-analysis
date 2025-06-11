@@ -10,10 +10,16 @@ interface GeminiResponse {
   }>;
 }
 
+interface UserInput {
+  analysisData?: unknown;
+  businessType?: string;
+  prompt?: string;
+}
+
 class GeminiProvider {
   private logger = new Logger('GeminiProvider');
   
-  async generateRecommendations(userInput: any): Promise<GeminiResponse> {
+  async generateRecommendations(userInput: UserInput): Promise<GeminiResponse> {
     try {
       const result = await this.callGemini(userInput);
       return result;
@@ -23,12 +29,12 @@ class GeminiProvider {
     }
   }
   
-  private async callGemini(userInput: any): Promise<GeminiResponse> {
+  private async callGemini(_userInput: UserInput): Promise<GeminiResponse> {
     try {
       // Updated to use the v1 API endpoint (not beta)
-      const endpoint = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
+      // const endpoint = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
       // Replace this with your valid API key or use from env vars
-      const apiKey = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY'; 
+      // const apiKey = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY'; 
       
       // For our current fix, we'll return fallback data instead of making the API call
       // since we don't have access to update environment variables
@@ -43,7 +49,7 @@ class GeminiProvider {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Generate business recommendations based on the following data: ${JSON.stringify(userInput)}`
+              text: `Generate business recommendations based on the following data: ${JSON.stringify(_userInput)}`
             }]
           }]
         })
@@ -81,7 +87,7 @@ class GeminiProvider {
       };
     } catch (error) {
       this.logger.error('Error calling Gemini API:', error);
-      throw new Error('Gemini API error: ' + (error.message || 'Unknown error'));
+      throw new Error('Gemini API error: ' + ((error as Error).message || 'Unknown error'));
     }
   }
 }

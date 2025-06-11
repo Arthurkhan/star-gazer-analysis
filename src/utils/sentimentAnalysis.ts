@@ -1,5 +1,5 @@
 import { Review } from '@/types/reviews';
-import { format, parseISO, subMonths, startOfMonth, endOfMonth, differenceInMonths } from 'date-fns';
+import { format, parseISO, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
 export interface SentimentTrend {
   period: string;
@@ -51,10 +51,11 @@ export function analyzeSentimentTrends(reviews: Review[], periodType: 'month' | 
     let periodKey: string;
     
     switch (periodType) {
-      case 'quarter':
+      case 'quarter': {
         const quarter = Math.floor(date.getMonth() / 3) + 1;
         periodKey = `${date.getFullYear()}-Q${quarter}`;
         break;
+      }
       case 'year':
         periodKey = date.getFullYear().toString();
         break;
@@ -388,7 +389,7 @@ function generateSentimentRecommendation(change: number, currentScore: number): 
   return 'Stable sentiment. Consider strategies to drive positive momentum.';
 }
 
-function identifyAffectingFactors(reviews: Review[], category: string): string[] {
+function identifyAffectingFactors(reviews: Review[], _category: string): string[] {
   // Analyze themes and patterns that correlate with sentiment
   const factors: string[] = [];
   
@@ -539,12 +540,12 @@ function identifyChangeFactors(currentReviews: Review[], previousReviews: Review
   return factors.slice(0, 3);
 }
 
-function identifyImpactedCategories(currentReviews: Review[], previousReviews: Review[]): string[] {
+function identifyImpactedCategories(currentReviews: Review[], _previousReviews: Review[]): string[] {
   const categories: string[] = [];
   
   // Analyze rating distributions
   const currentRatingDist = calculateRatingDistribution(currentReviews);
-  const previousRatingDist = calculateRatingDistribution(previousReviews);
+  const previousRatingDist = calculateRatingDistribution(_previousReviews);
   
   // Find significant rating changes
   [5, 4, 3, 2, 1].forEach(rating => {

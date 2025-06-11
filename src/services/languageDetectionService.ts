@@ -7,6 +7,7 @@
 
 import { Review } from "@/types/reviews";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
 
 // Common language patterns for basic detection
 const LANGUAGE_PATTERNS = {
@@ -138,7 +139,7 @@ export const populateLanguageData = async (): Promise<{ updated: number; errors:
   let errors = 0;
   
   try {
-    console.log('🔍 Starting language detection for existing reviews...');
+    logger.info('🔍 Starting language detection for existing reviews...');
     
     // Fetch all reviews without language data
     const { data: reviews, error } = await supabase
@@ -148,16 +149,16 @@ export const populateLanguageData = async (): Promise<{ updated: number; errors:
       .limit(1000); // Process in batches
 
     if (error) {
-      console.error('Error fetching reviews:', error);
+      logger.error('Error fetching reviews:', error);
       return { updated: 0, errors: 1 };
     }
 
     if (!reviews || reviews.length === 0) {
-      console.log('✅ No reviews need language detection');
+      logger.info('✅ No reviews need language detection');
       return { updated: 0, errors: 0 };
     }
 
-    console.log(`🔄 Processing ${reviews.length} reviews for language detection...`);
+    logger.info(`🔄 Processing ${reviews.length} reviews for language detection...`);
 
     // Process reviews in batches of 50
     const batchSize = 50;
@@ -174,13 +175,13 @@ export const populateLanguageData = async (): Promise<{ updated: number; errors:
             .eq('id', review.id);
 
           if (updateError) {
-            console.error(`Error updating review ${review.id}:`, updateError);
+            logger.error(`Error updating review ${review.id}:`, updateError);
             errors++;
           } else {
             updated++;
           }
         } catch (err) {
-          console.error(`Error processing review ${review.id}:`, err);
+          logger.error(`Error processing review ${review.id}:`, err);
           errors++;
         }
       }
@@ -189,11 +190,11 @@ export const populateLanguageData = async (): Promise<{ updated: number; errors:
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    console.log(`✅ Language detection complete: ${updated} updated, ${errors} errors`);
+    logger.info(`✅ Language detection complete: ${updated} updated, ${errors} errors`);
     return { updated, errors };
 
   } catch (error) {
-    console.error('Error in populateLanguageData:', error);
+    logger.error('Error in populateLanguageData:', error);
     return { updated, errors: errors + 1 };
   }
 };

@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Recommendations } from '@/types/recommendations';
+import { Recommendations, RecommendationMetadata } from '@/types/recommendations';
 import { BusinessContext } from '@/utils/businessContext';
 import { ConsolidatedLogger } from '@/utils/logger';
 
@@ -59,6 +59,7 @@ interface EdgeFunctionRecommendations {
     shortTerm: string[];
     longTerm: string[];
   };
+  metadata?: RecommendationMetadata;
 }
 
 /**
@@ -223,7 +224,10 @@ export class RecommendationService {
         expectedImpact: strategy.impact,
         implementation: [strategy.description],
         kpis: []
-      }))
+      })),
+      
+      // Include metadata if available
+      metadata: edgeResponse.metadata
     };
     
     return transformedRecommendations;
@@ -280,6 +284,9 @@ export class RecommendationService {
       if (responseData.error && responseData.fallback) {
         logger.warn('Edge function returned error, using fallback:', responseData.error);
         
+        // Log whether we're using fallback
+        logger.info('🔄 Using FALLBACK recommendations (not AI-generated)');
+        
         // Provide more helpful error messages
         if (responseData.error.includes('401') || responseData.error.includes('Invalid API key')) {
           throw new Error('Invalid OpenAI API key. Please check your API key in AI Settings.');
@@ -305,8 +312,21 @@ export class RecommendationService {
         throw new Error('Invalid response format from recommendation service');
       }
 
+      // Log whether we're using AI or fallback
+      if (responseData.metadata?.source === 'openai') {
+        logger.info('✅ Successfully generated AI recommendations using OpenAI');
+        logger.info(`Model: ${responseData.metadata.model || 'Unknown'}`);
+        if (responseData.metadata.responseTime) {
+          logger.info(`Response time: ${responseData.metadata.responseTime}ms`);
+        }
+      } else if (responseData.metadata?.source === 'fallback') {
+        logger.info('🔄 Using FALLBACK recommendations');
+        if (responseData.metadata.reason) {
+          logger.info(`Reason: ${responseData.metadata.reason}`);
+        }
+      }
+
       // Otherwise it's a success response with recommendations
-      logger.info('Successfully generated AI recommendations');
       return this.transformRecommendations(responseData as EdgeFunctionRecommendations, businessData);
 
     } catch (error: unknown) {

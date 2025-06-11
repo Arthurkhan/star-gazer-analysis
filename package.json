@@ -27,7 +27,13 @@
     "test:watch": "vitest --watch",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx}\"",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "supabase:link": "supabase link --project-ref nmlrvkcvzzeewhamjxgj",
+    "deploy:functions": "supabase functions deploy generate-recommendations",
+    "deploy:all": "npm run deploy:functions",
+    "functions:serve": "supabase functions serve generate-recommendations",
+    "functions:list": "supabase functions list",
+    "functions:logs": "supabase functions logs generate-recommendations"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^16.6.0",

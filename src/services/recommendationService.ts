@@ -1,12 +1,26 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Recommendations } from '@/types/recommendations';
 import { BusinessContext } from '@/utils/businessContext';
+import { ConsolidatedLogger } from '@/utils/logger';
+
+const logger = new ConsolidatedLogger('RecommendationService');
 
 export interface BusinessData {
   businessName: string;
   businessType: string;
-  reviews: any[];
-  businessContext?: BusinessContext; // Add BusinessContext to the interface
+  reviews: Array<{
+    stars: number;
+    text: string;
+    publishedAtDate: string;
+    name?: string;
+    [key: string]: unknown;
+  }>;
+  businessContext?: BusinessContext;
+}
+
+interface EdgeFunctionResponse {
+  data?: Recommendations | { error: string; fallback?: Recommendations };
+  error?: { message: string };
 }
 
 /**
@@ -27,12 +41,12 @@ export class RecommendationService {
       throw new Error('No reviews available for analysis');
     }
 
-    console.log(`Generating recommendations for ${businessData.businessName}`);
-    console.log(`Using ${businessData.reviews.length} reviews for analysis`);
+    logger.info(`Generating recommendations for ${businessData.businessName}`);
+    logger.info(`Using ${businessData.reviews.length} reviews for analysis`);
     
     // Log if business context is included
     if (businessData.businessContext) {
-      console.log('Including comprehensive business context in analysis');
+      logger.info('Including comprehensive business context in analysis');
     }
 
     // Create abort controller for timeout
@@ -40,14 +54,16 @@ export class RecommendationService {
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     try {
-      const response = await supabase.functions.invoke('generate-recommendations', {
+      const response = await supabase.functions.invoke<Recommendations | { error: string; fallback?: Recommendations }>('generate-recommendations', {
         body: { 
           businessData,
-          apiKey 
+          apiKey,
         },
-        // @ts-ignore - Supabase types don't include signal yet
-        signal: controller.signal
-      });
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal as AbortSignal,
+      }) as EdgeFunctionResponse;
 
       clearTimeout(timeoutId);
 
@@ -57,7 +73,7 @@ export class RecommendationService {
       }
 
       if (response.error) {
-        console.error('Supabase function error:', response.error);
+        logger.error('Supabase function error:', response.error);
         
         // Check for common errors
         if (response.error.message?.includes('timeout')) {
@@ -76,47 +92,51 @@ export class RecommendationService {
       }
 
       // Handle both success and error responses from edge function
-      if (response.data.error) {
-        console.warn('Edge function returned error, using fallback:', response.data.error);
+      if (response.data && typeof response.data === 'object' && 'error' in response.data) {
+        const errorData = response.data as { error: string; fallback?: Recommendations };
+        logger.warn('Edge function returned error, using fallback:', errorData.error);
         
         // Provide more helpful error messages
-        if (response.data.error.includes('401') || response.data.error.includes('Unauthorized')) {
+        if (errorData.error.includes('401') || errorData.error.includes('Unauthorized')) {
           throw new Error('Invalid OpenAI API key. Please check your API key in AI Settings.');
         }
         
-        if (response.data.error.includes('429')) {
+        if (errorData.error.includes('429')) {
           throw new Error('OpenAI rate limit exceeded. Please wait a moment and try again.');
         }
         
-        if (response.data.error.includes('500') || response.data.error.includes('503')) {
+        if (errorData.error.includes('500') || errorData.error.includes('503')) {
           throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
         }
         
         // Return fallback recommendations if available
-        if (response.data.fallback) {
-          return response.data.fallback;
+        if (errorData.fallback) {
+          return errorData.fallback;
         }
         
-        throw new Error(response.data.error);
+        throw new Error(errorData.error);
       }
 
-      console.log('Successfully generated AI recommendations');
-      return response.data;
+      logger.info('Successfully generated AI recommendations');
+      return response.data as Recommendations;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       clearTimeout(timeoutId);
       
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorName = error instanceof Error ? error.name : 'UnknownError';
+      
       // Handle abort/timeout
-      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+      if (errorName === 'AbortError' || errorMessage?.includes('aborted')) {
         throw new Error('Request timed out after 30 seconds. Please check your internet connection and try again.');
       }
       
       // Network errors
-      if (error.message?.includes('Failed to fetch') || error.message?.includes('Network')) {
+      if (errorMessage?.includes('Failed to fetch') || errorMessage?.includes('Network')) {
         throw new Error('Network error. Please check your internet connection and try again.');
       }
       
-      console.error('Recommendation generation failed:', error);
+      logger.error('Recommendation generation failed:', error);
       throw error;
     }
   }
@@ -124,13 +144,13 @@ export class RecommendationService {
   /**
    * Save recommendations to database
    */
-  async saveRecommendations(businessName: string, recommendations: Recommendations): Promise<void> {
+  async saveRecommendations(businessName: string, _recommendations: Recommendations): Promise<void> {
     try {
       // This would save to your saved_recommendations table
-      console.log(`Saving recommendations for ${businessName}`);
+      logger.info(`Saving recommendations for ${businessName}`);
       // Implementation depends on your database schema
     } catch (error) {
-      console.error('Failed to save recommendations:', error);
+      logger.error('Failed to save recommendations:', error);
       throw error;
     }
   }

@@ -1,83 +1,84 @@
-# Deploy Supabase Edge Functions - Quick Guide
+# Deploying Supabase Edge Functions
 
-The AI recommendations feature requires the Supabase edge function to be deployed. Follow these steps:
+This guide explains how to deploy the edge functions for the Star-Gazer-Analysis project.
 
 ## Prerequisites
 
-1. **Install Supabase CLI** (if not already installed):
+1. **Supabase CLI** installed
    ```bash
-   # Mac
-   brew install supabase/tap/supabase
-   
-   # Windows (use PowerShell as admin)
-   scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-   scoop install supabase
-   
-   # Linux/WSL
-   brew install supabase/tap/supabase
-   # OR
-   curl -fsSL https://supabase.io/install.sh | sh
+   npm install -g supabase
    ```
 
-2. **Login to Supabase**:
+2. **Logged in to Supabase**
    ```bash
    supabase login
    ```
-   This will open a browser window for authentication.
 
-## Deploy the Edge Function
-
-1. **Link your project** (only needed once):
-   ```bash
-   npm run supabase:link
-   ```
-   Or manually:
+3. **Project linked**
    ```bash
    supabase link --project-ref nmlrvkcvzzeewhamjxgj
    ```
 
-2. **Deploy the function**:
-   ```bash
-   npm run deploy:functions
-   ```
-   Or manually:
-   ```bash
-   supabase functions deploy generate-recommendations
-   ```
+## Deploy the Edge Function
 
-3. **Verify deployment**:
-   ```bash
-   npm run functions:list
-   ```
+To deploy the `generate-recommendations` function:
 
-## Troubleshooting
-
-### Check function logs:
 ```bash
-npm run functions:logs
+supabase functions deploy generate-recommendations
 ```
 
-### Common issues:
+## Verify Deployment
 
-1. **"Function not found" error**: The function hasn't been deployed. Run the deployment command above.
-
-2. **"Invalid API key" error**: Make sure you've added your OpenAI API key in the app's AI Settings.
-
-3. **"Internal Server Error"**: Check the function logs for details. Usually related to:
-   - Invalid request format
-   - OpenAI API issues
-   - Function timeout
-
-### Test the function locally:
-```bash
-npm run functions:serve
+After deployment, you should see:
+```
+Function "generate-recommendations" deployed successfully
 ```
 
-## Next Steps
+## Test the Function
 
-After deploying the edge function:
-1. Go to the app's AI Settings
-2. Add your OpenAI API key
-3. Test the AI recommendations feature
+You can test the function using the Supabase Dashboard:
+1. Go to your Supabase project dashboard
+2. Navigate to Edge Functions
+3. Find `generate-recommendations`
+4. Use the testing interface
 
-For detailed documentation, see `/supabase/functions/README.md`
+## Common Issues
+
+### Function Not Found (404)
+- Make sure the function is deployed
+- Check that the function name matches exactly
+
+### Authentication Error (401) 
+- Verify your OpenAI API key is valid
+- Ensure the API key has proper permissions
+
+### Rate Limit (429)
+- Wait a moment and try again
+- Check your OpenAI usage limits
+
+### Model Not Found
+- The edge function now uses `gpt-3.5-turbo-1106` which should be available
+- If issues persist, check OpenAI model availability
+
+## Environment Variables
+
+The function doesn't require environment variables - the API key is passed in the request body.
+
+## Logs
+
+View function logs:
+```bash
+supabase functions logs generate-recommendations
+```
+
+## Local Development
+
+To run the function locally:
+```bash
+supabase functions serve generate-recommendations
+```
+
+The function will be available at:
+```
+http://localhost:54321/functions/v1/generate-recommendations
+```

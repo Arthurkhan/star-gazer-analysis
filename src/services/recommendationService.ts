@@ -269,75 +269,45 @@ export class RecommendationService {
 
       clearTimeout(timeoutId);
 
-      // Check if the function exists (deployment issue)
-      if (response.error?.message?.includes('not found') || response.error?.message?.includes('404')) {
-        throw new Error('AI recommendation service is not deployed. Please deploy the Supabase edge function using: supabase functions deploy generate-recommendations');
-      }
-
-      // The edge function returns a 500 status with data containing error and fallback
-      if (response.error) {
-        logger.error('Supabase function error:', response.error);
-        
-        // Check for common errors
-        if (response.error.message?.includes('timeout')) {
-          throw new Error('Request timed out. The AI service is taking too long to respond. Please try again.');
-        }
-        
-        if (response.error.message?.includes('API key')) {
-          throw new Error('Invalid OpenAI API key. Please check your API key in AI Settings.');
-        }
-        
-        // For 500 errors, check if we have data with fallback
-        if (response.data && typeof response.data === 'object' && 'fallback' in response.data) {
-          logger.warn('Using fallback recommendations due to edge function error');
-          const fallbackData = response.data as { error: string; fallback: EdgeFunctionRecommendations };
-          return this.transformRecommendations(fallbackData.fallback, businessData);
-        }
-        
-        throw new Error(`Failed to generate recommendations: ${response.error.message}`);
-      }
-
+      // The edge function now returns 200 status always, so check the response data
       if (!response.data) {
         throw new Error('No data returned from recommendation service');
       }
 
-      // The edge function returns either:
-      // 1. Success: recommendations object directly
-      // 2. Error: { error: string, fallback: recommendations }
-      if (response.data && typeof response.data === 'object') {
-        // Check if it's an error response with fallback
-        if ('error' in response.data && 'fallback' in response.data) {
-          const errorData = response.data as { error: string; fallback?: EdgeFunctionRecommendations };
-          logger.warn('Edge function returned error, using fallback:', errorData.error);
-          
-          // Provide more helpful error messages
-          if (errorData.error.includes('401') || errorData.error.includes('Invalid API key')) {
-            throw new Error('Invalid OpenAI API key. Please check your API key in AI Settings.');
-          }
-          
-          if (errorData.error.includes('429') || errorData.error.includes('Rate limit')) {
-            throw new Error('OpenAI rate limit exceeded. Please wait a moment and try again.');
-          }
-          
-          if (errorData.error.includes('500') || errorData.error.includes('503')) {
-            throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
-          }
-          
-          // Use fallback recommendations if available
-          if (errorData.fallback) {
-            logger.info('Using fallback recommendations due to API error');
-            return this.transformRecommendations(errorData.fallback, businessData);
-          }
-          
-          throw new Error(errorData.error);
+      const responseData = response.data as any;
+
+      // Check if it's an error response with fallback
+      if (responseData.error && responseData.fallback) {
+        logger.warn('Edge function returned error, using fallback:', responseData.error);
+        
+        // Provide more helpful error messages
+        if (responseData.error.includes('401') || responseData.error.includes('Invalid API key')) {
+          throw new Error('Invalid OpenAI API key. Please check your API key in AI Settings.');
         }
         
-        // Otherwise it's a success response with recommendations
-        logger.info('Successfully generated AI recommendations');
-        return this.transformRecommendations(response.data as EdgeFunctionRecommendations, businessData);
+        if (responseData.error.includes('429') || responseData.error.includes('Rate limit')) {
+          throw new Error('OpenAI rate limit exceeded. Please wait a moment and try again.');
+        }
+        
+        if (responseData.error.includes('500') || responseData.error.includes('503')) {
+          logger.info('OpenAI service is temporarily unavailable, using fallback recommendations');
+          return this.transformRecommendations(responseData.fallback, businessData);
+        }
+        
+        // Use fallback recommendations for other errors
+        logger.info('Using fallback recommendations due to API error');
+        return this.transformRecommendations(responseData.fallback, businessData);
       }
 
-      throw new Error('Unexpected response format from recommendation service');
+      // Check if response has the expected structure
+      if (!responseData.urgentActions || !responseData.growthStrategies) {
+        logger.error('Invalid response structure:', responseData);
+        throw new Error('Invalid response format from recommendation service');
+      }
+
+      // Otherwise it's a success response with recommendations
+      logger.info('Successfully generated AI recommendations');
+      return this.transformRecommendations(responseData as EdgeFunctionRecommendations, businessData);
 
     } catch (error: unknown) {
       clearTimeout(timeoutId);
@@ -353,6 +323,11 @@ export class RecommendationService {
       // Network errors
       if (errorMessage?.includes('Failed to fetch') || errorMessage?.includes('Network')) {
         throw new Error('Network error. Please check your internet connection and try again.');
+      }
+      
+      // Edge function not found
+      if (errorMessage?.includes('not found') || errorMessage?.includes('404')) {
+        throw new Error('AI recommendation service is not deployed. Please deploy the Supabase edge function using: supabase functions deploy generate-recommendations');
       }
       
       logger.error('Recommendation generation failed:', error);

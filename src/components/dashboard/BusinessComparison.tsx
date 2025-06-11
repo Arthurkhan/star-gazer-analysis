@@ -19,6 +19,14 @@ const BUSINESS_COLORS = {
   "L'Envol Art Space": "#F59E0B" // Amber
 };
 
+// Dark mode tooltip style
+const tooltipStyle = {
+  backgroundColor: '#1f2937',
+  border: '1px solid #374151',
+  borderRadius: '6px',
+  color: '#f3f4f6'
+};
+
 const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, businessData }) => {
   // Extract business names
   const businessNames = Object.keys(businessData.businesses);
@@ -260,7 +268,10 @@ const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, bus
                   height={60}
                 />
                 <YAxis />
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={tooltipStyle}
+                  labelStyle={{ color: '#f3f4f6' }}
+                />
                 <Legend />
                 {businessNames.map(name => (
                   <Line
@@ -297,7 +308,10 @@ const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, bus
                   height={60}
                 />
                 <YAxis />
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={tooltipStyle}
+                  labelStyle={{ color: '#f3f4f6' }}
+                />
                 <Legend />
                 {businessNames.map(name => (
                   <Line
@@ -330,7 +344,11 @@ const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, bus
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value) => `${value}%`} />
+                  <Tooltip 
+                    formatter={(value) => `${value}%`}
+                    contentStyle={tooltipStyle}
+                    labelStyle={{ color: '#f3f4f6' }}
+                  />
                   <Legend />
                   <Bar dataKey="positive" fill="#10B981" name="Positive" />
                   <Bar dataKey="neutral" fill="#6B7280" name="Neutral" />
@@ -368,7 +386,9 @@ const BusinessComparison: React.FC<BusinessComparisonProps> = ({ allReviews, bus
                       />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip 
+                    contentStyle={tooltipStyle}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>

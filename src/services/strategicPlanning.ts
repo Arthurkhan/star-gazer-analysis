@@ -1,11 +1,19 @@
-import { BusinessType, BusinessMetrics } from '@/types/businessTypes';
+import { BusinessType } from '@/types/businessTypes';
 import { Strategy, MarketingPlan, GrowthStrategy } from '@/types/recommendations';
 import { BusinessHealth } from './criticalThinking';
+import { Review } from '@/types/reviews';
+
+interface ReviewAnalysisData {
+  reviews: Review[];
+  commonTerms?: Array<{ text: string; count: number }>;
+  monthlyReviews: number;
+  averageRating: number;
+}
 
 export const generateLongTermStrategies = (
-  data: any,
+  data: ReviewAnalysisData,
   businessHealth: BusinessHealth,
-  businessType: BusinessType
+  _businessType: BusinessType
 ): Strategy[] => {
   const strategies: Strategy[] = [];
   
@@ -275,7 +283,15 @@ export const createMarketingPlan = (
         }
       ];
       break;
-    // Add more business types as needed
+    default:
+      plan.targetSegments = [
+        {
+          segment: 'Local Community',
+          characteristics: ['Regular visitors', 'Word of mouth', 'Value quality'],
+          channels: ['Facebook', 'Instagram', 'Local events'],
+          messaging: 'Your neighborhood favorite'
+        }
+      ];
   }
   
   // Create campaigns based on objectives
@@ -311,7 +327,7 @@ export const createMarketingPlan = (
 export const generateGrowthStrategies = (
   businessHealth: BusinessHealth,
   marketingPlan: MarketingPlan,
-  businessType: BusinessType
+  _businessType: BusinessType
 ): GrowthStrategy[] => {
   const strategies: GrowthStrategy[] = [];
   

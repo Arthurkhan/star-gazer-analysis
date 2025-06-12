@@ -8,6 +8,7 @@ Fixed critical issues with the AI recommendations feature that was showing "Inva
 - ✅ Fix "Invalid request format" error when calling edge function
 - ✅ Ensure proper data transformation for AI recommendations
 - ✅ Add missing test function for edge function diagnostics
+- ✅ Handle legacy request format in edge function
 
 ## Files Modified/Created
 
@@ -15,6 +16,7 @@ Fixed critical issues with the AI recommendations feature that was showing "Inva
 - `src/components/recommendations/RecommendationsDashboard.tsx` - Fixed JSX syntax error (removed extra closing tag)
 - `src/services/recommendationService.ts` - Added testEdgeFunction method and improved request body formatting
 - `src/hooks/useRecommendations.ts` - Fixed review data transformation to ensure proper field mapping
+- `supabase/functions/generate-recommendations/index.ts` - Added support for legacy request format
 
 ## Changes Made
 
@@ -35,11 +37,17 @@ Fixed critical issues with the AI recommendations feature that was showing "Inva
 - Used ref to store businessData to avoid stale closures in callbacks
 - Added comprehensive error handling for edge cases
 
+### 4. Edge Function Update
+- Added support for legacy request format where businessData fields might be at root level
+- Improved error handling and logging in the edge function
+- Added automatic conversion from legacy format to new format
+
 ## Technical Details
 - The main issue was that the Review type has multiple field name variants (e.g., text, textTranslated, texttranslated)
 - The edge function expects specific field names (text, publishedAtDate) in the review data
 - Fixed by transforming reviews to ensure proper field mapping before sending to edge function
 - Added validation to ensure only reviews with actual text content are sent for analysis
+- Edge function now handles both new nested format and legacy flat format
 
 ## Success Criteria: ✅
 - ✅ JSX syntax error resolved - app builds successfully
@@ -48,7 +56,15 @@ Fixed critical issues with the AI recommendations feature that was showing "Inva
 - ✅ Proper error messages displayed for missing API keys or other issues
 
 ## Next Steps
+- **IMPORTANT**: Deploy the updated edge function using: `supabase functions deploy generate-recommendations`
 - Test the AI recommendations feature with all three businesses
 - Ensure the Debug Tool Test passes successfully
 - Monitor edge function logs for any remaining issues
 - Consider adding more comprehensive error handling for edge cases
+
+## Deployment Instructions
+Since the edge function was modified, you need to redeploy it:
+```bash
+cd /path/to/star-gazer-analysis
+supabase functions deploy generate-recommendations
+```

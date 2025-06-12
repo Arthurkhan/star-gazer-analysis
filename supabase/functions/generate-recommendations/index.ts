@@ -344,7 +344,24 @@ serve(async (req) => {
       
       requestData = JSON.parse(bodyText);
       log.info('Successfully parsed request data');
-      log.info('Request data keys:', Object.keys(requestData));
+      log.info('Request data keys:', Object.keys(requestData || {}));
+      
+      // Check if businessData is nested properly
+      if (requestData && !requestData.businessData && requestData.businessName) {
+        // Handle legacy format where businessData fields are at root level
+        log.info('Converting legacy request format to new format');
+        requestData = {
+          businessData: {
+            businessName: requestData.businessName,
+            businessType: requestData.businessType,
+            reviews: requestData.reviews,
+            businessContext: requestData.businessContext
+          },
+          provider: requestData.provider,
+          apiKey: requestData.apiKey,
+          model: requestData.model
+        };
+      }
     } catch (parseErr) {
       log.error('Failed to parse request:', parseErr);
       log.error('Parse error details:', parseErr instanceof Error ? parseErr.message : 'Unknown parse error');

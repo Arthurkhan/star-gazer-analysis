@@ -13,6 +13,9 @@ if (import.meta.env.DEV) {
   });
 }
 
+// Initialize the Supabase client
+let supabase: ReturnType<typeof createClient>;
+
 if (!supabaseUrl || !supabaseAnonKey) {
   const errorMessage = `
     ⚠️ Supabase credentials are missing!
@@ -66,7 +69,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   
   console.warn('Creating dummy Supabase client - app will not function properly');
   
-  export const supabase = createClient(dummyUrl, dummyKey, {
+  supabase = createClient(dummyUrl, dummyKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -75,7 +78,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   });
 } else {
   // Create the actual Supabase client with proper configuration
-  export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
@@ -127,3 +130,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
       });
   }
 }
+
+// Export the client
+export { supabase };

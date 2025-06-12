@@ -67,63 +67,6 @@ interface EdgeFunctionRecommendations {
  */
 export class RecommendationService {
   /**
-   * Test the edge function without calling AI
-   */
-  async testEdgeFunction(): Promise<{ success: boolean; message: string; data?: any }> {
-    logger.info('Testing edge function...');
-    
-    try {
-      const response = await supabase.functions.invoke('generate-recommendations', {
-        body: { 
-          test: true,
-          businessData: {
-            businessName: 'Test Business',
-            businessType: 'test',
-            reviews: []
-          },
-          provider: 'openai',
-          apiKey: 'test-key',
-          model: 'gpt-4o'
-        },
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }) as EdgeFunctionResponse;
-
-      logger.info('Test response:', response);
-
-      if (!response.data) {
-        return {
-          success: false,
-          message: 'No data returned from edge function'
-        };
-      }
-
-      const responseData = response.data as any;
-      
-      if (responseData.metadata?.source === 'test') {
-        return {
-          success: true,
-          message: 'Edge function is working correctly!',
-          data: responseData
-        };
-      } else {
-        return {
-          success: false,
-          message: 'Unexpected response from edge function',
-          data: responseData
-        };
-      }
-    } catch (error) {
-      logger.error('Edge function test failed:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  }
-
-  /**
    * Transform edge function response to frontend format
    */
   private transformRecommendations(edgeResponse: EdgeFunctionRecommendations, businessData: BusinessData): Recommendations {
@@ -396,7 +339,7 @@ export class RecommendationService {
         const providerName = responseData.metadata.provider || provider;
         const modelName = responseData.metadata.model || model || 'Unknown';
         
-        if (source === 'ai' || source === 'openai' || source === 'claude' || source === 'gemini') {
+        if (source === 'openai' || source === 'claude' || source === 'gemini') {
           logger.info(`✅ Successfully generated AI recommendations using ${providerName}`);
           logger.info(`Model: ${modelName}`);
           if (responseData.metadata.responseTime) {

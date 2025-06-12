@@ -1,7 +1,8 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Recommendations } from '@/types/recommendations';
 import { recommendationService, BusinessData } from '@/services/recommendationService';
 import { getBusinessContext } from '@/utils/businessContext';
+import { reviewFieldAccessor } from '@/types/reviews';
 
 interface UseRecommendationsProps {
   businessData: BusinessData;
@@ -29,6 +30,10 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
     progress: 0
   });
 
+  // Use ref to store the latest businessData to avoid stale closures
+  const businessDataRef = useRef(businessData);
+  businessDataRef.current = businessData;
+
   // Memoize validation checks to prevent unnecessary re-renders
   const isValidForGeneration = useMemo(() => {
     return selectedBusiness && 
@@ -53,7 +58,7 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
           } else if (prev.progress < 50) {
             newProgress = Math.min(50, prev.progress + 1.5);
             newStage = 'analyzing';
-            newMessage = `Analyzing ${businessData.reviews?.length || 0} reviews with business context...`;
+            newMessage = `Analyzing ${businessDataRef.current.reviews?.length || 0} reviews with business context...`;
           } else if (prev.progress < 80) {
             newProgress = Math.min(80, prev.progress + 1);
             newStage = 'generating';
@@ -74,16 +79,19 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
 
       return () => clearInterval(interval);
     }
-  }, [loading, progress.progress, businessData.reviews?.length]);
+  }, [loading, progress.progress]);
 
   const generateRecommendations = useCallback(async (provider: string = 'openai') => {
-    // Validate current state - use fresh businessData from closure
+    // Use the latest businessData from ref
+    const currentBusinessData = businessDataRef.current;
+    
+    // Validate current state
     if (!selectedBusiness || selectedBusiness === 'all') {
       setError('Please select a specific business');
       return;
     }
 
-    if (!businessData.reviews || businessData.reviews.length === 0) {
+    if (!currentBusinessData.reviews || currentBusinessData.reviews.length === 0) {
       setError('No reviews available for analysis');
       return;
     }
@@ -109,15 +117,52 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
         console.log('No business context found for', selectedBusiness, '- using basic info only');
       }
 
+      // Transform reviews to ensure proper field mapping
+      const transformedReviews = currentBusinessData.reviews.map(review => {
+        // Ensure we have a proper text field
+        const reviewText = review.text || 
+                          reviewFieldAccessor.getTextTranslated(review) || 
+                          review.textTranslated || 
+                          review.texttranslated || 
+                          '';
+        
+        // Ensure we have a proper date
+        const publishedDate = review.publishedAtDate || 
+                             reviewFieldAccessor.getPublishedDate(review) || 
+                             review.publishedatdate || 
+                             new Date().toISOString();
+        
+        return {
+          stars: review.stars || 0,
+          text: reviewText,
+          publishedAtDate: publishedDate,
+          name: review.name || 'Anonymous',
+          // Include other fields for context
+          sentiment: review.sentiment,
+          mainThemes: reviewFieldAccessor.getMainThemes(review),
+          staffMentioned: reviewFieldAccessor.getStaffMentioned(review),
+          language: reviewFieldAccessor.getLanguage(review)
+        };
+      });
+
+      // Filter out reviews without text
+      const validReviews = transformedReviews.filter(r => r.text && r.text.trim().length > 0);
+      
+      if (validReviews.length === 0) {
+        throw new Error('No reviews with text content found');
+      }
+
+      console.log(`Transformed ${currentBusinessData.reviews.length} reviews, ${validReviews.length} have text content`);
+
       // Prepare business data with context
       const preparedBusinessData: BusinessData = {
         businessName: selectedBusiness,
         businessType: businessType,
-        reviews: businessData.reviews,
-        businessContext: businessContext || undefined // Include business context if available
+        reviews: validReviews,
+        businessContext: businessContext || undefined
       };
 
-      console.log(`Generating recommendations for ${selectedBusiness} with ${businessData.reviews.length} reviews`);
+      console.log(`Generating recommendations for ${selectedBusiness} with ${validReviews.length} valid reviews`);
 
       const result = await recommendationService.generateRecommendations(preparedBusinessData);
       
@@ -155,7 +200,7 @@ export const useRecommendations = ({ businessData, selectedBusiness, businessTyp
     } finally {
       setLoading(false);
     }
-  }, [selectedBusiness, businessType]); // Removed businessData from dependencies to prevent infinite loops
+  }, [selectedBusiness, businessType]);
 
   const exportRecommendations = useCallback(() => {
     if (!recommendations || !selectedBusiness) return;

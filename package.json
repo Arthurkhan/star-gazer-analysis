@@ -19,6 +19,7 @@
     "type-check:build": "tsc && vite build",
     "clean": "rm -rf dist node_modules/.vite",
     "reset": "npm run clean && npm install",
+    "verify-setup": "bash scripts/verify-setup.sh",
     "analyze": "npm run build:analyze",
     "test": "vitest",
     "test:ui": "vitest --ui",

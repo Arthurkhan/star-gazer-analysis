@@ -57,119 +57,44 @@ const log = {
   }
 };
 
-// Test function to verify edge function is working
-async function testFunction() {
-  return {
-    urgentActions: [
-      {
-        title: 'Test Action 1',
-        description: 'This is a test action to verify the edge function works',
-        impact: 'High',
-        effort: 'Low'
-      },
-      {
-        title: 'Test Action 2',
-        description: 'Another test action',
-        impact: 'Medium',
-        effort: 'Medium'
-      },
-      {
-        title: 'Test Action 3',
-        description: 'Third test action',
-        impact: 'Low',
-        effort: 'High'
-      }
-    ],
-    growthStrategies: [
-      {
-        title: 'Test Strategy 1',
-        description: 'Test growth strategy',
-        impact: 'High',
-        effort: 'Low'
-      },
-      {
-        title: 'Test Strategy 2',
-        description: 'Another test strategy',
-        impact: 'Medium',
-        effort: 'Medium'
-      },
-      {
-        title: 'Test Strategy 3',
-        description: 'Third test strategy',
-        impact: 'Low',
-        effort: 'High'
-      }
-    ],
-    customerAttractionPlan: {
-      title: 'Test Marketing Plan',
-      description: 'Test description',
-      strategies: [
-        {
-          title: 'Test Tactic 1',
-          description: 'Test implementation',
-          timeline: '1 week',
-          cost: '$100',
-          expectedOutcome: 'Test outcome'
-        },
-        {
-          title: 'Test Tactic 2',
-          description: 'Another test',
-          timeline: '2 weeks',
-          cost: '$200',
-          expectedOutcome: 'Another outcome'
-        }
-      ]
-    },
-    competitivePositioning: {
-      title: 'Test Competitive Edge',
-      description: 'Test market position',
-      strengths: ['Test strength 1', 'Test strength 2'],
-      opportunities: ['Test opportunity 1', 'Test opportunity 2'],
-      recommendations: ['Test recommendation 1', 'Test recommendation 2']
-    },
-    futureProjections: {
-      shortTerm: ['Test short term 1', 'Test short term 2'],
-      longTerm: ['Test long term 1', 'Test long term 2']
-    }
-  };
-}
-
 // Unified prompt for all providers
 const getUnifiedPrompt = (businessInfo: any, reviewsSummary: any[]) => {
-  const systemPrompt = `You are a business consultant. Generate recommendations based on reviews.
+  const systemPrompt = `You are a business consultant analyzing real customer reviews. Generate actionable recommendations based on the reviews provided.
 
 CRITICAL: Return ONLY valid JSON, no text before or after. The response must start with { and end with }
+
+Analyze the customer reviews and provide specific, actionable recommendations based on what customers are actually saying. Look for patterns in complaints, compliments, and suggestions.
 
 Return this exact structure:
 {
   "urgentActions": [
-    {"title": "Action title", "description": "Brief description", "impact": "High", "effort": "Low"},
-    {"title": "Action title", "description": "Brief description", "impact": "Medium", "effort": "Medium"},
-    {"title": "Action title", "description": "Brief description", "impact": "Low", "effort": "High"}
+    {"title": "Specific action based on reviews", "description": "Detailed explanation addressing actual customer feedback", "impact": "High", "effort": "Low"},
+    {"title": "Another urgent action", "description": "Based on common complaints or issues mentioned", "impact": "Medium", "effort": "Medium"},
+    {"title": "Third action", "description": "Addressing patterns in negative reviews", "impact": "Low", "effort": "High"}
   ],
   "growthStrategies": [
-    {"title": "Strategy title", "description": "Brief description", "impact": "High", "effort": "Low"},
-    {"title": "Strategy title", "description": "Brief description", "impact": "Medium", "effort": "Medium"},
-    {"title": "Strategy title", "description": "Brief description", "impact": "Low", "effort": "High"}
+    {"title": "Strategy based on positive feedback", "description": "Leverage what customers love", "impact": "High", "effort": "Low"},
+    {"title": "Expansion opportunity", "description": "Based on customer requests", "impact": "Medium", "effort": "Medium"},
+    {"title": "Long-term improvement", "description": "Address systematic issues", "impact": "Low", "effort": "High"}
   ],
   "customerAttractionPlan": {
-    "title": "Marketing Plan",
-    "description": "Brief overview",
+    "title": "Customer Growth Plan",
+    "description": "Based on what attracts current happy customers",
     "strategies": [
-      {"title": "Tactic 1", "description": "Implementation", "timeline": "1 week", "cost": "$100", "expectedOutcome": "Result"},
-      {"title": "Tactic 2", "description": "Implementation", "timeline": "2 weeks", "cost": "$200", "expectedOutcome": "Result"}
+      {"title": "Attraction method", "description": "Based on positive review themes", "timeline": "1 week", "cost": "$100-500", "expectedOutcome": "Specific result"},
+      {"title": "Marketing approach", "description": "Highlight strengths mentioned in reviews", "timeline": "2 weeks", "cost": "$200-1000", "expectedOutcome": "Measurable outcome"}
     ]
   },
   "competitivePositioning": {
-    "title": "Market Position",
-    "description": "Brief overview",
-    "strengths": ["Strength 1", "Strength 2"],
-    "opportunities": ["Opportunity 1", "Opportunity 2"],
-    "recommendations": ["Recommendation 1", "Recommendation 2"]
+    "title": "Your Competitive Edge",
+    "description": "Based on what customers say makes you unique",
+    "strengths": ["Strength mentioned in reviews", "Another strength customers love"],
+    "opportunities": ["Gap identified from reviews", "Customer request pattern"],
+    "recommendations": ["Action to enhance strengths", "Way to address weaknesses"]
   },
   "futureProjections": {
-    "shortTerm": ["3-month projection", "Another projection"],
-    "longTerm": ["1-year projection", "Another projection"]
+    "shortTerm": ["3-month projection based on current trajectory", "Expected improvement from addressing issues"],
+    "longTerm": ["1-year vision if recommendations are implemented", "Market position potential"]
   }
 }`;
 
@@ -177,10 +102,10 @@ Return this exact structure:
 Average rating: ${businessInfo.averageRating}/5
 Total reviews: ${businessInfo.totalReviews}
 
-Recent reviews:
-${reviewsSummary.slice(0, 10).map(r => `- ${r.rating}★: ${r.text}`).join('\n')}
+Recent customer reviews to analyze:
+${reviewsSummary.slice(0, 20).map(r => `- ${r.rating}★: ${r.text}`).join('\n')}
 
-Generate recommendations in the exact JSON format specified. Remember: ONLY return JSON, no other text.`;
+Analyze these actual customer reviews and generate specific recommendations based on what customers are saying. Address both positive feedback (to amplify) and negative feedback (to fix). Be specific and reference actual review content in your recommendations.`;
 
   return { systemPrompt, userPrompt };
 };
@@ -299,88 +224,88 @@ const getFallbackResponse = (errorMessage: string) => ({
   fallback: {
     urgentActions: [
       {
-        title: 'Enhance Customer Response Time',
-        description: 'Respond to all reviews within 24 hours to show customers you care.',
+        title: 'Improve Response Time',
+        description: 'Respond to all customer reviews within 24 hours to show you value feedback.',
         impact: 'High',
         effort: 'Low',
       },
       {
-        title: 'Create Staff Recognition Program',
-        description: 'Celebrate employees mentioned positively in reviews.',
+        title: 'Address Common Complaints',
+        description: 'Analyze negative reviews for patterns and create action plans to fix recurring issues.',
         impact: 'High',
         effort: 'Medium',
       },
       {
-        title: 'Address Common Pain Points',
-        description: 'Analyze negative feedback patterns and create action plans.',
-        impact: 'High',
-        effort: 'Medium',
+        title: 'Highlight Positive Mentions',
+        description: 'Use positive review quotes in your marketing to attract similar customers.',
+        impact: 'Medium',
+        effort: 'Low',
       },
     ],
     growthStrategies: [
       {
-        title: 'Community Ambassador Program',
-        description: 'Recruit loyal customers as brand ambassadors.',
+        title: 'Implement Customer Suggestions',
+        description: 'Review customer suggestions and implement the most requested features or services.',
         impact: 'High',
         effort: 'Medium',
       },
       {
-        title: 'Create Instagrammable Moments',
-        description: 'Design photo-worthy areas for social media sharing.',
+        title: 'Create Loyalty Program',
+        description: 'Reward repeat customers mentioned in reviews with special perks.',
         impact: 'High',
         effort: 'Medium',
       },
       {
-        title: 'Launch Limited-Time Events',
-        description: 'Create monthly special events to drive repeat visits.',
+        title: 'Staff Recognition',
+        description: 'Publicly recognize staff members who receive positive mentions in reviews.',
         impact: 'Medium',
-        effort: 'Medium',
+        effort: 'Low',
       },
     ],
     customerAttractionPlan: {
       title: 'Customer Growth Strategy',
-      description: 'Multi-channel approach to attract customers',
+      description: 'Attract new customers based on what current customers love',
       strategies: [
         {
-          title: 'Social Media Stories',
-          description: 'Share behind-the-scenes content',
-          timeline: 'Start now',
-          cost: '$200/month',
+          title: 'Social Proof Campaign',
+          description: 'Share positive reviews on social media and website',
+          timeline: 'Start immediately',
+          cost: '$100/month',
           expectedOutcome: '20% more engagement',
         },
         {
-          title: 'Local Partnerships',
-          description: 'Cross-promote with nearby businesses',
-          timeline: '2 weeks',
-          cost: 'Free',
+          title: 'Referral Program',
+          description: 'Encourage happy customers to bring friends',
+          timeline: '2 weeks setup',
+          cost: '10% discount per referral',
           expectedOutcome: '15% new customers',
         },
       ],
     },
     competitivePositioning: {
-      title: 'Your Market Position',
-      description: 'Leverage strengths to stand out',
+      title: 'Market Position Analysis',
+      description: 'Understanding your unique value based on customer feedback',
       strengths: [
-        'Strong customer loyalty',
-        'Unique atmosphere',
+        'Quality of service as mentioned in reviews',
+        'Unique features customers appreciate',
       ],
       opportunities: [
-        'Growing local market',
-        'Untapped segments',
+        'Services customers are asking for',
+        'Areas where competitors fall short',
       ],
       recommendations: [
-        'Focus on unique features',
-        'Fill competitor gaps',
+        'Emphasize your unique strengths in marketing',
+        'Address gaps mentioned in reviews',
       ],
     },
     futureProjections: {
       shortTerm: [
-        '25% more positive reviews in 3 months',
-        '15% repeat customer growth',
+        'Improved ratings from addressing immediate concerns',
+        'Increased positive reviews from better engagement',
       ],
       longTerm: [
-        'Local market leader in 1 year',
-        '40% customer base growth',
+        'Market leader in customer satisfaction',
+        'Expanded customer base from positive word-of-mouth',
       ],
     },
     metadata: {
@@ -400,62 +325,27 @@ serve(async (req) => {
   try {
     log.info('Edge function invoked at:', new Date().toISOString());
     log.info('Request method:', req.method);
-    log.info('Request headers:', JSON.stringify(Object.fromEntries(req.headers.entries())));
     
-    // Parse request body with better error handling
+    // Parse request body
     let requestData;
     try {
-      // Get the raw body text
       const bodyText = await req.text();
       log.info('Request body received, length:', bodyText.length);
-      log.info('First 500 chars of body:', bodyText.substring(0, 500));
       
       if (!bodyText || bodyText.trim() === '') {
-        log.warn('Empty request body received, using default test data');
-        requestData = { test: true };
-      } else {
-        try {
-          requestData = JSON.parse(bodyText);
-          log.info('Successfully parsed request data');
-        } catch (parseErr) {
-          log.error('JSON parse error:', parseErr);
-          log.error('Failed to parse body:', bodyText);
-          throw new Error('Invalid JSON in request body');
-        }
+        throw new Error('Empty request body');
       }
-    } catch (bodyError) {
-      log.error('Failed to read request body:', bodyError);
-      // If we can't read the body at all, assume it's a test request
-      requestData = { test: true };
-    }
-    
-    const { businessData, provider, apiKey, model, test } = requestData || {};
-    
-    // Test mode - return immediately without calling AI
-    if (test === true) {
-      log.info('Running in test mode');
-      const testRecommendations = await testFunction();
       
-      return new Response(
-        JSON.stringify({
-          ...testRecommendations,
-          metadata: {
-            source: 'test',
-            timestamp: new Date().toISOString(),
-            message: 'Edge function is working correctly'
-          }
-        }),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-          status: 200,
-        },
-      );
+      requestData = JSON.parse(bodyText);
+      log.info('Successfully parsed request data');
+    } catch (parseErr) {
+      log.error('Failed to parse request:', parseErr);
+      throw new Error('Invalid request format');
     }
     
-    log.info(`Received request with business: ${businessData?.businessName}`);
+    const { businessData, provider, apiKey, model } = requestData || {};
+    
+    log.info(`Processing request for business: ${businessData?.businessName}`);
     log.info(`Using provider: ${provider}, model: ${model}`);
 
     if (!apiKey) {
@@ -470,14 +360,14 @@ serve(async (req) => {
 
     log.info(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`);
 
-    // Prepare data for AI - limit to 20 reviews to save tokens
-    const reviewsSummary = businessData.reviews.slice(0, 20).map((review: Review) => ({
+    // Prepare review data for AI
+    const reviewsSummary = businessData.reviews.map((review: Review) => ({
       rating: review.stars,
-      text: (review.text || review.textTranslated || '').substring(0, 150),
+      text: (review.text || review.textTranslated || 'No review text').substring(0, 200),
     }));
 
     const businessInfo = {
-      name: businessData.businessName,
+      name: businessData.businessName || 'Business',
       type: businessData.businessType || 'business',
       totalReviews: businessData.reviews.length,
       averageRating: Math.round((businessData.reviews.reduce((sum: number, r: Review) => sum + (r.stars || 0), 0) / businessData.reviews.length) * 10) / 10,
@@ -486,7 +376,7 @@ serve(async (req) => {
     // Get unified prompt
     const { systemPrompt, userPrompt } = getUnifiedPrompt(businessInfo, reviewsSummary);
 
-    log.info(`Calling ${provider} API...`);
+    log.info(`Calling ${provider} API with real review data...`);
     const startTime = Date.now();
 
     let recommendations;
@@ -530,11 +420,13 @@ serve(async (req) => {
     const successResponse = {
       ...recommendations,
       metadata: {
-        source: 'ai',
+        source: provider,
         provider: provider,
         model: model || 'default',
         timestamp: new Date().toISOString(),
-        responseTime: responseTime
+        responseTime: responseTime,
+        reviewsAnalyzed: businessData.reviews.length,
+        businessName: businessData.businessName
       }
     };
 

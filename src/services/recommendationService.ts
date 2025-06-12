@@ -273,23 +273,24 @@ export class RecommendationService {
 
       logger.info('Sending test request:', JSON.stringify(testData, null, 2));
 
-      const response = await supabase.functions.invoke('generate-recommendations', {
-        body: JSON.stringify(testData), // Explicitly stringify the body
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recommendations`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
-      }) as EdgeFunctionResponse;
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify(testData)
+      });
 
-      logger.info('Edge function test response:', response);
+      const responseData = await response.json();
+      logger.info('Edge function test response:', responseData);
 
-      if (!response.data) {
+      if (!responseData) {
         return {
           success: false,
           message: 'No response from edge function'
         };
       }
-
-      const responseData = response.data as any;
       
       // Check if it's a fallback response (which means the edge function is working)
       if (responseData.fallback) {
@@ -394,29 +395,32 @@ export class RecommendationService {
     const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
 
     try {
-      const response = await supabase.functions.invoke('generate-recommendations', {
-        body: JSON.stringify(requestBody), // Explicitly stringify the body
+      // Use direct fetch instead of supabase.functions.invoke to ensure proper body handling
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recommendations`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
-        signal: controller.signal as AbortSignal,
-      }) as EdgeFunctionResponse;
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
 
       clearTimeout(timeoutId);
 
+      const responseData = await response.json();
+
       // Debug logging
-      logger.info('Raw edge function response:', response);
-      if (response.data) {
-        logger.info('Response data type:', typeof response.data);
-        logger.info('Response data keys:', Object.keys(response.data as any));
+      logger.info('Raw edge function response:', responseData);
+      if (responseData) {
+        logger.info('Response data type:', typeof responseData);
+        logger.info('Response data keys:', Object.keys(responseData));
       }
 
       // The edge function now returns 200 status always, so check the response data
-      if (!response.data) {
+      if (!responseData) {
         throw new Error('No data returned from recommendation service');
       }
-
-      const responseData = response.data as any;
 
       // Check if it's an error response with fallback
       if (responseData.error && responseData.fallback) {

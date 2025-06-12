@@ -1,169 +1,155 @@
-import { useState } from "react";
+import { Building2, Users, MapPin, TrendingUp } from "lucide-react";
 import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BusinessData } from "@/types/reviews";
-import { BusinessType } from "@/types/businessTypes";
-import { getBusinessTypeFromName } from "@/types/BusinessMappings";
-import { BusinessTypeBadge } from "@/components/BusinessTypeBadge";
-import { Settings, ChevronDown, Check } from "lucide-react";
-import { BusinessDetailsDialog } from "./BusinessDetailsDialog";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { BusinessType, allBusinesses, getBusinessTypeFromName } from "@/types/businessTypes";
 import { cn } from "@/lib/utils";
+
+interface BusinessData {
+  totalReviews: number;
+  avgRating: number;
+  recentTrend: 'up' | 'down' | 'stable';
+}
 
 interface BusinessSelectorProps {
   selectedBusiness: string;
   onBusinessChange: (business: string) => void;
-  businessData: BusinessData;
+  businessData?: Record<string, BusinessData>;
   className?: string;
 }
 
-const BusinessSelector = ({
+const businessIcons: Record<BusinessType | 'all', React.ComponentType<any>> = {
+  CAFE: Building2,
+  BAR: Building2,
+  GALLERY: Building2,
+  other: Building2,
+  all: Users
+};
+
+const businessColors: Record<BusinessType | 'all', string> = {
+  CAFE: "bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100",
+  BAR: "bg-purple-100 dark:bg-purple-900/30 text-purple-900 dark:text-purple-100",
+  GALLERY: "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100",
+  other: "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100",
+  all: "bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-100"
+};
+
+export default function BusinessSelector({
   selectedBusiness,
   onBusinessChange,
   businessData,
-  className = "",
-}: BusinessSelectorProps) => {
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [businessDropdownOpen, setBusinessDropdownOpen] = useState(false);
+  className
+}: BusinessSelectorProps) {
+  const getBusinessType = (name: string): BusinessType | 'all' => {
+    if (name === 'all') return 'all';
+    return getBusinessTypeFromName(name);
+  };
 
-  // Generate business options dynamically from the businessData
-  // FIX: Use business name as the ID for consistency
-  const businessOptions = [
-    { id: "all", name: "All Businesses" },
-    ...Object.entries(businessData.businesses).map(([businessName, data]) => ({
-      id: businessName, // Use the business name as the ID
-      name: data.name || businessName, // Fallback to key if name is not set
-    })),
-  ];
+  const getBusinessStats = (businessName: string) => {
+    if (!businessData || businessName === 'all') return null;
+    return businessData[businessName];
+  };
 
-  // Debug logging for The Little Prince Cafe
-  console.log("BusinessSelector - businessOptions:", businessOptions);
-  console.log("BusinessSelector - selectedBusiness:", selectedBusiness);
-
-  // Automatically determine business type from business name
-  const businessType = selectedBusiness === "all" 
-    ? BusinessType.OTHER 
-    : getBusinessTypeFromName(selectedBusiness);
-
-  // Get the selected business name
-  const getSelectedBusinessName = () => {
-    if (selectedBusiness === "all") return "All Businesses";
-    const found = businessOptions.find(opt => opt.id === selectedBusiness);
-    return found ? found.name : selectedBusiness;
+  const getTrendIcon = (trend?: 'up' | 'down' | 'stable') => {
+    if (!trend) return null;
+    
+    if (trend === 'up') {
+      return <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />;
+    } else if (trend === 'down') {
+      return <TrendingUp className="h-3 w-3 text-red-600 dark:text-red-400 rotate-180" />;
+    }
+    return <span className="h-3 w-3 text-gray-400">—</span>;
   };
 
   return (
-    <Card className={`border-0 shadow-md dark:bg-gray-800 ${className}`}>
-      <CardContent className="p-4 md:p-6">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-4">
+    <Select value={selectedBusiness} onValueChange={onBusinessChange}>
+      <SelectTrigger className={cn("w-full", className)}>
+        <SelectValue placeholder="Select a business">
+          <div className="flex items-center gap-2 truncate">
+            {(() => {
+              const type = getBusinessType(selectedBusiness);
+              const Icon = businessIcons[type];
+              const stats = getBusinessStats(selectedBusiness);
+              
+              return (
+                <>
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{selectedBusiness}</span>
+                  {stats && (
+                    <div className="hidden sm:flex items-center gap-2 ml-auto">
+                      <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                        {stats.totalReviews} reviews
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                        ★ {stats.avgRating.toFixed(1)}
+                      </Badge>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent className="max-h-[300px]">
+        <SelectItem value="all" className="py-3">
+          <div className="flex items-center gap-3">
+            <div className={cn("p-1.5 rounded", businessColors.all)}>
+              <Users className="h-4 w-4" />
+            </div>
             <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Business Dashboard
-                </h2>
-                {selectedBusiness !== "all" && (
-                  <BusinessTypeBadge businessType={businessType} />
-                )}
+              <div className="font-medium">All Businesses</div>
+              <div className="text-xs text-muted-foreground">
+                Combined data from all locations
               </div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                {selectedBusiness === "all"
-                  ? `Viewing all businesses (${businessData.allBusinesses.count} reviews)`
-                  : `Viewing ${selectedBusiness} (${
-                      businessData.businesses[selectedBusiness]?.count || 0
-                    } reviews)`}
-              </p>
             </div>
           </div>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              {/* Custom Business Dropdown */}
-              <DropdownMenu.Root 
-                open={businessDropdownOpen} 
-                onOpenChange={setBusinessDropdownOpen}
-              >
-                <DropdownMenu.Trigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-between"
-                    role="combobox"
-                    aria-expanded={businessDropdownOpen}
-                  >
-                    {getSelectedBusinessName()}
-                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content 
-                    className="z-50 min-w-[200px] overflow-hidden rounded-md border border-gray-200 bg-white shadow-md animate-in data-[side=bottom]:slide-in-from-top-2 dark:border-gray-800 dark:bg-gray-950"
-                    align="start"
-                    sideOffset={5}
-                  >
-                    <DropdownMenu.RadioGroup 
-                      value={selectedBusiness}
-                      onValueChange={(value) => {
-                        console.log("BusinessSelector - Changing to:", value);
-                        onBusinessChange(value);
-                        setBusinessDropdownOpen(false);
-                      }}
-                    >
-                      {businessOptions.map((business) => (
-                        <DropdownMenu.RadioItem
-                          key={business.id}
-                          value={business.id}
-                          className={cn(
-                            "relative flex cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-4 text-sm outline-none transition-colors hover:bg-gray-100 focus:bg-gray-100 dark:hover:bg-gray-800 dark:focus:bg-gray-800",
-                            selectedBusiness === business.id && "font-medium"
-                          )}
-                        >
-                          <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                            {selectedBusiness === business.id && (
-                              <Check className="h-4 w-4" />
-                            )}
-                          </span>
-                          {business.name}
-                        </DropdownMenu.RadioItem>
-                      ))}
-                    </DropdownMenu.RadioGroup>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-            </div>
-            {selectedBusiness !== "all" && (
-              <div className="flex items-center gap-2">
-                {/* Business type is now read-only and automatically determined */}
-                <div className="text-sm text-gray-600 dark:text-gray-300 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md">
-                  Type: {businessType}
-                </div>
-                
-                {/* Add details button */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDetailsDialogOpen(true)}
-                  className="ml-1 h-10 w-10"
-                  title="Business Details"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
+        </SelectItem>
         
-        {/* Business Details Dialog */}
-        <BusinessDetailsDialog
-          businessName={selectedBusiness}
-          businessType={businessType}
-          isOpen={detailsDialogOpen}
-          onOpenChange={setDetailsDialogOpen}
-        />
-      </CardContent>
-    </Card>
+        <div className="my-1 h-px bg-border" />
+        
+        {allBusinesses.map((business) => {
+          const type = getBusinessType(business);
+          const Icon = businessIcons[type];
+          const stats = getBusinessStats(business);
+          const colorClass = businessColors[type];
+          
+          return (
+            <SelectItem key={business} value={business} className="py-3">
+              <div className="flex items-center gap-3 w-full">
+                <div className={cn("p-1.5 rounded flex-shrink-0", colorClass)}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium flex items-center gap-2">
+                    <span className="truncate">{business}</span>
+                    {stats && (
+                      <span className="hidden sm:inline-flex items-center">
+                        {getTrendIcon(stats.recentTrend)}
+                      </span>
+                    )}
+                  </div>
+                  {stats && (
+                    <div className="text-xs text-muted-foreground flex items-center gap-3">
+                      <span>{stats.totalReviews} reviews</span>
+                      <span>★ {stats.avgRating.toFixed(1)}</span>
+                      <span className="hidden sm:inline">
+                        <MapPin className="h-3 w-3 inline mr-1" />
+                        {type}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
+    </Select>
   );
-};
-
-export default BusinessSelector;
+}

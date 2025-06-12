@@ -14,6 +14,8 @@ interface Review {
   textTranslated?: string;
   publishedAtDate?: string;
   publishedatdate?: string;
+  name?: string;
+  [key: string]: unknown;
 }
 
 interface BusinessContext {
@@ -325,8 +327,9 @@ serve(async (req) => {
   try {
     log.info('Edge function invoked at:', new Date().toISOString());
     log.info('Request method:', req.method);
+    log.info('Request headers:', JSON.stringify(Object.fromEntries(req.headers.entries())));
     
-    // Parse request body
+    // Parse request body with better error handling
     let requestData;
     try {
       const bodyText = await req.text();
@@ -336,10 +339,15 @@ serve(async (req) => {
         throw new Error('Empty request body');
       }
       
+      // Log first 1000 chars of body for debugging
+      log.info('Body preview:', bodyText.substring(0, 1000));
+      
       requestData = JSON.parse(bodyText);
       log.info('Successfully parsed request data');
+      log.info('Request data keys:', Object.keys(requestData));
     } catch (parseErr) {
       log.error('Failed to parse request:', parseErr);
+      log.error('Parse error details:', parseErr instanceof Error ? parseErr.message : 'Unknown parse error');
       throw new Error('Invalid request format');
     }
     
@@ -354,17 +362,21 @@ serve(async (req) => {
     }
 
     if (!businessData || !businessData.reviews || businessData.reviews.length === 0) {
-      log.error('Invalid business data:', businessData);
+      log.error('Invalid business data. businessData:', !!businessData, 'reviews:', businessData?.reviews?.length || 0);
       throw new Error('Business data with reviews is required');
     }
 
     log.info(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`);
 
-    // Prepare review data for AI
-    const reviewsSummary = businessData.reviews.map((review: Review) => ({
-      rating: review.stars,
-      text: (review.text || review.textTranslated || 'No review text').substring(0, 200),
-    }));
+    // Prepare review data for AI - handle different review formats
+    const reviewsSummary = businessData.reviews.map((review: Review) => {
+      // Handle both text and textTranslated fields
+      const reviewText = review.text || review.textTranslated || 'No review text';
+      return {
+        rating: review.stars || 0,
+        text: reviewText.substring(0, 200),
+      };
+    });
 
     const businessInfo = {
       name: businessData.businessName || 'Business',
@@ -413,6 +425,7 @@ serve(async (req) => {
 
     // Validate the response structure
     if (!recommendations.urgentActions || !recommendations.growthStrategies) {
+      log.error('Invalid recommendations structure:', JSON.stringify(recommendations).substring(0, 500));
       throw new Error('Invalid recommendations structure received from AI');
     }
 
@@ -443,6 +456,7 @@ serve(async (req) => {
 
   } catch (error) {
     log.error('Error in generate-recommendations function:', error);
+    log.error('Error details:', error instanceof Error ? error.stack : 'No stack trace');
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 

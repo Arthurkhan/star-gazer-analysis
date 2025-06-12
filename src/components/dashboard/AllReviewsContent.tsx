@@ -51,7 +51,7 @@ const AllReviewsContent: React.FC<{
     );
   }
 
-  // Get monthly data for charts
+  // Get monthly data for charts - used by both charts
   const monthlyData = groupReviewsByMonth(reviews);
   
   // Determine the actual business name to display
@@ -73,8 +73,8 @@ const AllReviewsContent: React.FC<{
         </div>
         
         <div className="space-y-6">
-          {/* Reviews Timeline Chart - Fixed prop name */}
-          <ReviewsChart reviews={reviews} />
+          {/* Reviews Timeline Chart - Pass monthlyData instead of reviews */}
+          <ReviewsChart data={monthlyData} />
           
           {/* Cumulative Reviews Growth Chart */}
           <CumulativeReviewsChart data={monthlyData} />

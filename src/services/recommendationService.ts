@@ -240,7 +240,7 @@ export class RecommendationService {
     try {
       logger.info('Testing edge function connectivity...');
       
-      // Create minimal test data
+      // Create test data that matches the exact format expected by the edge function
       const testData = {
         businessData: {
           businessName: 'Test Business',
@@ -248,16 +248,30 @@ export class RecommendationService {
           reviews: [
             {
               stars: 5,
-              text: 'Great service!',
+              text: 'Great service! Very happy with my experience.',
               publishedAtDate: new Date().toISOString(),
               name: 'Test User'
+            },
+            {
+              stars: 4,
+              text: 'Good food but service could be faster.',
+              publishedAtDate: new Date().toISOString(),
+              name: 'Another User'
+            },
+            {
+              stars: 3,
+              text: 'Average experience, nothing special.',
+              publishedAtDate: new Date().toISOString(),
+              name: 'Third User'
             }
           ]
         },
         provider: 'openai',
-        apiKey: 'test-key-1234', // Use a test key to avoid actual API calls
+        apiKey: 'test-key-for-edge-function-testing', // Use a test key
         model: 'gpt-3.5-turbo'
       };
+
+      logger.info('Sending test request:', JSON.stringify(testData, null, 2));
 
       const response = await supabase.functions.invoke('generate-recommendations', {
         body: testData,
@@ -352,7 +366,7 @@ export class RecommendationService {
         businessName: businessData.businessName,
         businessType: businessData.businessType,
         reviews: businessData.reviews.map(review => ({
-          stars: review.stars,
+          stars: review.stars || 0,
           text: review.text || '',
           publishedAtDate: review.publishedAtDate || new Date().toISOString(),
           name: review.name || 'Anonymous'
@@ -364,7 +378,16 @@ export class RecommendationService {
       model: model || undefined
     };
 
-    logger.info('Sending request with body:', JSON.stringify(requestBody, null, 2).substring(0, 500));
+    logger.info('Sending request to edge function...');
+    logger.info('Request body structure:', {
+      hasBusinessData: !!requestBody.businessData,
+      businessName: requestBody.businessData.businessName,
+      businessType: requestBody.businessData.businessType,
+      reviewCount: requestBody.businessData.reviews.length,
+      provider: requestBody.provider,
+      hasApiKey: !!requestBody.apiKey,
+      model: requestBody.model
+    });
 
     // Create abort controller for timeout
     const controller = new AbortController();
@@ -386,13 +409,6 @@ export class RecommendationService {
       if (response.data) {
         logger.info('Response data type:', typeof response.data);
         logger.info('Response data keys:', Object.keys(response.data as any));
-        
-        // Log first 500 chars of stringified response
-        const responseStr = JSON.stringify(response.data);
-        logger.info('Response data preview:', responseStr.substring(0, 500));
-        if (responseStr.length > 500) {
-          logger.info('Response data end:', responseStr.substring(responseStr.length - 500));
-        }
       }
 
       // The edge function now returns 200 status always, so check the response data
@@ -422,6 +438,12 @@ export class RecommendationService {
         if (responseData.error.includes('500') || responseData.error.includes('503')) {
           logger.info(`${provider} service is temporarily unavailable, using fallback recommendations`);
           return this.transformRecommendations(responseData.fallback, businessData);
+        }
+        
+        // For "Invalid request format", log more details
+        if (responseData.error.includes('Invalid request format')) {
+          logger.error('Invalid request format error. This usually means the edge function needs to be redeployed.');
+          logger.error('Run: supabase functions deploy generate-recommendations');
         }
         
         // Use fallback recommendations for other errors

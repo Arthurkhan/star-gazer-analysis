@@ -274,7 +274,7 @@ export class RecommendationService {
       logger.info('Sending test request:', JSON.stringify(testData, null, 2));
 
       const response = await supabase.functions.invoke('generate-recommendations', {
-        body: testData,
+        body: JSON.stringify(testData), // Explicitly stringify the body
         headers: {
           'Content-Type': 'application/json',
         }
@@ -395,7 +395,7 @@ export class RecommendationService {
 
     try {
       const response = await supabase.functions.invoke('generate-recommendations', {
-        body: requestBody,
+        body: JSON.stringify(requestBody), // Explicitly stringify the body
         headers: {
           'Content-Type': 'application/json',
         },

@@ -61,11 +61,68 @@ A simple, powerful Google Maps review analysis tool with AI-powered recommendati
    npm run dev
    ```
    
-   Open [http://localhost:5173](http://localhost:5173)
+   Open [http://localhost:8080](http://localhost:8080)
 
 6. **Add OpenAI API key** (for AI recommendations)
    - Open browser DevTools console (F12)
    - Run: `localStorage.setItem('OPENAI_API_KEY', 'your-key-here')`
+
+## 🚨 Troubleshooting
+
+### CORS Errors / Failed to Fetch
+
+If you see CORS errors or "Failed to fetch" errors:
+
+1. **Run the setup verification script**
+   ```bash
+   npm run verify-setup
+   ```
+   This will check your environment configuration and fix common issues.
+
+2. **Ensure `.env.local` exists and is properly configured**
+   - File must be named `.env.local` (not `.env`)
+   - Must be in the project root directory
+   - Must contain valid Supabase credentials
+
+3. **Restart the development server**
+   ```bash
+   # Stop the server (Ctrl+C)
+   npm run dev
+   ```
+   **Important**: Always restart after creating or modifying `.env.local`
+
+4. **Clear Vite cache**
+   ```bash
+   rm -rf node_modules/.vite
+   npm run dev
+   ```
+
+5. **Check Supabase project status**
+   - Ensure your Supabase project is not paused
+   - Verify the project URL and anon key are correct
+
+### Environment Variables Not Loading
+
+If you see "Supabase credentials are missing!" error:
+
+1. Verify `.env.local` exists in the project root
+2. Check file contents match the format:
+   ```env
+   VITE_SUPABASE_URL=https://your-project-id.supabase.co
+   VITE_SUPABASE_ANON_KEY=eyJ...your-anon-key...
+   ```
+3. No quotes around the values
+4. No spaces around the `=` sign
+5. Restart the development server
+
+### Database Connection Issues
+
+If you see "No valid database structure found":
+
+1. Check your Supabase project has the required tables
+2. Run database migrations if available
+3. Verify your internet connection
+4. Check Supabase project is active (not paused)
 
 ## 🏗️ Architecture
 
@@ -116,15 +173,6 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 # OPENAI_API_KEY=your_openai_api_key
 ```
 
-### Troubleshooting Environment Variables
-
-If you see the error: **"supabaseKey is required"**
-
-1. Make sure you've created `.env.local` (not `.env`)
-2. Ensure the file is in the project root directory
-3. Double-check your credentials from Supabase dashboard
-4. Restart the development server after adding the variables
-
 ## 🚀 Deployment
 
 ### Production Build
@@ -156,6 +204,7 @@ npm run lint         # Run ESLint
 npm run type-check   # TypeScript type checking
 npm run test         # Run tests
 npm run format       # Format code with Prettier
+npm run verify-setup # Verify environment setup
 ```
 
 ### Key Development Commands

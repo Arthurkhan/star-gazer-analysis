@@ -32,16 +32,16 @@ const CumulativeReviewsChart = ({ data }: CumulativeReviewsChartProps) => {
         </ToggleGroup>
       </CardHeader>
       <CardContent className="pt-2">
-        <div className="h-96">
+        <div className="h-[500px]">
           <ResponsiveContainer width="100%" height="100%">
             {chartType === "area" ? (
               <AreaChart
                 data={data}
                 margin={{
-                  top: 5,
+                  top: 20,
                   right: 10,
                   left: 10,
-                  bottom: 60,
+                  bottom: 35,
                 }}
               >
                 <defs>
@@ -55,10 +55,11 @@ const CumulativeReviewsChart = ({ data }: CumulativeReviewsChartProps) => {
                   dataKey="month" 
                   angle={-60} 
                   textAnchor="end" 
-                  height={80}
-                  tick={{ fontSize: 12 }}
+                  height={50}
+                  tick={{ fontSize: 11 }}
                   tickLine={{ stroke: '#ccc' }}
                   axisLine={{ stroke: '#ccc' }}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   tick={{ fontSize: 12 }} 
@@ -72,9 +73,9 @@ const CumulativeReviewsChart = ({ data }: CumulativeReviewsChartProps) => {
                 />
                 <Legend 
                   verticalAlign="top" 
-                  height={36} 
+                  height={30} 
                   wrapperStyle={{
-                    paddingTop: '10px',
+                    paddingTop: '5px',
                     fontSize: '12px'
                   }}
                 />
@@ -94,10 +95,10 @@ const CumulativeReviewsChart = ({ data }: CumulativeReviewsChartProps) => {
               <LineChart
                 data={data}
                 margin={{
-                  top: 5,
+                  top: 20,
                   right: 10,
                   left: 10,
-                  bottom: 60,
+                  bottom: 35,
                 }}
               >
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -105,10 +106,11 @@ const CumulativeReviewsChart = ({ data }: CumulativeReviewsChartProps) => {
                   dataKey="month" 
                   angle={-60} 
                   textAnchor="end" 
-                  height={80}
-                  tick={{ fontSize: 12 }}
+                  height={50}
+                  tick={{ fontSize: 11 }}
                   tickLine={{ stroke: '#ccc' }}
                   axisLine={{ stroke: '#ccc' }}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
                   tick={{ fontSize: 12 }}
@@ -122,9 +124,9 @@ const CumulativeReviewsChart = ({ data }: CumulativeReviewsChartProps) => {
                 />
                 <Legend 
                   verticalAlign="top" 
-                  height={36}
+                  height={30}
                   wrapperStyle={{
-                    paddingTop: '10px',
+                    paddingTop: '5px',
                     fontSize: '12px'
                   }}
                 />

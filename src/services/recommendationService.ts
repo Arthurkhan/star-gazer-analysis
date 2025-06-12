@@ -73,16 +73,14 @@ export class RecommendationService {
     const transformedRecommendations: Recommendations = {
       businessName: businessData.businessName,
       
-      // Transform urgent actions
-      urgentActions: edgeResponse.urgentActions.map((action, index) => ({
-        id: `urgent-${index}`,
-        title: action.title,
-        description: action.description,
-        category: 'operations',
-        timeframe: 'immediate'
-      })),
+      // Preserve original edge function structure for UI components
+      urgentActions: edgeResponse.urgentActions,
+      growthStrategies: edgeResponse.growthStrategies,
+      customerAttractionPlan: edgeResponse.customerAttractionPlan,
+      competitivePositioning: edgeResponse.competitivePositioning,
+      futureProjections: edgeResponse.futureProjections,
       
-      // Transform pattern insights from growth strategies
+      // Also transform for backward compatibility with other components
       patternInsights: edgeResponse.growthStrategies.slice(0, 3).map((strategy, index) => ({
         id: `pattern-${index}`,
         pattern: strategy.title,
@@ -133,40 +131,6 @@ export class RecommendationService {
         opportunities: edgeResponse.competitivePositioning.opportunities
       },
       
-      // Transform customer attraction plan
-      customerAttractionPlan: {
-        overview: edgeResponse.customerAttractionPlan.description,
-        objectives: edgeResponse.customerAttractionPlan.strategies.map(s => s.expectedOutcome),
-        tactics: edgeResponse.customerAttractionPlan.strategies.map(strategy => ({
-          name: strategy.title,
-          description: strategy.description,
-          channel: 'multi-channel',
-          timeline: strategy.timeline,
-          budget: strategy.cost,
-          kpis: []
-        })),
-        budget: {
-          total: 'Variable',
-          breakdown: {}
-        },
-        timeline: {
-          start: 'Immediate',
-          end: 'Ongoing',
-          milestones: []
-        },
-        targetAudiences: {
-          primary: [],
-          secondary: [],
-          untapped: []
-        },
-        channels: [],
-        messaging: {
-          uniqueValue: edgeResponse.customerAttractionPlan.title,
-          keyPoints: [],
-          callToAction: ''
-        }
-      },
-      
       // Create analysis result
       analysis: {
         sentimentAnalysis: [],
@@ -209,22 +173,6 @@ export class RecommendationService {
         expectedResults: edgeResponse.futureProjections.shortTerm[0] || 'Improved customer satisfaction and business growth',
         timeframe: 'ongoing' as const
       },
-      
-      // Transform growth strategies
-      growthStrategies: edgeResponse.growthStrategies.map((strategy, index) => ({
-        id: `growth-${index}`,
-        type: 'operations' as const,
-        title: strategy.title,
-        description: strategy.description,
-        steps: [strategy.description],
-        potentialImpact: (strategy.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
-        resourceRequirements: (strategy.effort?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
-        timeframe: 'short_term' as const,
-        category: 'growth',
-        expectedImpact: strategy.impact,
-        implementation: [strategy.description],
-        kpis: []
-      })),
       
       // Include metadata if available
       metadata: edgeResponse.metadata
@@ -541,10 +489,17 @@ ${recommendations.urgentActions?.map(action => `• ${action.title}: ${action.de
 ${recommendations.growthStrategies?.map(strategy => `• ${strategy.title}: ${strategy.description}`).join('\n') || 'No growth strategies available.'}
 
 ## Marketing Plan
-${recommendations.customerAttractionPlan?.tactics?.map(tactic => `• ${tactic.name}: ${tactic.description}`).join('\n') || 'No marketing plans available.'}
+${recommendations.customerAttractionPlan?.strategies?.map(strategy => `• ${strategy.title}: ${strategy.description}`).join('\n') || 'No marketing plans available.'}
 
 ## Competitive Analysis
-${recommendations.competitivePosition?.recommendations?.map(insight => `• ${insight}`).join('\n') || 'No competitive insights available.'}
+${recommendations.competitivePositioning?.recommendations?.map(rec => `• ${rec}`).join('\n') || 'No competitive insights available.'}
+
+## Future Projections
+### Short Term (3-6 months)
+${recommendations.futureProjections?.shortTerm?.map(projection => `• ${projection}`).join('\n') || 'No short-term projections available.'}
+
+### Long Term (1-2 years)
+${recommendations.futureProjections?.longTerm?.map(projection => `• ${projection}`).join('\n') || 'No long-term projections available.'}
     `.trim();
   }
 }

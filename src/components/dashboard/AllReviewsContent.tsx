@@ -73,8 +73,8 @@ const AllReviewsContent: React.FC<{
         </div>
         
         <div className="space-y-6">
-          {/* Reviews Timeline Chart */}
-          <ReviewsChart data={monthlyData} />
+          {/* Reviews Timeline Chart - Fixed prop name */}
+          <ReviewsChart reviews={reviews} />
           
           {/* Cumulative Reviews Growth Chart */}
           <CumulativeReviewsChart data={monthlyData} />

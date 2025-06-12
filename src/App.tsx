@@ -1,4 +1,3 @@
-
 import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -70,6 +69,34 @@ const App = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  
+  // Set viewport meta tag for mobile
+  useEffect(() => {
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (!viewport) {
+      const meta = document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+      document.head.appendChild(meta);
+    }
+    
+    // Add mobile web app meta tags
+    const appleMeta = document.querySelector('meta[name="apple-mobile-web-app-capable"]');
+    if (!appleMeta) {
+      const meta = document.createElement('meta');
+      meta.name = 'apple-mobile-web-app-capable';
+      meta.content = 'yes';
+      document.head.appendChild(meta);
+    }
+    
+    const statusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (!statusBar) {
+      const meta = document.createElement('meta');
+      meta.name = 'apple-mobile-web-app-status-bar-style';
+      meta.content = 'black-translucent';
+      document.head.appendChild(meta);
+    }
+  }, []);
   
   // Check system preference for dark mode and auth state
   useEffect(() => {
@@ -225,22 +252,22 @@ const App = () => {
   // Show auth error if there is one
   if (authError && !isAuthenticated) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="h-screen w-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
           <h2 className="text-xl font-bold text-red-600 dark:text-red-400 mb-4">Authentication Error</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-4">{authError}</p>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
             Please try refreshing the page or checking your internet connection.
           </p>
-          <div className="flex justify-between">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button 
               onClick={() => window.location.reload()} 
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors">
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors flex-1">
               Refresh Page
             </button>
             <button 
               onClick={() => { setAuthError(null); setIsAuthenticated(false); }}
-              className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded transition-colors">
+              className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded transition-colors flex-1">
               Continue as Guest
             </button>
           </div>
@@ -255,14 +282,21 @@ const App = () => {
         <TooltipProvider>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900 antialiased text-gray-900 dark:text-gray-100">
             {/* Using only Sonner for toast notifications to avoid conflicts */}
-            <Sonner position="top-right" closeButton expand={false} />
+            <Sonner 
+              position="top-center" 
+              closeButton 
+              expand={false}
+              toastOptions={{
+                className: "!top-safe-top"
+              }}
+            />
             
             {/* Diagnostic Panel (only shown in debug mode) */}
             {showDiagnostics && <DiagnosticPanel />}
             
             {/* Offline indicator */}
             {isOffline && (
-              <div className="fixed top-0 left-0 right-0 bg-red-500 text-white p-2 text-center z-50">
+              <div className="fixed top-0 left-0 right-0 bg-red-500 text-white p-2 text-center z-50 text-sm">
                 You are currently offline. Some features may not be available.
               </div>
             )}

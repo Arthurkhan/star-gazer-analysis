@@ -257,32 +257,64 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
 
   /**
    * Check if the database is using legacy or normalized tables
+   * Updated to handle CORS and connection errors gracefully
    */
-  const checkDatabaseStructure = async (): Promise<'legacy' | 'normalized'> => {
-    // Check if normalized tables exist
-    const { error: reviewsError } = await supabase
-      .from('reviews')
-      .select('id')
-      .limit(1);
-    
-    const { error: businessesError } = await supabase
-      .from('businesses')
-      .select('id')
-      .limit(1);
-    
-    if (!reviewsError && !businessesError) {
-      console.log("✅ Using normalized database structure");
-      return 'normalized';
+  const checkDatabaseStructure = async (): Promise<'legacy' | 'normalized' | 'error'> => {
+    try {
+      console.log("🔍 Checking database structure...");
+      
+      // Check if environment variables are loaded
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        console.error("❌ Supabase environment variables not set");
+        throw new Error("Supabase configuration missing. Please check your .env.local file.");
+      }
+      
+      // Check if normalized tables exist
+      const { error: reviewsError } = await supabase
+        .from('reviews')
+        .select('id')
+        .limit(1);
+      
+      const { error: businessesError } = await supabase
+        .from('businesses')
+        .select('id')
+        .limit(1);
+      
+      // Check for CORS errors specifically
+      if (reviewsError?.message?.includes('CORS') || businessesError?.message?.includes('CORS')) {
+        console.error("❌ CORS error detected. This usually means:");
+        console.error("   1. Environment variables are not loaded properly");
+        console.error("   2. The development server needs to be restarted");
+        throw new Error("CORS error - Please restart your development server after setting up .env.local");
+      }
+      
+      if (!reviewsError && !businessesError) {
+        console.log("✅ Using normalized database structure");
+        return 'normalized';
+      }
+      
+      // Check if legacy tables exist
+      console.log("📚 Checking for legacy tables...");
+      const legacyExists = await checkTableExists("The Little Prince Cafe");
+      if (legacyExists) {
+        console.log("⚠️ Using legacy database structure");
+        return 'legacy';
+      }
+      
+      throw new Error("No valid database structure found. Please check your database setup.");
+    } catch (error: any) {
+      console.error("❌ Database structure check failed:", error);
+      
+      // Provide more helpful error messages
+      if (error.message?.includes('Failed to fetch')) {
+        throw new Error("Network error - Unable to connect to Supabase. Please check your internet connection and Supabase configuration.");
+      }
+      
+      throw error;
     }
-    
-    // Check if legacy tables exist
-    const legacyExists = await checkTableExists("The Little Prince Cafe");
-    if (legacyExists) {
-      console.log("⚠️ Using legacy database structure");
-      return 'legacy';
-    }
-    
-    throw new Error("No valid database structure found");
   };
 
   /**
@@ -428,6 +460,11 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
       
       // Check database structure first
       const dbStructure = await checkDatabaseStructure();
+      
+      if (dbStructure === 'error') {
+        throw new Error("Database connection failed");
+      }
+      
       setIsUsingLegacyTables(dbStructure === 'legacy');
       
       if (dbStructure === 'legacy') {
@@ -496,7 +533,7 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
             setDatabaseError(true);
             toast({
               title: "Database Error",
-              description: "Failed to load businesses. Please check your connection.",
+              description: businessesError.message || "Failed to load businesses. Please check your connection.",
               variant: "destructive",
             });
             return;
@@ -556,12 +593,28 @@ export function useDashboardData(config: DashboardDataConfig = {}): DashboardDat
         console.log(`🚀 Total load time: ${duration.toFixed(2)}ms`);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("💥 Error loading data:", error);
       setDatabaseError(true);
+      
+      let errorMessage = "An unexpected error occurred while loading data.";
+      let errorTitle = "Loading Error";
+      
+      // Provide more specific error messages
+      if (error.message?.includes('CORS')) {
+        errorTitle = "Configuration Error";
+        errorMessage = "Please ensure your .env.local file is set up correctly and restart the development server.";
+      } else if (error.message?.includes('Network')) {
+        errorTitle = "Connection Error";
+        errorMessage = "Unable to connect to the database. Please check your internet connection.";
+      } else if (error.message?.includes('configuration missing')) {
+        errorTitle = "Setup Required";
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Loading Error",
-        description: "An unexpected error occurred while loading data.",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
       

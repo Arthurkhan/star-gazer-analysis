@@ -167,7 +167,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
               {recommendationsData.metadata.model && ` (${recommendationsData.metadata.model})`} 
               {recommendationsData.metadata.reviewsAnalyzed && ` • Analyzed ${recommendationsData.metadata.reviewsAnalyzed} reviews`}</>
             ) : (
-              <>Using pre-configured best practices{recommendationsData.metadata.reason ? ` (${recommendationsData.metadata.reason})` : ''}</></>
+              <>Using pre-configured best practices{recommendationsData.metadata.reason ? ` (${recommendationsData.metadata.reason})` : ''}</>
             )}
           </AlertDescription>
         </Alert>

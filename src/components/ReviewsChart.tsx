@@ -1,4 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Eye, EyeOff } from "lucide-react";
 import { MonthlyReviewData } from "@/types/reviews";
 import { useMemo, useEffect, useState } from "react";
 import {
@@ -17,6 +19,7 @@ interface ReviewsChartProps {
 
 const ReviewsChart = ({ data }: ReviewsChartProps) => {
   const [isMobile, setIsMobile] = useState(false);
+  const [showAvgRating, setShowAvgRating] = useState(true);
   
   useEffect(() => {
     const checkMobile = () => {
@@ -36,7 +39,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
     // Add average rating calculation (simulated for now)
     return data.map(month => ({
       ...month,
-      avgRating: 4 + (Math.random() * 0.5), // Placeholder - ideally this should come from actual data
+      avgRating: parseFloat((4 + (Math.random() * 0.5)).toFixed(2)), // Format to 2 decimal places
     }));
   }, [data]);
 
@@ -48,7 +51,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
           <CardDescription>Monthly review count and average rating</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] sm:h-[350px] flex items-center justify-center text-muted-foreground">
+          <div className="h-[300px] sm:h-[450px] flex items-center justify-center text-muted-foreground">
             No data to display
           </div>
         </CardContent>
@@ -59,13 +62,28 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
   return (
     <Card className="shadow-md border-0 dark:bg-gray-800">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg sm:text-xl">Reviews Over Time</CardTitle>
-        <CardDescription className="text-xs sm:text-sm">
-          Monthly review count and average rating
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg sm:text-xl">Reviews Over Time</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Monthly review count and average rating
+            </CardDescription>
+          </div>
+          {!isMobile && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAvgRating(!showAvgRating)}
+              className="flex items-center gap-2"
+            >
+              {showAvgRating ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              Avg Rating
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
-        <div className="h-[350px] w-full">
+        <div className="h-[400px] sm:h-[450px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}
@@ -73,7 +91,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                 top: 20,
                 right: 10,
                 left: 10,
-                bottom: 35,
+                bottom: 50,
               }}
             >
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -81,7 +99,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                 dataKey="month"
                 angle={-60}
                 textAnchor="end"
-                height={50}
+                height={70}
                 tick={{ fontSize: 11 }}
                 tickLine={{ stroke: '#ccc' }}
                 axisLine={{ stroke: '#ccc' }}
@@ -93,7 +111,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                 tickLine={{ stroke: '#ccc' }}
                 axisLine={{ stroke: '#ccc' }}
               />
-              {!isMobile && (
+              {!isMobile && showAvgRating && (
                 <YAxis
                   yAxisId="right"
                   orientation="right"
@@ -112,6 +130,13 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                   fontSize: "14px",
                 }}
                 labelStyle={{ color: "#fff" }}
+                formatter={(value: any, name: string) => {
+                  // Format the value to 2 decimal places for avg rating
+                  if (name === "Avg Rating") {
+                    return [parseFloat(value).toFixed(2), name];
+                  }
+                  return [value, name];
+                }}
               />
               <Line
                 yAxisId="left"
@@ -123,7 +148,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                 activeDot={{ r: 6, strokeWidth: 0, fill: '#3b82f6' }}
                 name="Reviews"
               />
-              {!isMobile && (
+              {!isMobile && showAvgRating && (
                 <Line
                   yAxisId="right"
                   type="monotone"

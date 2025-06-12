@@ -1,220 +1,188 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Review } from "@/types/reviews";
-import { 
-  calculateAverageRating, 
-  countReviewsByRating,
-  groupReviewsByMonth,
-  calculateMonthlyComparison,
-  calculateResponseRate,
-  calculateEngagementMetrics
-} from "@/utils/dataUtils";
-import ReviewsChart from "@/components/ReviewsChart";
-import CumulativeReviewsChart from "@/components/CumulativeReviewsChart";
-import { Button } from "@/components/ui/button";
-import { Loader, RefreshCw, MessageSquare, TrendingUp } from "lucide-react";
+import { TrendingUp, TrendingDown, Star, MessageSquare, Users, Calendar } from "lucide-react";
+import { useMemo } from "react";
 
 interface OverviewSectionProps {
   reviews: Review[];
-  totalReviewCount?: number; // Total count from database
-  loadingMore?: boolean;
-  onLoadMore?: () => void;
-  hasMoreData?: boolean;
+  selectedBusiness: string;
 }
 
-const OverviewSection = ({ 
-  reviews, 
-  totalReviewCount, 
-  loadingMore, 
-  onLoadMore, 
-  hasMoreData 
-}: OverviewSectionProps) => {
-  const displayedReviews = reviews.length;
-  const totalReviews = totalReviewCount || displayedReviews;
-  const averageRating = calculateAverageRating(reviews);
-  const reviewsByRating = countReviewsByRating(reviews);
-  const monthlyData = groupReviewsByMonth(reviews);
-  const monthlyComparison = calculateMonthlyComparison(reviews);
-  
-  // NEW: Calculate response rate and engagement metrics
-  const responseRate = calculateResponseRate(reviews);
-  const engagementMetrics = calculateEngagementMetrics(reviews);
-  
-  const fiveStars = reviewsByRating[5] || 0;
-  const fiveStarPercentage = displayedReviews > 0 
-    ? Math.round((fiveStars / displayedReviews) * 100) 
-    : 0;
-  
-  const loadPercentage = totalReviews > 0 
-    ? Math.round((displayedReviews / totalReviews) * 100)
-    : 100;
-  
+const OverviewSection = ({ reviews, selectedBusiness }: OverviewSectionProps) => {
+  const stats = useMemo(() => {
+    if (!reviews.length) {
+      return {
+        totalReviews: 0,
+        avgRating: 0,
+        responseRate: 0,
+        recentReviews: 0,
+        ratingTrend: 0,
+        mostRecentDate: null,
+      };
+    }
+
+    const totalReviews = reviews.length;
+    const totalRating = reviews.reduce((sum, review) => sum + review.stars, 0);
+    const avgRating = totalRating / totalReviews;
+    
+    const reviewsWithResponse = reviews.filter(
+      (review) => review.responseFromOwnerText && review.responseFromOwnerText.trim() !== ""
+    ).length;
+    const responseRate = (reviewsWithResponse / totalReviews) * 100;
+
+    // Calculate recent reviews (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentReviews = reviews.filter(
+      (review) => new Date(review.publishedAtDate) >= thirtyDaysAgo
+    ).length;
+
+    // Calculate rating trend (compare last 30 days avg to overall avg)
+    const recentReviewsList = reviews.filter(
+      (review) => new Date(review.publishedAtDate) >= thirtyDaysAgo
+    );
+    const recentAvgRating = recentReviewsList.length > 0
+      ? recentReviewsList.reduce((sum, review) => sum + review.stars, 0) / recentReviewsList.length
+      : avgRating;
+    const ratingTrend = recentAvgRating - avgRating;
+
+    // Get most recent review date
+    const sortedReviews = [...reviews].sort(
+      (a, b) => new Date(b.publishedAtDate).getTime() - new Date(a.publishedAtDate).getTime()
+    );
+    const mostRecentDate = sortedReviews[0]?.publishedAtDate;
+
+    return {
+      totalReviews,
+      avgRating,
+      responseRate,
+      recentReviews,
+      ratingTrend,
+      mostRecentDate,
+    };
+  }, [reviews]);
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "N/A";
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return "Today";
+    if (diffInDays === 1) return "Yesterday";
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+    return date.toLocaleDateString();
+  };
+
+  const statCards = [
+    {
+      title: "Total Reviews",
+      value: stats.totalReviews,
+      icon: Users,
+      color: "text-blue-600 dark:text-blue-400",
+      bgColor: "bg-blue-100 dark:bg-blue-900/30",
+    },
+    {
+      title: "Average Rating",
+      value: stats.avgRating.toFixed(1),
+      icon: Star,
+      color: "text-yellow-600 dark:text-yellow-400",
+      bgColor: "bg-yellow-100 dark:bg-yellow-900/30",
+      suffix: (
+        <div className="flex items-center mt-1">
+          {stats.ratingTrend > 0 ? (
+            <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400 mr-1" />
+          ) : stats.ratingTrend < 0 ? (
+            <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400 mr-1" />
+          ) : null}
+          {stats.ratingTrend !== 0 && (
+            <span className={`text-xs ${stats.ratingTrend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              {stats.ratingTrend > 0 ? '+' : ''}{stats.ratingTrend.toFixed(1)}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Response Rate",
+      value: `${stats.responseRate.toFixed(0)}%`,
+      icon: MessageSquare,
+      color: "text-green-600 dark:text-green-400",
+      bgColor: "bg-green-100 dark:bg-green-900/30",
+    },
+    {
+      title: "Recent Reviews",
+      value: stats.recentReviews,
+      icon: Calendar,
+      color: "text-purple-600 dark:text-purple-400",
+      bgColor: "bg-purple-100 dark:bg-purple-900/30",
+      subtitle: "Last 30 days",
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Top stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="shadow-md border-0 dark:bg-gray-800">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-md font-medium">Total Reviews</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalReviews}</div>
-            <p className="text-xs text-gray-500 mt-1">
-              {displayedReviews < totalReviews ? (
-                <span className="text-blue-500">{displayedReviews} loaded (showing {loadPercentage}%)</span>
-              ) : (
-                monthlyComparison.vsLastMonth > 0 
-                  ? `+${monthlyComparison.vsLastMonth} from last month` 
-                  : monthlyComparison.vsLastMonth < 0 
-                    ? `${monthlyComparison.vsLastMonth} from last month`
-                    : `Same as last month`
-              )}
-            </p>
-            
-            {/* Load All Reviews Button - only show when partial data is loaded */}
-            {displayedReviews < totalReviews && hasMoreData && onLoadMore && (
-              <Button 
-                onClick={onLoadMore} 
-                disabled={loadingMore}
-                variant="outline" 
-                size="sm" 
-                className="mt-2"
-              >
-                {loadingMore ? (
-                  <>
-                    <Loader className="mr-2 h-3 w-3 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-3 w-3" />
-                    Load All Reviews
-                  </>
-                )}
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card className="shadow-md border-0 dark:bg-gray-800">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-md font-medium">Average Rating</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{averageRating.toFixed(1)}</div>
-            <div className="text-sm text-gray-500 mt-1">
-              {fiveStarPercentage}% 5-star reviews
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* NEW: Response Rate Card */}
-        <Card className="shadow-md border-0 dark:bg-gray-800">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-md font-medium flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Response Rate
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{responseRate.toFixed(1)}%</div>
-            <div className="text-sm text-gray-500 mt-1">
-              {engagementMetrics.responseCount} of {displayedReviews} reviews answered
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* NEW: Engagement Score Card */}
-        <Card className="shadow-md border-0 dark:bg-gray-800">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-md font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Recent Engagement
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{engagementMetrics.recentResponseRate.toFixed(1)}%</div>
-            <div className="text-sm text-gray-500 mt-1">
-              Last 3 months response rate
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-4 sm:space-y-6">
+      <div>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+          {selectedBusiness === "all" ? "All Businesses Overview" : selectedBusiness}
+        </h2>
+        {stats.mostRecentDate && (
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Last review: {formatDate(stats.mostRecentDate)}
+          </p>
+        )}
       </div>
-      
-      {/* NEW: Engagement breakdown section */}
-      {engagementMetrics.responseCount > 0 && (
-        <Card className="shadow-md border-0 dark:bg-gray-800">
-          <CardHeader>
-            <CardTitle className="text-lg font-medium">Engagement Insights</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="p-4 bg-background/50 rounded-lg">
-                <div className="text-sm text-gray-500">Avg Response Length</div>
-                <div className="text-2xl font-bold">{Math.round(engagementMetrics.avgResponseLength)}</div>
-                <div className="text-xs text-gray-400">characters</div>
-              </div>
-              
-              <div className="p-4 bg-background/50 rounded-lg">
-                <div className="text-sm text-gray-500">Low Rating Response</div>
-                <div className="text-2xl font-bold">
-                  {engagementMetrics.responseByRating[1]?.rate.toFixed(1) || 0}%
-                </div>
-                <div className="text-xs text-gray-400">1-star reviews answered</div>
-              </div>
-              
-              <div className="p-4 bg-background/50 rounded-lg">
-                <div className="text-sm text-gray-500">High Rating Response</div>
-                <div className="text-2xl font-bold">
-                  {engagementMetrics.responseByRating[5]?.rate.toFixed(1) || 0}%
-                </div>
-                <div className="text-xs text-gray-400">5-star reviews answered</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      {/* Review Distribution Card */}
-      <Card className="shadow-md border-0 dark:bg-gray-800">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-md font-medium">Review Distribution</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {[5, 4, 3, 2, 1].map(star => {
-              const count = reviewsByRating[star] || 0;
-              const percentage = displayedReviews ? (count / displayedReviews * 100) : 0;
-              const responseData = engagementMetrics.responseByRating[star];
-              
-              return (
-                <div key={star} className="flex items-center gap-2">
-                  <div className="text-xs min-w-[1.5rem]">{star}★</div>
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-500 rounded-full"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                  <div className="text-xs min-w-[2rem] text-right">{count}</div>
-                  {responseData && responseData.total > 0 && (
-                    <div className="text-xs text-gray-500 min-w-[3rem] text-right">
-                      ({responseData.rate.toFixed(0)}% responded)
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {statCards.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 dark:bg-gray-800">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      {stat.title}
+                    </p>
+                    <div className="flex items-baseline">
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                        {stat.value}
+                      </p>
                     </div>
-                  )}
+                    {stat.subtitle && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {stat.subtitle}
+                      </p>
+                    )}
+                    {stat.suffix}
+                  </div>
+                  <div className={`p-2 sm:p-3 rounded-lg ${stat.bgColor}`}>
+                    <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color}`} />
+                  </div>
                 </div>
-              );
-            })}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Quick insights for mobile */}
+      <div className="sm:hidden">
+        {stats.ratingTrend > 0.2 && (
+          <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-sm">
+            <p className="text-green-800 dark:text-green-200 font-medium">
+              📈 Ratings are trending up!
+            </p>
           </div>
-        </CardContent>
-      </Card>
-      
-      {/* Charts section */}
-      <div className="space-y-6">
-        {/* Reviews Timeline Chart */}
-        <ReviewsChart data={monthlyData} />
-        
-        {/* Cumulative Reviews Growth Chart */}
-        <CumulativeReviewsChart data={monthlyData} />
+        )}
+        {stats.responseRate < 50 && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg text-sm mt-2">
+            <p className="text-yellow-800 dark:text-yellow-200 font-medium">
+              💬 Consider responding to more reviews
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,7 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { BusinessType, allBusinesses, getBusinessTypeFromName } from "@/types/businessTypes";
+import { BusinessType } from "@/types/businessTypes";
+import { getBusinessTypeFromName, getKnownBusinessNames } from "@/types/BusinessMappings";
 import { cn } from "@/lib/utils";
 
 interface BusinessData {
@@ -24,19 +25,25 @@ interface BusinessSelectorProps {
 }
 
 const businessIcons: Record<BusinessType | 'all', React.ComponentType<any>> = {
-  CAFE: Building2,
-  BAR: Building2,
-  GALLERY: Building2,
+  cafe: Building2,
+  bar: Building2,
+  restaurant: Building2,
+  gallery: Building2,
+  retail: Building2,
+  service: Building2,
   other: Building2,
   all: Users
 };
 
 const businessColors: Record<BusinessType | 'all', string> = {
-  CAFE: "bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100",
-  BAR: "bg-purple-100 dark:bg-purple-900/30 text-purple-900 dark:text-purple-100",
-  GALLERY: "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100",
+  cafe: "bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100",
+  bar: "bg-purple-100 dark:bg-purple-900/30 text-purple-900 dark:text-purple-100",
+  restaurant: "bg-rose-100 dark:bg-rose-900/30 text-rose-900 dark:text-rose-100",
+  gallery: "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100",
+  retail: "bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-100",
+  service: "bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-100",
   other: "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100",
-  all: "bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-100"
+  all: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-100"
 };
 
 export default function BusinessSelector({
@@ -45,6 +52,9 @@ export default function BusinessSelector({
   businessData,
   className
 }: BusinessSelectorProps) {
+  // Get all known business names
+  const allBusinesses = getKnownBusinessNames();
+  
   const getBusinessType = (name: string): BusinessType | 'all' => {
     if (name === 'all') return 'all';
     return getBusinessTypeFromName(name);

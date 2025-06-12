@@ -51,20 +51,14 @@ const ReviewsChart = ({ reviews }: ReviewsChartProps) => {
     // Convert to array and calculate average rating
     const data = Object.entries(monthlyData)
       .map(([month, data]) => ({
-        month,
-        displayMonth: format(new Date(month + "-01"), isMobile ? "MMM" : "MMM yyyy"),
+        month: format(new Date(month + "-01"), "MMM yyyy"), // Same format as cumulative chart
         count: data.count,
         avgRating: parseFloat((data.totalRating / data.count).toFixed(2)),
       }))
-      .sort((a, b) => a.month.localeCompare(b.month));
-
-    // Only show last 12 months on mobile, all data on desktop
-    if (isMobile && data.length > 6) {
-      return data.slice(-6);
-    }
+      .sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
 
     return data;
-  }, [reviews, isMobile]);
+  }, [reviews]);
 
   if (!chartData.length) {
     return (
@@ -87,33 +81,37 @@ const ReviewsChart = ({ reviews }: ReviewsChartProps) => {
       <CardHeader className="pb-4">
         <CardTitle className="text-lg sm:text-xl">Reviews Over Time</CardTitle>
         <CardDescription className="text-xs sm:text-sm">
-          {isMobile ? "Last 6 months" : "Monthly review count and average rating"}
+          Monthly review count and average rating
         </CardDescription>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
-        <div className="h-[250px] sm:h-[350px] w-full">
+        <div className="h-[350px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}
               margin={{
-                top: 5,
-                right: isMobile ? 5 : 30,
-                left: isMobile ? -10 : 20,
-                bottom: 5,
+                top: 20,
+                right: 10,
+                left: 10,
+                bottom: 35,
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+              <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
               <XAxis
-                dataKey="displayMonth"
-                tick={{ fontSize: isMobile ? 10 : 12 }}
-                angle={isMobile ? -45 : 0}
-                textAnchor={isMobile ? "end" : "middle"}
-                height={isMobile ? 60 : 30}
+                dataKey="month"
+                angle={-60}
+                textAnchor="end"
+                height={50}
+                tick={{ fontSize: 11 }}
+                tickLine={{ stroke: '#ccc' }}
+                axisLine={{ stroke: '#ccc' }}
+                interval="preserveStartEnd"
               />
               <YAxis
                 yAxisId="left"
-                tick={{ fontSize: isMobile ? 10 : 12 }}
-                width={isMobile ? 30 : 40}
+                tick={{ fontSize: 12 }}
+                tickLine={{ stroke: '#ccc' }}
+                axisLine={{ stroke: '#ccc' }}
               />
               {!isMobile && (
                 <YAxis
@@ -122,6 +120,8 @@ const ReviewsChart = ({ reviews }: ReviewsChartProps) => {
                   domain={[0, 5]}
                   ticks={[1, 2, 3, 4, 5]}
                   tick={{ fontSize: 12 }}
+                  tickLine={{ stroke: '#ccc' }}
+                  axisLine={{ stroke: '#ccc' }}
                 />
               )}
               <Tooltip
@@ -129,7 +129,7 @@ const ReviewsChart = ({ reviews }: ReviewsChartProps) => {
                   backgroundColor: "rgba(0, 0, 0, 0.8)",
                   border: "none",
                   borderRadius: "8px",
-                  fontSize: isMobile ? "12px" : "14px",
+                  fontSize: "14px",
                 }}
                 labelStyle={{ color: "#fff" }}
               />
@@ -139,8 +139,8 @@ const ReviewsChart = ({ reviews }: ReviewsChartProps) => {
                 dataKey="count"
                 stroke="#3b82f6"
                 strokeWidth={2}
-                dot={{ r: isMobile ? 3 : 4 }}
-                activeDot={{ r: isMobile ? 5 : 8 }}
+                dot={{ r: 4, strokeWidth: 1, fill: '#fff' }}
+                activeDot={{ r: 6, strokeWidth: 0, fill: '#3b82f6' }}
                 name="Reviews"
               />
               {!isMobile && (
@@ -150,22 +150,14 @@ const ReviewsChart = ({ reviews }: ReviewsChartProps) => {
                   dataKey="avgRating"
                   stroke="#f59e0b"
                   strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 8 }}
+                  dot={{ r: 4, strokeWidth: 1, fill: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: '#f59e0b' }}
                   name="Avg Rating"
                 />
               )}
             </LineChart>
           </ResponsiveContainer>
         </div>
-        {isMobile && (
-          <div className="mt-4 flex justify-center gap-4 text-xs">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span>Review Count</span>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

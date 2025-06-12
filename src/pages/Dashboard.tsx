@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, Suspense } from "react";
+import React, { useState, useCallback, useMemo, Suspense, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import BusinessSelector from "@/components/BusinessSelector";
 import DashboardContent from "@/components/dashboard/DashboardContent";
@@ -13,12 +13,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { getBusinessTypeFromName } from "@/types/BusinessMappings";
-import { Sparkles, RefreshCw, BarChart3, GitCompare, Mail as MailIcon, KeyRound } from "lucide-react";
+import { Sparkles, RefreshCw, BarChart3, GitCompare, Mail as MailIcon, KeyRound, Download } from "lucide-react";
 import { DatabaseErrorDisplay } from "@/components/diagnostic/DatabaseErrorDisplay";
 import { MissingEnvAlert } from "@/components/diagnostic/MissingEnvAlert";
 import { NoReviewsAlert } from "@/components/diagnostic/NoReviewsAlert";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Phase 5: Import performance and error handling utilities
 import { 
@@ -43,7 +49,7 @@ import {
 import { LoadingFallback } from "@/utils/lazyLoading";
 
 /**
- * Enhanced Dashboard Component - Phase 5
+ * Enhanced Dashboard Component - Phase 5 + Mobile Responsive
  * 
  * Features:
  * - Comprehensive error boundaries at multiple levels
@@ -53,6 +59,7 @@ import { LoadingFallback } from "@/utils/lazyLoading";
  * - Memory management
  * - Enhanced error handling and logging
  * - Fixed infinite loop in AI recommendations
+ * - Full mobile responsiveness
  */
 
 // Phase 5: Memoized business type calculation
@@ -72,6 +79,20 @@ const getMemoizedBusinessType = memoizeWithExpiry(
 const Dashboard: React.FC = React.memo(() => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Check if we're on a mobile device
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
   
   // Phase 5: Performance monitoring for component lifecycle
   React.useEffect(() => {
@@ -314,6 +335,15 @@ const Dashboard: React.FC = React.memo(() => {
     }
   }, [getAllReviews]);
 
+  // Mobile tab configuration
+  const tabConfig = [
+    { value: "overview", label: isMobile ? "Overview" : "Overview" },
+    { value: "enhanced", label: isMobile ? "Analysis" : "Enhanced Analysis" },
+    { value: "comparison", label: isMobile ? "Compare" : "Period Comparison" },
+    { value: "recommendations", label: isMobile ? "AI" : "AI Recommendations" },
+    { value: "notifications", label: isMobile ? "Notify" : "Notifications" }
+  ];
+
   return (
     <PageErrorBoundary>
       <DashboardLayout onProviderChange={() => {}}> {/* Simplified - no provider change */}
@@ -343,49 +373,99 @@ const Dashboard: React.FC = React.memo(() => {
 
         {/* Business Selector and Action Buttons with error boundary */}
         <SectionErrorBoundary>
-          <div className="flex justify-between items-center gap-4 mb-6 w-full">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 w-full">
             <ComponentErrorBoundary>
               <BusinessSelector
                 selectedBusiness={selectedBusiness}
                 onBusinessChange={handleBusinessChangeOptimized}
                 businessData={businessData}
-                className="flex-1"
+                className="w-full sm:flex-1"
               />
             </ComponentErrorBoundary>
             
-            <div className="flex gap-2">
-              <Button
-                onClick={handleRefreshData}
-                disabled={loading}
-                size="icon"
-                variant="outline"
-                className="w-10 h-10"
-                title="Refresh Data"
-              >
-                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-              
-              {enhancedAnalysis && (
-                <ComponentErrorBoundary>
-                  <ExportButton
-                    businessName={selectedBusiness}
-                    businessType={businessType}
-                    data={enhancedAnalysis}
-                    dateRange={dateRange}
-                    disabled={!selectedBusiness || selectedBusiness === "all"}
-                  />
-                </ComponentErrorBoundary>
+            <div className="flex gap-2 w-full sm:w-auto">
+              {/* Mobile: Action Menu */}
+              {isMobile ? (
+                <>
+                  <Button
+                    onClick={handleRefreshData}
+                    disabled={loading}
+                    size="icon"
+                    variant="outline"
+                    className="h-10 w-10"
+                    title="Refresh Data"
+                  >
+                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex-1">
+                        Actions
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={handleGenerateRecommendations}
+                        disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Generate AI Analysis
+                      </DropdownMenuItem>
+                      {enhancedAnalysis && (
+                        <DropdownMenuItem
+                          disabled={!selectedBusiness || selectedBusiness === "all"}
+                        >
+                          <ExportButton
+                            businessName={selectedBusiness}
+                            businessType={businessType}
+                            data={enhancedAnalysis}
+                            dateRange={dateRange}
+                            disabled={!selectedBusiness || selectedBusiness === "all"}
+                            asMenuItem
+                          />
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              ) : (
+                /* Desktop: Individual Buttons */
+                <>
+                  <Button
+                    onClick={handleRefreshData}
+                    disabled={loading}
+                    size="icon"
+                    variant="outline"
+                    className="w-10 h-10"
+                    title="Refresh Data"
+                  >
+                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                  </Button>
+                  
+                  {enhancedAnalysis && (
+                    <ComponentErrorBoundary>
+                      <ExportButton
+                        businessName={selectedBusiness}
+                        businessType={businessType}
+                        data={enhancedAnalysis}
+                        dateRange={dateRange}
+                        disabled={!selectedBusiness || selectedBusiness === "all"}
+                      />
+                    </ComponentErrorBoundary>
+                  )}
+                  
+                  <Button
+                    onClick={handleGenerateRecommendations}
+                    disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
+                    size="icon"
+                    className="w-10 h-10"
+                    title="Generate Recommendations"
+                  >
+                    <Sparkles className="w-5 h-5" />
+                  </Button>
+                </>
               )}
-              
-              <Button
-                onClick={handleGenerateRecommendations}
-                disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
-                size="icon"
-                className="w-10 h-10"
-                title="Generate Recommendations"
-              >
-                <Sparkles className="w-5 h-5" />
-              </Button>
             </div>
           </div>
         </SectionErrorBoundary>
@@ -393,16 +473,28 @@ const Dashboard: React.FC = React.memo(() => {
         {/* Phase 5: Enhanced Main Content Tabs with error boundaries and lazy loading */}
         <SectionErrorBoundary>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="enhanced">Enhanced Analysis</TabsTrigger>
-              <TabsTrigger value="comparison">Period Comparison</TabsTrigger>
-              <TabsTrigger value="recommendations">AI Recommendations</TabsTrigger>
-              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-5'} mb-6`}>
+              {isMobile ? (
+                <>
+                  <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
+                  <TabsTrigger value="enhanced" className="text-xs">Analysis</TabsTrigger>
+                  <TabsTrigger value="recommendations" className="text-xs">AI</TabsTrigger>
+                  {/* Second row for mobile */}
+                  <TabsTrigger value="comparison" className="text-xs">Compare</TabsTrigger>
+                  <TabsTrigger value="notifications" className="text-xs">Notify</TabsTrigger>
+                  <div className="hidden" /> {/* Empty cell for grid alignment */}
+                </>
+              ) : (
+                tabConfig.map(tab => (
+                  <TabsTrigger key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </TabsTrigger>
+                ))
+              )}
             </TabsList>
             
             {/* Overview Tab with error boundary - passing allReviews and businessData */}
-            <TabsContent value="overview" className="mt-6">
+            <TabsContent value="overview" className="mt-4 sm:mt-6">
               <SectionErrorBoundary>
                 <Suspense fallback={<LoadingFallback size="large" message="Loading overview..." />}>
                   <DashboardContent
@@ -418,7 +510,7 @@ const Dashboard: React.FC = React.memo(() => {
             </TabsContent>
             
             {/* Enhanced Analysis Tab with error boundary */}
-            <TabsContent value="enhanced" className="mt-6">
+            <TabsContent value="enhanced" className="mt-4 sm:mt-6">
               <SectionErrorBoundary>
                 {enhancedAnalysis ? (
                   <Suspense fallback={<LoadingFallback size="large" message="Loading enhanced analysis..." />}>
@@ -432,10 +524,10 @@ const Dashboard: React.FC = React.memo(() => {
                     />
                   </Suspense>
                 ) : (
-                  <div className="text-center p-10 space-y-4">
+                  <div className="text-center p-6 sm:p-10 space-y-4">
                     <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto" />
-                    <h3 className="text-lg font-medium">Enhanced Analysis Not Available</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
+                    <h3 className="text-base sm:text-lg font-medium">Enhanced Analysis Not Available</h3>
+                    <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
                       Generate recommendations to see enhanced data analysis for this business.
                     </p>
                     <Button
@@ -452,17 +544,17 @@ const Dashboard: React.FC = React.memo(() => {
             </TabsContent>
             
             {/* Period Comparison Tab with error boundary */}
-            <TabsContent value="comparison" className="mt-6">
+            <TabsContent value="comparison" className="mt-4 sm:mt-6">
               <SectionErrorBoundary>
                 {selectedBusiness && selectedBusiness !== "all" ? (
                   <Suspense fallback={<LoadingFallback size="large" message="Loading comparison..." />}>
                     <PeriodComparisonDisplay businessName={selectedBusiness} />
                   </Suspense>
                 ) : (
-                  <div className="text-center p-10 space-y-4">
+                  <div className="text-center p-6 sm:p-10 space-y-4">
                     <GitCompare className="w-12 h-12 text-muted-foreground mx-auto" />
-                    <h3 className="text-lg font-medium">Select a Business</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
+                    <h3 className="text-base sm:text-lg font-medium">Select a Business</h3>
+                    <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
                       Please select a specific business to compare data across different time periods.
                     </p>
                   </div>
@@ -471,22 +563,24 @@ const Dashboard: React.FC = React.memo(() => {
             </TabsContent>
             
             {/* AI Recommendations Tab with error boundary - now passing progress */}
-            <TabsContent value="recommendations" className="mt-6">
+            <TabsContent value="recommendations" className="mt-4 sm:mt-6">
               <SectionErrorBoundary>
                 {/* Debug toggle button */}
-                <div className="mb-4 flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDebugTools(!showDebugTools)}
-                    className="text-xs"
-                  >
-                    {showDebugTools ? 'Hide' : 'Show'} Debug Tools
-                  </Button>
-                </div>
+                {!isMobile && (
+                  <div className="mb-4 flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowDebugTools(!showDebugTools)}
+                      className="text-xs"
+                    >
+                      {showDebugTools ? 'Hide' : 'Show'} Debug Tools
+                    </Button>
+                  </div>
+                )}
                 
                 {/* Edge Function Test Component */}
-                {showDebugTools && (
+                {showDebugTools && !isMobile && (
                   <ComponentErrorBoundary>
                     <EdgeFunctionTest />
                   </ComponentErrorBoundary>
@@ -506,7 +600,7 @@ const Dashboard: React.FC = React.memo(() => {
             </TabsContent>
             
             {/* Notifications Tab with error boundary */}
-            <TabsContent value="notifications" className="mt-6">
+            <TabsContent value="notifications" className="mt-4 sm:mt-6">
               <SectionErrorBoundary>
                 {selectedBusiness && selectedBusiness !== "all" ? (
                   <Suspense fallback={<LoadingFallback size="medium" message="Loading notifications..." />}>
@@ -516,10 +610,10 @@ const Dashboard: React.FC = React.memo(() => {
                     />
                   </Suspense>
                 ) : (
-                  <div className="text-center p-10 space-y-4">
+                  <div className="text-center p-6 sm:p-10 space-y-4">
                     <MailIcon className="w-12 h-12 text-muted-foreground mx-auto" />
-                    <h3 className="text-lg font-medium">Select a Business</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
+                    <h3 className="text-base sm:text-lg font-medium">Select a Business</h3>
+                    <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
                       Please select a specific business to configure email notifications.
                     </p>
                   </div>
@@ -530,7 +624,7 @@ const Dashboard: React.FC = React.memo(() => {
         </SectionErrorBoundary>
         
         {/* Phase 5: Development performance stats */}
-        {process.env.NODE_ENV === 'development' && (
+        {process.env.NODE_ENV === 'development' && !isMobile && (
           <ComponentErrorBoundary>
             <details className="mt-8 p-4 bg-muted rounded text-xs">
               <summary className="cursor-pointer font-medium">Performance Stats (Development)</summary>

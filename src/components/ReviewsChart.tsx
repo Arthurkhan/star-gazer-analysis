@@ -1,139 +1,171 @@
-
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { MonthlyReviewData } from "@/types/reviews";
-import { CustomBarLineTooltip } from "@/components/review-analysis/CustomTooltips";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Review } from "@/types/reviews";
+import { useMemo, useEffect, useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { format } from "date-fns";
 
 interface ReviewsChartProps {
-  data: MonthlyReviewData[];
+  reviews: Review[];
 }
 
-const ReviewsChart = ({ data }: ReviewsChartProps) => {
-  const [chartType, setChartType] = useState<"line" | "bar">("line");
+const ReviewsChart = ({ reviews }: ReviewsChartProps) => {
+  const [isMobile, setIsMobile] = useState(false);
   
-  // Find the maximum count for Y-axis scaling
-  const maxCount = data.length > 0 
-    ? Math.max(...data.map(item => item.count || 0)) + 5
-    : 10;
-  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const chartData = useMemo(() => {
+    if (!reviews?.length) return [];
+
+    // Group reviews by month
+    const monthlyData: Record<string, { count: number; avgRating: number; totalRating: number }> = {};
+
+    reviews.forEach((review) => {
+      const date = new Date(review.publishedAtDate);
+      const monthKey = format(date, "yyyy-MM");
+
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { count: 0, avgRating: 0, totalRating: 0 };
+      }
+
+      monthlyData[monthKey].count++;
+      monthlyData[monthKey].totalRating += review.stars;
+    });
+
+    // Convert to array and calculate average rating
+    const data = Object.entries(monthlyData)
+      .map(([month, data]) => ({
+        month,
+        displayMonth: format(new Date(month + "-01"), isMobile ? "MMM" : "MMM yyyy"),
+        count: data.count,
+        avgRating: parseFloat((data.totalRating / data.count).toFixed(2)),
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+
+    // Only show last 12 months on mobile, all data on desktop
+    if (isMobile && data.length > 6) {
+      return data.slice(-6);
+    }
+
+    return data;
+  }, [reviews, isMobile]);
+
+  if (!chartData.length) {
+    return (
+      <Card className="shadow-md border-0 dark:bg-gray-800">
+        <CardHeader>
+          <CardTitle>Reviews Over Time</CardTitle>
+          <CardDescription>Monthly review count and average rating</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[200px] sm:h-[350px] flex items-center justify-center text-muted-foreground">
+            No data to display
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="col-span-full shadow-md border-0 dark:bg-gray-800 overflow-hidden transition-all duration-300 hover:shadow-lg">
-      <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-750">
-        <CardTitle className="text-md font-medium">Reviews Timeline</CardTitle>
-        <ToggleGroup 
-          type="single" 
-          value={chartType} 
-          onValueChange={(value) => value && setChartType(value as "line" | "bar")}
-          className="border rounded-md p-1 bg-white dark:bg-gray-700 shadow-sm"
-        >
-          <ToggleGroupItem value="line" size="sm" className="text-xs px-3 data-[state=on]:bg-primary/10 data-[state=on]:text-primary">Line</ToggleGroupItem>
-          <ToggleGroupItem value="bar" size="sm" className="text-xs px-3 data-[state=on]:bg-primary/10 data-[state=on]:text-primary">Bar</ToggleGroupItem>
-        </ToggleGroup>
+    <Card className="shadow-md border-0 dark:bg-gray-800">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg sm:text-xl">Reviews Over Time</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">
+          {isMobile ? "Last 6 months" : "Monthly review count and average rating"}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="pt-2">
-        <div className="h-80">
+      <CardContent className="px-2 sm:px-6">
+        <div className="h-[250px] sm:h-[350px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            {chartType === "line" ? (
-              <LineChart
-                data={data}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 60,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis 
-                  dataKey="month" 
-                  angle={-60} 
-                  textAnchor="end" 
-                  height={80}
+            <LineChart
+              data={chartData}
+              margin={{
+                top: 5,
+                right: isMobile ? 5 : 30,
+                left: isMobile ? -10 : 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+              <XAxis
+                dataKey="displayMonth"
+                tick={{ fontSize: isMobile ? 10 : 12 }}
+                angle={isMobile ? -45 : 0}
+                textAnchor={isMobile ? "end" : "middle"}
+                height={isMobile ? 60 : 30}
+              />
+              <YAxis
+                yAxisId="left"
+                tick={{ fontSize: isMobile ? 10 : 12 }}
+                width={isMobile ? 30 : 40}
+              />
+              {!isMobile && (
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  domain={[0, 5]}
+                  ticks={[1, 2, 3, 4, 5]}
                   tick={{ fontSize: 12 }}
-                  tickLine={{ stroke: '#ccc' }}
-                  axisLine={{ stroke: '#ccc' }}
                 />
-                <YAxis 
-                  tick={{ fontSize: 12 }} 
-                  tickLine={{ stroke: '#ccc' }}
-                  axisLine={{ stroke: '#ccc' }}
-                  domain={[0, maxCount]}
-                  allowDecimals={false}
-                />
-                <Tooltip 
-                  content={<CustomBarLineTooltip />}
-                />
-                <Legend 
-                  verticalAlign="top" 
-                  height={36} 
-                  wrapperStyle={{
-                    paddingTop: '10px',
-                    fontSize: '12px'
-                  }}
-                />
+              )}
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "rgba(0, 0, 0, 0.8)",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: isMobile ? "12px" : "14px",
+                }}
+                labelStyle={{ color: "#fff" }}
+              />
+              <Line
+                yAxisId="left"
+                type="monotone"
+                dataKey="count"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dot={{ r: isMobile ? 3 : 4 }}
+                activeDot={{ r: isMobile ? 5 : 8 }}
+                name="Reviews"
+              />
+              {!isMobile && (
                 <Line
+                  yAxisId="right"
                   type="monotone"
-                  dataKey="count"
-                  name="Monthly Reviews"
-                  stroke="#8884d8"
+                  dataKey="avgRating"
+                  stroke="#f59e0b"
                   strokeWidth={2}
-                  dot={{ r: 4, strokeWidth: 1, fill: '#fff' }}
-                  activeDot={{ r: 6, strokeWidth: 0, fill: '#8884d8' }}
-                  animationDuration={1000}
+                  dot={{ r: 4 }}
+                  activeDot={{ r: 8 }}
+                  name="Avg Rating"
                 />
-              </LineChart>
-            ) : (
-              <BarChart
-                data={data}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 60,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis 
-                  dataKey="month" 
-                  angle={-60} 
-                  textAnchor="end" 
-                  height={80}
-                  tick={{ fontSize: 12 }}
-                  tickLine={{ stroke: '#ccc' }}
-                  axisLine={{ stroke: '#ccc' }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickLine={{ stroke: '#ccc' }}
-                  axisLine={{ stroke: '#ccc' }}
-                  domain={[0, maxCount]}
-                  allowDecimals={false}
-                />
-                <Tooltip 
-                  content={<CustomBarLineTooltip />}
-                />
-                <Legend 
-                  verticalAlign="top" 
-                  height={36}
-                  wrapperStyle={{
-                    paddingTop: '10px',
-                    fontSize: '12px'
-                  }}
-                />
-                <Bar 
-                  dataKey="count" 
-                  name="Monthly Reviews" 
-                  fill="#8884d8" 
-                  radius={[4, 4, 0, 0]}
-                  animationDuration={1000}
-                  barSize={24}
-                />
-              </BarChart>
-            )}
+              )}
+            </LineChart>
           </ResponsiveContainer>
         </div>
+        {isMobile && (
+          <div className="mt-4 flex justify-center gap-4 text-xs">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span>Review Count</span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

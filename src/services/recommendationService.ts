@@ -234,6 +234,93 @@ export class RecommendationService {
   }
 
   /**
+   * Test edge function connectivity
+   */
+  async testEdgeFunction(): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      logger.info('Testing edge function connectivity...');
+      
+      // Create minimal test data
+      const testData = {
+        businessData: {
+          businessName: 'Test Business',
+          businessType: 'test',
+          reviews: [
+            {
+              stars: 5,
+              text: 'Great service!',
+              publishedAtDate: new Date().toISOString(),
+              name: 'Test User'
+            }
+          ]
+        },
+        provider: 'openai',
+        apiKey: 'test-key-1234', // Use a test key to avoid actual API calls
+        model: 'gpt-3.5-turbo'
+      };
+
+      const response = await supabase.functions.invoke('generate-recommendations', {
+        body: testData,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }) as EdgeFunctionResponse;
+
+      logger.info('Edge function test response:', response);
+
+      if (!response.data) {
+        return {
+          success: false,
+          message: 'No response from edge function'
+        };
+      }
+
+      const responseData = response.data as any;
+      
+      // Check if it's a fallback response (which means the edge function is working)
+      if (responseData.fallback) {
+        return {
+          success: true,
+          message: 'Edge function is deployed and responding correctly! It returned a fallback response as expected for test data.',
+          data: responseData
+        };
+      }
+
+      // If we got actual recommendations, that's also good
+      if (responseData.urgentActions && responseData.growthStrategies) {
+        return {
+          success: true,
+          message: 'Edge function is working and returned recommendations!',
+          data: responseData
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Unexpected response format from edge function',
+        data: responseData
+      };
+
+    } catch (error) {
+      logger.error('Edge function test failed:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+        return {
+          success: false,
+          message: 'Edge function not found. Please deploy it using: supabase functions deploy generate-recommendations'
+        };
+      }
+      
+      return {
+        success: false,
+        message: `Edge function test failed: ${errorMessage}`
+      };
+    }
+  }
+
+  /**
    * Generate recommendations using AI via Supabase Edge Function
    */
   async generateRecommendations(businessData: BusinessData): Promise<Recommendations> {
@@ -259,18 +346,33 @@ export class RecommendationService {
       logger.info('Including comprehensive business context in analysis');
     }
 
+    // Ensure all required fields are present in businessData
+    const requestBody = {
+      businessData: {
+        businessName: businessData.businessName,
+        businessType: businessData.businessType,
+        reviews: businessData.reviews.map(review => ({
+          stars: review.stars,
+          text: review.text || '',
+          publishedAtDate: review.publishedAtDate || new Date().toISOString(),
+          name: review.name || 'Anonymous'
+        })),
+        businessContext: businessData.businessContext
+      },
+      provider,
+      apiKey,
+      model: model || undefined
+    };
+
+    logger.info('Sending request with body:', JSON.stringify(requestBody, null, 2).substring(0, 500));
+
     // Create abort controller for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
 
     try {
       const response = await supabase.functions.invoke('generate-recommendations', {
-        body: { 
-          businessData,
-          provider,
-          apiKey,
-          model,
-        },
+        body: requestBody,
         headers: {
           'Content-Type': 'application/json',
         },

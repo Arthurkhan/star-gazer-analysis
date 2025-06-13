@@ -111,7 +111,10 @@ export const tooltipContent = {
     revenueImpact: "Estimated effect of review ratings on business revenue. Based on industry research.",
     customerLifetimeValue: "Predicted long-term value of customers based on their review behavior.",
     retentionRate: "Percentage of customers likely to return based on their review content.",
-    netPromoterScore: "Likelihood of customers recommending your business. Based on review sentiment."
+    netPromoterScore: "Likelihood of customers recommending your business. Based on review sentiment.",
+    satisfactionRate: "Percentage of customers rating 4 or 5 stars. Indicates overall satisfaction level.",
+    excellenceRate: "Percentage of 5-star reviews. Shows how often you exceed customer expectations.",
+    healthScore: "Composite score (0-100) based on rating average, satisfaction rate, and response rate."
   },
 
   // Technical Indicators
@@ -120,6 +123,43 @@ export const tooltipContent = {
     apiStatus: "Current status of AI and data services. Green indicates all systems operational.",
     syncStatus: "Status of data synchronization with Google Maps. Shows last successful sync time.",
     processingTime: "Time taken to analyze and process review data. Faster times indicate better performance."
+  },
+
+  // Monthly Report specific
+  monthlyReport: {
+    reportPeriod: "Select specific date range for detailed analysis. Presets available for common periods.",
+    dateRangePresets: "Quick selection options: Last 30 days, This month, Last month, or custom range.",
+    totalReviewsInPeriod: "Count of reviews received during the selected date range only.",
+    periodComparison: "Compares current period metrics with previous period and same period last year.",
+    exportPDF: "Generate detailed PDF report including charts, metrics, and individual reviews.",
+    exportExcel: "Export data to Excel for custom analysis. Includes all metrics and review details.",
+    satisfactionRate: "Percentage of 4 and 5-star reviews. Formula: (4★ + 5★) ÷ Total Reviews × 100",
+    excellenceRate: "Percentage of 5-star reviews only. Formula: 5★ ÷ Total Reviews × 100",
+    healthScore: "Business health indicator. Formula: (Rating/5 × 40) + (Satisfaction × 0.35) + (Response × 0.25)",
+    vsPreivousPeriod: "Comparison with the immediately preceding period of the same duration.",
+    vsSamePeriodLastYear: "Year-over-year comparison with the same date range from previous year.",
+    timeReviewsChart: "Interactive chart showing review distribution by day, week, or month.",
+    viewMode: "Toggle between daily, weekly, or monthly view for time-based analysis.",
+    aiAnalysisReport: "AI-generated insights and recommendations based on selected period data.",
+    customPrompt: "Customize AI analysis with specific questions or focus areas."
+  },
+
+  // Business Comparison specific
+  businessComparison: {
+    overview: "Side-by-side comparison of all businesses showing key performance metrics.",
+    monthlyTrend: "Review volume trends for each business over time. Identifies growth patterns.",
+    cumulativeGrowth: "Total accumulated reviews showing overall growth trajectory for each business.",
+    averageRating: "Average star rating comparison. Shows which business has highest customer satisfaction.",
+    growthRate: "Month-over-month growth percentage. Positive means increasing reviews.",
+    marketShare: "Percentage of total reviews each business receives. Shows relative popularity.",
+    sentimentAnalysis: "Comparison of positive, neutral, and negative sentiment across businesses.",
+    ratingDistribution: "Side-by-side view of how ratings are distributed for each business.",
+    monthlyGrowthRate: "Percentage change in review count compared to previous month.",
+    lastMonthReviews: "Number of reviews received in the most recent complete month.",
+    previousMonthReviews: "Number of reviews received in the month before last.",
+    sentimentBreakdown: "Percentage breakdown of emotional tone in reviews for each business.",
+    competitivePosition: "How each business ranks compared to others in key metrics.",
+    performanceTrends: "Long-term patterns showing if businesses are improving or declining."
   }
 };
 

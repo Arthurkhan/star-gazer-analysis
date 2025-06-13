@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, Star, Users, MessageSquare, BarChart3, Activity } from "lucide-react";
 import { BusinessHealthScore, PerformanceMetrics, TimePeriodConfig } from "@/types/analysisSummary";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface ExecutiveSummaryCardProps {
   healthScore: BusinessHealthScore;
@@ -90,6 +91,10 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <span className="font-bold">Executive Summary</span>
+          <InfoTooltip 
+            content="High-level overview of your business performance based on customer reviews and engagement metrics"
+            className="ml-auto"
+          />
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
@@ -102,6 +107,10 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <Activity className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-lg">Business Health</h3>
+              <InfoTooltip 
+                tooltipPath="metrics.netPromoterScore"
+                className="ml-auto"
+              />
             </div>
             <div className={`${healthInfo.bgColor} ${healthInfo.borderColor} border-2 rounded-xl p-4 space-y-3`}>
               <div className="flex items-baseline gap-3">
@@ -119,7 +128,13 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             <div className="space-y-2 bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
               <div className="space-y-1">
                 <div className="flex justify-between text-sm font-medium">
-                  <span>Rating Quality</span>
+                  <span className="flex items-center gap-1">
+                    Rating Quality
+                    <InfoTooltip 
+                      content="Score based on your average rating. Higher ratings = higher score"
+                      className="ml-1"
+                    />
+                  </span>
                   <span className="font-bold">{healthScore.breakdown.rating}%</span>
                 </div>
                 <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -131,7 +146,13 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-sm font-medium">
-                  <span>Customer Sentiment</span>
+                  <span className="flex items-center gap-1">
+                    Customer Sentiment
+                    <InfoTooltip 
+                      tooltipPath="sentiment.overall"
+                      className="ml-1"
+                    />
+                  </span>
                   <span className="font-bold">{healthScore.breakdown.sentiment}%</span>
                 </div>
                 <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -143,7 +164,13 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between text-sm font-medium">
-                  <span>Response Rate</span>
+                  <span className="flex items-center gap-1">
+                    Response Rate
+                    <InfoTooltip 
+                      tooltipPath="overview.responseRate"
+                      className="ml-1"
+                    />
+                  </span>
                   <span className="font-bold">{healthScore.breakdown.response}%</span>
                 </div>
                 <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -163,6 +190,10 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <Users className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-lg">Review Volume</h3>
+              <InfoTooltip 
+                tooltipPath="overview.totalReviews"
+                className="ml-auto"
+              />
             </div>
             <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-4 space-y-3">
               <div className="flex items-baseline gap-3">
@@ -176,7 +207,13 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             
             {/* Growth indicator enhanced */}
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Growth Trend</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                Growth Trend
+                <InfoTooltip 
+                  tooltipPath="comparison.growthRate"
+                  className="ml-1"
+                />
+              </p>
               {renderTrendIndicator(performanceMetrics.growthRate, "Growth")}
               <p className="text-xs text-muted-foreground mt-2 font-medium">
                 {performanceMetrics.trends.isGrowing ? 
@@ -193,6 +230,10 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <Star className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-lg">Rating Trends</h3>
+              <InfoTooltip 
+                tooltipPath="ratings.ratingTrend"
+                className="ml-auto"
+              />
             </div>
             <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-xl p-4 space-y-3">
               <div className="flex items-baseline gap-3">
@@ -226,6 +267,10 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <MessageSquare className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-lg">Engagement</h3>
+              <InfoTooltip 
+                content="How actively the business responds to customer reviews"
+                className="ml-auto"
+              />
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-xl p-4 space-y-3">
               <div className="flex items-baseline gap-3">
@@ -239,7 +284,13 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             
             {/* Engagement assessment enhanced */}
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Engagement Level</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                Engagement Level
+                <InfoTooltip 
+                  content="Based on response rate: High (>70%), Moderate (40-70%), Low (<40%)"
+                  className="ml-1"
+                />
+              </p>
               <Badge 
                 variant={healthScore.responseRate >= 50 ? "default" : "secondary"}
                 className="text-sm font-bold px-4 py-1.5"
@@ -261,7 +312,13 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              <span className="font-semibold text-gray-700 dark:text-gray-300">Analysis Period: {timePeriod.current.label}</span>
+              <span className="font-semibold text-gray-700 dark:text-gray-300">
+                Analysis Period: {timePeriod.current.label}
+                <InfoTooltip 
+                  content="The time range of reviews included in this analysis"
+                  className="ml-2 inline-flex"
+                />
+              </span>
             </div>
             <span className="font-medium text-gray-600 dark:text-gray-400">
               {timePeriod.current.start.toLocaleDateString()} - {timePeriod.current.end.toLocaleDateString()}

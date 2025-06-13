@@ -84,6 +84,7 @@ export interface MonthlyReviewData {
   month: string;
   count: number;
   cumulativeCount: number;
+  avgRating?: number;  // Average rating for the month
 }
 
 export interface ThemeData {

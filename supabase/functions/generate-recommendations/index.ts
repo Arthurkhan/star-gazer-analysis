@@ -59,7 +59,7 @@ const log = {
   }
 };
 
-// Unified prompt for all providers
+// Unified prompt for all providers - Updated to request 5 recommendations instead of 3
 const getUnifiedPrompt = (businessInfo: any, reviewsSummary: any[]) => {
   const systemPrompt = `You are a business consultant analyzing real customer reviews. Generate actionable recommendations based on the reviews provided.
 
@@ -72,12 +72,16 @@ Return this exact structure:
   "urgentActions": [
     {"title": "Specific action based on reviews", "description": "Detailed explanation addressing actual customer feedback", "impact": "High", "effort": "Low"},
     {"title": "Another urgent action", "description": "Based on common complaints or issues mentioned", "impact": "Medium", "effort": "Medium"},
-    {"title": "Third action", "description": "Addressing patterns in negative reviews", "impact": "Low", "effort": "High"}
+    {"title": "Third action", "description": "Addressing patterns in negative reviews", "impact": "Low", "effort": "High"},
+    {"title": "Fourth urgent action", "description": "Based on critical customer feedback", "impact": "High", "effort": "Medium"},
+    {"title": "Fifth action priority", "description": "Additional improvement based on review analysis", "impact": "Medium", "effort": "Low"}
   ],
   "growthStrategies": [
     {"title": "Strategy based on positive feedback", "description": "Leverage what customers love", "impact": "High", "effort": "Low"},
     {"title": "Expansion opportunity", "description": "Based on customer requests", "impact": "Medium", "effort": "Medium"},
-    {"title": "Long-term improvement", "description": "Address systematic issues", "impact": "Low", "effort": "High"}
+    {"title": "Long-term improvement", "description": "Address systematic issues", "impact": "Low", "effort": "High"},
+    {"title": "Innovation strategy", "description": "New services based on customer needs", "impact": "High", "effort": "High"},
+    {"title": "Customer retention strategy", "description": "Keep happy customers coming back", "impact": "Medium", "effort": "Low"}
   ],
   "customerAttractionPlan": {
     "title": "Customer Growth Plan",
@@ -219,7 +223,7 @@ async function callGemini(apiKey: string, model: string, systemPrompt: string, u
   return JSON.parse(content);
 }
 
-// Fallback response for errors
+// Fallback response for errors - Updated to have 5 items
 const getFallbackResponse = (errorMessage: string) => ({
   error: errorMessage,
   timestamp: new Date().toISOString(),
@@ -243,6 +247,18 @@ const getFallbackResponse = (errorMessage: string) => ({
         impact: 'Medium',
         effort: 'Low',
       },
+      {
+        title: 'Staff Training Enhancement',
+        description: 'Implement regular training based on customer feedback to improve service quality.',
+        impact: 'High',
+        effort: 'Medium',
+      },
+      {
+        title: 'Follow-up System',
+        description: 'Create a system to follow up with dissatisfied customers to resolve issues.',
+        impact: 'Medium',
+        effort: 'Medium',
+      },
     ],
     growthStrategies: [
       {
@@ -260,6 +276,18 @@ const getFallbackResponse = (errorMessage: string) => ({
       {
         title: 'Staff Recognition',
         description: 'Publicly recognize staff members who receive positive mentions in reviews.',
+        impact: 'Medium',
+        effort: 'Low',
+      },
+      {
+        title: 'Service Expansion',
+        description: 'Add new services based on customer requests and market trends.',
+        impact: 'High',
+        effort: 'High',
+      },
+      {
+        title: 'Digital Presence Enhancement',
+        description: 'Strengthen online presence based on where customers say they found you.',
         impact: 'Medium',
         effort: 'Low',
       },

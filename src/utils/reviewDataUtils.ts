@@ -91,7 +91,7 @@ function formatMonthDisplay(dateKey: string): string {
 const chartDataCache = new Map<string, MonthlyReviewData[]>();
 
 /**
- * Function to create the chart data with cumulative count
+ * Function to create the chart data with cumulative count and average rating
  * Optimized with caching and proper date handling
  */
 export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
@@ -119,7 +119,8 @@ export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
   debugLog(`Generating chart data for ${reviews.length} reviews`);
   
   // Group reviews by year-month for proper sorting
-  const monthMap = new Map<string, number>();
+  // Now tracking both count and sum of ratings for average calculation
+  const monthMap = new Map<string, { count: number; totalRating: number; reviewsWithRating: number }>();
   
   reviews.forEach(review => {
     // Handle both publishedAtDate and publishedatdate field names
@@ -130,18 +131,31 @@ export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
     const monthYearKey = getDateSortKey(dateField);
     if (monthYearKey === '0000-00') return; // Skip invalid dates
     
-    monthMap.set(monthYearKey, (monthMap.get(monthYearKey) || 0) + 1);
+    // Get or create month data
+    if (!monthMap.has(monthYearKey)) {
+      monthMap.set(monthYearKey, { count: 0, totalRating: 0, reviewsWithRating: 0 });
+    }
+    
+    const monthData = monthMap.get(monthYearKey)!;
+    monthData.count++;
+    
+    // Add rating if available
+    if (review.stars && review.stars > 0 && review.stars <= 5) {
+      monthData.totalRating += review.stars;
+      monthData.reviewsWithRating++;
+    }
   });
   
   // Convert to array and sort by date chronologically
   const monthEntries = Array.from(monthMap.entries())
     .sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
   
-  // Map to our data format with display-friendly month names
-  const monthData = monthEntries.map(([key, count]) => ({
+  // Map to our data format with display-friendly month names and calculated average ratings
+  const monthData = monthEntries.map(([key, data]) => ({
     key,
     month: formatMonthDisplay(key),
-    count
+    count: data.count,
+    avgRating: data.reviewsWithRating > 0 ? parseFloat((data.totalRating / data.reviewsWithRating).toFixed(2)) : 0
   }));
   
   // Add cumulative count
@@ -151,7 +165,8 @@ export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
     return {
       month: item.month,
       count: item.count,
-      cumulativeCount: cumulative
+      cumulativeCount: cumulative,
+      avgRating: item.avgRating
     };
   });
   

@@ -35,12 +35,6 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
   // Use the chart data directly - avgRating is now calculated in getChartData
   const chartData = useMemo(() => {
     if (!data?.length) return [];
-    
-    // Debug log to check the data
-    console.log("ReviewsChart - Raw data:", data);
-    console.log("ReviewsChart - Sample month data:", data[0]);
-    console.log("ReviewsChart - AvgRating values:", data.map(d => ({ month: d.month, avgRating: d.avgRating })));
-    
     return data;
   }, [data]);
 

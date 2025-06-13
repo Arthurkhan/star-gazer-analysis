@@ -32,15 +32,10 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Calculate average rating for each month (simulated based on count)
+  // Use the chart data directly - avgRating is now calculated in getChartData
   const chartData = useMemo(() => {
     if (!data?.length) return [];
-
-    // Add average rating calculation (simulated for now)
-    return data.map(month => ({
-      ...month,
-      avgRating: parseFloat((4 + (Math.random() * 0.5)).toFixed(2)), // Format to 2 decimal places
-    }));
+    return data;
   }, [data]);
 
   if (!chartData.length) {
@@ -132,8 +127,8 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
                 labelStyle={{ color: "#fff" }}
                 formatter={(value: any, name: string) => {
                   // Format the value to 2 decimal places for avg rating
-                  if (name === "Avg Rating") {
-                    return [parseFloat(value).toFixed(2), name];
+                  if (name === "Avg Rating" && typeof value === 'number') {
+                    return [value.toFixed(2), name];
                   }
                   return [value, name];
                 }}

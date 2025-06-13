@@ -2,7 +2,7 @@ import { Review, MonthlyReviewData } from "@/types/reviews";
 import { EnhancedAnalysis } from "@/types/dataAnalysis";
 
 // Constants
-const DEBUG_LOGS = true; // TEMPORARILY SET TO TRUE FOR DEBUGGING
+const DEBUG_LOGS = false; // Set back to false after debugging
 
 /**
  * Log utility function that only logs when DEBUG_LOGS is true
@@ -87,8 +87,9 @@ function formatMonthDisplay(dateKey: string): string {
   }
 }
 
-// Cache for chart data
+// Cache for chart data - with versioning to handle schema changes
 const chartDataCache = new Map<string, MonthlyReviewData[]>();
+const CACHE_VERSION = 'v2'; // Increment this when changing data structure
 
 /**
  * Function to create the chart data with cumulative count and average rating
@@ -108,13 +109,13 @@ export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
     const dateField = r.publishedAtDate || (r as any).publishedatdate;
     return dateField;
   });
-  const cacheKey = sampleDates.sort().join('|') + `-${reviews.length}`;
+  const cacheKey = `${CACHE_VERSION}-${sampleDates.sort().join('|')}-${reviews.length}`;
   
-  // Return cached result if available
-  if (chartDataCache.has(cacheKey)) {
-    debugLog("Using cached chart data");
-    return chartDataCache.get(cacheKey)!;
-  }
+  // Skip cache for now to ensure fresh calculation
+  // if (chartDataCache.has(cacheKey)) {
+  //   debugLog("Using cached chart data");
+  //   return chartDataCache.get(cacheKey)!;
+  // }
   
   debugLog(`Generating chart data for ${reviews.length} reviews`);
   
@@ -782,3 +783,6 @@ export const clearCaches = () => {
   businessStatsCache.clear();
   console.log("All utility caches cleared");
 };
+
+// Clear caches on module load to ensure fresh data
+clearCaches();

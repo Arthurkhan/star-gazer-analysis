@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BarChart3, Star, MessageSquare, TrendingUp, Calendar, Activity, Zap, Target, Award } from "lucide-react";
 import { PerformanceMetrics, RatingAnalysis, ResponseAnalytics } from "@/types/analysisSummary";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 interface PerformanceMetricsGridProps {
   performanceMetrics: PerformanceMetrics;
@@ -46,6 +47,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
             <BarChart3 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           </div>
           <span className="font-bold">Performance Metrics</span>
+          <InfoTooltip 
+            content="Key performance indicators showing review volume, ratings, and customer engagement"
+            className="ml-auto"
+          />
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
@@ -60,6 +65,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                   <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <span className="font-bold">Review Volume</span>
+                <InfoTooltip 
+                  tooltipPath="overview.totalReviews"
+                  className="ml-auto"
+                />
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -79,6 +88,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <h4 className="text-sm font-bold flex items-center gap-2">
                   <Zap className="w-4 h-4 text-yellow-500" />
                   Recent Activity
+                  <InfoTooltip 
+                    tooltipPath="overview.recentActivity"
+                    className="ml-auto"
+                  />
                 </h4>
                 <div className="space-y-2">
                   <div className="space-y-1">
@@ -110,6 +123,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-green-500" />
                   <span className="font-bold">Growth</span>
+                  <InfoTooltip 
+                    tooltipPath="comparison.growthRate"
+                    className="ml-1"
+                  />
                 </div>
                 <div className="text-right">
                   <div className={`text-2xl font-black ${
@@ -127,7 +144,13 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
               {/* Seasonal Pattern - Enhanced */}
               <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold">Pattern</span>
+                  <span className="text-sm font-bold flex items-center gap-1">
+                    Pattern
+                    <InfoTooltip 
+                      tooltipPath="temporal.seasonalAnalysis"
+                      className="ml-1"
+                    />
+                  </span>
                   <Badge className={`${seasonalInfo.bg} ${seasonalInfo.color} font-bold`} variant="secondary">
                     {seasonalInfo.icon} {seasonalInfo.label}
                   </Badge>
@@ -148,6 +171,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                   <Star className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <span className="font-bold">Rating Analysis</span>
+                <InfoTooltip 
+                  tooltipPath="ratings.distribution"
+                  className="ml-auto"
+                />
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -163,8 +190,12 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                     </span>
                   </div>
                 </div>
-                <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 mt-2">
+                <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 mt-2 flex items-center justify-center gap-1">
                   Average Rating
+                  <InfoTooltip 
+                    tooltipPath="overview.averageRating"
+                    className="ml-1"
+                  />
                   {Math.abs(ratingAnalysis.trends.change) > 0.1 && (
                     <span className={ratingAnalysis.trends.change > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
                       {` (${ratingAnalysis.trends.change > 0 ? '+' : ''}${ratingAnalysis.trends.change.toFixed(1)})`}
@@ -178,6 +209,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <h4 className="text-sm font-bold flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-indigo-500" />
                   Distribution
+                  <InfoTooltip 
+                    content="Breakdown of reviews by star rating (1-5 stars)"
+                    className="ml-auto"
+                  />
                 </h4>
                 {[5, 4, 3, 2, 1].map(rating => {
                   const data = ratingAnalysis.distribution[rating];
@@ -186,7 +221,13 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                   return (
                     <div key={rating} className="group/rating hover:scale-[1.02] transition-transform">
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold min-w-[40px]">{starEmoji} {rating}★</span>
+                        <span className="text-sm font-bold min-w-[40px] flex items-center gap-1">
+                          {starEmoji} {rating}★
+                          <InfoTooltip 
+                            tooltipPath={`ratings.${rating === 5 ? 'fiveStar' : rating === 4 ? 'fourStar' : rating === 3 ? 'threeStar' : rating === 2 ? 'twoStar' : 'oneStar'}`}
+                            className="ml-1"
+                          />
+                        </span>
                         <div className="flex-1 relative">
                           <Progress 
                             value={data.percentage} 
@@ -210,6 +251,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <h4 className="text-sm font-bold flex items-center gap-2">
                   <Target className="w-4 h-4 text-purple-500" />
                   Quality Benchmarks
+                  <InfoTooltip 
+                    content="Performance categories based on rating distribution"
+                    className="ml-auto"
+                  />
                 </h4>
                 <div className="space-y-2">
                   <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border-2 border-green-200 dark:border-green-800">
@@ -253,6 +298,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                   <MessageSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
                 <span className="font-bold">Response Analytics</span>
+                <InfoTooltip 
+                  content="Analysis of business owner responses to customer reviews"
+                  className="ml-auto"
+                />
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -261,7 +310,13 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <div className="flex items-baseline justify-center gap-3">
                   <span className="text-5xl font-black text-green-700 dark:text-green-300">{responseAnalytics.responseRate.toFixed(1)}%</span>
                 </div>
-                <p className="text-sm font-semibold text-green-600 dark:text-green-400 mt-2">Response Rate</p>
+                <p className="text-sm font-semibold text-green-600 dark:text-green-400 mt-2 flex items-center justify-center gap-1">
+                  Response Rate
+                  <InfoTooltip 
+                    tooltipPath="overview.responseRate"
+                    className="ml-1"
+                  />
+                </p>
                 <Badge 
                   variant={responseAnalytics.responseRate >= 50 ? "default" : "secondary"}
                   className="mt-3 text-sm font-bold px-4 py-1"
@@ -277,6 +332,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <h4 className="text-sm font-bold flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-indigo-500" />
                   Response by Rating
+                  <InfoTooltip 
+                    content="Response rates categorized by review star rating"
+                    className="ml-auto"
+                  />
                 </h4>
                 {[1, 2, 3, 4, 5].reverse().map(rating => {
                   const data = responseAnalytics.responsesByRating[rating];
@@ -310,6 +369,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <h4 className="text-sm font-bold flex items-center gap-2 mb-3">
                   <Zap className="w-4 h-4 text-purple-500" />
                   Effectiveness
+                  <InfoTooltip 
+                    content="How responses impact customer satisfaction and future ratings"
+                    className="ml-auto"
+                  />
                 </h4>
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Impact Score</span>
@@ -344,6 +407,10 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                   <h4 className="text-sm font-bold flex items-center gap-2 mb-2">
                     <Calendar className="w-4 h-4 text-blue-500" />
                     Peak Periods
+                    <InfoTooltip 
+                      content="Time periods with highest review activity"
+                      className="ml-auto"
+                    />
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {performanceMetrics.trends.bestPeriods.slice(0, 3).map((period, idx) => (

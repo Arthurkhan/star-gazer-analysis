@@ -2,7 +2,7 @@ import { Review, MonthlyReviewData } from "@/types/reviews";
 import { EnhancedAnalysis } from "@/types/dataAnalysis";
 
 // Constants
-const DEBUG_LOGS = false; // Set to false to disable all but critical logs
+const DEBUG_LOGS = true; // TEMPORARILY SET TO TRUE FOR DEBUGGING
 
 /**
  * Log utility function that only logs when DEBUG_LOGS is true
@@ -122,6 +122,12 @@ export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
   // Now tracking both count and sum of ratings for average calculation
   const monthMap = new Map<string, { count: number; totalRating: number; reviewsWithRating: number }>();
   
+  // Debug: Check sample of reviews for stars field
+  debugLog("Sample review stars:", reviews.slice(0, 5).map(r => ({ 
+    stars: r.stars, 
+    hasStars: r.stars !== undefined && r.stars !== null 
+  })));
+  
   reviews.forEach(review => {
     // Handle both publishedAtDate and publishedatdate field names
     const dateField = review.publishedAtDate || (review as any).publishedatdate;
@@ -146,6 +152,13 @@ export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
     }
   });
   
+  // Debug: Log month data before conversion
+  debugLog("Month data with ratings:", Array.from(monthMap.entries()).map(([key, data]) => ({
+    month: key,
+    ...data,
+    avgRating: data.reviewsWithRating > 0 ? data.totalRating / data.reviewsWithRating : 0
+  })));
+  
   // Convert to array and sort by date chronologically
   const monthEntries = Array.from(monthMap.entries())
     .sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
@@ -169,6 +182,9 @@ export const getChartData = (reviews: Review[]): MonthlyReviewData[] => {
       avgRating: item.avgRating
     };
   });
+  
+  // Debug: Log final result
+  debugLog("Final chart data with avgRating:", result.slice(0, 5));
   
   // Cache the result
   chartDataCache.set(cacheKey, result);

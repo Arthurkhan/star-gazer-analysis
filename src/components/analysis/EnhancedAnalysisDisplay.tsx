@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, LineChart, PieChart, Calendar, Lightbulb } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { BarChart, LineChart, PieChart, Calendar, Lightbulb, Info } from 'lucide-react';
 import { 
   BarChart as RechartsBarChart,
   Bar,
@@ -12,7 +13,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
   PieChart as RechartsPieChart,
@@ -48,6 +49,20 @@ interface EnhancedAnalysisDisplayProps {
   fullView?: boolean; // New prop to enable vertical full-width layout
 }
 
+// Helper component for info tooltips
+const InfoTooltip: React.FC<{ content: string }> = ({ content }) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs">
+        <p className="text-sm">{content}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
+
 export function EnhancedAnalysisDisplay({
   temporalPatterns,
   historicalTrends,
@@ -72,10 +87,13 @@ export function EnhancedAnalysisDisplay({
   const InsightsSection = () => (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <Lightbulb className="w-5 h-5 mr-2" />
-          Executive Summary
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center">
+            <Lightbulb className="w-5 h-5 mr-2" />
+            Executive Summary
+          </CardTitle>
+          <InfoTooltip content="AI-generated insights that highlight key patterns and trends in your review data. These insights help you quickly understand what customers are saying and identify areas for improvement." />
+        </div>
         <CardDescription>
           AI-generated insights based on review data analysis
         </CardDescription>
@@ -102,10 +120,13 @@ export function EnhancedAnalysisDisplay({
   const PerformanceSection = () => (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <LineChart className="w-5 h-5 mr-2" />
-          Performance Metrics
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center">
+            <LineChart className="w-5 h-5 mr-2" />
+            Performance Metrics
+          </CardTitle>
+          <InfoTooltip content="Shows how your business performance changes over time. The left axis shows review volume (engagement), while the right axis shows average ratings (satisfaction). Look for correlations between volume and ratings." />
+        </div>
         <CardDescription>
           Changes in ratings and review volume over time
         </CardDescription>
@@ -119,9 +140,9 @@ export function EnhancedAnalysisDisplay({
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="period" />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" domain={[0, 5]} />
-              <Tooltip content={<CustomBarLineTooltip />} />
+              <YAxis yAxisId="left" label={{ value: 'Review Count', angle: -90, position: 'insideLeft' }} />
+              <YAxis yAxisId="right" orientation="right" domain={[0, 5]} label={{ value: 'Average Rating', angle: 90, position: 'insideRight' }} />
+              <RechartsTooltip content={<CustomBarLineTooltip />} />
               <Legend />
               <Line 
                 yAxisId="left"
@@ -149,10 +170,13 @@ export function EnhancedAnalysisDisplay({
   const SentimentSection = () => (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <Calendar className="w-5 h-5 mr-2" />
-          Sentiment Analysis
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center">
+            <Calendar className="w-5 h-5 mr-2" />
+            Temporal Patterns
+          </CardTitle>
+          <InfoTooltip content="Analyzes when customers leave reviews. Day patterns help with staffing decisions, while time patterns show when customers are most engaged. Higher review counts often indicate busier periods." />
+        </div>
         <CardDescription>
           Distribution of reviews across time periods
         </CardDescription>
@@ -161,7 +185,10 @@ export function EnhancedAnalysisDisplay({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Day of Week Chart */}
           <div>
-            <h4 className="text-md font-medium mb-4">Reviews by Day of Week</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-md font-medium">Reviews by Day of Week</h4>
+              <InfoTooltip content="Shows which days customers are most likely to leave reviews. This often correlates with your busiest days and can help identify weekly patterns in customer behavior." />
+            </div>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsBarChart
@@ -171,7 +198,7 @@ export function EnhancedAnalysisDisplay({
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="day" />
                   <YAxis />
-                  <Tooltip content={<CustomBarLineTooltip />} />
+                  <RechartsTooltip content={<CustomBarLineTooltip />} />
                   <Legend />
                   <Bar dataKey="count" name="Reviews" fill="#8884d8" />
                 </RechartsBarChart>
@@ -181,7 +208,10 @@ export function EnhancedAnalysisDisplay({
           
           {/* Time of Day Chart */}
           <div>
-            <h4 className="text-md font-medium mb-4">Reviews by Time of Day</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-md font-medium">Reviews by Time of Day</h4>
+              <InfoTooltip content="Shows when during the day customers post reviews. Evening spikes often indicate when customers reflect on their experience. This can help optimize response times and service hours." />
+            </div>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsBarChart
@@ -191,7 +221,7 @@ export function EnhancedAnalysisDisplay({
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="time" />
                   <YAxis />
-                  <Tooltip content={<CustomBarLineTooltip />} />
+                  <RechartsTooltip content={<CustomBarLineTooltip />} />
                   <Legend />
                   <Bar dataKey="count" name="Reviews" fill="#00C49F" />
                 </RechartsBarChart>
@@ -207,10 +237,13 @@ export function EnhancedAnalysisDisplay({
   const ThematicSection = () => (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <PieChart className="w-5 h-5 mr-2" />
-          Thematic Analysis
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center">
+            <PieChart className="w-5 h-5 mr-2" />
+            Thematic Analysis
+          </CardTitle>
+          <InfoTooltip content="AI-powered analysis that groups reviews by common themes. Shows what aspects of your business customers talk about most. Keywords are extracted from actual review text to give context to each theme." />
+        </div>
         <CardDescription>
           Common themes and their associated keywords
         </CardDescription>
@@ -219,7 +252,10 @@ export function EnhancedAnalysisDisplay({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Clusters Chart */}
           <div className="lg:col-span-5">
-            <h4 className="text-md font-medium mb-4">Topic Distribution</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-md font-medium">Topic Distribution</h4>
+              <InfoTooltip content="Visual breakdown of review themes by percentage. Larger slices indicate topics mentioned more frequently. Use this to understand what matters most to your customers." />
+            </div>
             <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart>
@@ -237,7 +273,7 @@ export function EnhancedAnalysisDisplay({
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip content={<CustomPieTooltip />} />
+                  <RechartsTooltip content={<CustomPieTooltip />} />
                   <Legend />
                 </RechartsPieChart>
               </ResponsiveContainer>
@@ -246,7 +282,10 @@ export function EnhancedAnalysisDisplay({
           
           {/* Clusters Details */}
           <div className="lg:col-span-7">
-            <h4 className="text-md font-medium mb-4">Theme Details</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-md font-medium">Theme Details</h4>
+              <InfoTooltip content="Detailed breakdown of each theme showing sentiment (positive/negative/neutral) and related keywords. Keywords help understand what specific aspects customers mention within each theme." />
+            </div>
             <div className="space-y-6">
               {reviewClusters.map((cluster, index) => (
                 <div key={index} className="space-y-2">
@@ -288,10 +327,13 @@ export function EnhancedAnalysisDisplay({
   const OperationalSection = () => (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <BarChart className="w-5 h-5 mr-2" />
-          Operational Insights
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center">
+            <BarChart className="w-5 h-5 mr-2" />
+            Operational Insights
+          </CardTitle>
+          <InfoTooltip content="Seasonal patterns help identify trends throughout the year. Use this to plan for busy seasons, adjust staffing, or launch seasonal promotions. Rating variations can indicate service quality during different periods." />
+        </div>
         <CardDescription>
           Seasonal patterns and operational trends
         </CardDescription>
@@ -300,7 +342,10 @@ export function EnhancedAnalysisDisplay({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Seasonal Review Count */}
           <div>
-            <h4 className="text-md font-medium mb-4">Seasonal Review Volume</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-md font-medium">Seasonal Review Volume</h4>
+              <InfoTooltip content="Shows how review volume changes by season. Higher volumes often indicate busier periods. Use this to anticipate seasonal demand and prepare accordingly." />
+            </div>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsBarChart
@@ -310,7 +355,7 @@ export function EnhancedAnalysisDisplay({
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="season" />
                   <YAxis />
-                  <Tooltip content={<CustomBarLineTooltip />} />
+                  <RechartsTooltip content={<CustomBarLineTooltip />} />
                   <Legend />
                   <Bar dataKey="count" name="Reviews" fill="#FFBB28" />
                 </RechartsBarChart>
@@ -320,7 +365,10 @@ export function EnhancedAnalysisDisplay({
           
           {/* Seasonal Rating */}
           <div>
-            <h4 className="text-md font-medium mb-4">Seasonal Rating Trends</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-md font-medium">Seasonal Rating Trends</h4>
+              <InfoTooltip content="Shows how customer satisfaction varies by season. Lower ratings during busy seasons might indicate service strain. Use this to maintain quality during peak periods." />
+            </div>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsBarChart
@@ -330,7 +378,7 @@ export function EnhancedAnalysisDisplay({
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="season" />
                   <YAxis domain={[0, 5]} />
-                  <Tooltip content={<CustomBarLineTooltip />} />
+                  <RechartsTooltip content={<CustomBarLineTooltip />} />
                   <Legend />
                   <Bar dataKey="avgRating" name="Average Rating" fill="#FF8042" />
                 </RechartsBarChart>
@@ -378,10 +426,13 @@ export function EnhancedAnalysisDisplay({
             {/* Day of Week Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  Reviews by Day of Week
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Reviews by Day of Week
+                  </CardTitle>
+                  <InfoTooltip content="Shows which days customers are most likely to leave reviews. This often correlates with your busiest days and can help identify weekly patterns in customer behavior." />
+                </div>
                 <CardDescription>
                   Distribution of reviews across days of the week
                 </CardDescription>
@@ -396,7 +447,7 @@ export function EnhancedAnalysisDisplay({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="day" />
                       <YAxis />
-                      <Tooltip content={<CustomBarLineTooltip />} />
+                      <RechartsTooltip content={<CustomBarLineTooltip />} />
                       <Legend />
                       <Bar dataKey="count" name="Reviews" fill="#8884d8" />
                     </RechartsBarChart>
@@ -408,10 +459,13 @@ export function EnhancedAnalysisDisplay({
             {/* Time of Day Chart */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BarChart className="w-5 h-5 mr-2" />
-                  Reviews by Time of Day
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <BarChart className="w-5 h-5 mr-2" />
+                    Reviews by Time of Day
+                  </CardTitle>
+                  <InfoTooltip content="Shows when during the day customers post reviews. Evening spikes often indicate when customers reflect on their experience. This can help optimize response times and service hours." />
+                </div>
                 <CardDescription>
                   Distribution of reviews across different times of day
                 </CardDescription>
@@ -426,7 +480,7 @@ export function EnhancedAnalysisDisplay({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="time" />
                       <YAxis />
-                      <Tooltip content={<CustomBarLineTooltip />} />
+                      <RechartsTooltip content={<CustomBarLineTooltip />} />
                       <Legend />
                       <Bar dataKey="count" name="Reviews" fill="#00C49F" />
                     </RechartsBarChart>
@@ -441,10 +495,13 @@ export function EnhancedAnalysisDisplay({
         <TabsContent value="trends" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <LineChart className="w-5 h-5 mr-2" />
-                Historical Trends
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center">
+                  <LineChart className="w-5 h-5 mr-2" />
+                  Historical Trends
+                </CardTitle>
+                <InfoTooltip content="Tracks performance over different time periods. The dual-axis design lets you see if increased engagement (more reviews) correlates with satisfaction (ratings). Look for patterns to understand your business trajectory." />
+              </div>
               <CardDescription>
                 Changes in ratings and review volume over time
               </CardDescription>
@@ -458,9 +515,9 @@ export function EnhancedAnalysisDisplay({
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="period" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" domain={[0, 5]} />
-                    <Tooltip content={<CustomBarLineTooltip />} />
+                    <YAxis yAxisId="left" label={{ value: 'Review Count', angle: -90, position: 'insideLeft' }} />
+                    <YAxis yAxisId="right" orientation="right" domain={[0, 5]} label={{ value: 'Average Rating', angle: 90, position: 'insideRight' }} />
+                    <RechartsTooltip content={<CustomBarLineTooltip />} />
                     <Legend />
                     <Line 
                       yAxisId="left"
@@ -490,10 +547,13 @@ export function EnhancedAnalysisDisplay({
             {/* Clusters Chart */}
             <Card className="lg:col-span-5">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <PieChart className="w-5 h-5 mr-2" />
-                  Cluster Distribution
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <PieChart className="w-5 h-5 mr-2" />
+                    Cluster Distribution
+                  </CardTitle>
+                  <InfoTooltip content="Visual breakdown of review themes by percentage. Larger slices indicate topics mentioned more frequently. Use this to understand what matters most to your customers." />
+                </div>
                 <CardDescription>
                   Topics mentioned in reviews by frequency
                 </CardDescription>
@@ -516,7 +576,7 @@ export function EnhancedAnalysisDisplay({
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip content={<CustomPieTooltip />} />
+                      <RechartsTooltip content={<CustomPieTooltip />} />
                       <Legend />
                     </RechartsPieChart>
                   </ResponsiveContainer>
@@ -527,7 +587,10 @@ export function EnhancedAnalysisDisplay({
             {/* Clusters Details */}
             <Card className="lg:col-span-7">
               <CardHeader>
-                <CardTitle>Cluster Details</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Cluster Details</CardTitle>
+                  <InfoTooltip content="Each theme shows its overall sentiment and keywords extracted from reviews. Keywords help understand specific aspects customers mention. Use this to identify strengths to maintain and issues to address." />
+                </div>
                 <CardDescription>
                   Common themes and their associated keywords
                 </CardDescription>
@@ -538,13 +601,26 @@ export function EnhancedAnalysisDisplay({
                     <div key={index} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-medium">{cluster.name}</h3>
-                        <Badge variant={
-                          cluster.sentiment === 'positive' ? 'default' : 
-                          cluster.sentiment === 'negative' ? 'destructive' : 
-                          'secondary'
-                        }>
-                          {cluster.sentiment}
-                        </Badge>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant={
+                                cluster.sentiment === 'positive' ? 'default' : 
+                                cluster.sentiment === 'negative' ? 'destructive' : 
+                                'secondary'
+                              } className="cursor-help">
+                                {cluster.sentiment}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">
+                                {cluster.sentiment === 'positive' ? 'Customers are happy about this aspect' :
+                                 cluster.sentiment === 'negative' ? 'This area needs improvement' :
+                                 'Mixed opinions on this topic'}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                       <p className="text-sm text-muted-foreground">
                         Mentioned in {cluster.count} reviews
@@ -575,10 +651,13 @@ export function EnhancedAnalysisDisplay({
             {/* Seasonal Review Count */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BarChart className="w-5 h-5 mr-2" />
-                  Seasonal Review Volume
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <BarChart className="w-5 h-5 mr-2" />
+                    Seasonal Review Volume
+                  </CardTitle>
+                  <InfoTooltip content="Shows how review volume changes by season. Higher volumes often indicate busier periods. Use this to anticipate seasonal demand and prepare accordingly." />
+                </div>
                 <CardDescription>
                   Number of reviews by season
                 </CardDescription>
@@ -593,7 +672,7 @@ export function EnhancedAnalysisDisplay({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="season" />
                       <YAxis />
-                      <Tooltip content={<CustomBarLineTooltip />} />
+                      <RechartsTooltip content={<CustomBarLineTooltip />} />
                       <Legend />
                       <Bar dataKey="count" name="Reviews" fill="#FFBB28" />
                     </RechartsBarChart>
@@ -605,10 +684,13 @@ export function EnhancedAnalysisDisplay({
             {/* Seasonal Rating */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <LineChart className="w-5 h-5 mr-2" />
-                  Seasonal Rating Trends
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <LineChart className="w-5 h-5 mr-2" />
+                    Seasonal Rating Trends
+                  </CardTitle>
+                  <InfoTooltip content="Shows how customer satisfaction varies by season. Lower ratings during busy seasons might indicate service strain. Use this to maintain quality during peak periods." />
+                </div>
                 <CardDescription>
                   Average rating by season
                 </CardDescription>
@@ -623,7 +705,7 @@ export function EnhancedAnalysisDisplay({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="season" />
                       <YAxis domain={[0, 5]} />
-                      <Tooltip content={<CustomBarLineTooltip />} />
+                      <RechartsTooltip content={<CustomBarLineTooltip />} />
                       <Legend />
                       <Bar dataKey="avgRating" name="Average Rating" fill="#FF8042" />
                     </RechartsBarChart>

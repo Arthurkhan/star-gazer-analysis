@@ -80,8 +80,8 @@ export class RecommendationService {
       competitivePositioning: edgeResponse.competitivePositioning,
       futureProjections: edgeResponse.futureProjections,
       
-      // Also transform for backward compatibility with other components
-      patternInsights: edgeResponse.growthStrategies.slice(0, 3).map((strategy, index) => ({
+      // Also transform for backward compatibility with other components - Now taking all 5 growth strategies
+      patternInsights: edgeResponse.growthStrategies.map((strategy, index) => ({
         id: `pattern-${index}`,
         pattern: strategy.title,
         frequency: 1,
@@ -161,11 +161,11 @@ export class RecommendationService {
         }))
       ],
       
-      // Create action plan
+      // Create action plan - Now taking all 5 urgent actions
       actionPlan: {
         title: 'Comprehensive Business Improvement Plan',
         description: 'A strategic roadmap based on AI analysis of customer feedback',
-        steps: edgeResponse.urgentActions.slice(0, 3).map((action) => ({
+        steps: edgeResponse.urgentActions.map((action) => ({
           title: action.title,
           description: action.description,
           status: 'pending' as const

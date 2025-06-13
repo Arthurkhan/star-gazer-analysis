@@ -41,6 +41,9 @@ import {
   LoadingFallback
 } from "@/utils/lazyLoading";
 
+// Import InfoTooltip component
+import { InfoTooltip } from "@/components/ui/info-tooltip";
+
 // Core analysis components (always loaded)
 import { ExecutiveSummaryCard } from "./ExecutiveSummaryCard";
 import { PerformanceMetricsGrid } from "./PerformanceMetricsGrid";
@@ -500,6 +503,10 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span>Analysis Summary</span>
+              <InfoTooltip 
+                content="Comprehensive analysis of all customer reviews, including sentiment, ratings, themes, and actionable insights"
+                className="ml-1"
+              />
               <span className="text-sm text-muted-foreground">
                 ({analysisData.dataSource.totalReviews} reviews analyzed)
               </span>
@@ -507,18 +514,30 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
                 <Badge variant="secondary" className="ml-2">
                   <Filter className="h-3 w-3 mr-1" />
                   Filtered
+                  <InfoTooltip 
+                    content="Results are filtered. Click 'Filters' to modify or clear filters"
+                    className="ml-1"
+                  />
                 </Badge>
               )}
               {autoRefresh && (
                 <Badge variant="secondary" className="ml-2">
                   <RefreshCw className="h-3 w-3 mr-1" />
                   Auto-refresh
+                  <InfoTooltip 
+                    content="Analysis automatically updates when new reviews are received"
+                    className="ml-1"
+                  />
                 </Badge>
               )}
             </div>
             <div className={`flex items-center gap-2 ${healthColor}`}>
               <HealthIcon className="w-5 h-5" />
               <span className="font-semibold">Health Score: {healthScore}%</span>
+              <InfoTooltip 
+                tooltipPath="metrics.netPromoterScore"
+                className="ml-1"
+              />
             </div>
           </CardTitle>
           
@@ -530,6 +549,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
                 size="sm"
                 onClick={handleRefresh}
                 disabled={refreshing}
+                title="Refresh analysis with latest data"
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
@@ -540,6 +560,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
               variant="outline"
               size="sm"
               onClick={() => setShowAdvancedFilters(true)}
+              title="Filter reviews by date, rating, sentiment, and more"
             >
               <Filter className="h-4 w-4 mr-1" />
               Filters
@@ -549,6 +570,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
               variant="outline"
               size="sm"
               onClick={() => setShowComparativeAnalysis(true)}
+              title="Compare performance across different time periods"
             >
               <GitCompare className="h-4 w-4 mr-1" />
               Compare
@@ -558,6 +580,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
               variant="outline"
               size="sm"
               onClick={() => setShowAlertSystem(true)}
+              title="Set up automated alerts for performance changes"
             >
               <Shield className="h-4 w-4 mr-1" />
               Alerts
@@ -568,6 +591,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
                 variant="outline"
                 size="sm"
                 onClick={() => setShowExportManager(true)}
+                title="Export analysis data in various formats"
               >
                 <Download className="h-4 w-4 mr-1" />
                 Export
@@ -578,6 +602,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
               variant="outline"
               size="sm"
               onClick={() => setShowInteractiveCharts(true)}
+              title="View detailed interactive charts and visualizations"
             >
               <BarChart3 className="h-4 w-4 mr-1" />
               Charts
@@ -588,6 +613,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
                 variant="outline"
                 size="sm"
                 onClick={() => setShowCustomizer(true)}
+                title="Customize dashboard layout and appearance"
               >
                 <Settings className="h-4 w-4 mr-1" />
                 Customize
@@ -598,6 +624,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
               variant="outline"
               size="sm"
               onClick={() => handleViewConfigChange('layout', viewConfig.layout === 'grid' ? 'tabs' : 'grid')}
+              title={viewConfig.layout === 'grid' ? 'Switch to tabbed view' : 'Switch to grid view'}
             >
               {viewConfig.layout === 'grid' ? <Grid className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
             </Button>
@@ -621,6 +648,10 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
             {lastRefresh && onRefresh && (
               <span> • Last refresh: {lastRefresh.toLocaleTimeString()}</span>
             )}
+            <InfoTooltip 
+              tooltipPath="technical.dataFreshness"
+              className="ml-2"
+            />
           </div>
         </CardContent>
       </Card>
@@ -653,7 +684,13 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
           <div className="container mx-auto p-6 h-full overflow-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Comparative Analysis</h2>
+              <h2 className="text-2xl font-bold">
+                Comparative Analysis
+                <InfoTooltip 
+                  tooltipPath="comparison.periodSelector"
+                  className="ml-2"
+                />
+              </h2>
               <Button variant="outline" onClick={() => setShowComparativeAnalysis(false)}>
                 <X className="h-4 w-4" />
               </Button>
@@ -675,7 +712,13 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
           <div className="container mx-auto p-6 h-full overflow-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Performance Alert System</h2>
+              <h2 className="text-2xl font-bold">
+                Performance Alert System
+                <InfoTooltip 
+                  tooltipPath="notifications.alertThreshold"
+                  className="ml-2"
+                />
+              </h2>
               <Button variant="outline" onClick={() => setShowAlertSystem(false)}>
                 <X className="h-4 w-4" />
               </Button>
@@ -720,7 +763,13 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
           <div className="container mx-auto p-6 h-full overflow-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Export Manager</h2>
+              <h2 className="text-2xl font-bold">
+                Export Manager
+                <InfoTooltip 
+                  tooltipPath="export.exportButton"
+                  className="ml-2"
+                />
+              </h2>
               <Button variant="outline" onClick={() => setShowExportManager(false)}>
                 <X className="h-4 w-4" />
               </Button>

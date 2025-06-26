@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  AlertTriangle, 
-  AlertCircle, 
-  Info, 
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  AlertTriangle,
+  AlertCircle,
+  Info,
   CheckCircle,
   Settings,
   Bell,
@@ -24,22 +24,24 @@ import {
   Clock,
   X,
   Eye,
-  EyeOff
-} from 'lucide-react';
-import { Review } from '@/types/reviews';
-import { BusinessType } from '@/types/businessTypes';
-import { 
-  analysisNotificationService,
+  EyeOff,
+} from 'lucide-react'
+import type { Review } from '@/types/reviews'
+import type { BusinessType } from '@/types/businessTypes'
+import type {
   AnalysisAlert,
-  NotificationRule,
+  NotificationRule} from '@/services/analysisNotificationService'
+import {
+  analysisNotificationService,
   NotificationConditions,
-  NotificationAction
-} from '@/services/analysisNotificationService';
-import { 
-  PerformanceThresholds,
+  NotificationAction,
+} from '@/services/analysisNotificationService'
+import type {
+  PerformanceThresholds} from '@/utils/comparisonUtils'
+import {
   DEFAULT_THRESHOLDS,
-  ThresholdAlert
-} from '@/utils/comparisonUtils';
+  ThresholdAlert,
+} from '@/utils/comparisonUtils'
 
 interface AlertSystemProps {
   reviews: Review[];
@@ -52,106 +54,106 @@ export const AlertSystem: React.FC<AlertSystemProps> = ({
   reviews,
   businessName,
   businessType,
-  onAlertClick
+  onAlertClick,
 }) => {
-  const [alerts, setAlerts] = useState<AnalysisAlert[]>([]);
-  const [thresholds, setThresholds] = useState<PerformanceThresholds>(DEFAULT_THRESHOLDS);
-  const [notificationRules, setNotificationRules] = useState<NotificationRule[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showAcknowledged, setShowAcknowledged] = useState(false);
-  const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
-  const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [alerts, setAlerts] = useState<AnalysisAlert[]>([])
+  const [thresholds, setThresholds] = useState<PerformanceThresholds>(DEFAULT_THRESHOLDS)
+  const [notificationRules, setNotificationRules] = useState<NotificationRule[]>([])
+  const [loading, setLoading] = useState(false)
+  const [showAcknowledged, setShowAcknowledged] = useState(false)
+  const [selectedSeverity, setSelectedSeverity] = useState<string>('all')
+  const [alertsEnabled, setAlertsEnabled] = useState(true)
 
   useEffect(() => {
-    loadAlerts();
-    loadNotificationRules();
-  }, [reviews, businessName]);
+    loadAlerts()
+    loadNotificationRules()
+  }, [reviews, businessName])
 
   const loadAlerts = async () => {
     try {
-      setLoading(true);
+      setLoading(true)
       const newAlerts = await analysisNotificationService.analyzeAndNotify(
         reviews,
         businessName,
-        businessType
-      );
-      
-      const historyAlerts = analysisNotificationService.getAlertHistory(businessName);
-      setAlerts(historyAlerts);
+        businessType,
+      )
+
+      const historyAlerts = analysisNotificationService.getAlertHistory(businessName)
+      setAlerts(historyAlerts)
     } catch (error) {
-      console.error('Error loading alerts:', error);
+      console.error('Error loading alerts:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const loadNotificationRules = async () => {
     try {
-      const rules = await analysisNotificationService.getNotificationRules(businessName);
-      setNotificationRules(rules);
+      const rules = await analysisNotificationService.getNotificationRules(businessName)
+      setNotificationRules(rules)
     } catch (error) {
-      console.error('Error loading notification rules:', error);
+      console.error('Error loading notification rules:', error)
     }
-  };
+  }
 
   const handleAcknowledgeAlert = (alertId: string) => {
-    const success = analysisNotificationService.acknowledgeAlert(businessName, alertId);
+    const success = analysisNotificationService.acknowledgeAlert(businessName, alertId)
     if (success) {
-      setAlerts(prev => prev.map(alert => 
-        alert.id === alertId ? { ...alert, acknowledged: true } : alert
-      ));
+      setAlerts(prev => prev.map(alert =>
+        alert.id === alertId ? { ...alert, acknowledged: true } : alert,
+      ))
     }
-  };
+  }
 
   const handleThresholdChange = (category: keyof PerformanceThresholds, level: 'critical' | 'warning', value: number) => {
     setThresholds(prev => ({
       ...prev,
       [category]: {
         ...prev[category],
-        [level]: value
-      }
-    }));
-  };
+        [level]: value,
+      },
+    }))
+  }
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+        return <AlertTriangle className="w-4 h-4 text-red-500" />
       case 'high':
-        return <AlertCircle className="w-4 h-4 text-orange-500" />;
+        return <AlertCircle className="w-4 h-4 text-orange-500" />
       case 'medium':
-        return <Info className="w-4 h-4 text-yellow-500" />;
+        return <Info className="w-4 h-4 text-yellow-500" />
       case 'low':
-        return <CheckCircle className="w-4 h-4 text-blue-500" />;
+        return <CheckCircle className="w-4 h-4 text-blue-500" />
       default:
-        return <Info className="w-4 h-4 text-gray-500" />;
+        return <Info className="w-4 h-4 text-gray-500" />
     }
-  };
+  }
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return 'bg-red-50 border-red-200 text-red-800';
+        return 'bg-red-50 border-red-200 text-red-800'
       case 'high':
-        return 'bg-orange-50 border-orange-200 text-orange-800';
+        return 'bg-orange-50 border-orange-200 text-orange-800'
       case 'medium':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800';
+        return 'bg-yellow-50 border-yellow-200 text-yellow-800'
       case 'low':
-        return 'bg-blue-50 border-blue-200 text-blue-800';
+        return 'bg-blue-50 border-blue-200 text-blue-800'
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-800';
+        return 'bg-gray-50 border-gray-200 text-gray-800'
     }
-  };
+  }
 
   const filteredAlerts = alerts.filter(alert => {
-    if (!showAcknowledged && alert.acknowledged) return false;
-    if (selectedSeverity !== 'all' && alert.severity !== selectedSeverity) return false;
-    return true;
-  });
+    if (!showAcknowledged && alert.acknowledged) return false
+    if (selectedSeverity !== 'all' && alert.severity !== selectedSeverity) return false
+    return true
+  })
 
-  const activeAlerts = alerts.filter(alert => !alert.acknowledged);
-  const criticalAlerts = activeAlerts.filter(alert => alert.severity === 'critical');
-  const highAlerts = activeAlerts.filter(alert => alert.severity === 'high');
+  const activeAlerts = alerts.filter(alert => !alert.acknowledged)
+  const criticalAlerts = activeAlerts.filter(alert => alert.severity === 'critical')
+  const highAlerts = activeAlerts.filter(alert => alert.severity === 'high')
 
   return (
     <Card className="w-full">
@@ -176,7 +178,7 @@ export const AlertSystem: React.FC<AlertSystemProps> = ({
                 <DialogHeader>
                   <DialogTitle>Alert System Configuration</DialogTitle>
                 </DialogHeader>
-                <AlertConfigurationPanel 
+                <AlertConfigurationPanel
                   thresholds={thresholds}
                   onThresholdChange={handleThresholdChange}
                   notificationRules={notificationRules}
@@ -280,8 +282,8 @@ export const AlertSystem: React.FC<AlertSystemProps> = ({
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
 interface AlertCardProps {
   alert: AnalysisAlert;
@@ -290,7 +292,7 @@ interface AlertCardProps {
 }
 
 const AlertCard: React.FC<AlertCardProps> = ({ alert, onAcknowledge, onClick }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false)
 
   return (
     <Alert className={`${getSeverityColor(alert.severity)} cursor-pointer transition-all hover:shadow-md`}>
@@ -323,8 +325,8 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onAcknowledge, onClick }) 
                   variant="ghost"
                   size="sm"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    setExpanded(!expanded);
+                    e.stopPropagation()
+                    setExpanded(!expanded)
                   }}
                   className="h-auto p-0 text-xs"
                 >
@@ -346,8 +348,8 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onAcknowledge, onClick }) 
           <div className="flex items-center space-x-2 ml-4">
             <Button
               onClick={(e) => {
-                e.stopPropagation();
-                onAcknowledge();
+                e.stopPropagation()
+                onAcknowledge()
               }}
               variant="outline"
               size="sm"
@@ -359,8 +361,8 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert, onAcknowledge, onClick }) 
         )}
       </div>
     </Alert>
-  );
-};
+  )
+}
 
 interface AlertConfigurationPanelProps {
   thresholds: PerformanceThresholds;
@@ -373,7 +375,7 @@ const AlertConfigurationPanel: React.FC<AlertConfigurationPanelProps> = ({
   thresholds,
   onThresholdChange,
   notificationRules,
-  businessName
+  businessName,
 }) => {
   return (
     <Tabs defaultValue="thresholds" className="w-full">
@@ -382,7 +384,7 @@ const AlertConfigurationPanel: React.FC<AlertConfigurationPanelProps> = ({
         <TabsTrigger value="notifications">Notifications</TabsTrigger>
         <TabsTrigger value="rules">Rules</TabsTrigger>
       </TabsList>
-      
+
       <TabsContent value="thresholds" className="space-y-6">
         <div>
           <h3 className="text-lg font-medium mb-4">Performance Thresholds</h3>
@@ -507,7 +509,7 @@ const AlertConfigurationPanel: React.FC<AlertConfigurationPanelProps> = ({
           </div>
         </div>
       </TabsContent>
-      
+
       <TabsContent value="notifications" className="space-y-6">
         <div>
           <h3 className="text-lg font-medium mb-4">Notification Settings</h3>
@@ -539,7 +541,7 @@ const AlertConfigurationPanel: React.FC<AlertConfigurationPanelProps> = ({
           </div>
         </div>
       </TabsContent>
-      
+
       <TabsContent value="rules" className="space-y-6">
         <div>
           <h3 className="text-lg font-medium mb-4">Notification Rules</h3>
@@ -567,22 +569,22 @@ const AlertConfigurationPanel: React.FC<AlertConfigurationPanelProps> = ({
         </div>
       </TabsContent>
     </Tabs>
-  );
-};
+  )
+}
 
 // Helper function for alert card styling
 function getSeverityColor(severity: string): string {
   switch (severity) {
     case 'critical':
-      return 'bg-red-50 border-red-200 text-red-800';
+      return 'bg-red-50 border-red-200 text-red-800'
     case 'high':
-      return 'bg-orange-50 border-orange-200 text-orange-800';
+      return 'bg-orange-50 border-orange-200 text-orange-800'
     case 'medium':
-      return 'bg-yellow-50 border-yellow-200 text-yellow-800';
+      return 'bg-yellow-50 border-yellow-200 text-yellow-800'
     case 'low':
-      return 'bg-blue-50 border-blue-200 text-blue-800';
+      return 'bg-blue-50 border-blue-200 text-blue-800'
     default:
-      return 'bg-gray-50 border-gray-200 text-gray-800';
+      return 'bg-gray-50 border-gray-200 text-gray-800'
   }
 }
 
@@ -590,16 +592,16 @@ function getSeverityColor(severity: string): string {
 function getSeverityIcon(severity: string): React.ReactNode {
   switch (severity) {
     case 'critical':
-      return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      return <AlertTriangle className="w-4 h-4 text-red-500" />
     case 'high':
-      return <AlertCircle className="w-4 h-4 text-orange-500" />;
+      return <AlertCircle className="w-4 h-4 text-orange-500" />
     case 'medium':
-      return <Info className="w-4 h-4 text-yellow-500" />;
+      return <Info className="w-4 h-4 text-yellow-500" />
     case 'low':
-      return <CheckCircle className="w-4 h-4 text-blue-500" />;
+      return <CheckCircle className="w-4 h-4 text-blue-500" />
     default:
-      return <Info className="w-4 h-4 text-gray-500" />;
+      return <Info className="w-4 h-4 text-gray-500" />
   }
 }
 
-export default AlertSystem;
+export default AlertSystem

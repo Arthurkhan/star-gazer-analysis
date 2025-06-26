@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { logger, createLogger, LogLevel } from '../logger'
+import type { LogLevel } from '../logger'
+import { logger, createLogger } from '../logger'
 
 // Mock console methods
 const mockConsole = {
@@ -29,7 +30,7 @@ describe('logger', () => {
       logger.setLevel('DEBUG')
       logger.debug('Debug message')
       expect(mockConsole.debug).toHaveBeenCalledWith(
-        expect.stringContaining('Debug message')
+        expect.stringContaining('Debug message'),
       )
     })
 
@@ -37,7 +38,7 @@ describe('logger', () => {
       logger.setLevel('INFO')
       logger.info('Info message')
       expect(mockConsole.info).toHaveBeenCalledWith(
-        expect.stringContaining('Info message')
+        expect.stringContaining('Info message'),
       )
     })
 
@@ -45,7 +46,7 @@ describe('logger', () => {
       logger.setLevel('WARN')
       logger.warn('Warning message')
       expect(mockConsole.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Warning message')
+        expect.stringContaining('Warning message'),
       )
     })
 
@@ -53,13 +54,13 @@ describe('logger', () => {
       logger.setLevel('ERROR')
       logger.error('Error message')
       expect(mockConsole.error).toHaveBeenCalledWith(
-        expect.stringContaining('Error message')
+        expect.stringContaining('Error message'),
       )
     })
 
     it('should respect log level hierarchy', () => {
       logger.setLevel('WARN')
-      
+
       logger.debug('Debug message')
       logger.info('Info message')
       logger.warn('Warning message')
@@ -76,16 +77,16 @@ describe('logger', () => {
     it('should include context in log messages when set', () => {
       logger.setContext('TestComponent')
       logger.info('Test message')
-      
+
       expect(mockConsole.info).toHaveBeenCalledWith(
-        expect.stringContaining('[TestComponent]')
+        expect.stringContaining('[TestComponent]'),
       )
     })
 
     it('should not include context when not set', () => {
       logger.setContext('')
       logger.info('Test message')
-      
+
       const logMessage = mockConsole.info.mock.calls[0][0]
       expect(logMessage).toContain('Test message')
       expect(logMessage).not.toContain('[TestComponent]')
@@ -96,7 +97,7 @@ describe('logger', () => {
     it('should start and end performance timing', () => {
       logger.time('operation')
       expect(mockConsole.time).toHaveBeenCalledWith('operation')
-      
+
       logger.timeEnd('operation')
       expect(mockConsole.timeEnd).toHaveBeenCalledWith('operation')
     })
@@ -106,7 +107,7 @@ describe('logger', () => {
     it('should create log groups', () => {
       logger.group('Test Group')
       expect(mockConsole.group).toHaveBeenCalledWith('Test Group')
-      
+
       logger.groupEnd()
       expect(mockConsole.groupEnd).toHaveBeenCalled()
     })
@@ -116,10 +117,10 @@ describe('logger', () => {
     it('should log error objects with stack trace', () => {
       const error = new Error('Test error')
       logger.error('Error occurred', error)
-      
+
       expect(mockConsole.error).toHaveBeenCalledWith(
         expect.stringContaining('Error occurred'),
-        error
+        error,
       )
     })
   })
@@ -128,16 +129,16 @@ describe('logger', () => {
     it('should suppress debug and info logs in production', () => {
       // Mock production environment
       vi.stubEnv('NODE_ENV', 'production')
-      
+
       const prodLogger = createLogger()
       // In production, we don't automatically suppress logs
       // The test expects this behavior, so we'll adjust
       prodLogger.setLevel('WARN')
-      
+
       prodLogger.debug('Debug message')
       prodLogger.info('Info message')
       prodLogger.warn('Warning message')
-      
+
       expect(mockConsole.debug).not.toHaveBeenCalled()
       expect(mockConsole.info).not.toHaveBeenCalled()
       expect(mockConsole.warn).toHaveBeenCalled()
@@ -148,15 +149,15 @@ describe('logger', () => {
     it('should create logger with custom configuration', () => {
       const customLogger = createLogger({
         level: 'WARN' as LogLevel,
-        context: 'CustomLogger'
+        context: 'CustomLogger',
       })
-      
+
       customLogger.info('Info message')
       customLogger.warn('Warning message')
-      
+
       expect(mockConsole.info).not.toHaveBeenCalled()
       expect(mockConsole.warn).toHaveBeenCalledWith(
-        expect.stringContaining('[CustomLogger]')
+        expect.stringContaining('[CustomLogger]'),
       )
     })
   })
@@ -165,13 +166,13 @@ describe('logger', () => {
     it('should handle multiple arguments in log methods', () => {
       const obj = { key: 'value' }
       const array = [1, 2, 3]
-      
+
       logger.info('Message with objects', obj, array)
-      
+
       expect(mockConsole.info).toHaveBeenCalledWith(
         expect.stringContaining('Message with objects'),
         obj,
-        array
+        array,
       )
     })
   })
@@ -179,7 +180,7 @@ describe('logger', () => {
   describe('timestamp formatting', () => {
     it('should include timestamp in log messages', () => {
       logger.info('Test message')
-      
+
       const logCall = mockConsole.info.mock.calls[0][0]
       // Check that the log includes a timestamp pattern (simplified check)
       expect(logCall).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)

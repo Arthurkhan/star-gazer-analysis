@@ -1,16 +1,16 @@
 /**
  * Simplified Error Handling - Phase 1 Consolidation
- * 
+ *
  * Basic error handling utilities without over-engineering
  * Reduces complexity from 11KB to essential functionality
  */
 
-import { appLogger } from './logger';
+import { appLogger } from './logger'
 
 // Simplified error types
 export enum ErrorType {
   NETWORK = 'NETWORK',
-  VALIDATION = 'VALIDATION', 
+  VALIDATION = 'VALIDATION',
   SERVER = 'SERVER',
   CLIENT = 'CLIENT'
 }
@@ -24,24 +24,24 @@ export enum ErrorSeverity {
 
 // Simple custom error class
 export class AppError extends Error {
-  public readonly type: ErrorType;
-  public readonly timestamp: Date;
+  public readonly type: ErrorType
+  public readonly timestamp: Date
 
   constructor(message: string, type: ErrorType = ErrorType.CLIENT) {
-    super(message);
-    this.name = 'AppError';
-    this.type = type;
-    this.timestamp = new Date();
+    super(message)
+    this.name = 'AppError'
+    this.type = type
+    this.timestamp = new Date()
   }
 }
 
 // Backward compatibility - Error boundary error class
 export class ErrorBoundaryError extends AppError {
   constructor(message: string, originalError?: Error) {
-    super(message, ErrorType.CLIENT);
-    this.name = 'ErrorBoundaryError';
+    super(message, ErrorType.CLIENT)
+    this.name = 'ErrorBoundaryError'
     if (originalError) {
-      this.stack = originalError.stack;
+      this.stack = originalError.stack
     }
   }
 }
@@ -50,21 +50,21 @@ export class ErrorBoundaryError extends AppError {
  * Log error with appropriate severity
  */
 export function logError(error: Error | AppError, context?: string): void {
-  const errorType = error instanceof AppError ? error.type : ErrorType.CLIENT;
-  const contextStr = context ? ` [${context}]` : '';
-  
+  const errorType = error instanceof AppError ? error.type : ErrorType.CLIENT
+  const contextStr = context ? ` [${context}]` : ''
+
   switch (errorType) {
     case ErrorType.NETWORK:
-      appLogger.warn(`Network Error${contextStr}:`, error.message);
-      break;
+      appLogger.warn(`Network Error${contextStr}:`, error.message)
+      break
     case ErrorType.SERVER:
-      appLogger.error(`Server Error${contextStr}:`, error.message);
-      break;
+      appLogger.error(`Server Error${contextStr}:`, error.message)
+      break
     case ErrorType.VALIDATION:
-      appLogger.info(`Validation Error${contextStr}:`, error.message);
-      break;
+      appLogger.info(`Validation Error${contextStr}:`, error.message)
+      break
     default:
-      appLogger.error(`Client Error${contextStr}:`, error.message);
+      appLogger.error(`Client Error${contextStr}:`, error.message)
   }
 }
 
@@ -74,11 +74,11 @@ export const errorLogger = {
   warn: (message: string, ...args: any[]) => appLogger.warn(message, ...args),
   info: (message: string, ...args: any[]) => appLogger.info(message, ...args),
   debug: (message: string, ...args: any[]) => appLogger.debug(message, ...args),
-};
+}
 
 // Backward compatibility - handleError function
 export function handleError(error: Error | AppError, context?: string): void {
-  logError(error, context);
+  logError(error, context)
 }
 
 // Backward compatibility - setupAdvancedErrorHandling function
@@ -86,7 +86,7 @@ export function setupAdvancedErrorHandling(): void {
   // Simplified implementation - just ensure global handlers are set
   if (typeof window !== 'undefined') {
     // These are already set up below, so this is a no-op
-    appLogger.info('Advanced error handling initialized (simplified)');
+    appLogger.info('Advanced error handling initialized (simplified)')
   }
 }
 
@@ -95,13 +95,13 @@ export function setupAdvancedErrorHandling(): void {
  */
 export async function handleAsyncError<T>(
   promise: Promise<T>,
-  context?: string
+  context?: string,
 ): Promise<T> {
   try {
-    return await promise;
+    return await promise
   } catch (error) {
-    logError(error as Error, context);
-    throw error;
+    logError(error as Error, context)
+    throw error
   }
 }
 
@@ -110,16 +110,16 @@ export async function handleAsyncError<T>(
  */
 export function safeExecute<T extends (...args: any[]) => any>(
   fn: T,
-  context?: string
+  context?: string,
 ): (...args: Parameters<T>) => ReturnType<T> | null {
   return (...args: Parameters<T>) => {
     try {
-      return fn(...args);
+      return fn(...args)
     } catch (error) {
-      logError(error as Error, context || fn.name);
-      return null;
+      logError(error as Error, context || fn.name)
+      return null
     }
-  };
+  }
 }
 
 /**
@@ -129,49 +129,49 @@ export function getUserFriendlyMessage(error: Error | AppError): string {
   if (error instanceof AppError) {
     switch (error.type) {
       case ErrorType.NETWORK:
-        return 'Network connection issue. Please check your internet and try again.';
+        return 'Network connection issue. Please check your internet and try again.'
       case ErrorType.VALIDATION:
-        return 'Please check your input and try again.';
+        return 'Please check your input and try again.'
       case ErrorType.SERVER:
-        return 'Server error occurred. Please try again later.';
+        return 'Server error occurred. Please try again later.'
       default:
-        return 'An unexpected error occurred. Please try again.';
+        return 'An unexpected error occurred. Please try again.'
     }
   }
-  
-  return 'An unexpected error occurred. Please try again.';
+
+  return 'An unexpected error occurred. Please try again.'
 }
 
 /**
  * Create network error
  */
 export function createNetworkError(message: string): AppError {
-  return new AppError(message, ErrorType.NETWORK);
+  return new AppError(message, ErrorType.NETWORK)
 }
 
 /**
  * Create validation error
  */
 export function createValidationError(message: string): AppError {
-  return new AppError(message, ErrorType.VALIDATION);
+  return new AppError(message, ErrorType.VALIDATION)
 }
 
 /**
  * Create server error
  */
 export function createServerError(message: string): AppError {
-  return new AppError(message, ErrorType.SERVER);
+  return new AppError(message, ErrorType.SERVER)
 }
 
 // Global error handling (simplified)
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {
-    logError(new AppError(`Unhandled Promise: ${event.reason}`, ErrorType.CLIENT));
-  });
+    logError(new AppError(`Unhandled Promise: ${event.reason}`, ErrorType.CLIENT))
+  })
 
   window.addEventListener('error', (event) => {
-    logError(new AppError(event.message || 'Global error', ErrorType.CLIENT));
-  });
+    logError(new AppError(event.message || 'Global error', ErrorType.CLIENT))
+  })
 }
 
 export default {
@@ -188,5 +188,5 @@ export default {
   getUserFriendlyMessage,
   createNetworkError,
   createValidationError,
-  createServerError
-};
+  createServerError,
+}

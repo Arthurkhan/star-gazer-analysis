@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React from 'react'
 
 export const ReviewTrends = () => {
   return (
@@ -7,5 +7,5 @@ export const ReviewTrends = () => {
       <h3 className="text-lg font-medium mb-2">Review Trends</h3>
       <p className="text-muted-foreground">This is a placeholder component.</p>
     </div>
-  );
-};
+  )
+}

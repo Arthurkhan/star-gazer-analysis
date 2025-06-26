@@ -1,32 +1,33 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Download, 
-  FileText, 
-  Table, 
-  Image, 
-  Calendar, 
+import React, { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  Download,
+  FileText,
+  Table,
+  Image,
+  Calendar,
   Settings,
   CheckCircle,
   Clock,
   FileImage,
   FileSpreadsheet,
-  AlertTriangle
-} from 'lucide-react';
-import { Review } from '@/types/reviews';
-import { generateAnalysisSummary } from '@/utils/analysisUtils';
-import { calculateSeasonalTrends, analyzeCustomerJourney, generateCompetitiveInsights } from '@/utils/performanceMetrics';
-import { prepareExportData, generatePDFContent, generateExcelWorkbook, generateCSVContent, generateJSONContent, downloadFile, exportFormats, ExportConfig, defaultExportConfig } from '@/utils/exportUtils';
-import { format } from 'date-fns';
+  AlertTriangle,
+} from 'lucide-react'
+import type { Review } from '@/types/reviews'
+import { generateAnalysisSummary } from '@/utils/analysisUtils'
+import { calculateSeasonalTrends, analyzeCustomerJourney, generateCompetitiveInsights } from '@/utils/performanceMetrics'
+import type { ExportConfig} from '@/utils/exportUtils'
+import { prepareExportData, generatePDFContent, generateExcelWorkbook, generateCSVContent, generateJSONContent, downloadFile, exportFormats, defaultExportConfig } from '@/utils/exportUtils'
+import { format } from 'date-fns'
 
 interface ExportManagerProps {
   reviews: Review[];
@@ -35,60 +36,60 @@ interface ExportManagerProps {
 }
 
 export function ExportManager({ reviews, businessName, businessType }: ExportManagerProps) {
-  const [config, setConfig] = useState<ExportConfig>(defaultExportConfig);
-  const [isExporting, setIsExporting] = useState(false);
+  const [config, setConfig] = useState<ExportConfig>(defaultExportConfig)
+  const [isExporting, setIsExporting] = useState(false)
   const [exportHistory, setExportHistory] = useState<Array<{
     date: string;
     format: string;
     sections: string[];
     status: 'success' | 'error';
     downloadUrl?: string;
-  }>>([]);
+  }>>([])
 
   // Generate data for export
-  const analysisData = generateAnalysisSummary(reviews, businessName);
-  const seasonalTrends = calculateSeasonalTrends(reviews);
-  const customerJourneys = analyzeCustomerJourney(reviews);
-  const competitiveInsights = generateCompetitiveInsights(reviews, businessType);
+  const analysisData = generateAnalysisSummary(reviews, businessName)
+  const seasonalTrends = calculateSeasonalTrends(reviews)
+  const customerJourneys = analyzeCustomerJourney(reviews)
+  const competitiveInsights = generateCompetitiveInsights(reviews, businessType)
 
   const handleExport = async () => {
-    setIsExporting(true);
-    
+    setIsExporting(true)
+
     try {
       // Prepare export data using the new utility
-      const exportData = prepareExportData(reviews, analysisData, config);
+      const exportData = prepareExportData(reviews, analysisData, config)
 
       // Generate export based on format
-      let content: string | Blob;
-      let filename: string;
-      let mimeType: string;
+      let content: string | Blob
+      let filename: string
+      let mimeType: string
 
       switch (config.format) {
         case 'pdf':
-          content = generatePDFContent(exportData, config);
-          filename = `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
-          mimeType = exportFormats.pdf.mimeType;
-          await generatePDFReport(content as string, filename);
-          break;
+          content = generatePDFContent(exportData, config)
+          filename = `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.pdf`
+          mimeType = exportFormats.pdf.mimeType
+          await generatePDFReport(content as string, filename)
+          break
         case 'excel':
-          const workbook = generateExcelWorkbook(exportData, config);
-          content = JSON.stringify(workbook, null, 2);
-          filename = `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-          mimeType = exportFormats.excel.mimeType;
-          downloadFile(content, filename, mimeType);
-          break;
+          const workbook = generateExcelWorkbook(exportData, config)
+          content = JSON.stringify(workbook, null, 2)
+          filename = `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.xlsx`
+          mimeType = exportFormats.excel.mimeType
+          downloadFile(content, filename, mimeType)
+          break
         case 'json':
-          content = generateJSONContent(exportData, config);
-          filename = `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.json`;
-          mimeType = exportFormats.json.mimeType;
-          downloadFile(content, filename, mimeType);
-          break;
+          content = generateJSONContent(exportData, config)
+          filename = `${businessName}-analysis-${format(new Date(), 'yyyy-MM-dd')}.json`
+          mimeType = exportFormats.json.mimeType
+          downloadFile(content, filename, mimeType)
+          break
         case 'csv':
-          content = generateCSVContent(reviews, config);
-          filename = `${businessName}-reviews-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-          mimeType = exportFormats.csv.mimeType;
-          downloadFile(content, filename, mimeType);
-          break;
+          content = generateCSVContent(reviews, config)
+          filename = `${businessName}-reviews-${format(new Date(), 'yyyy-MM-dd')}.csv`
+          mimeType = exportFormats.csv.mimeType
+          downloadFile(content, filename, mimeType)
+          break
       }
 
       // Add to export history
@@ -96,50 +97,50 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
         date: new Date().toISOString(),
         format: config.format.toUpperCase(),
         sections: Object.keys(config.sections).filter(key => config.sections[key as keyof typeof config.sections]),
-        status: 'success'
-      }, ...prev.slice(0, 9)]); // Keep last 10 exports
+        status: 'success',
+      }, ...prev.slice(0, 9)]) // Keep last 10 exports
 
     } catch (error) {
-      console.error('Export failed:', error);
+      console.error('Export failed:', error)
       setExportHistory(prev => [{
         date: new Date().toISOString(),
         format: config.format.toUpperCase(),
         sections: [],
-        status: 'error'
-      }, ...prev.slice(0, 9)]);
+        status: 'error',
+      }, ...prev.slice(0, 9)])
     } finally {
-      setIsExporting(false);
+      setIsExporting(false)
     }
-  };
+  }
 
   const generatePDFReport = async (htmlContent: string, filename: string) => {
     // Create a printable version
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open('', '_blank')
     if (printWindow) {
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-      printWindow.focus();
+      printWindow.document.write(htmlContent)
+      printWindow.document.close()
+      printWindow.focus()
       setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+        printWindow.print()
+        printWindow.close()
+      }, 500)
     }
-  };
+  }
 
   const updateConfig = (path: string, value: any) => {
     setConfig(prev => {
-      const newConfig = { ...prev };
-      const keys = path.split('.');
-      let current = newConfig as any;
-      
+      const newConfig = { ...prev }
+      const keys = path.split('.')
+      let current = newConfig as any
+
       for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]];
+        current = current[keys[i]]
       }
-      
-      current[keys[keys.length - 1]] = value;
-      return newConfig;
-    });
-  };
+
+      current[keys[keys.length - 1]] = value
+      return newConfig
+    })
+  }
 
   return (
     <Card>
@@ -166,7 +167,7 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
                   { value: 'pdf', label: 'PDF Report', icon: FileText },
                   { value: 'excel', label: 'Excel Workbook', icon: FileSpreadsheet },
                   { value: 'json', label: 'JSON Data', icon: FileText },
-                  { value: 'csv', label: 'CSV Export', icon: Table }
+                  { value: 'csv', label: 'CSV Export', icon: Table },
                 ].map(({ value, label, icon: Icon }) => (
                   <Button
                     key={value}
@@ -203,7 +204,7 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
             {/* Customization Options */}
             <div className="space-y-4">
               <Label className="text-base font-medium">Customization</Label>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="title">Report Title</Label>
@@ -213,7 +214,7 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
                     onChange={(e) => updateConfig('branding.companyName', e.target.value)}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="template">Template</Label>
                   <Select
@@ -370,7 +371,7 @@ export function ExportManager({ reviews, businessName, businessType }: ExportMan
         </Tabs>
       </CardContent>
     </Card>
-  );
+  )
 }
 
-export default ExportManager;
+export default ExportManager

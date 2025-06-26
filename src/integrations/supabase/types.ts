@@ -51,10 +51,10 @@ export interface Database {
         }
         Relationships: [
           {
-            foreignKeyName: "recommendations_business_id_fkey"
-            columns: ["business_id"]
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
+            foreignKeyName: 'recommendations_business_id_fkey'
+            columns: ['business_id']
+            referencedRelation: 'businesses'
+            referencedColumns: ['id']
           }
         ]
       }
@@ -106,10 +106,10 @@ export interface Database {
         }
         Relationships: [
           {
-            foreignKeyName: "reviews_business_id_fkey"
-            columns: ["business_id"]
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
+            foreignKeyName: 'reviews_business_id_fkey'
+            columns: ['business_id']
+            referencedRelation: 'businesses'
+            referencedColumns: ['id']
           }
         ]
       }

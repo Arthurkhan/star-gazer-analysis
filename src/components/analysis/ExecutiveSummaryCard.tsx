@@ -1,9 +1,9 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Minus, Star, Users, MessageSquare, BarChart3, Activity } from "lucide-react";
-import { BusinessHealthScore, PerformanceMetrics, TimePeriodConfig } from "@/types/analysisSummary";
-import { InfoTooltip } from "@/components/ui/info-tooltip";
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { TrendingUp, TrendingDown, Minus, Star, Users, MessageSquare, BarChart3, Activity } from 'lucide-react'
+import type { BusinessHealthScore, PerformanceMetrics, TimePeriodConfig } from '@/types/analysisSummary'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
 
 interface ExecutiveSummaryCardProps {
   healthScore: BusinessHealthScore;
@@ -14,7 +14,7 @@ interface ExecutiveSummaryCardProps {
 export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
   healthScore,
   performanceMetrics,
-  timePeriod
+  timePeriod,
 }) => {
   // Helper function to render trend indicator with enhanced visuals
   const renderTrendIndicator = (value: number, label: string) => {
@@ -24,64 +24,64 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
           <Minus className="w-4 h-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Stable</span>
         </div>
-      );
+      )
     }
-    
+
     if (value > 0) {
       return (
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 dark:bg-green-900/20">
           <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
           <span className="text-sm font-semibold text-green-700 dark:text-green-300">+{value.toFixed(1)}%</span>
         </div>
-      );
+      )
     }
-    
+
     return (
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 dark:bg-red-900/20">
         <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
         <span className="text-sm font-semibold text-red-700 dark:text-red-300">{value.toFixed(1)}%</span>
       </div>
-    );
-  };
+    )
+  }
 
   // Helper function to get health score color and label with better visuals
   const getHealthScoreInfo = (score: number) => {
     if (score >= 80) {
-      return { 
-        color: "bg-gradient-to-r from-green-500 to-emerald-500", 
-        label: "Excellent", 
-        textColor: "text-green-700 dark:text-green-300",
-        bgColor: "bg-green-50 dark:bg-green-900/20",
-        borderColor: "border-green-200 dark:border-green-800"
-      };
+      return {
+        color: 'bg-gradient-to-r from-green-500 to-emerald-500',
+        label: 'Excellent',
+        textColor: 'text-green-700 dark:text-green-300',
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
+        borderColor: 'border-green-200 dark:border-green-800',
+      }
     } else if (score >= 60) {
-      return { 
-        color: "bg-gradient-to-r from-yellow-500 to-amber-500", 
-        label: "Good", 
-        textColor: "text-yellow-700 dark:text-yellow-300",
-        bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
-        borderColor: "border-yellow-200 dark:border-yellow-800"
-      };
+      return {
+        color: 'bg-gradient-to-r from-yellow-500 to-amber-500',
+        label: 'Good',
+        textColor: 'text-yellow-700 dark:text-yellow-300',
+        bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+        borderColor: 'border-yellow-200 dark:border-yellow-800',
+      }
     } else if (score >= 40) {
-      return { 
-        color: "bg-gradient-to-r from-orange-500 to-red-500", 
-        label: "Needs Attention", 
-        textColor: "text-orange-700 dark:text-orange-300",
-        bgColor: "bg-orange-50 dark:bg-orange-900/20",
-        borderColor: "border-orange-200 dark:border-orange-800"
-      };
+      return {
+        color: 'bg-gradient-to-r from-orange-500 to-red-500',
+        label: 'Needs Attention',
+        textColor: 'text-orange-700 dark:text-orange-300',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+        borderColor: 'border-orange-200 dark:border-orange-800',
+      }
     } else {
-      return { 
-        color: "bg-gradient-to-r from-red-600 to-red-700", 
-        label: "Critical", 
-        textColor: "text-red-700 dark:text-red-300",
-        bgColor: "bg-red-50 dark:bg-red-900/20",
-        borderColor: "border-red-200 dark:border-red-800"
-      };
+      return {
+        color: 'bg-gradient-to-r from-red-600 to-red-700',
+        label: 'Critical',
+        textColor: 'text-red-700 dark:text-red-300',
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
+        borderColor: 'border-red-200 dark:border-red-800',
+      }
     }
-  };
+  }
 
-  const healthInfo = getHealthScoreInfo(healthScore.overall);
+  const healthInfo = getHealthScoreInfo(healthScore.overall)
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -91,7 +91,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <span className="font-bold">Executive Summary</span>
-          <InfoTooltip 
+          <InfoTooltip
             content="High-level overview of your business performance based on customer reviews and engagement metrics"
             className="ml-auto"
           />
@@ -99,7 +99,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
       </CardHeader>
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          
+
           {/* Business Health Score - Enhanced Visual */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
@@ -107,7 +107,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <Activity className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-lg">Business Health</h3>
-              <InfoTooltip 
+              <InfoTooltip
                 tooltipPath="metrics.netPromoterScore"
                 className="ml-auto"
               />
@@ -123,14 +123,14 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 Overall business performance
               </p>
             </div>
-            
+
             {/* Health breakdown with visual bars */}
             <div className="space-y-2 bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
               <div className="space-y-1">
                 <div className="flex justify-between text-sm font-medium">
                   <span className="flex items-center gap-1">
                     Rating Quality
-                    <InfoTooltip 
+                    <InfoTooltip
                       content="Score based on your average rating. Higher ratings = higher score"
                       className="ml-1"
                     />
@@ -138,7 +138,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   <span className="font-bold">{healthScore.breakdown.rating}%</span>
                 </div>
                 <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-500"
                     style={{ width: `${healthScore.breakdown.rating}%` }}
                   />
@@ -148,7 +148,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <div className="flex justify-between text-sm font-medium">
                   <span className="flex items-center gap-1">
                     Customer Sentiment
-                    <InfoTooltip 
+                    <InfoTooltip
                       tooltipPath="sentiment.overall"
                       className="ml-1"
                     />
@@ -156,7 +156,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   <span className="font-bold">{healthScore.breakdown.sentiment}%</span>
                 </div>
                 <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-500"
                     style={{ width: `${healthScore.breakdown.sentiment}%` }}
                   />
@@ -166,7 +166,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <div className="flex justify-between text-sm font-medium">
                   <span className="flex items-center gap-1">
                     Response Rate
-                    <InfoTooltip 
+                    <InfoTooltip
                       tooltipPath="overview.responseRate"
                       className="ml-1"
                     />
@@ -174,7 +174,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   <span className="font-bold">{healthScore.breakdown.response}%</span>
                 </div>
                 <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-purple-400 to-purple-600 transition-all duration-500"
                     style={{ width: `${healthScore.breakdown.response}%` }}
                   />
@@ -190,7 +190,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <Users className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-lg">Review Volume</h3>
-              <InfoTooltip 
+              <InfoTooltip
                 tooltipPath="overview.totalReviews"
                 className="ml-auto"
               />
@@ -204,21 +204,21 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 {performanceMetrics.reviewsPerMonth.toFixed(1)} reviews/month avg
               </p>
             </div>
-            
+
             {/* Growth indicator enhanced */}
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 Growth Trend
-                <InfoTooltip 
+                <InfoTooltip
                   tooltipPath="comparison.growthRate"
                   className="ml-1"
                 />
               </p>
-              {renderTrendIndicator(performanceMetrics.growthRate, "Growth")}
+              {renderTrendIndicator(performanceMetrics.growthRate, 'Growth')}
               <p className="text-xs text-muted-foreground mt-2 font-medium">
-                {performanceMetrics.trends.isGrowing ? 
-                  "📈 Expanding customer base" : 
-                  "📊 Stable customer engagement"}
+                {performanceMetrics.trends.isGrowing ?
+                  '📈 Expanding customer base' :
+                  '📊 Stable customer engagement'}
               </p>
             </div>
           </div>
@@ -230,7 +230,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <Star className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-lg">Rating Trends</h3>
-              <InfoTooltip 
+              <InfoTooltip
                 tooltipPath="ratings.ratingTrend"
                 className="ml-auto"
               />
@@ -248,14 +248,14 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 Rating change trend
               </p>
             </div>
-            
+
             {/* Rating trend indicator enhanced */}
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Trend Direction</p>
-              {renderTrendIndicator(healthScore.ratingTrend, "Rating")}
+              {renderTrendIndicator(healthScore.ratingTrend, 'Rating')}
               <p className="text-xs text-muted-foreground mt-2 font-medium">
-                {healthScore.ratingTrend > 5 ? "⭐ Improving ratings" : 
-                 healthScore.ratingTrend < -5 ? "⚠️ Declining ratings" : "➡️ Stable ratings"}
+                {healthScore.ratingTrend > 5 ? '⭐ Improving ratings' :
+                 healthScore.ratingTrend < -5 ? '⚠️ Declining ratings' : '➡️ Stable ratings'}
               </p>
             </div>
           </div>
@@ -267,7 +267,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <MessageSquare className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-lg">Engagement</h3>
-              <InfoTooltip 
+              <InfoTooltip
                 content="How actively the business responds to customer reviews"
                 className="ml-auto"
               />
@@ -281,27 +281,27 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 Owner-customer interaction
               </p>
             </div>
-            
+
             {/* Engagement assessment enhanced */}
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1">
                 Engagement Level
-                <InfoTooltip 
+                <InfoTooltip
                   content="Based on response rate: High (>70%), Moderate (40-70%), Low (<40%)"
                   className="ml-1"
                 />
               </p>
-              <Badge 
-                variant={healthScore.responseRate >= 50 ? "default" : "secondary"}
+              <Badge
+                variant={healthScore.responseRate >= 50 ? 'default' : 'secondary'}
                 className="text-sm font-bold px-4 py-1.5"
               >
-                {healthScore.responseRate >= 70 ? "🔥 High" :
-                 healthScore.responseRate >= 40 ? "👍 Moderate" : "📉 Low"}
+                {healthScore.responseRate >= 70 ? '🔥 High' :
+                 healthScore.responseRate >= 40 ? '👍 Moderate' : '📉 Low'}
               </Badge>
               <p className="text-xs text-muted-foreground mt-2 font-medium">
-                {healthScore.responseRate >= 50 
-                  ? "💬 Active customer communication" 
-                  : "💡 Opportunity to increase responses"}
+                {healthScore.responseRate >= 50
+                  ? '💬 Active customer communication'
+                  : '💡 Opportunity to increase responses'}
               </p>
             </div>
           </div>
@@ -314,7 +314,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
               <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
               <span className="font-semibold text-gray-700 dark:text-gray-300">
                 Analysis Period: {timePeriod.current.label}
-                <InfoTooltip 
+                <InfoTooltip
                   content="The time range of reviews included in this analysis"
                   className="ml-2 inline-flex"
                 />
@@ -327,5 +327,5 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

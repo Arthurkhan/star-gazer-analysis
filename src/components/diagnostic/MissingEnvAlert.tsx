@@ -1,37 +1,37 @@
-import { useEffect, useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from 'react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 
 export const MissingEnvAlert = () => {
-  const [missingVars, setMissingVars] = useState<string[]>([]);
-  
+  const [missingVars, setMissingVars] = useState<string[]>([])
+
   useEffect(() => {
     const checkEnvVars = () => {
-      const missing: string[] = [];
-      
+      const missing: string[] = []
+
       // Check for Supabase URL and key
-      const supabaseUrl = supabase.supabaseUrl;
-      const supabaseKey = supabase.supabaseKey;
-      
+      const {supabaseUrl} = supabase
+      const {supabaseKey} = supabase
+
       if (!supabaseUrl || supabaseUrl === 'undefined' || supabaseUrl === '') {
-        missing.push('VITE_SUPABASE_URL');
+        missing.push('VITE_SUPABASE_URL')
       }
-      
+
       if (!supabaseKey || supabaseKey === 'undefined' || supabaseKey === '') {
-        missing.push('VITE_SUPABASE_ANON_KEY');
+        missing.push('VITE_SUPABASE_ANON_KEY')
       }
-      
-      setMissingVars(missing);
-    };
-    
-    checkEnvVars();
-  }, []);
-  
+
+      setMissingVars(missing)
+    }
+
+    checkEnvVars()
+  }, [])
+
   if (missingVars.length === 0) {
-    return null;
+    return null
   }
-  
+
   return (
     <Alert variant="destructive" className="mb-4">
       <AlertCircle className="h-4 w-4" />
@@ -53,5 +53,5 @@ export const MissingEnvAlert = () => {
         </p>
       </AlertDescription>
     </Alert>
-  );
-};
+  )
+}

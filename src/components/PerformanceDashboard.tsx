@@ -1,35 +1,35 @@
 /**
  * Performance Dashboard Component - Phase 5
- * 
+ *
  * Development tool for monitoring application performance metrics,
  * error tracking, and memory usage in real-time.
  */
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { 
-  BarChart3, 
-  Activity, 
-  AlertTriangle, 
-  Trash2, 
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Progress } from '@/components/ui/progress'
+import {
+  BarChart3,
+  Activity,
+  AlertTriangle,
+  Trash2,
   RefreshCw,
   Clock,
   TrendingUp,
   TrendingDown,
   Zap,
-  MemoryStick
-} from 'lucide-react';
-import { PerformanceMonitor, optimizeMemoryUsage } from '@/utils/performanceOptimizations';
-import { 
-  errorLogger, 
-  ErrorType, 
-  ErrorSeverity, 
-  MemoryLeakDetector 
-} from '@/utils/errorHandling';
+  MemoryStick,
+} from 'lucide-react'
+import { PerformanceMonitor, optimizeMemoryUsage } from '@/utils/performanceOptimizations'
+import {
+  errorLogger,
+  ErrorType,
+  ErrorSeverity,
+  MemoryLeakDetector,
+} from '@/utils/errorHandling'
 
 interface PerformanceStats {
   count: number;
@@ -47,92 +47,92 @@ interface MemoryInfo {
 }
 
 export const PerformanceDashboard: React.FC = () => {
-  const [performanceStats, setPerformanceStats] = useState<Record<string, PerformanceStats>>({});
-  const [errorStats, setErrorStats] = useState<Record<ErrorType, number>>({});
-  const [errorHistory, setErrorHistory] = useState<any[]>([]);
-  const [memoryInfo, setMemoryInfo] = useState<MemoryInfo | null>(null);
-  const [leakReport, setLeakReport] = useState<any>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [performanceStats, setPerformanceStats] = useState<Record<string, PerformanceStats>>({})
+  const [errorStats, setErrorStats] = useState<Record<ErrorType, number>>({})
+  const [errorHistory, setErrorHistory] = useState<any[]>([])
+  const [memoryInfo, setMemoryInfo] = useState<MemoryInfo | null>(null)
+  const [leakReport, setLeakReport] = useState<any>(null)
+  const [autoRefresh, setAutoRefresh] = useState(true)
 
   // Update stats periodically
   useEffect(() => {
     const updateStats = () => {
       // Performance stats
-      setPerformanceStats(PerformanceMonitor.getAllStats());
-      
+      setPerformanceStats(PerformanceMonitor.getAllStats())
+
       // Error stats
-      setErrorStats(errorLogger.getErrorStats());
-      setErrorHistory(errorLogger.getErrorHistory().slice(-20)); // Last 20 errors
-      
+      setErrorStats(errorLogger.getErrorStats())
+      setErrorHistory(errorLogger.getErrorHistory().slice(-20)) // Last 20 errors
+
       // Memory info (if available)
       if ('memory' in performance && (performance as any).memory) {
-        const memory = (performance as any).memory;
+        const {memory} = (performance as any)
         setMemoryInfo({
           used: Math.round(memory.usedJSHeapSize / 1024 / 1024),
           total: Math.round(memory.totalJSHeapSize / 1024 / 1024),
-          limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024)
-        });
+          limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024),
+        })
       }
-      
-      // Memory leak report
-      setLeakReport(MemoryLeakDetector.getLeakReport());
-    };
 
-    updateStats();
+      // Memory leak report
+      setLeakReport(MemoryLeakDetector.getLeakReport())
+    }
+
+    updateStats()
 
     if (autoRefresh) {
-      const interval = setInterval(updateStats, 2000);
-      return () => clearInterval(interval);
+      const interval = setInterval(updateStats, 2000)
+      return () => clearInterval(interval)
     }
-  }, [autoRefresh]);
+  }, [autoRefresh])
 
   const handleClearStats = () => {
-    PerformanceMonitor.clearStats();
-    errorLogger.clearHistory();
-    setPerformanceStats({});
-    setErrorStats({});
-    setErrorHistory([]);
-  };
+    PerformanceMonitor.clearStats()
+    errorLogger.clearHistory()
+    setPerformanceStats({})
+    setErrorStats({})
+    setErrorHistory([])
+  }
 
   const handleOptimizeMemory = () => {
-    optimizeMemoryUsage();
-    MemoryLeakDetector.cleanup();
-  };
+    optimizeMemoryUsage()
+    MemoryLeakDetector.cleanup()
+  }
 
   const getPerformanceColor = (average: number) => {
-    if (average < 50) return 'text-green-600';
-    if (average < 100) return 'text-yellow-600';
-    if (average < 200) return 'text-orange-600';
-    return 'text-red-600';
-  };
+    if (average < 50) return 'text-green-600'
+    if (average < 100) return 'text-yellow-600'
+    if (average < 200) return 'text-orange-600'
+    return 'text-red-600'
+  }
 
   const getErrorSeverityColor = (type: ErrorType) => {
     switch (type) {
       case ErrorType.CRITICAL:
-        return 'destructive';
+        return 'destructive'
       case ErrorType.SERVER:
-        return 'destructive';
+        return 'destructive'
       case ErrorType.PERMISSION:
-        return 'destructive';
+        return 'destructive'
       case ErrorType.NETWORK:
-        return 'secondary';
+        return 'secondary'
       case ErrorType.VALIDATION:
-        return 'outline';
+        return 'outline'
       default:
-        return 'secondary';
+        return 'secondary'
     }
-  };
+  }
 
   const formatDuration = (ms: number) => {
-    if (ms < 1) return `${(ms * 1000).toFixed(0)}μs`;
-    if (ms < 1000) return `${ms.toFixed(1)}ms`;
-    return `${(ms / 1000).toFixed(2)}s`;
-  };
+    if (ms < 1) return `${(ms * 1000).toFixed(0)}μs`
+    if (ms < 1000) return `${ms.toFixed(1)}ms`
+    return `${(ms / 1000).toFixed(2)}s`
+  }
 
   const getMemoryUsagePercentage = () => {
-    if (!memoryInfo) return 0;
-    return (memoryInfo.used / memoryInfo.limit) * 100;
-  };
+    if (!memoryInfo) return 0
+    return (memoryInfo.used / memoryInfo.limit) * 100
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -206,7 +206,7 @@ export const PerformanceDashboard: React.FC = () => {
               {Object.values(performanceStats).length > 0
                 ? formatDuration(
                     Object.values(performanceStats).reduce((sum, stat) => sum + stat.average, 0) /
-                    Object.values(performanceStats).length
+                    Object.values(performanceStats).length,
                   )
                 : '0ms'
               }
@@ -249,8 +249,8 @@ export const PerformanceDashboard: React.FC = () => {
               {memoryInfo ? `${getMemoryUsagePercentage().toFixed(1)}% of limit` : 'Memory info unavailable'}
             </p>
             {memoryInfo && (
-              <Progress 
-                value={getMemoryUsagePercentage()} 
+              <Progress
+                value={getMemoryUsagePercentage()}
                 className="mt-2 h-1"
               />
             )}
@@ -402,7 +402,7 @@ export const PerformanceDashboard: React.FC = () => {
                         {leakReport.eventListeners}
                       </span>
                     </div>
-                    
+
                     {Object.keys(leakReport.details).length > 0 && (
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Listener Details:</h4>
@@ -426,7 +426,7 @@ export const PerformanceDashboard: React.FC = () => {
         </TabsContent>
       </Tabs>
     </div>
-  );
-};
+  )
+}
 
-export default PerformanceDashboard;
+export default PerformanceDashboard

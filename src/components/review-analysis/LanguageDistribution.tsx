@@ -1,10 +1,10 @@
 
-import React, { useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { CustomPieTooltip } from "./CustomTooltips";
-import { Review } from "@/types/reviews";
-import { countReviewsByLanguage } from "@/utils/dataUtils";
-import { renderActiveShape } from "./PieChartRenderer";
+import React, { useState } from 'react'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { CustomPieTooltip } from './CustomTooltips'
+import type { Review } from '@/types/reviews'
+import { countReviewsByLanguage } from '@/utils/dataUtils'
+import { renderActiveShape } from './PieChartRenderer'
 
 // Enhanced colors for pie chart with better contrast
 const COLORS = [
@@ -21,54 +21,54 @@ const COLORS = [
   '#FFDEE2', // Soft Pink
   '#FEC6A1', // Soft Orange
   '#FEF7CD', // Soft Yellow
-  '#F2FCE2'  // Soft Green
-];
+  '#F2FCE2',  // Soft Green
+]
 
 // Function to group languages with less than 1% into "Other"
 const groupMinorLanguages = (languageData: { name: string; value: number }[], totalReviews: number) => {
-  const threshold = totalReviews * 0.01; // 1% threshold
-  
-  const majorLanguages = languageData.filter(lang => lang.value >= threshold);
-  const minorLanguages = languageData.filter(lang => lang.value < threshold);
-  
+  const threshold = totalReviews * 0.01 // 1% threshold
+
+  const majorLanguages = languageData.filter(lang => lang.value >= threshold)
+  const minorLanguages = languageData.filter(lang => lang.value < threshold)
+
   // Only create an "Other" category if there are minor languages
   if (minorLanguages.length > 0) {
-    const otherValue = minorLanguages.reduce((sum, lang) => sum + lang.value, 0);
-    
+    const otherValue = minorLanguages.reduce((sum, lang) => sum + lang.value, 0)
+
     // Create a list of minor language names for the tooltip
-    const otherLanguageNames = minorLanguages.map(lang => `${lang.name} (${lang.value})`).join(', ');
-    
+    const otherLanguageNames = minorLanguages.map(lang => `${lang.name} (${lang.value})`).join(', ')
+
     return [
       ...majorLanguages,
-      { 
-        name: 'Other', 
+      {
+        name: 'Other',
         value: otherValue,
         languages: minorLanguages,
-        tooltip: otherLanguageNames
-      }
-    ];
+        tooltip: otherLanguageNames,
+      },
+    ]
   }
-  
-  return languageData;
-};
+
+  return languageData
+}
 
 interface LanguageDistributionProps {
   reviews: Review[];
 }
 
 const LanguageDistribution: React.FC<LanguageDistributionProps> = ({ reviews }) => {
-  const [activePieIndex, setActivePieIndex] = useState(0);
-  
+  const [activePieIndex, setActivePieIndex] = useState(0)
+
   // Language distribution with grouping for small percentages
-  const totalReviews = reviews.length;
-  const rawLanguageData = countReviewsByLanguage(reviews);
-  const languageData = groupMinorLanguages(rawLanguageData, totalReviews);
-  
+  const totalReviews = reviews.length
+  const rawLanguageData = countReviewsByLanguage(reviews)
+  const languageData = groupMinorLanguages(rawLanguageData, totalReviews)
+
   // Add total count to each language data item for percentage calculation in tooltip
   const languageDataWithTotal = languageData.map(item => ({
     ...item,
-    _total: totalReviews
-  }));
+    _total: totalReviews,
+  }))
 
   return (
     <div>
@@ -94,9 +94,9 @@ const LanguageDistribution: React.FC<LanguageDistributionProps> = ({ reviews }) 
               strokeWidth={2}
             >
               {languageDataWithTotal.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={COLORS[index % COLORS.length]} 
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
                   style={{ filter: 'drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.2))' }}
                 />
               ))}
@@ -108,12 +108,12 @@ const LanguageDistribution: React.FC<LanguageDistributionProps> = ({ reviews }) 
       {languageDataWithTotal.length > 0 && (
         <div className="flex flex-wrap justify-center gap-3 mt-2">
           {languageDataWithTotal.slice(0, 5).map((entry, index) => (
-            <div 
-              key={`legend-${index}`} 
+            <div
+              key={`legend-${index}`}
               className="flex items-center gap-1.5 text-xs text-gray-700 dark:text-white"
             >
-              <div 
-                className="w-3 h-3 rounded-sm" 
+              <div
+                className="w-3 h-3 rounded-sm"
                 style={{ backgroundColor: COLORS[index % COLORS.length] }}
               />
               <span>{entry.name}</span>
@@ -127,7 +127,7 @@ const LanguageDistribution: React.FC<LanguageDistributionProps> = ({ reviews }) 
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default LanguageDistribution;
+export default LanguageDistribution

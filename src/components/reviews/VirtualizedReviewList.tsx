@@ -1,9 +1,9 @@
-import React, { useCallback } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { Review } from '@/types/reviews';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, ThumbsUp, ThumbsDown } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import React, { useCallback } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import type { Review } from '@/types/reviews'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Star, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
 
 interface VirtualizedReviewListProps {
   reviews: Review[];
@@ -20,33 +20,33 @@ const VirtualizedReviewList: React.FC<VirtualizedReviewListProps> = ({
   reviews,
   isLoading = false,
   hasMoreData = false,
-  onLoadMore
+  onLoadMore,
 }) => {
   // Create a container ref for the virtualized list
-  const parentRef = React.useRef<HTMLDivElement>(null);
-  
+  const parentRef = React.useRef<HTMLDivElement>(null)
+
   // Setup the virtualizer
   const rowVirtualizer = useVirtualizer({
     count: reviews.length + (hasMoreData ? 1 : 0), // Add an extra row for the load more button
     getScrollElement: () => parentRef.current,
     estimateSize: useCallback(() => 180, []), // Estimated height of each row
     overscan: 5, // Number of items to render outside of the visible area
-  });
-  
+  })
+
   // Handle intersection for infinite loading
   const lastItemRef = React.useCallback((node: HTMLDivElement | null) => {
     if (node && hasMoreData && !isLoading && onLoadMore) {
       const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
-          onLoadMore();
+          onLoadMore()
         }
-      });
-      
-      observer.observe(node);
-      return () => observer.disconnect();
+      })
+
+      observer.observe(node)
+      return () => observer.disconnect()
     }
-  }, [hasMoreData, isLoading, onLoadMore]);
-  
+  }, [hasMoreData, isLoading, onLoadMore])
+
   // Render stars for ratings
   const renderStars = (rating: number) => {
     return (
@@ -55,36 +55,36 @@ const VirtualizedReviewList: React.FC<VirtualizedReviewListProps> = ({
           <Star
             key={i}
             size={16}
-            className={i < rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"}
+            className={i < rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}
           />
         ))}
       </span>
-    );
-  };
-  
+    )
+  }
+
   // Render sentiment indicator
   const renderSentiment = (sentiment: string) => {
-    if (!sentiment) return null;
-    
-    const lowercaseSentiment = sentiment.toLowerCase();
+    if (!sentiment) return null
+
+    const lowercaseSentiment = sentiment.toLowerCase()
     if (lowercaseSentiment.includes('positive')) {
-      return <ThumbsUp size={16} className="text-green-500" />;
+      return <ThumbsUp size={16} className="text-green-500" />
     } else if (lowercaseSentiment.includes('negative')) {
-      return <ThumbsDown size={16} className="text-red-500" />;
+      return <ThumbsDown size={16} className="text-red-500" />
     }
-    return null;
-  };
-  
+    return null
+  }
+
   // Format date for display
   const formatDate = (dateString: string) => {
     try {
-      const date = new Date(dateString);
-      return formatDistanceToNow(date, { addSuffix: true });
+      const date = new Date(dateString)
+      return formatDistanceToNow(date, { addSuffix: true })
     } catch (error) {
-      return 'Unknown date';
+      return 'Unknown date'
     }
-  };
-  
+  }
+
   return (
     <div
       ref={parentRef}
@@ -99,8 +99,8 @@ const VirtualizedReviewList: React.FC<VirtualizedReviewListProps> = ({
         }}
       >
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-          const isLoaderRow = virtualRow.index === reviews.length;
-          
+          const isLoaderRow = virtualRow.index === reviews.length
+
           // Render load more button for the last row
           if (isLoaderRow) {
             return (
@@ -112,7 +112,7 @@ const VirtualizedReviewList: React.FC<VirtualizedReviewListProps> = ({
                   top: 0,
                   left: 0,
                   width: '100%',
-                  height: `80px`,
+                  height: '80px',
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
                 className="flex items-center justify-center p-4"
@@ -129,12 +129,12 @@ const VirtualizedReviewList: React.FC<VirtualizedReviewListProps> = ({
                   </button>
                 )}
               </div>
-            );
+            )
           }
-          
+
           // Get the review data for this row
-          const review = reviews[virtualRow.index];
-          
+          const review = reviews[virtualRow.index]
+
           // Render the review card
           return (
             <div
@@ -170,11 +170,11 @@ const VirtualizedReviewList: React.FC<VirtualizedReviewListProps> = ({
                 </CardContent>
               </Card>
             </div>
-          );
+          )
         })}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default VirtualizedReviewList;
+export default VirtualizedReviewList

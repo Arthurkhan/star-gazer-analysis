@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   LineChart,
   Line,
@@ -24,16 +24,16 @@ import {
   Brush,
   ScatterChart,
   Scatter,
-  ZAxis
-} from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
+  ZAxis,
+} from 'recharts'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
 import {
   ZoomIn,
   ZoomOut,
@@ -47,12 +47,12 @@ import {
   Settings,
   RefreshCw,
   Eye,
-  EyeOff
-} from 'lucide-react';
-import { format, subDays, subMonths, subYears } from 'date-fns';
-import { Review } from '@/types/reviews';
-import { AnalysisSummaryData } from '@/types/analysisSummary';
-import { CustomBarLineTooltip, CustomPieTooltip } from '@/components/review-analysis/CustomTooltips';
+  EyeOff,
+} from 'lucide-react'
+import { format, subDays, subMonths, subYears } from 'date-fns'
+import type { Review } from '@/types/reviews'
+import type { AnalysisSummaryData } from '@/types/analysisSummary'
+import { CustomBarLineTooltip, CustomPieTooltip } from '@/components/review-analysis/CustomTooltips'
 
 interface InteractiveChartsProps {
   reviews: Review[];
@@ -91,8 +91,8 @@ interface ChartState {
 // Color palette for charts
 const CHART_COLORS = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
-];
+  '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1',
+]
 
 // Default chart configurations
 const DEFAULT_CHART_CONFIGS: Record<string, ChartConfig> = {
@@ -106,7 +106,7 @@ const DEFAULT_CHART_CONFIGS: Record<string, ChartConfig> = {
     interactive: true,
     zoomable: true,
     brushable: true,
-    clickable: true
+    clickable: true,
   },
   sentimentTrends: {
     type: 'area',
@@ -119,7 +119,7 @@ const DEFAULT_CHART_CONFIGS: Record<string, ChartConfig> = {
     interactive: true,
     zoomable: true,
     brushable: true,
-    clickable: true
+    clickable: true,
   },
   volumeTrends: {
     type: 'bar',
@@ -129,7 +129,7 @@ const DEFAULT_CHART_CONFIGS: Record<string, ChartConfig> = {
     color: CHART_COLORS[2],
     interactive: true,
     zoomable: true,
-    clickable: true
+    clickable: true,
   },
   themeDistribution: {
     type: 'pie',
@@ -138,7 +138,7 @@ const DEFAULT_CHART_CONFIGS: Record<string, ChartConfig> = {
     description: 'Most discussed topics in reviews',
     color: CHART_COLORS[3],
     interactive: true,
-    clickable: true
+    clickable: true,
   },
   performanceRadar: {
     type: 'radar',
@@ -147,7 +147,7 @@ const DEFAULT_CHART_CONFIGS: Record<string, ChartConfig> = {
     description: 'Multi-dimensional performance analysis',
     color: CHART_COLORS[4],
     interactive: true,
-    clickable: true
+    clickable: true,
   },
   correlationScatter: {
     type: 'scatter',
@@ -157,9 +157,9 @@ const DEFAULT_CHART_CONFIGS: Record<string, ChartConfig> = {
     color: CHART_COLORS[5],
     interactive: true,
     zoomable: true,
-    clickable: true
-  }
-};
+    clickable: true,
+  },
+}
 
 export function InteractiveCharts({
   reviews,
@@ -168,80 +168,80 @@ export function InteractiveCharts({
   onChartExport,
   refreshData,
   autoRefresh = false,
-  className = ''
+  className = '',
 }: InteractiveChartsProps) {
   // State management
-  const [activeChart, setActiveChart] = useState<string>('ratingTrends');
+  const [activeChart, setActiveChart] = useState<string>('ratingTrends')
   const [chartState, setChartState] = useState<ChartState>({
     zoom: 1,
     pan: { x: 0, y: 0 },
     selectedDataPoints: [],
     visibleSeries: ['primary'],
-    timeRange: { 
-      start: subMonths(new Date(), 12), 
-      end: new Date() 
+    timeRange: {
+      start: subMonths(new Date(), 12),
+      end: new Date(),
     },
     comparisonMode: false,
-    animationEnabled: true
-  });
-  const [fullscreen, setFullscreen] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+    animationEnabled: true,
+  })
+  const [fullscreen, setFullscreen] = useState(false)
+  const [showControls, setShowControls] = useState(true)
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null)
 
-  const chartRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<HTMLDivElement>(null)
 
   // Auto-refresh functionality
   useEffect(() => {
     if (autoRefresh && refreshData) {
       const interval = setInterval(() => {
-        refreshData();
-      }, 30000); // Refresh every 30 seconds
-      setRefreshInterval(interval);
+        refreshData()
+      }, 30000) // Refresh every 30 seconds
+      setRefreshInterval(interval)
     }
 
     return () => {
       if (refreshInterval) {
-        clearInterval(refreshInterval);
+        clearInterval(refreshInterval)
       }
-    };
-  }, [autoRefresh, refreshData]);
+    }
+  }, [autoRefresh, refreshData])
 
   // Prepare chart data
   const chartData = useMemo(() => {
-    const data: Record<string, any[]> = {};
+    const data: Record<string, any[]> = {}
 
     // Rating trends data
-    data.ratingTrends = processRatingTrends(reviews, chartState.timeRange);
-    
-    // Sentiment trends data
-    data.sentimentTrends = processSentimentTrends(reviews, chartState.timeRange);
-    
-    // Volume trends data
-    data.volumeTrends = processVolumeTrends(reviews, chartState.timeRange);
-    
-    // Theme distribution data
-    data.themeDistribution = processThemeDistribution(analysisData);
-    
-    // Performance radar data
-    data.performanceRadar = processPerformanceRadar(analysisData);
-    
-    // Correlation scatter data
-    data.correlationScatter = processCorrelationData(reviews);
+    data.ratingTrends = processRatingTrends(reviews, chartState.timeRange)
 
-    return data;
-  }, [reviews, analysisData, chartState.timeRange]);
+    // Sentiment trends data
+    data.sentimentTrends = processSentimentTrends(reviews, chartState.timeRange)
+
+    // Volume trends data
+    data.volumeTrends = processVolumeTrends(reviews, chartState.timeRange)
+
+    // Theme distribution data
+    data.themeDistribution = processThemeDistribution(analysisData)
+
+    // Performance radar data
+    data.performanceRadar = processPerformanceRadar(analysisData)
+
+    // Correlation scatter data
+    data.correlationScatter = processCorrelationData(reviews)
+
+    return data
+  }, [reviews, analysisData, chartState.timeRange])
 
   // Handle data point clicks
   const handleDataPointClick = useCallback((data: any, chartType: string) => {
     setChartState(prev => ({
       ...prev,
-      selectedDataPoints: [...prev.selectedDataPoints, { data, chartType, timestamp: new Date() }]
-    }));
-    
+      selectedDataPoints: [...prev.selectedDataPoints, { data, chartType, timestamp: new Date() }],
+    }))
+
     if (onDataPointClick) {
-      onDataPointClick(data, chartType);
+      onDataPointClick(data, chartType)
     }
-  }, [onDataPointClick]);
+  }, [onDataPointClick])
 
   // Handle chart export
   const handleChartExport = useCallback((format: 'png' | 'svg' | 'pdf') => {
@@ -250,57 +250,57 @@ export function InteractiveCharts({
         type: activeChart,
         data: chartData[activeChart],
         config: DEFAULT_CHART_CONFIGS[activeChart],
-        timestamp: new Date()
-      };
-      onChartExport(chartData, format);
+        timestamp: new Date(),
+      }
+      onChartExport(chartData, format)
     }
-  }, [activeChart, chartData, onChartExport]);
+  }, [activeChart, chartData, onChartExport])
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
-    setChartState(prev => ({ ...prev, zoom: Math.min(prev.zoom * 1.2, 5) }));
-  }, []);
+    setChartState(prev => ({ ...prev, zoom: Math.min(prev.zoom * 1.2, 5) }))
+  }, [])
 
   const handleZoomOut = useCallback(() => {
-    setChartState(prev => ({ ...prev, zoom: Math.max(prev.zoom / 1.2, 0.5) }));
-  }, []);
+    setChartState(prev => ({ ...prev, zoom: Math.max(prev.zoom / 1.2, 0.5) }))
+  }, [])
 
   const handleZoomReset = useCallback(() => {
-    setChartState(prev => ({ 
-      ...prev, 
-      zoom: 1, 
+    setChartState(prev => ({
+      ...prev,
+      zoom: 1,
       pan: { x: 0, y: 0 },
-      selectedDataPoints: []
-    }));
-  }, []);
+      selectedDataPoints: [],
+    }))
+  }, [])
 
   // Time range controls
   const handleTimeRangeChange = useCallback((range: string) => {
-    const end = new Date();
-    let start: Date;
-    
+    const end = new Date()
+    let start: Date
+
     switch (range) {
       case '7d':
-        start = subDays(end, 7);
-        break;
+        start = subDays(end, 7)
+        break
       case '30d':
-        start = subDays(end, 30);
-        break;
+        start = subDays(end, 30)
+        break
       case '90d':
-        start = subDays(end, 90);
-        break;
+        start = subDays(end, 90)
+        break
       case '6m':
-        start = subMonths(end, 6);
-        break;
+        start = subMonths(end, 6)
+        break
       case '1y':
-        start = subYears(end, 1);
-        break;
+        start = subYears(end, 1)
+        break
       default:
-        start = subMonths(end, 12);
+        start = subMonths(end, 12)
     }
-    
-    setChartState(prev => ({ ...prev, timeRange: { start, end } }));
-  }, []);
+
+    setChartState(prev => ({ ...prev, timeRange: { start, end } }))
+  }, [])
 
   // Toggle series visibility
   const toggleSeriesVisibility = useCallback((series: string) => {
@@ -308,13 +308,13 @@ export function InteractiveCharts({
       ...prev,
       visibleSeries: prev.visibleSeries.includes(series)
         ? prev.visibleSeries.filter(s => s !== series)
-        : [...prev.visibleSeries, series]
-    }));
-  }, []);
+        : [...prev.visibleSeries, series],
+    }))
+  }, [])
 
   // Render chart controls
   const renderChartControls = () => (
-    <div className="flex flex-wrap gap-4 items-center justify-between p-4 bg-muted/50 rounded-lg">
+    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between p-4 bg-muted/50 rounded-lg">
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={handleZoomIn}>
           <ZoomIn className="h-4 w-4" />
@@ -349,7 +349,7 @@ export function InteractiveCharts({
         <Switch
           id="comparison-mode"
           checked={chartState.comparisonMode}
-          onCheckedChange={(checked) => 
+          onCheckedChange={(checked) =>
             setChartState(prev => ({ ...prev, comparisonMode: checked }))
           }
         />
@@ -360,7 +360,7 @@ export function InteractiveCharts({
         <Switch
           id="animation"
           checked={chartState.animationEnabled}
-          onCheckedChange={(checked) => 
+          onCheckedChange={(checked) =>
             setChartState(prev => ({ ...prev, animationEnabled: checked }))
           }
         />
@@ -385,11 +385,11 @@ export function InteractiveCharts({
         <Maximize className="h-4 w-4" />
       </Button>
     </div>
-  );
+  )
 
   // Render line chart
   const renderLineChart = (config: ChartConfig, data: any[]) => (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={300} minHeight={250}>
       <LineChart
         data={data}
         onClick={(e) => config.clickable && handleDataPointClick(e?.activePayload?.[0]?.payload, config.type)}
@@ -419,11 +419,11 @@ export function InteractiveCharts({
         {config.brushable && <Brush dataKey="date" height={30} />}
       </LineChart>
     </ResponsiveContainer>
-  );
+  )
 
   // Render area chart
   const renderAreaChart = (config: ChartConfig, data: any[]) => (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={300} minHeight={250}>
       <AreaChart
         data={data}
         onClick={(e) => config.clickable && handleDataPointClick(e?.activePayload?.[0]?.payload, config.type)}
@@ -460,11 +460,11 @@ export function InteractiveCharts({
         {config.brushable && <Brush dataKey="date" height={30} />}
       </AreaChart>
     </ResponsiveContainer>
-  );
+  )
 
   // Render bar chart
   const renderBarChart = (config: ChartConfig, data: any[]) => (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={300} minHeight={250}>
       <BarChart
         data={data}
         onClick={(e) => config.clickable && handleDataPointClick(e?.activePayload?.[0]?.payload, config.type)}
@@ -482,11 +482,11 @@ export function InteractiveCharts({
         {config.brushable && <Brush dataKey="date" height={30} />}
       </BarChart>
     </ResponsiveContainer>
-  );
+  )
 
   // Render pie chart
   const renderPieChart = (config: ChartConfig, data: any[]) => (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={300} minHeight={250}>
       <PieChart>
         <Pie
           data={data}
@@ -508,11 +508,11 @@ export function InteractiveCharts({
         <Legend />
       </PieChart>
     </ResponsiveContainer>
-  );
+  )
 
   // Render radar chart
   const renderRadarChart = (config: ChartConfig, data: any[]) => (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={300} minHeight={250}>
       <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
         <PolarGrid />
         <PolarAngleAxis dataKey="subject" />
@@ -528,11 +528,11 @@ export function InteractiveCharts({
         <Legend />
       </RadarChart>
     </ResponsiveContainer>
-  );
+  )
 
   // Render scatter chart
   const renderScatterChart = (config: ChartConfig, data: any[]) => (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height={300} minHeight={250}>
       <ScatterChart
         data={data}
         onClick={(e) => config.clickable && handleDataPointClick(e?.activePayload?.[0]?.payload, config.type)}
@@ -550,35 +550,35 @@ export function InteractiveCharts({
         />
       </ScatterChart>
     </ResponsiveContainer>
-  );
+  )
 
   // Main chart renderer
   const renderChart = (chartType: string) => {
-    const config = DEFAULT_CHART_CONFIGS[chartType];
-    const data = chartData[chartType];
+    const config = DEFAULT_CHART_CONFIGS[chartType]
+    const data = chartData[chartType]
 
-    if (!config || !data) return null;
+    if (!config || !data) return null
 
     switch (config.type) {
       case 'line':
-        return renderLineChart(config, data);
+        return renderLineChart(config, data)
       case 'area':
-        return renderAreaChart(config, data);
+        return renderAreaChart(config, data)
       case 'bar':
-        return renderBarChart(config, data);
+        return renderBarChart(config, data)
       case 'pie':
-        return renderPieChart(config, data);
+        return renderPieChart(config, data)
       case 'radar':
-        return renderRadarChart(config, data);
+        return renderRadarChart(config, data)
       case 'scatter':
-        return renderScatterChart(config, data);
+        return renderScatterChart(config, data)
       default:
-        return null;
+        return null
     }
-  };
+  }
 
   return (
-    <div className={`space-y-6 ${className} ${fullscreen ? 'fixed inset-0 z-50 bg-background p-6' : ''}`}>
+    <div className={`space-y-4 ${className}`}>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -611,7 +611,7 @@ export function InteractiveCharts({
         </CardHeader>
         <CardContent>
           <Tabs value={activeChart} onValueChange={setActiveChart}>
-            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
               <TabsTrigger value="ratingTrends" className="flex items-center gap-1">
                 <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Ratings</span>
@@ -696,87 +696,87 @@ export function InteractiveCharts({
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
 // Data processing functions
 function processRatingTrends(reviews: Review[], timeRange: { start: Date; end: Date }) {
   const filtered = reviews.filter(review => {
-    const date = new Date(review.publishedAtDate);
-    return date >= timeRange.start && date <= timeRange.end;
-  });
+    const date = new Date(review.publishedAtDate)
+    return date >= timeRange.start && date <= timeRange.end
+  })
 
   const grouped = filtered.reduce((acc, review) => {
-    const date = format(new Date(review.publishedAtDate), 'yyyy-MM-dd');
+    const date = format(new Date(review.publishedAtDate), 'yyyy-MM-dd')
     if (!acc[date]) {
-      acc[date] = { ratings: [], count: 0 };
+      acc[date] = { ratings: [], count: 0 }
     }
-    acc[date].ratings.push(review.stars);
-    acc[date].count++;
-    return acc;
-  }, {} as Record<string, { ratings: number[]; count: number }>);
+    acc[date].ratings.push(review.stars)
+    acc[date].count++
+    return acc
+  }, {} as Record<string, { ratings: number[]; count: number }>)
 
   return Object.entries(grouped).map(([date, data]) => ({
     date,
     rating: data.ratings.reduce((sum, rating) => sum + rating, 0) / data.ratings.length,
-    count: data.count
-  })).sort((a, b) => a.date.localeCompare(b.date));
+    count: data.count,
+  })).sort((a, b) => a.date.localeCompare(b.date))
 }
 
 function processSentimentTrends(reviews: Review[], timeRange: { start: Date; end: Date }) {
   const filtered = reviews.filter(review => {
-    const date = new Date(review.publishedAtDate);
-    return date >= timeRange.start && date <= timeRange.end && review.sentiment;
-  });
+    const date = new Date(review.publishedAtDate)
+    return date >= timeRange.start && date <= timeRange.end && review.sentiment
+  })
 
   const grouped = filtered.reduce((acc, review) => {
-    const date = format(new Date(review.publishedAtDate), 'yyyy-MM-dd');
+    const date = format(new Date(review.publishedAtDate), 'yyyy-MM-dd')
     if (!acc[date]) {
-      acc[date] = { positive: 0, neutral: 0, negative: 0, total: 0 };
+      acc[date] = { positive: 0, neutral: 0, negative: 0, total: 0 }
     }
-    
-    const sentiment = review.sentiment?.toLowerCase();
-    if (sentiment === 'positive') acc[date].positive++;
-    else if (sentiment === 'negative') acc[date].negative++;
-    else acc[date].neutral++;
-    
-    acc[date].total++;
-    return acc;
-  }, {} as Record<string, { positive: number; neutral: number; negative: number; total: number }>);
+
+    const sentiment = review.sentiment?.toLowerCase()
+    if (sentiment === 'positive') acc[date].positive++
+    else if (sentiment === 'negative') acc[date].negative++
+    else acc[date].neutral++
+
+    acc[date].total++
+    return acc
+  }, {} as Record<string, { positive: number; neutral: number; negative: number; total: number }>)
 
   return Object.entries(grouped).map(([date, data]) => ({
     date,
     sentiment: data.total > 0 ? (data.positive - data.negative) / data.total : 0,
     positive: data.total > 0 ? (data.positive / data.total) * 100 : 0,
     neutral: data.total > 0 ? (data.neutral / data.total) * 100 : 0,
-    negative: data.total > 0 ? (data.negative / data.total) * 100 : 0
-  })).sort((a, b) => a.date.localeCompare(b.date));
+    negative: data.total > 0 ? (data.negative / data.total) * 100 : 0,
+  })).sort((a, b) => a.date.localeCompare(b.date))
 }
 
 function processVolumeTrends(reviews: Review[], timeRange: { start: Date; end: Date }) {
   const filtered = reviews.filter(review => {
-    const date = new Date(review.publishedAtDate);
-    return date >= timeRange.start && date <= timeRange.end;
-  });
+    const date = new Date(review.publishedAtDate)
+    return date >= timeRange.start && date <= timeRange.end
+  })
 
   const grouped = filtered.reduce((acc, review) => {
-    const date = format(new Date(review.publishedAtDate), 'yyyy-MM-dd');
-    acc[date] = (acc[date] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+    const date = format(new Date(review.publishedAtDate), 'yyyy-MM-dd')
+    acc[date] = (acc[date] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
 
   return Object.entries(grouped).map(([date, volume]) => ({
     date,
-    volume
-  })).sort((a, b) => a.date.localeCompare(b.date));
+    volume,
+  })).sort((a, b) => a.date.localeCompare(b.date))
 }
 
 function processThemeDistribution(analysisData: AnalysisSummaryData) {
   return analysisData.thematicAnalysis.topCategories.slice(0, 8).map(theme => ({
     name: theme.category,
     value: theme.count,
-    sentiment: theme.averageSentiment
-  }));
+    sentiment: theme.averageSentiment,
+  }))
 }
 
 function processPerformanceRadar(analysisData: AnalysisSummaryData) {
@@ -785,23 +785,23 @@ function processPerformanceRadar(analysisData: AnalysisSummaryData) {
     { subject: 'Sentiment', value: analysisData.sentimentAnalysis.distribution.positive },
     { subject: 'Response Rate', value: analysisData.responseAnalytics.responseRate },
     { subject: 'Volume', value: Math.min(100, (analysisData.performanceMetrics.totalReviews / 100) * 10) },
-    { subject: 'Growth', value: Math.max(0, Math.min(100, analysisData.performanceMetrics.growthRate + 50)) }
-  ];
+    { subject: 'Growth', value: Math.max(0, Math.min(100, analysisData.performanceMetrics.growthRate + 50)) },
+  ]
 }
 
 function processCorrelationData(reviews: Review[]) {
   return reviews
     .filter(review => review.sentiment)
     .map(review => {
-      const sentimentScore = review.sentiment === 'positive' ? 1 : 
-                           review.sentiment === 'negative' ? -1 : 0;
+      const sentimentScore = review.sentiment === 'positive' ? 1 :
+                           review.sentiment === 'negative' ? -1 : 0
       return {
         x: review.stars,
         y: sentimentScore,
-        z: review.text?.length || 0
-      };
+        z: review.text?.length || 0,
+      }
     })
-    .slice(0, 100); // Limit for performance
+    .slice(0, 100) // Limit for performance
 }
 
-export default InteractiveCharts;
+export default InteractiveCharts

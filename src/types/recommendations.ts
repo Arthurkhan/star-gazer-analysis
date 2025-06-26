@@ -1,4 +1,4 @@
-export type BusinessType = "cafe" | "restaurant" | "bar" | "hotel" | "retail" | "art_gallery" | "other";
+export type BusinessType = 'cafe' | 'restaurant' | 'bar' | 'hotel' | 'retail' | 'art_gallery' | 'other';
 
 export interface RecommendationMetadata {
   source: 'openai' | 'fallback';
@@ -12,27 +12,27 @@ export interface Recommendations {
   // Business information
   businessId?: string;
   businessName?: string;
-  
+
   analysis: AnalysisResult;
   suggestions: Suggestion[];
   actionPlan: ActionPlan;
   competitiveAnalysis?: CompetitiveAnalysis;
   growthStrategies?: GrowthStrategy[];
-  
+
   // Add missing properties referenced in components
   urgentActions: UrgentAction[];
   patternInsights: PatternInsight[];
   longTermStrategies: Strategy[];
   competitivePosition: CompetitiveAnalysis;
   customerAttractionPlan: MarketingPlan;
-  
+
   // Metadata to track source
   metadata?: RecommendationMetadata;
 }
 
 export interface AnalysisResult {
   sentimentAnalysis: { name: string; value: number }[];
-  staffMentions: { name: string; count: number; sentiment: "positive" | "negative" | "neutral"; examples?: string[] }[];
+  staffMentions: { name: string; count: number; sentiment: 'positive' | 'negative' | 'neutral'; examples?: string[] }[];
   commonTerms: { text: string; count: number; category?: string }[];
   overallAnalysis: string;
   languageDistribution?: { language: string; count: number; percentage: number }[];
@@ -41,13 +41,13 @@ export interface AnalysisResult {
 }
 
 export interface Suggestion {
-  category: "staff" | "marketing" | "operations" | "customer_experience";
-  priority: "high" | "medium" | "low";
+  category: 'staff' | 'marketing' | 'operations' | 'customer_experience';
+  priority: 'high' | 'medium' | 'low';
   title: string;
   description: string;
-  impact: "high" | "medium" | "low";
-  effort: "high" | "medium" | "low";
-  timeframe: "immediate" | "short_term" | "long_term";
+  impact: 'high' | 'medium' | 'low';
+  effort: 'high' | 'medium' | 'low';
+  timeframe: 'immediate' | 'short_term' | 'long_term';
 }
 
 export interface ActionPlan {
@@ -55,14 +55,14 @@ export interface ActionPlan {
   description: string;
   steps: ActionStep[];
   expectedResults: string;
-  timeframe: "immediate" | "short_term" | "long_term" | "ongoing";
+  timeframe: 'immediate' | 'short_term' | 'long_term' | 'ongoing';
 }
 
 export interface ActionStep {
   title: string;
   description: string;
   assignedTo?: string;
-  status: "pending" | "in_progress" | "completed";
+  status: 'pending' | 'in_progress' | 'completed';
 }
 
 export interface CompetitiveAnalysis {
@@ -75,9 +75,9 @@ export interface CompetitiveAnalysis {
     threats: string[];
   };
   recommendations: string[];
-  
+
   // Add missing properties used in CompetitiveAnalysisView
-  position: "above" | "average" | "below";
+  position: 'above' | 'average' | 'below';
   metrics: {
     [key: string]: {
       value: number;
@@ -103,14 +103,14 @@ export interface Competitor {
 }
 
 export interface GrowthStrategy {
-  type: "operations" | "brand" | "customer" | "innovation";
+  type: 'operations' | 'brand' | 'customer' | 'innovation';
   title: string;
   description: string;
   steps: string[];
-  potentialImpact: "high" | "medium" | "low";
-  resourceRequirements: "high" | "medium" | "low";
-  timeframe: "immediate" | "short_term" | "long_term" | "ongoing";
-  
+  potentialImpact: 'high' | 'medium' | 'low';
+  resourceRequirements: 'high' | 'medium' | 'low';
+  timeframe: 'immediate' | 'short_term' | 'long_term' | 'ongoing';
+
   // Add missing properties used in GrowthStrategiesView
   id: string;
   category: string;
@@ -144,7 +144,7 @@ export interface MarketingPlan {
       description: string;
     }[];
   };
-  
+
   // Add missing properties used in GrowthStrategiesView
   targetAudiences: {
     primary: string[];
@@ -175,7 +175,7 @@ export interface Strategy {
     kpis: string[];
   }[];
   expectedOutcomes: string[];
-  
+
   // Add missing properties used in PatternAnalysisView
   id: string;
   category: string;
@@ -201,8 +201,8 @@ export interface PatternInsight {
   id?: string;
   pattern: string;
   frequency: number;
-  sentiment: "positive" | "negative" | "neutral" | "mixed";
-  impact?: "high" | "medium" | "low";
+  sentiment: 'positive' | 'negative' | 'neutral' | 'mixed';
+  impact?: 'high' | 'medium' | 'low';
   trend?: string;
   recommendation: string;
   examples: string[];

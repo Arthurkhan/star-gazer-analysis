@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext } from 'react'
 
 interface DashboardContextType {
   totalReviewCount?: number;
@@ -8,7 +8,7 @@ interface DashboardContextType {
 }
 
 // Create the context with a default undefined value
-const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+const DashboardContext = createContext<DashboardContextType | undefined>(undefined)
 
 // Provider component
 export const DashboardProvider: React.FC<{
@@ -19,11 +19,11 @@ export const DashboardProvider: React.FC<{
     <DashboardContext.Provider value={value}>
       {children}
     </DashboardContext.Provider>
-  );
-};
+  )
+}
 
 // Hook to use the dashboard context
 export const useDashboardContext = () => {
-  const context = useContext(DashboardContext);
-  return context;
-};
+  const context = useContext(DashboardContext)
+  return context
+}

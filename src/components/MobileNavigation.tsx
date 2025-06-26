@@ -1,56 +1,55 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, X, LogOut, Settings, Sun, Moon, Home, BarChart3, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Menu, X, LogOut, Settings, Sun, Moon, Home } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 interface MobileNavigationProps {
-  theme: "light" | "dark";
+  theme: 'light' | 'dark';
   onThemeToggle: () => void;
   onLogout: () => void;
   currentProvider?: string;
 }
 
 const MobileNavigation = ({ theme, onThemeToggle, onLogout, currentProvider }: MobileNavigationProps) => {
-  const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const navigate = useNavigate()
+  const [isOpen, setIsOpen] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    setIsMounted(true)
+  }, [])
 
   const navItems = [
     {
-      title: "Dashboard",
+      title: 'Dashboard',
       icon: Home,
       onClick: () => {
-        navigate("/dashboard");
-        setIsOpen(false);
-      }
+        navigate('/dashboard')
+        setIsOpen(false)
+      },
     },
     {
-      title: "AI Settings",
+      title: 'AI Settings',
       icon: Settings,
       onClick: () => {
-        navigate("/ai-settings");
-        setIsOpen(false);
-      }
-    }
-  ];
+        navigate('/ai-settings')
+        setIsOpen(false)
+      },
+    },
+  ]
 
   if (!isMounted) {
-    return null;
+    return null
   }
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="icon"
           className="md:hidden"
           aria-label="Open menu"
@@ -72,7 +71,7 @@ const MobileNavigation = ({ theme, onThemeToggle, onLogout, currentProvider }: M
             </Button>
           </SheetTitle>
         </SheetHeader>
-        
+
         <div className="flex flex-col h-full">
           <nav className="flex-1 p-4">
             <ul className="space-y-2">
@@ -89,8 +88,8 @@ const MobileNavigation = ({ theme, onThemeToggle, onLogout, currentProvider }: M
                 </li>
               ))}
             </ul>
-            
-            {currentProvider && currentProvider !== "browser" && (
+
+            {currentProvider && currentProvider !== 'browser' && (
               <div className="mt-4 px-3">
                 <Badge variant="secondary" className="w-full justify-center py-2">
                   AI: {currentProvider.toUpperCase()}
@@ -98,14 +97,14 @@ const MobileNavigation = ({ theme, onThemeToggle, onLogout, currentProvider }: M
               </div>
             )}
           </nav>
-          
+
           <div className="p-4 border-t space-y-2">
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-12"
               onClick={onThemeToggle}
             >
-              {theme === "light" ? (
+              {theme === 'light' ? (
                 <>
                   <Moon className="h-5 w-5" />
                   <span className="text-base">Dark Mode</span>
@@ -117,7 +116,7 @@ const MobileNavigation = ({ theme, onThemeToggle, onLogout, currentProvider }: M
                 </>
               )}
             </Button>
-            
+
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-12 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
@@ -130,7 +129,7 @@ const MobileNavigation = ({ theme, onThemeToggle, onLogout, currentProvider }: M
         </div>
       </SheetContent>
     </Sheet>
-  );
-};
+  )
+}
 
-export default MobileNavigation;
+export default MobileNavigation

@@ -1,8 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { type GrowthStrategy, type MarketingPlan } from "@/types/recommendations";
-import { Target, TrendingUp, Clock, BarChart } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { type GrowthStrategy, type MarketingPlan } from '@/types/recommendations'
+import { Target, TrendingUp, Clock, BarChart } from 'lucide-react'
 
 interface GrowthStrategiesViewProps {
   strategies: GrowthStrategy[];
@@ -12,22 +12,22 @@ interface GrowthStrategiesViewProps {
 export const GrowthStrategiesView = ({ strategies, marketingPlan }: GrowthStrategiesViewProps) => {
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'marketing': return <Target className="w-4 h-4" />;
-      case 'operations': return <BarChart className="w-4 h-4" />;
-      case 'customer_experience': return <TrendingUp className="w-4 h-4" />;
-      default: return <Target className="w-4 h-4" />;
+      case 'marketing': return <Target className="w-4 h-4" />
+      case 'operations': return <BarChart className="w-4 h-4" />
+      case 'customer_experience': return <TrendingUp className="w-4 h-4" />
+      default: return <Target className="w-4 h-4" />
     }
-  };
+  }
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'marketing': return 'bg-blue-500';
-      case 'operations': return 'bg-green-500';
-      case 'customer_experience': return 'bg-purple-500';
-      case 'staff': return 'bg-orange-500';
-      default: return 'bg-gray-500';
+      case 'marketing': return 'bg-blue-500'
+      case 'operations': return 'bg-green-500'
+      case 'customer_experience': return 'bg-purple-500'
+      case 'staff': return 'bg-orange-500'
+      default: return 'bg-gray-500'
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -160,5 +160,5 @@ export const GrowthStrategiesView = ({ strategies, marketingPlan }: GrowthStrate
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

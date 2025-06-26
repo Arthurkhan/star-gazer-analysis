@@ -1,7 +1,7 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Review } from "@/types/reviews";
-import { TrendingUp, TrendingDown, Star, MessageSquare, Users, Calendar } from "lucide-react";
-import { useMemo } from "react";
+import { Card, CardContent } from '@/components/ui/card'
+import type { Review } from '@/types/reviews'
+import { TrendingUp, TrendingDown, Star, MessageSquare, Users, Calendar } from 'lucide-react'
+import { useMemo } from 'react'
 
 interface OverviewSectionProps {
   reviews: Review[];
@@ -18,39 +18,39 @@ const OverviewSection = ({ reviews, selectedBusiness }: OverviewSectionProps) =>
         recentReviews: 0,
         ratingTrend: 0,
         mostRecentDate: null,
-      };
+      }
     }
 
-    const totalReviews = reviews.length;
-    const totalRating = reviews.reduce((sum, review) => sum + review.stars, 0);
-    const avgRating = totalRating / totalReviews;
-    
+    const totalReviews = reviews.length
+    const totalRating = reviews.reduce((sum, review) => sum + review.stars, 0)
+    const avgRating = totalRating / totalReviews
+
     const reviewsWithResponse = reviews.filter(
-      (review) => review.responseFromOwnerText && review.responseFromOwnerText.trim() !== ""
-    ).length;
-    const responseRate = (reviewsWithResponse / totalReviews) * 100;
+      (review) => review.responseFromOwnerText && review.responseFromOwnerText.trim() !== '',
+    ).length
+    const responseRate = (reviewsWithResponse / totalReviews) * 100
 
     // Calculate recent reviews (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     const recentReviews = reviews.filter(
-      (review) => new Date(review.publishedAtDate) >= thirtyDaysAgo
-    ).length;
+      (review) => new Date(review.publishedAtDate) >= thirtyDaysAgo,
+    ).length
 
     // Calculate rating trend (compare last 30 days avg to overall avg)
     const recentReviewsList = reviews.filter(
-      (review) => new Date(review.publishedAtDate) >= thirtyDaysAgo
-    );
+      (review) => new Date(review.publishedAtDate) >= thirtyDaysAgo,
+    )
     const recentAvgRating = recentReviewsList.length > 0
       ? recentReviewsList.reduce((sum, review) => sum + review.stars, 0) / recentReviewsList.length
-      : avgRating;
-    const ratingTrend = recentAvgRating - avgRating;
+      : avgRating
+    const ratingTrend = recentAvgRating - avgRating
 
     // Get most recent review date
     const sortedReviews = [...reviews].sort(
-      (a, b) => new Date(b.publishedAtDate).getTime() - new Date(a.publishedAtDate).getTime()
-    );
-    const mostRecentDate = sortedReviews[0]?.publishedAtDate;
+      (a, b) => new Date(b.publishedAtDate).getTime() - new Date(a.publishedAtDate).getTime(),
+    )
+    const mostRecentDate = sortedReviews[0]?.publishedAtDate
 
     return {
       totalReviews,
@@ -59,36 +59,36 @@ const OverviewSection = ({ reviews, selectedBusiness }: OverviewSectionProps) =>
       recentReviews,
       ratingTrend,
       mostRecentDate,
-    };
-  }, [reviews]);
+    }
+  }, [reviews])
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "N/A";
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffInDays === 0) return "Today";
-    if (diffInDays === 1) return "Yesterday";
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    return date.toLocaleDateString();
-  };
+    if (!dateStr) return 'N/A'
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (diffInDays === 0) return 'Today'
+    if (diffInDays === 1) return 'Yesterday'
+    if (diffInDays < 7) return `${diffInDays} days ago`
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`
+    return date.toLocaleDateString()
+  }
 
   const statCards = [
     {
-      title: "Total Reviews",
+      title: 'Total Reviews',
       value: stats.totalReviews,
       icon: Users,
-      color: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-100 dark:bg-blue-900/30",
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-100 dark:bg-blue-900/30',
     },
     {
-      title: "Average Rating",
+      title: 'Average Rating',
       value: stats.avgRating.toFixed(1),
       icon: Star,
-      color: "text-yellow-600 dark:text-yellow-400",
-      bgColor: "bg-yellow-100 dark:bg-yellow-900/30",
+      color: 'text-yellow-600 dark:text-yellow-400',
+      bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
       suffix: (
         <div className="flex items-center mt-1">
           {stats.ratingTrend > 0 ? (
@@ -105,27 +105,27 @@ const OverviewSection = ({ reviews, selectedBusiness }: OverviewSectionProps) =>
       ),
     },
     {
-      title: "Response Rate",
+      title: 'Response Rate',
       value: `${stats.responseRate.toFixed(0)}%`,
       icon: MessageSquare,
-      color: "text-green-600 dark:text-green-400",
-      bgColor: "bg-green-100 dark:bg-green-900/30",
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-900/30',
     },
     {
-      title: "Recent Reviews",
+      title: 'Recent Reviews',
       value: stats.recentReviews,
       icon: Calendar,
-      color: "text-purple-600 dark:text-purple-400",
-      bgColor: "bg-purple-100 dark:bg-purple-900/30",
-      subtitle: "Last 30 days",
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-100 dark:bg-purple-900/30',
+      subtitle: 'Last 30 days',
     },
-  ];
+  ]
 
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-          {selectedBusiness === "all" ? "All Businesses Overview" : selectedBusiness}
+          {selectedBusiness === 'all' ? 'All Businesses Overview' : selectedBusiness}
         </h2>
         {stats.mostRecentDate && (
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -136,7 +136,7 @@ const OverviewSection = ({ reviews, selectedBusiness }: OverviewSectionProps) =>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((stat, index) => {
-          const Icon = stat.icon;
+          const Icon = stat.icon
           return (
             <Card key={index} className="shadow-sm hover:shadow-md transition-shadow duration-200 border-0 dark:bg-gray-800">
               <CardContent className="p-4 sm:p-6">
@@ -163,7 +163,7 @@ const OverviewSection = ({ reviews, selectedBusiness }: OverviewSectionProps) =>
                 </div>
               </CardContent>
             </Card>
-          );
+          )
         })}
       </div>
 
@@ -185,7 +185,7 @@ const OverviewSection = ({ reviews, selectedBusiness }: OverviewSectionProps) =>
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default OverviewSection;
+export default OverviewSection

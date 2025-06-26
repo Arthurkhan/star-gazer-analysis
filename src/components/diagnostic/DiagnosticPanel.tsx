@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import loggingService from '@/services/logging/loggingService';
-import { ErrorSeverity } from '@/utils/errorHandling';
-import { appDebugger } from '@/utils/debugger';
+import React, { useState, useEffect } from 'react'
+import loggingService from '@/services/logging/loggingService'
+import { ErrorSeverity } from '@/utils/errorHandling'
+import { appDebugger } from '@/utils/debugger'
 
 /**
  * A component that provides a diagnostic dashboard for error monitoring and debugging
  */
 const DiagnosticPanel: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<'errors' | 'warnings' | 'stats' | 'actions'>('errors');
-  const [errors, setErrors] = useState<any[]>([]);
-  const [warnings, setWarnings] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>({});
-  const [systemInfo, setSystemInfo] = useState<any>({});
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
+  const [isVisible, setIsVisible] = useState(false)
+  const [activeTab, setActiveTab] = useState<'errors' | 'warnings' | 'stats' | 'actions'>('errors')
+  const [errors, setErrors] = useState<any[]>([])
+  const [warnings, setWarnings] = useState<any[]>([])
+  const [stats, setStats] = useState<any>({})
+  const [systemInfo, setSystemInfo] = useState<any>({})
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [refreshInterval, setRefreshInterval] = useState<number | null>(null)
 
   // Load diagnostic data on mount and tab change
   useEffect(() => {
-    loadDiagnosticData();
+    loadDiagnosticData()
 
     // Set up system info
     setSystemInfo({
@@ -29,71 +29,71 @@ const DiagnosticPanel: React.FC = () => {
       devicePixelRatio: window.devicePixelRatio,
       timestamp: new Date().toISOString(),
       timezoneName: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      memoryInfo: 'performance' in window && 'memory' in performance 
+      memoryInfo: 'performance' in window && 'memory' in performance
         ? {
             jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit,
             totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-            usedJSHeapSize: (performance as any).memory.usedJSHeapSize
+            usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
           }
-        : 'Not available'
-    });
+        : 'Not available',
+    })
 
     // Set up keyboard shortcut (Ctrl+Shift+F12) to toggle the panel
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'F12') {
-        e.preventDefault();
-        setIsVisible(prev => !prev);
+        e.preventDefault()
+        setIsVisible(prev => !prev)
       }
-    };
+    }
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown)
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown)
       if (refreshInterval) {
-        clearInterval(refreshInterval);
+        clearInterval(refreshInterval)
       }
-    };
-  }, []);
+    }
+  }, [])
 
   // Handle auto-refresh
   useEffect(() => {
     if (autoRefresh) {
       const interval = window.setInterval(() => {
-        loadDiagnosticData();
-      }, 3000); // Refresh every 3 seconds
-      setRefreshInterval(interval);
+        loadDiagnosticData()
+      }, 3000) // Refresh every 3 seconds
+      setRefreshInterval(interval)
     } else if (refreshInterval) {
-      clearInterval(refreshInterval);
-      setRefreshInterval(null);
+      clearInterval(refreshInterval)
+      setRefreshInterval(null)
     }
 
     return () => {
       if (refreshInterval) {
-        clearInterval(refreshInterval);
+        clearInterval(refreshInterval)
       }
-    };
-  }, [autoRefresh]);
+    }
+  }, [autoRefresh])
 
   // Load all diagnostic data
   const loadDiagnosticData = () => {
     // Get errors and warnings
-    setErrors(loggingService.getErrors());
-    setWarnings(loggingService.getWarnings());
-    
+    setErrors(loggingService.getErrors())
+    setWarnings(loggingService.getWarnings())
+
     // Get error statistics
-    setStats(loggingService.getErrorStats());
-  };
+    setStats(loggingService.getErrorStats())
+  }
 
   // Clear logged errors
   const handleClearLogs = () => {
-    loggingService.clearLogs();
-    loadDiagnosticData();
-  };
+    loggingService.clearLogs()
+    loadDiagnosticData()
+  }
 
   // Force an error for testing
   const handleTestError = () => {
     try {
-      throw new Error('This is a test error from DiagnosticPanel');
+      throw new Error('This is a test error from DiagnosticPanel')
     } catch (error) {
       loggingService.logError(
         'Test error triggered manually',
@@ -101,17 +101,17 @@ const DiagnosticPanel: React.FC = () => {
         {
           module: 'DiagnosticPanel',
           operation: 'Test error',
-          stack: error instanceof Error ? error.stack : undefined
-        }
-      );
-      loadDiagnosticData();
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+      )
+      loadDiagnosticData()
     }
-  };
+  }
 
   // Export logs to console
   const handleExportLogs = () => {
-    appDebugger.exportLogs();
-  };
+    appDebugger.exportLogs()
+  }
 
   if (!isVisible) {
     return (
@@ -126,7 +126,7 @@ const DiagnosticPanel: React.FC = () => {
           </svg>
         </button>
       </div>
-    );
+    )
   }
 
   return (
@@ -317,7 +317,7 @@ const DiagnosticPanel: React.FC = () => {
                   <p className="text-gray-700 dark:text-gray-300">
                     <span className="font-semibold">Warnings:</span> {stats.warnings || 0}
                   </p>
-                  
+
                   <div className="mt-4">
                     <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">By Severity</h4>
                     <div className="space-y-1">
@@ -329,7 +329,7 @@ const DiagnosticPanel: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="mt-4">
                     <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2">By Module</h4>
                     <div className="space-y-1">
@@ -343,7 +343,7 @@ const DiagnosticPanel: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">System Information</h3>
                 <div className="space-y-2">
@@ -391,9 +391,9 @@ const DiagnosticPanel: React.FC = () => {
                   </button>
                   <button
                     onClick={() => {
-                      localStorage.setItem('DEBUG_MODE', 'true');
-                      appDebugger.enable();
-                      alert('Debug mode enabled. Check console for logs.');
+                      localStorage.setItem('DEBUG_MODE', 'true')
+                      appDebugger.enable()
+                      alert('Debug mode enabled. Check console for logs.')
                     }}
                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
                   >
@@ -401,17 +401,17 @@ const DiagnosticPanel: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Browser Information</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <button
                     onClick={() => {
                       if ('performance' in window) {
-                        console.table(performance.getEntriesByType('navigation'));
-                        alert('Navigation timing information logged to console');
+                        console.table(performance.getEntriesByType('navigation'))
+                        alert('Navigation timing information logged to console')
                       } else {
-                        alert('Performance API not available in this browser');
+                        alert('Performance API not available in this browser')
                       }
                     }}
                     className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
@@ -421,10 +421,10 @@ const DiagnosticPanel: React.FC = () => {
                   <button
                     onClick={() => {
                       if ('performance' in window) {
-                        console.table(performance.getEntriesByType('resource'));
-                        alert('Resource timing information logged to console');
+                        console.table(performance.getEntriesByType('resource'))
+                        alert('Resource timing information logged to console')
                       } else {
-                        alert('Performance API not available in this browser');
+                        alert('Performance API not available in this browser')
                       }
                     }}
                     className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
@@ -435,11 +435,11 @@ const DiagnosticPanel: React.FC = () => {
                     onClick={() => {
                       if ('caches' in window) {
                         caches.keys().then(keys => {
-                          console.log('Cache keys:', keys);
-                          alert(`Found ${keys.length} cache(s). Details logged to console.`);
-                        });
+                          console.log('Cache keys:', keys)
+                          alert(`Found ${keys.length} cache(s). Details logged to console.`)
+                        })
                       } else {
-                        alert('Cache API not available in this browser');
+                        alert('Cache API not available in this browser')
                       }
                     }}
                     className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
@@ -448,9 +448,9 @@ const DiagnosticPanel: React.FC = () => {
                   </button>
                   <button
                     onClick={() => {
-                      localStorage.clear();
-                      sessionStorage.clear();
-                      alert('Local storage and session storage cleared');
+                      localStorage.clear()
+                      sessionStorage.clear()
+                      alert('Local storage and session storage cleared')
                     }}
                     className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
                   >
@@ -468,7 +468,7 @@ const DiagnosticPanel: React.FC = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default DiagnosticPanel;
+export default DiagnosticPanel

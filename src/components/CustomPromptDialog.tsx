@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,85 +9,85 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Settings } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
+import { Settings } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 
 export function CustomPromptDialog() {
-  const { toast } = useToast();
-  const [open, setOpen] = useState(false);
-  const [customPrompt, setCustomPrompt] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  
+  const { toast } = useToast()
+  const [open, setOpen] = useState(false)
+  const [customPrompt, setCustomPrompt] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
   // Load current prompt when dialog opens
   const loadCurrentPrompt = async () => {
-    setIsLoading(true);
-    
+    setIsLoading(true)
+
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-reviews", {
+      const { data, error } = await supabase.functions.invoke('analyze-reviews', {
         body: {
-          action: "get-prompt"
-        }
-      });
-      
+          action: 'get-prompt',
+        },
+      })
+
       if (error) {
-        throw new Error(error.message);
+        throw new Error(error.message)
       }
-      
+
       if (data && data.prompt) {
-        setCustomPrompt(data.prompt);
+        setCustomPrompt(data.prompt)
       }
     } catch (error) {
-      console.error("Error loading custom prompt:", error);
+      console.error('Error loading custom prompt:', error)
       // Just use default prompt if we can't load
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
-  
+  }
+
   // Save custom prompt
   const saveCustomPrompt = async () => {
-    setIsLoading(true);
-    
+    setIsLoading(true)
+
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-reviews", {
+      const { error } = await supabase.functions.invoke('analyze-reviews', {
         body: {
-          action: "set-prompt",
-          prompt: customPrompt
-        }
-      });
-      
+          action: 'set-prompt',
+          prompt: customPrompt,
+        },
+      })
+
       if (error) {
-        throw new Error(error.message);
+        throw new Error(error.message)
       }
-      
+
       toast({
-        title: "Custom Prompt Saved",
-        description: "Your custom prompt has been saved and will be used for future analyses."
-      });
-      
-      setOpen(false);
+        title: 'Custom Prompt Saved',
+        description: 'Your custom prompt has been saved and will be used for future analyses.',
+      })
+
+      setOpen(false)
     } catch (error) {
-      console.error("Error saving custom prompt:", error);
-      
+      console.error('Error saving custom prompt:', error)
+
       toast({
-        title: "Error Saving Prompt",
+        title: 'Error Saving Prompt',
         description: error.message,
-        variant: "destructive"
-      });
+        variant: 'destructive',
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
-  
+  }
+
   return (
     <Dialog open={open} onOpenChange={(newOpen) => {
-      setOpen(newOpen);
+      setOpen(newOpen)
       if (newOpen) {
-        loadCurrentPrompt();
+        loadCurrentPrompt()
       }
     }}>
       <DialogTrigger asChild>
@@ -103,7 +103,7 @@ export function CustomPromptDialog() {
             Customize how the AI analyzes your reviews. Use [REVIEWS] as a placeholder for your review data.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="py-4">
           <div className="space-y-4">
             <div className="space-y-2">
@@ -116,7 +116,7 @@ export function CustomPromptDialog() {
                 className="min-h-[200px]"
               />
             </div>
-            
+
             <div className="text-sm text-gray-500">
               <p className="font-medium">Tips:</p>
               <ul className="list-disc pl-5 space-y-1">
@@ -127,23 +127,23 @@ export function CustomPromptDialog() {
             </div>
           </div>
         </div>
-        
+
         <DialogFooter>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setOpen(false)}
             disabled={isLoading}
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={saveCustomPrompt}
             disabled={isLoading}
           >
-            {isLoading ? "Saving..." : "Save Prompt"}
+            {isLoading ? 'Saving...' : 'Save Prompt'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

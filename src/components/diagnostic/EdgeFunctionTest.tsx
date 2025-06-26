@@ -1,40 +1,40 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FlaskConical, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { recommendationService } from '@/services/recommendationService';
+import React, { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { FlaskConical, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { recommendationService } from '@/services/recommendationService'
 
 export const EdgeFunctionTest: React.FC = () => {
-  const [testing, setTesting] = useState(false);
+  const [testing, setTesting] = useState(false)
   const [result, setResult] = useState<{
     success: boolean;
     message: string;
     data?: any;
-  } | null>(null);
+  } | null>(null)
 
   const handleTest = async () => {
-    setTesting(true);
-    setResult(null);
-    
+    setTesting(true)
+    setResult(null)
+
     try {
-      const testResult = await recommendationService.testEdgeFunction();
-      setResult(testResult);
-      
+      const testResult = await recommendationService.testEdgeFunction()
+      setResult(testResult)
+
       // Log to console for debugging
-      console.log('Edge Function Test Result:', testResult);
+      console.log('Edge Function Test Result:', testResult)
       if (testResult.data) {
-        console.log('Test Data:', JSON.stringify(testResult.data, null, 2));
+        console.log('Test Data:', JSON.stringify(testResult.data, null, 2))
       }
     } catch (error) {
       setResult({
         success: false,
-        message: error instanceof Error ? error.message : 'Test failed'
-      });
+        message: error instanceof Error ? error.message : 'Test failed',
+      })
     } finally {
-      setTesting(false);
+      setTesting(false)
     }
-  };
+  }
 
   return (
     <Card className="mb-4">
@@ -66,9 +66,9 @@ export const EdgeFunctionTest: React.FC = () => {
             </>
           )}
         </Button>
-        
+
         {result && (
-          <Alert variant={result.success ? "default" : "destructive"}>
+          <Alert variant={result.success ? 'default' : 'destructive'}>
             <div className="flex items-start gap-2">
               {result.success ? (
                 <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
@@ -94,7 +94,7 @@ export const EdgeFunctionTest: React.FC = () => {
             </div>
           </Alert>
         )}
-        
+
         <Alert>
           <AlertTitle>Debug Info</AlertTitle>
           <AlertDescription className="text-xs space-y-1 mt-2">
@@ -105,5 +105,5 @@ export const EdgeFunctionTest: React.FC = () => {
         </Alert>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

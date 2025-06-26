@@ -1,2 +1,2 @@
 // Reviews feature utilities
-export * from './reviewUtils';
+export * from './reviewUtils'

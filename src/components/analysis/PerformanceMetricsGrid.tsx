@@ -1,10 +1,10 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { BarChart3, Star, MessageSquare, TrendingUp, Calendar, Activity, Zap, Target, Award } from "lucide-react";
-import { PerformanceMetrics, RatingAnalysis, ResponseAnalytics } from "@/types/analysisSummary";
-import { InfoTooltip } from "@/components/ui/info-tooltip";
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { BarChart3, Star, MessageSquare, TrendingUp, Calendar, Activity, Zap, Target, Award } from 'lucide-react'
+import type { PerformanceMetrics, RatingAnalysis, ResponseAnalytics } from '@/types/analysisSummary'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
 
 interface PerformanceMetricsGridProps {
   performanceMetrics: PerformanceMetrics;
@@ -15,29 +15,29 @@ interface PerformanceMetricsGridProps {
 export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
   performanceMetrics,
   ratingAnalysis,
-  responseAnalytics
+  responseAnalytics,
 }) => {
   // Helper to format numbers
   const formatNumber = (num: number) => {
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
-    return num.toString();
-  };
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}k`
+    return num.toString()
+  }
 
   // Helper to get seasonal pattern info
   const getSeasonalInfo = (pattern: string) => {
     switch (pattern) {
-      case "growing":
-        return { label: "Growing", color: "text-green-600", bg: "bg-green-100 dark:bg-green-900/30", icon: "📈" };
-      case "declining":
-        return { label: "Declining", color: "text-red-600", bg: "bg-red-100 dark:bg-red-900/30", icon: "📉" };
-      case "seasonal":
-        return { label: "Seasonal", color: "text-blue-600", bg: "bg-blue-100 dark:bg-blue-900/30", icon: "📊" };
+      case 'growing':
+        return { label: 'Growing', color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30', icon: '📈' }
+      case 'declining':
+        return { label: 'Declining', color: 'text-red-600', bg: 'bg-red-100 dark:bg-red-900/30', icon: '📉' }
+      case 'seasonal':
+        return { label: 'Seasonal', color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30', icon: '📊' }
       default:
-        return { label: "Stable", color: "text-gray-600", bg: "bg-gray-100 dark:bg-gray-900/30", icon: "➡️" };
+        return { label: 'Stable', color: 'text-gray-600', bg: 'bg-gray-100 dark:bg-gray-900/30', icon: '➡️' }
     }
-  };
+  }
 
-  const seasonalInfo = getSeasonalInfo(performanceMetrics.trends.seasonalPattern);
+  const seasonalInfo = getSeasonalInfo(performanceMetrics.trends.seasonalPattern)
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -47,7 +47,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
             <BarChart3 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           </div>
           <span className="font-bold">Performance Metrics</span>
-          <InfoTooltip 
+          <InfoTooltip
             content="Key performance indicators showing review volume, ratings, and customer engagement"
             className="ml-auto"
           />
@@ -55,7 +55,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
       </CardHeader>
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
+
           {/* Review Volume Analysis - Enhanced */}
           <Card className="border-0 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden group">
             <div className="h-2 bg-gradient-to-r from-blue-400 to-cyan-500" />
@@ -65,7 +65,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                   <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <span className="font-bold">Review Volume</span>
-                <InfoTooltip 
+                <InfoTooltip
                   tooltipPath="overview.totalReviews"
                   className="ml-auto"
                 />
@@ -88,7 +88,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <h4 className="text-sm font-bold flex items-center gap-2">
                   <Zap className="w-4 h-4 text-yellow-500" />
                   Recent Activity
-                  <InfoTooltip 
+                  <InfoTooltip
                     tooltipPath="overview.recentActivity"
                     className="ml-auto"
                   />
@@ -123,20 +123,20 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-green-500" />
                   <span className="font-bold">Growth</span>
-                  <InfoTooltip 
+                  <InfoTooltip
                     tooltipPath="comparison.growthRate"
                     className="ml-1"
                   />
                 </div>
                 <div className="text-right">
                   <div className={`text-2xl font-black ${
-                    performanceMetrics.growthRate > 0 ? 'text-green-600 dark:text-green-400' : 
+                    performanceMetrics.growthRate > 0 ? 'text-green-600 dark:text-green-400' :
                     performanceMetrics.growthRate < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'
                   }`}>
                     {performanceMetrics.growthRate > 0 ? '+' : ''}{performanceMetrics.growthRate.toFixed(1)}%
                   </div>
-                  <Badge variant={performanceMetrics.trends.isGrowing ? "default" : "secondary"} className="mt-1">
-                    {performanceMetrics.trends.isGrowing ? "📈 Growing" : "📊 Stable"}
+                  <Badge variant={performanceMetrics.trends.isGrowing ? 'default' : 'secondary'} className="mt-1">
+                    {performanceMetrics.trends.isGrowing ? '📈 Growing' : '📊 Stable'}
                   </Badge>
                 </div>
               </div>
@@ -146,7 +146,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold flex items-center gap-1">
                     Pattern
-                    <InfoTooltip 
+                    <InfoTooltip
                       tooltipPath="temporal.seasonalAnalysis"
                       className="ml-1"
                     />
@@ -171,7 +171,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                   <Star className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <span className="font-bold">Rating Analysis</span>
-                <InfoTooltip 
+                <InfoTooltip
                   tooltipPath="ratings.distribution"
                   className="ml-auto"
                 />
@@ -185,19 +185,19 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                   <div className="flex flex-col items-center">
                     <Star className="w-8 h-8 fill-yellow-400 text-yellow-400" />
                     <span className="text-2xl mt-1">
-                      {ratingAnalysis.trends.direction === 'up' ? '↗️' : 
+                      {ratingAnalysis.trends.direction === 'up' ? '↗️' :
                        ratingAnalysis.trends.direction === 'down' ? '↘️' : '➡️'}
                     </span>
                   </div>
                 </div>
                 <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 mt-2 flex items-center justify-center gap-1">
                   Average Rating
-                  <InfoTooltip 
+                  <InfoTooltip
                     tooltipPath="overview.averageRating"
                     className="ml-1"
                   />
                   {Math.abs(ratingAnalysis.trends.change) > 0.1 && (
-                    <span className={ratingAnalysis.trends.change > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                    <span className={ratingAnalysis.trends.change > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
                       {` (${ratingAnalysis.trends.change > 0 ? '+' : ''}${ratingAnalysis.trends.change.toFixed(1)})`}
                     </span>
                   )}
@@ -209,29 +209,29 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <h4 className="text-sm font-bold flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-indigo-500" />
                   Distribution
-                  <InfoTooltip 
+                  <InfoTooltip
                     content="Breakdown of reviews by star rating (1-5 stars)"
                     className="ml-auto"
                   />
                 </h4>
                 {[5, 4, 3, 2, 1].map(rating => {
-                  const data = ratingAnalysis.distribution[rating];
-                  const starEmoji = rating === 5 ? "🌟" : rating === 4 ? "⭐" : rating === 3 ? "✨" : rating === 2 ? "💫" : "⚡";
-                  
+                  const data = ratingAnalysis.distribution[rating]
+                  const starEmoji = rating === 5 ? '🌟' : rating === 4 ? '⭐' : rating === 3 ? '✨' : rating === 2 ? '💫' : '⚡'
+
                   return (
                     <div key={rating} className="group/rating hover:scale-[1.02] transition-transform">
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-bold min-w-[40px] flex items-center gap-1">
                           {starEmoji} {rating}★
-                          <InfoTooltip 
+                          <InfoTooltip
                             tooltipPath={`ratings.${rating === 5 ? 'fiveStar' : rating === 4 ? 'fourStar' : rating === 3 ? 'threeStar' : rating === 2 ? 'twoStar' : 'oneStar'}`}
                             className="ml-1"
                           />
                         </span>
                         <div className="flex-1 relative">
-                          <Progress 
-                            value={data.percentage} 
-                            className="h-6" 
+                          <Progress
+                            value={data.percentage}
+                            className="h-6"
                           />
                           <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white mix-blend-difference">
                             {data.count} reviews
@@ -242,7 +242,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                         </span>
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
 
@@ -251,7 +251,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <h4 className="text-sm font-bold flex items-center gap-2">
                   <Target className="w-4 h-4 text-purple-500" />
                   Quality Benchmarks
-                  <InfoTooltip 
+                  <InfoTooltip
                     content="Performance categories based on rating distribution"
                     className="ml-auto"
                   />
@@ -298,7 +298,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                   <MessageSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
                 <span className="font-bold">Response Analytics</span>
-                <InfoTooltip 
+                <InfoTooltip
                   content="Analysis of business owner responses to customer reviews"
                   className="ml-auto"
                 />
@@ -312,18 +312,18 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 </div>
                 <p className="text-sm font-semibold text-green-600 dark:text-green-400 mt-2 flex items-center justify-center gap-1">
                   Response Rate
-                  <InfoTooltip 
+                  <InfoTooltip
                     tooltipPath="overview.responseRate"
                     className="ml-1"
                   />
                 </p>
-                <Badge 
-                  variant={responseAnalytics.responseRate >= 50 ? "default" : "secondary"}
+                <Badge
+                  variant={responseAnalytics.responseRate >= 50 ? 'default' : 'secondary'}
                   className="mt-3 text-sm font-bold px-4 py-1"
                 >
-                  {responseAnalytics.responseRate >= 70 ? "🏆 Excellent" :
-                   responseAnalytics.responseRate >= 50 ? "✅ Good" :
-                   responseAnalytics.responseRate >= 25 ? "⚡ Fair" : "📈 Needs Improvement"}
+                  {responseAnalytics.responseRate >= 70 ? '🏆 Excellent' :
+                   responseAnalytics.responseRate >= 50 ? '✅ Good' :
+                   responseAnalytics.responseRate >= 25 ? '⚡ Fair' : '📈 Needs Improvement'}
                 </Badge>
               </div>
 
@@ -332,24 +332,24 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <h4 className="text-sm font-bold flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-indigo-500" />
                   Response by Rating
-                  <InfoTooltip 
+                  <InfoTooltip
                     content="Response rates categorized by review star rating"
                     className="ml-auto"
                   />
                 </h4>
                 {[1, 2, 3, 4, 5].reverse().map(rating => {
-                  const data = responseAnalytics.responsesByRating[rating];
-                  if (data.total === 0) return null;
-                  const starEmoji = rating === 5 ? "🌟" : rating === 4 ? "⭐" : rating === 3 ? "✨" : rating === 2 ? "💫" : "⚡";
-                  
+                  const data = responseAnalytics.responsesByRating[rating]
+                  if (data.total === 0) return null
+                  const starEmoji = rating === 5 ? '🌟' : rating === 4 ? '⭐' : rating === 3 ? '✨' : rating === 2 ? '💫' : '⚡'
+
                   return (
                     <div key={rating} className="group/rating hover:scale-[1.02] transition-transform">
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-bold min-w-[40px]">{starEmoji} {rating}★</span>
                         <div className="flex-1 relative">
-                          <Progress 
-                            value={data.rate} 
-                            className="h-6" 
+                          <Progress
+                            value={data.rate}
+                            className="h-6"
                           />
                           <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white mix-blend-difference">
                             {data.responded}/{data.total}
@@ -360,7 +360,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                         </span>
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
 
@@ -369,7 +369,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 <h4 className="text-sm font-bold flex items-center gap-2 mb-3">
                   <Zap className="w-4 h-4 text-purple-500" />
                   Effectiveness
-                  <InfoTooltip 
+                  <InfoTooltip
                     content="How responses impact customer satisfaction and future ratings"
                     className="ml-auto"
                   />
@@ -396,8 +396,8 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                 </div>
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-3 font-medium">
                   {responseAnalytics.responseEffectiveness.improvedSubsequentRatings
-                    ? "✅ Responses show positive impact on satisfaction"
-                    : "💡 Opportunity to improve response quality"}
+                    ? '✅ Responses show positive impact on satisfaction'
+                    : '💡 Opportunity to improve response quality'}
                 </p>
               </div>
 
@@ -407,7 +407,7 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
                   <h4 className="text-sm font-bold flex items-center gap-2 mb-2">
                     <Calendar className="w-4 h-4 text-blue-500" />
                     Peak Periods
-                    <InfoTooltip 
+                    <InfoTooltip
                       content="Time periods with highest review activity"
                       className="ml-auto"
                     />
@@ -426,5 +426,5 @@ export const PerformanceMetricsGrid: React.FC<PerformanceMetricsGridProps> = ({
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

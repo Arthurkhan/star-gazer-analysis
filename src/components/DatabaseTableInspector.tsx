@@ -1,66 +1,66 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Spinner } from '@/components/ui/spinner';
-import { Info, Database, Rows } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Spinner } from '@/components/ui/spinner'
+import { Info, Database, Rows } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 
-const tables = ['businesses', 'reviews', 'recommendations'];
+const tables = ['businesses', 'reviews', 'recommendations']
 
 export function DatabaseTableInspector() {
-  const [selectedTable, setSelectedTable] = useState('businesses');
-  const [tableData, setTableData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [columnNames, setColumnNames] = useState<string[]>([]);
-  const [rowCount, setRowCount] = useState<number | null>(null);
+  const [selectedTable, setSelectedTable] = useState('businesses')
+  const [tableData, setTableData] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [columnNames, setColumnNames] = useState<string[]>([])
+  const [rowCount, setRowCount] = useState<number | null>(null)
 
   const fetchTableData = async (tableName: string) => {
-    setIsLoading(true);
-    setError(null);
+    setIsLoading(true)
+    setError(null)
     try {
       // First, get the row count
       const { count, error: countError } = await supabase
         .from(tableName)
-        .select('*', { count: 'exact', head: true });
-      
+        .select('*', { count: 'exact', head: true })
+
       if (countError) {
-        throw countError;
+        throw countError
       }
-      
-      setRowCount(count);
-      
+
+      setRowCount(count)
+
       // Then fetch limited data for preview
       const { data, error: dataError } = await supabase
         .from(tableName)
         .select('*')
-        .limit(10);
-      
+        .limit(10)
+
       if (dataError) {
-        throw dataError;
+        throw dataError
       }
-      
+
       if (data && data.length > 0) {
         // Extract column names from the first row
-        setColumnNames(Object.keys(data[0]));
-        setTableData(data);
+        setColumnNames(Object.keys(data[0]))
+        setTableData(data)
       } else {
-        setColumnNames([]);
-        setTableData([]);
+        setColumnNames([])
+        setTableData([])
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      console.error('Error fetching table data:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred')
+      console.error('Error fetching table data:', err)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchTableData(selectedTable);
-  }, [selectedTable]);
+    fetchTableData(selectedTable)
+  }, [selectedTable])
 
   return (
     <Card className="w-full overflow-hidden">
@@ -78,7 +78,7 @@ export function DatabaseTableInspector() {
           {tables.map(table => (
             <Button
               key={table}
-              variant={selectedTable === table ? "default" : "outline"}
+              variant={selectedTable === table ? 'default' : 'outline'}
               onClick={() => setSelectedTable(table)}
               className="capitalize"
             >
@@ -131,8 +131,8 @@ export function DatabaseTableInspector() {
                   <TableRow key={rowIndex}>
                     {columnNames.map((column) => (
                       <TableCell key={column}>
-                        {typeof row[column] === 'object' 
-                          ? JSON.stringify(row[column]).substring(0, 50) + '...' 
+                        {typeof row[column] === 'object'
+                          ? `${JSON.stringify(row[column]).substring(0, 50)}...`
                           : String(row[column]).substring(0, 50)}
                       </TableCell>
                     ))}
@@ -144,8 +144,8 @@ export function DatabaseTableInspector() {
         )}
       </CardContent>
       <CardFooter>
-        <Button 
-          onClick={() => fetchTableData(selectedTable)} 
+        <Button
+          onClick={() => fetchTableData(selectedTable)}
           disabled={isLoading}
           variant="outline"
           className="ml-auto"
@@ -155,5 +155,5 @@ export function DatabaseTableInspector() {
         </Button>
       </CardFooter>
     </Card>
-  );
+  )
 }

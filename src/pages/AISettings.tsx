@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
-import { AIServiceFactory, defaultConfigs } from '@/services/ai/aiServiceFactory';
-import { AIProviderType } from '@/types/aiService';
-import { Loader2, Check, X, ArrowLeft, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import DashboardLayout from '@/components/DashboardLayout'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useToast } from '@/hooks/use-toast'
+import { AIServiceFactory, defaultConfigs } from '@/services/ai/aiServiceFactory'
+import type { AIProviderType } from '@/types/aiService'
+import { Loader2, Check, X, ArrowLeft, Settings } from 'lucide-react'
 
 // Model configurations for each provider
 const providerModels: Record<AIProviderType, { value: string; label: string }[]> = {
@@ -22,154 +22,154 @@ const providerModels: Record<AIProviderType, { value: string; label: string }[]>
     { value: 'gpt-4o-mini', label: 'GPT-4o Mini (Faster, cheaper)' },
     { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
     { value: 'gpt-4', label: 'GPT-4' },
-    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (Budget option)' }
+    { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (Budget option)' },
   ],
   claude: [
     { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus (Most capable)' },
     { value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet (Balanced)' },
-    { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku (Fast & affordable)' }
+    { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku (Fast & affordable)' },
   ],
   gemini: [
     { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Latest)' },
     { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Fast)' },
-    { value: 'gemini-pro', label: 'Gemini Pro' }
-  ]
-};
+    { value: 'gemini-pro', label: 'Gemini Pro' },
+  ],
+}
 
 const AISettings = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [selectedProvider, setSelectedProvider] = useState<AIProviderType>('openai');
+  const { toast } = useToast()
+  const navigate = useNavigate()
+  const [selectedProvider, setSelectedProvider] = useState<AIProviderType>('openai')
   const [apiKeys, setApiKeys] = useState<Record<AIProviderType, string>>({
     openai: '',
     claude: '',
-    gemini: ''
-  });
+    gemini: '',
+  })
   const [selectedModels, setSelectedModels] = useState<Record<AIProviderType, string>>({
     openai: 'gpt-4o',
     claude: 'claude-3-opus-20240229',
-    gemini: 'gemini-1.5-pro'
-  });
-  const [testing, setTesting] = useState(false);
+    gemini: 'gemini-1.5-pro',
+  })
+  const [testing, setTesting] = useState(false)
   const [testResults, setTestResults] = useState<Record<AIProviderType, boolean | null>>({
     openai: null,
     claude: null,
-    gemini: null
-  });
+    gemini: null,
+  })
 
   // Load saved settings on mount
   useEffect(() => {
-    const savedProvider = localStorage.getItem('AI_PROVIDER') as AIProviderType;
+    const savedProvider = localStorage.getItem('AI_PROVIDER') as AIProviderType
     if (savedProvider) {
-      setSelectedProvider(savedProvider);
+      setSelectedProvider(savedProvider)
     }
 
     const savedKeys: Record<AIProviderType, string> = {
       openai: localStorage.getItem('OPENAI_API_KEY') || '',
       claude: localStorage.getItem('CLAUDE_API_KEY') || '',
-      gemini: localStorage.getItem('GEMINI_API_KEY') || ''
-    };
-    setApiKeys(savedKeys);
+      gemini: localStorage.getItem('GEMINI_API_KEY') || '',
+    }
+    setApiKeys(savedKeys)
 
     // Load saved models
     const savedModels: Record<AIProviderType, string> = {
       openai: localStorage.getItem('OPENAI_MODEL') || 'gpt-4o',
       claude: localStorage.getItem('CLAUDE_MODEL') || 'claude-3-opus-20240229',
-      gemini: localStorage.getItem('GEMINI_MODEL') || 'gemini-1.5-pro'
-    };
-    setSelectedModels(savedModels);
-  }, []);
+      gemini: localStorage.getItem('GEMINI_MODEL') || 'gemini-1.5-pro',
+    }
+    setSelectedModels(savedModels)
+  }, [])
 
   // Back navigation handler
   const handleGoBack = () => {
-    navigate('/dashboard');
-  };
+    navigate('/dashboard')
+  }
 
   const saveSettings = () => {
     // Save provider selection
-    localStorage.setItem('AI_PROVIDER', selectedProvider);
+    localStorage.setItem('AI_PROVIDER', selectedProvider)
 
     // Save API keys and models
     Object.entries(apiKeys).forEach(([provider, key]) => {
       if (key) {
-        localStorage.setItem(`${provider.toUpperCase()}_API_KEY`, key);
+        localStorage.setItem(`${provider.toUpperCase()}_API_KEY`, key)
       } else {
-        localStorage.removeItem(`${provider.toUpperCase()}_API_KEY`);
+        localStorage.removeItem(`${provider.toUpperCase()}_API_KEY`)
       }
-    });
+    })
 
     // Save selected models
     Object.entries(selectedModels).forEach(([provider, model]) => {
-      localStorage.setItem(`${provider.toUpperCase()}_MODEL`, model);
-    });
+      localStorage.setItem(`${provider.toUpperCase()}_MODEL`, model)
+    })
 
     toast({
       title: 'Settings saved',
-      description: 'Your AI provider settings have been updated'
-    });
-  };
+      description: 'Your AI provider settings have been updated',
+    })
+  }
 
   const testConnection = async (provider: AIProviderType) => {
-    const apiKey = apiKeys[provider];
+    const apiKey = apiKeys[provider]
     if (!apiKey) {
       toast({
         title: 'Missing API key',
         description: `Please enter an API key for ${provider}`,
-        variant: 'destructive'
-      });
-      return;
+        variant: 'destructive',
+      })
+      return
     }
 
-    setTesting(true);
-    setTestResults(prev => ({ ...prev, [provider]: null }));
+    setTesting(true)
+    setTestResults(prev => ({ ...prev, [provider]: null }))
 
     try {
       const config = {
         provider,
         apiKey,
         model: selectedModels[provider],
-        ...defaultConfigs[provider]
-      };
+        ...defaultConfigs[provider],
+      }
 
-      const success = await AIServiceFactory.testProvider(config);
-      setTestResults(prev => ({ ...prev, [provider]: success }));
+      const success = await AIServiceFactory.testProvider(config)
+      setTestResults(prev => ({ ...prev, [provider]: success }))
 
       toast({
         title: success ? 'Connection successful' : 'Connection failed',
-        description: success 
+        description: success
           ? `Successfully connected to ${provider} with model ${selectedModels[provider]}`
           : `Failed to connect to ${provider}. Please check your API key.`,
-        variant: success ? 'default' : 'destructive'
-      });
+        variant: success ? 'default' : 'destructive',
+      })
     } catch (error) {
-      setTestResults(prev => ({ ...prev, [provider]: false }));
+      setTestResults(prev => ({ ...prev, [provider]: false }))
       toast({
         title: 'Connection error',
         description: `Error testing ${provider}: ${error}`,
-        variant: 'destructive'
-      });
+        variant: 'destructive',
+      })
     } finally {
-      setTesting(false);
+      setTesting(false)
     }
-  };
+  }
 
   const providers: { value: AIProviderType; label: string; description: string }[] = [
     {
       value: 'openai',
       label: 'OpenAI',
-      description: 'Most advanced language models with excellent reasoning capabilities'
+      description: 'Most advanced language models with excellent reasoning capabilities',
     },
     {
       value: 'claude',
       label: 'Anthropic Claude',
-      description: 'Excellent for detailed analysis and creative solutions'
+      description: 'Excellent for detailed analysis and creative solutions',
     },
     {
       value: 'gemini',
       label: 'Google Gemini',
-      description: 'Fast and efficient for general business analysis'
-    }
-  ];
+      description: 'Fast and efficient for general business analysis',
+    },
+  ]
 
   return (
     <DashboardLayout>
@@ -177,8 +177,8 @@ const AISettings = () => {
         {/* Enhanced Header with Back Button */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={handleGoBack}
               className="flex items-center gap-2"
@@ -274,11 +274,11 @@ const AISettings = () => {
                     {provider.value === 'gemini' && 'Get your API key from makersuite.google.com'}
                   </p>
                 </div>
-                
+
                 <div>
                   <Label htmlFor={`${provider.value}-model`}>Model</Label>
-                  <Select 
-                    value={selectedModels[provider.value]} 
+                  <Select
+                    value={selectedModels[provider.value]}
                     onValueChange={(value) => setSelectedModels(prev => ({ ...prev, [provider.value]: value }))}
                   >
                     <SelectTrigger id={`${provider.value}-model`}>
@@ -303,14 +303,14 @@ const AISettings = () => {
 
         <Alert className="mb-6">
           <AlertDescription>
-            API keys are stored locally in your browser and never sent to our servers. 
+            API keys are stored locally in your browser and never sent to our servers.
             Make sure to keep them secure and don't share them with others.
           </AlertDescription>
         </Alert>
 
         <div className="flex justify-between items-center">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleGoBack}
             className="flex items-center gap-2"
           >
@@ -321,7 +321,7 @@ const AISettings = () => {
         </div>
       </div>
     </DashboardLayout>
-  );
-};
+  )
+}
 
-export default AISettings;
+export default AISettings

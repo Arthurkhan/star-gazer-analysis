@@ -1,54 +1,54 @@
 
-import React, { useState } from "react";
-import { Review } from "@/types/reviews";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCcw } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAnalysis } from "@/utils/ai/analysisService";
-import SentimentBreakdown from "./SentimentBreakdown";
-import StaffMentions from "./StaffMentions";
-import LanguageDistribution from "./LanguageDistribution";
-import CommonTerms from "./CommonTerms";
+import React, { useState } from 'react'
+import type { Review } from '@/types/reviews'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { RefreshCcw } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getAnalysis } from '@/utils/ai/analysisService'
+import SentimentBreakdown from './SentimentBreakdown'
+import StaffMentions from './StaffMentions'
+import LanguageDistribution from './LanguageDistribution'
+import CommonTerms from './CommonTerms'
 
 interface ReviewAnalysisProps {
   reviews: Review[];
 }
 
 const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
-  const { toast } = useToast();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [analysisTab, setAnalysisTab] = useState("sentiment");
+  const { toast } = useToast()
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [analysisTab, setAnalysisTab] = useState('sentiment')
 
   const refreshAnalysis = async () => {
     if (reviews.length === 0) {
-      setError("No reviews available to analyze");
-      return;
+      setError('No reviews available to analyze')
+      return
     }
 
-    setIsAnalyzing(true);
-    setError(null);
+    setIsAnalyzing(true)
+    setError(null)
 
     try {
-      await getAnalysis(reviews);
+      await getAnalysis(reviews)
       toast({
-        title: "Analysis Complete",
-        description: "Review analysis has been updated",
-      });
+        title: 'Analysis Complete',
+        description: 'Review analysis has been updated',
+      })
     } catch (err) {
-      console.error("Error analyzing reviews:", err);
-      setError("Failed to analyze reviews. Please try again later.");
+      console.error('Error analyzing reviews:', err)
+      setError('Failed to analyze reviews. Please try again later.')
       toast({
-        title: "Analysis Error",
-        description: "Failed to analyze reviews. Please try again later.",
-        variant: "destructive",
-      });
+        title: 'Analysis Error',
+        description: 'Failed to analyze reviews. Please try again later.',
+        variant: 'destructive',
+      })
     } finally {
-      setIsAnalyzing(false);
+      setIsAnalyzing(false)
     }
-  };
+  }
 
   return (
     <Card>
@@ -61,9 +61,9 @@ const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
           disabled={isAnalyzing || reviews.length === 0}
         >
           <RefreshCcw
-            className={`h-4 w-4 mr-2 ${isAnalyzing ? "animate-spin" : ""}`}
+            className={`h-4 w-4 mr-2 ${isAnalyzing ? 'animate-spin' : ''}`}
           />
-          {isAnalyzing ? "Analyzing..." : "Refresh Analysis"}
+          {isAnalyzing ? 'Analyzing...' : 'Refresh Analysis'}
         </Button>
       </CardHeader>
       <CardContent className="pt-6">
@@ -93,7 +93,7 @@ const ReviewAnalysis: React.FC<ReviewAnalysisProps> = ({ reviews }) => {
         </Tabs>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
-export default ReviewAnalysis;
+export default ReviewAnalysis

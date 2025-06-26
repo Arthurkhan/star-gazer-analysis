@@ -1,56 +1,56 @@
-import React, { useState, useCallback, useMemo, Suspense, useEffect } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
-import BusinessSelector from "@/components/BusinessSelector";
-import DashboardContent from "@/components/dashboard/DashboardContent";
-import { RecommendationsDashboard } from "@/components/recommendations/RecommendationsDashboard";
-import { EnhancedAnalysisDisplay } from "@/components/analysis/EnhancedAnalysisDisplay";
-import { PeriodComparisonDisplay } from "@/components/analysis/PeriodComparisonDisplay";
-import { EmailSettingsForm } from "@/components/emails/EmailSettingsForm";
-import { ExportButton } from "@/components/exports/ExportButton";
-import { EdgeFunctionTest } from "@/components/diagnostic/EdgeFunctionTest";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDashboardData } from "@/hooks/useDashboardData";
-import { useRecommendations } from "@/hooks/useRecommendations";
-import { getBusinessTypeFromName } from "@/types/BusinessMappings";
-import { Sparkles, RefreshCw, BarChart3, GitCompare, Mail as MailIcon, KeyRound, Download } from "lucide-react";
-import { DatabaseErrorDisplay } from "@/components/diagnostic/DatabaseErrorDisplay";
-import { MissingEnvAlert } from "@/components/diagnostic/MissingEnvAlert";
-import { NoReviewsAlert } from "@/components/diagnostic/NoReviewsAlert";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState, useCallback, useMemo, Suspense, useEffect } from 'react'
+import DashboardLayout from '@/components/DashboardLayout'
+import BusinessSelector from '@/components/BusinessSelector'
+import DashboardContent from '@/components/dashboard/DashboardContent'
+import { RecommendationsDashboard } from '@/components/recommendations/RecommendationsDashboard'
+import { EnhancedAnalysisDisplay } from '@/components/analysis/EnhancedAnalysisDisplay'
+import { PeriodComparisonDisplay } from '@/components/analysis/PeriodComparisonDisplay'
+import { EmailSettingsForm } from '@/components/emails/EmailSettingsForm'
+import { ExportButton } from '@/components/exports/ExportButton'
+import { EdgeFunctionTest } from '@/components/diagnostic/EdgeFunctionTest'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useDashboardData } from '@/hooks/useDashboardData'
+import { useRecommendations } from '@/hooks/useRecommendations'
+import { getBusinessTypeFromName } from '@/types/BusinessMappings'
+import { Sparkles, RefreshCw, BarChart3, GitCompare, Mail as MailIcon, KeyRound, Download } from 'lucide-react'
+import { DatabaseErrorDisplay } from '@/components/diagnostic/DatabaseErrorDisplay'
+import { MissingEnvAlert } from '@/components/diagnostic/MissingEnvAlert'
+import { NoReviewsAlert } from '@/components/diagnostic/NoReviewsAlert'
+import { useNavigate } from 'react-router-dom'
+import { useToast } from '@/hooks/use-toast'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu'
 
 // Phase 5: Import performance and error handling utilities
-import { 
-  PerformanceMonitor, 
-  memoizeWithExpiry, 
-  debounce, 
-  optimizeMemoryUsage 
-} from "@/utils/performanceOptimizations";
-import { 
-  errorLogger, 
-  AppError, 
-  ErrorType, 
-  ErrorSeverity, 
+import {
+  PerformanceMonitor,
+  memoizeWithExpiry,
+  debounce,
+  optimizeMemoryUsage,
+} from '@/utils/performanceOptimizations'
+import {
+  errorLogger,
+  AppError,
+  ErrorType,
+  ErrorSeverity,
   safeExecute,
-  handleAsyncError 
-} from "@/utils/errorHandling";
-import { 
-  PageErrorBoundary, 
-  SectionErrorBoundary, 
-  ComponentErrorBoundary 
-} from "@/components/ErrorBoundary";
-import { LoadingFallback } from "@/utils/lazyLoading";
+  handleAsyncError,
+} from '@/utils/errorHandling'
+import {
+  PageErrorBoundary,
+  SectionErrorBoundary,
+  ComponentErrorBoundary,
+} from '@/components/ErrorBoundary'
+import { LoadingFallback } from '@/utils/lazyLoading'
 
 /**
  * Enhanced Dashboard Component - Phase 5 + Mobile Responsive
- * 
+ *
  * Features:
  * - Comprehensive error boundaries at multiple levels
  * - Performance monitoring and optimization
@@ -65,125 +65,125 @@ import { LoadingFallback } from "@/utils/lazyLoading";
 // Phase 5: Memoized business type calculation
 const getMemoizedBusinessType = memoizeWithExpiry(
   (selectedBusiness: string): string => {
-    const stopMeasurement = PerformanceMonitor.startMeasurement('business-type-calculation');
-    const result = selectedBusiness === "all" 
-      ? "other" 
-      : getBusinessTypeFromName(selectedBusiness);
-    stopMeasurement();
-    return result;
+    const stopMeasurement = PerformanceMonitor.startMeasurement('business-type-calculation')
+    const result = selectedBusiness === 'all'
+      ? 'other'
+      : getBusinessTypeFromName(selectedBusiness)
+    stopMeasurement()
+    return result
   },
   (selectedBusiness: string) => `business-type-${selectedBusiness}`,
-  30 * 60 * 1000 // 30 minutes cache
-);
+  30 * 60 * 1000, // 30 minutes cache
+)
 
 const Dashboard: React.FC = React.memo(() => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  
+  const navigate = useNavigate()
+  const { toast } = useToast()
+
   // Check if we're on a mobile device
-  const [isMobile, setIsMobile] = useState(false);
-  
+  const [isMobile, setIsMobile] = useState(false)
+
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-  
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   // Phase 5: Performance monitoring for component lifecycle
   React.useEffect(() => {
-    const stopMeasurement = PerformanceMonitor.startMeasurement('dashboard-mount');
-    
+    const stopMeasurement = PerformanceMonitor.startMeasurement('dashboard-mount')
+
     // Memory optimization on component mount
-    optimizeMemoryUsage();
-    
+    optimizeMemoryUsage()
+
     return () => {
-      stopMeasurement();
+      stopMeasurement()
       // Cleanup on unmount
-      optimizeMemoryUsage();
-    };
-  }, []);
+      optimizeMemoryUsage()
+    }
+  }, [])
 
   // Single state variable for tab management
-  const [activeTab, setActiveTab] = useState("overview");
-  const [showDebugTools, setShowDebugTools] = useState(false);
-  
+  const [activeTab, setActiveTab] = useState('overview')
+  const [showDebugTools, setShowDebugTools] = useState(false)
+
   // Use simplified dashboard data hook with error handling
-  const { 
-    loading, 
+  const {
+    loading,
     databaseError,
-    selectedBusiness, 
-    businessData, 
-    getFilteredReviews, 
+    selectedBusiness,
+    businessData,
+    getFilteredReviews,
     getChartData,
     enhancedAnalysis,
     handleBusinessChange,
     refreshData,
-    getAllReviews // NEW: Get the getAllReviews function
-  } = useDashboardData();
+    getAllReviews, // NEW: Get the getAllReviews function
+  } = useDashboardData()
 
   // Phase 5: Memoized filtered reviews and chart data
   const filteredReviews = useMemo(() => {
-    const stopMeasurement = PerformanceMonitor.startMeasurement('filtered-reviews-calculation');
+    const stopMeasurement = PerformanceMonitor.startMeasurement('filtered-reviews-calculation')
     try {
-      const result = getFilteredReviews();
-      stopMeasurement();
-      return result;
+      const result = getFilteredReviews()
+      stopMeasurement()
+      return result
     } catch (error) {
-      stopMeasurement();
+      stopMeasurement()
       errorLogger.logError(new AppError(
-        "Failed to get filtered reviews",
+        'Failed to get filtered reviews',
         ErrorType.CLIENT,
         ErrorSeverity.MEDIUM,
-        { selectedBusiness, error: error.message }
-      ));
-      return [];
+        { selectedBusiness, error: error.message },
+      ))
+      return []
     }
-  }, [getFilteredReviews, selectedBusiness]);
+  }, [getFilteredReviews, selectedBusiness])
 
   const chartData = useMemo(() => {
-    const stopMeasurement = PerformanceMonitor.startMeasurement('chart-data-calculation');
+    const stopMeasurement = PerformanceMonitor.startMeasurement('chart-data-calculation')
     try {
-      const result = getChartData(filteredReviews);
-      stopMeasurement();
-      return result;
+      const result = getChartData(filteredReviews)
+      stopMeasurement()
+      return result
     } catch (error) {
-      stopMeasurement();
+      stopMeasurement()
       errorLogger.logError(new AppError(
-        "Failed to get chart data",
+        'Failed to get chart data',
         ErrorType.CLIENT,
         ErrorSeverity.MEDIUM,
-        { reviewCount: filteredReviews.length, error: error.message }
-      ));
-      return { monthlyData: [], sentimentData: [], ratingData: [], languageData: [] };
+        { reviewCount: filteredReviews.length, error: error.message },
+      ))
+      return { monthlyData: [], sentimentData: [], ratingData: [], languageData: [] }
     }
-  }, [getChartData, filteredReviews]);
+  }, [getChartData, filteredReviews])
 
   // Phase 5: Memoized business type with error handling
   const businessType = useMemo(() => {
     try {
-      return getMemoizedBusinessType(selectedBusiness);
+      return getMemoizedBusinessType(selectedBusiness)
     } catch (error) {
       errorLogger.logError(new AppError(
-        "Failed to determine business type",
+        'Failed to determine business type',
         ErrorType.CLIENT,
         ErrorSeverity.LOW,
-        { selectedBusiness, error: error.message }
-      ));
-      return "other";
+        { selectedBusiness, error: error.message },
+      ))
+      return 'other'
     }
-  }, [selectedBusiness]);
+  }, [selectedBusiness])
 
   // FIX: Properly memoize businessData to prevent infinite loops
   const memoizedBusinessData = useMemo(() => ({
     businessName: selectedBusiness,
-    businessType: businessType,
-    reviews: filteredReviews
-  }), [selectedBusiness, businessType, filteredReviews]);
+    businessType,
+    reviews: filteredReviews,
+  }), [selectedBusiness, businessType, filteredReviews])
 
   // Recommendations data with error handling - now using memoized businessData and including progress
   const {
@@ -196,38 +196,38 @@ const Dashboard: React.FC = React.memo(() => {
     businessData: memoizedBusinessData,
     selectedBusiness,
     businessType,
-  });
-  
+  })
+
   // Phase 5: Memoized check for no reviews
   const hasNoReviews = useMemo(() => {
-    return !loading && !databaseError && (!filteredReviews || filteredReviews.length === 0);
-  }, [loading, databaseError, filteredReviews]);
-  
+    return !loading && !databaseError && (!filteredReviews || filteredReviews.length === 0)
+  }, [loading, databaseError, filteredReviews])
+
   // Phase 5: Debounced tab change handler
   const handleTabChange = useCallback(
     debounce((value: string) => {
-      const stopMeasurement = PerformanceMonitor.startMeasurement('tab-change');
-      setActiveTab(value);
-      stopMeasurement();
-      
+      const stopMeasurement = PerformanceMonitor.startMeasurement('tab-change')
+      setActiveTab(value)
+      stopMeasurement()
+
       // Optimize memory when switching tabs
       if (value !== activeTab) {
-        setTimeout(optimizeMemoryUsage, 100);
+        setTimeout(optimizeMemoryUsage, 100)
       }
     }, 150),
-    [activeTab]
-  );
+    [activeTab],
+  )
 
   // Phase 5: Enhanced recommendations handler with error handling
   const handleGenerateRecommendations = useCallback(
     safeExecute(async () => {
       // Check if API key is configured
-      const apiKey = localStorage.getItem('OPENAI_API_KEY');
+      const apiKey = localStorage.getItem('OPENAI_API_KEY')
       if (!apiKey) {
         toast({
-          title: "API Key Required",
-          description: "Please configure your OpenAI API key in AI Settings to generate recommendations.",
-          variant: "destructive",
+          title: 'API Key Required',
+          description: 'Please configure your OpenAI API key in AI Settings to generate recommendations.',
+          variant: 'destructive',
           action: (
             <Button
               variant="outline"
@@ -238,133 +238,133 @@ const Dashboard: React.FC = React.memo(() => {
               <KeyRound className="h-4 w-4" />
               Configure
             </Button>
-          )
-        });
-        return;
+          ),
+        })
+        return
       }
-      
-      const stopMeasurement = PerformanceMonitor.startMeasurement('generate-recommendations');
+
+      const stopMeasurement = PerformanceMonitor.startMeasurement('generate-recommendations')
       try {
         // FIX: Use 'openai' instead of 'browser'
         await handleAsyncError(
-          generateRecommendations("openai"),
-          { 
+          generateRecommendations('openai'),
+          {
             action: 'generate-recommendations',
             selectedBusiness,
             businessType,
-            reviewCount: filteredReviews.length
-          }
-        );
-        stopMeasurement();
+            reviewCount: filteredReviews.length,
+          },
+        )
+        stopMeasurement()
       } catch (error) {
-        stopMeasurement();
+        stopMeasurement()
         // Error already logged by handleAsyncError
       }
     }, {
       action: 'generate-recommendations',
       selectedBusiness,
-      businessType
+      businessType,
     }),
-    [generateRecommendations, selectedBusiness, businessType, filteredReviews.length, navigate, toast]
-  );
+    [generateRecommendations, selectedBusiness, businessType, filteredReviews.length, navigate, toast],
+  )
 
   // Phase 5: Enhanced refresh handler with error handling and debouncing
   const handleRefreshData = useCallback(
     debounce(
       safeExecute(async () => {
-        const stopMeasurement = PerformanceMonitor.startMeasurement('data-refresh');
+        const stopMeasurement = PerformanceMonitor.startMeasurement('data-refresh')
         try {
           await handleAsyncError(refreshData(), {
             action: 'refresh-data',
-            selectedBusiness
-          });
-          stopMeasurement();
+            selectedBusiness,
+          })
+          stopMeasurement()
         } catch (error) {
-          stopMeasurement();
+          stopMeasurement()
           // Error already logged by handleAsyncError
         }
       }, {
         action: 'refresh-data',
-        selectedBusiness
+        selectedBusiness,
       }),
-      500
+      500,
     ),
-    [refreshData, selectedBusiness]
-  );
+    [refreshData, selectedBusiness],
+  )
 
   // Phase 5: Memoized date range for export
   const dateRange = useMemo(() => {
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return { start: thirtyDaysAgo, end: today };
-  }, []);
+    const today = new Date()
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    return { start: thirtyDaysAgo, end: today }
+  }, [])
 
   // Phase 5: Memoized business change handler
   const handleBusinessChangeOptimized = useCallback(
     safeExecute((business: string) => {
-      const stopMeasurement = PerformanceMonitor.startMeasurement('business-change');
-      handleBusinessChange(business);
-      stopMeasurement();
-      
+      const stopMeasurement = PerformanceMonitor.startMeasurement('business-change')
+      handleBusinessChange(business)
+      stopMeasurement()
+
       // Clear memory after business change
-      setTimeout(optimizeMemoryUsage, 200);
+      setTimeout(optimizeMemoryUsage, 200)
     }, {
       action: 'business-change',
-      newBusiness: 'unknown'
+      newBusiness: 'unknown',
     }),
-    [handleBusinessChange]
-  );
+    [handleBusinessChange],
+  )
 
   // Get all reviews for comparison
   const allReviews = useMemo(() => {
-    const stopMeasurement = PerformanceMonitor.startMeasurement('all-reviews-calculation');
+    const stopMeasurement = PerformanceMonitor.startMeasurement('all-reviews-calculation')
     try {
-      const result = getAllReviews();
-      stopMeasurement();
-      return result;
+      const result = getAllReviews()
+      stopMeasurement()
+      return result
     } catch (error) {
-      stopMeasurement();
+      stopMeasurement()
       errorLogger.logError(new AppError(
-        "Failed to get all reviews",
+        'Failed to get all reviews',
         ErrorType.CLIENT,
         ErrorSeverity.MEDIUM,
-        { error: error.message }
-      ));
-      return [];
+        { error: error.message },
+      ))
+      return []
     }
-  }, [getAllReviews]);
+  }, [getAllReviews])
 
   // Mobile tab configuration
   const tabConfig = [
-    { value: "overview", label: isMobile ? "Overview" : "Overview" },
-    { value: "enhanced", label: isMobile ? "Analysis" : "Enhanced Analysis" },
-    { value: "comparison", label: isMobile ? "Compare" : "Period Comparison" },
-    { value: "recommendations", label: isMobile ? "AI" : "AI Recommendations" },
-    { value: "notifications", label: isMobile ? "Notify" : "Notifications" }
-  ];
+    { value: 'overview', label: isMobile ? 'Overview' : 'Overview' },
+    { value: 'enhanced', label: isMobile ? 'Analysis' : 'Enhanced Analysis' },
+    { value: 'comparison', label: isMobile ? 'Compare' : 'Period Comparison' },
+    { value: 'recommendations', label: isMobile ? 'AI' : 'AI Recommendations' },
+    { value: 'notifications', label: isMobile ? 'Notify' : 'Notifications' },
+  ]
 
   return (
     <PageErrorBoundary>
       <DashboardLayout onProviderChange={() => {}}> {/* Simplified - no provider change */}
-        
+
         {/* Error and alert displays with error boundaries */}
         <ComponentErrorBoundary>
           <MissingEnvAlert />
         </ComponentErrorBoundary>
-        
+
         {databaseError && (
           <ComponentErrorBoundary>
-            <DatabaseErrorDisplay 
+            <DatabaseErrorDisplay
               onRefresh={handleRefreshData}
               isRefreshing={loading}
             />
           </ComponentErrorBoundary>
         )}
-        
+
         {hasNoReviews && (
           <ComponentErrorBoundary>
-            <NoReviewsAlert 
+            <NoReviewsAlert
               businessData={businessData}
               selectedBusiness={selectedBusiness}
             />
@@ -382,7 +382,7 @@ const Dashboard: React.FC = React.memo(() => {
                 className="w-full sm:flex-1"
               />
             </ComponentErrorBoundary>
-            
+
             <div className="flex gap-2 w-full sm:w-auto">
               {/* Mobile: Action Menu */}
               {isMobile ? (
@@ -397,7 +397,7 @@ const Dashboard: React.FC = React.memo(() => {
                   >
                     <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                   </Button>
-                  
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="flex-1">
@@ -407,21 +407,21 @@ const Dashboard: React.FC = React.memo(() => {
                     <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem
                         onClick={handleGenerateRecommendations}
-                        disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
+                        disabled={!selectedBusiness || selectedBusiness === 'all' || recommendationsLoading || hasNoReviews}
                       >
                         <Sparkles className="w-4 h-4 mr-2" />
                         Generate AI Analysis
                       </DropdownMenuItem>
                       {enhancedAnalysis && (
                         <DropdownMenuItem
-                          disabled={!selectedBusiness || selectedBusiness === "all"}
+                          disabled={!selectedBusiness || selectedBusiness === 'all'}
                         >
                           <ExportButton
                             businessName={selectedBusiness}
                             businessType={businessType}
                             data={enhancedAnalysis}
                             dateRange={dateRange}
-                            disabled={!selectedBusiness || selectedBusiness === "all"}
+                            disabled={!selectedBusiness || selectedBusiness === 'all'}
                             asMenuItem
                           />
                         </DropdownMenuItem>
@@ -442,7 +442,7 @@ const Dashboard: React.FC = React.memo(() => {
                   >
                     <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                   </Button>
-                  
+
                   {enhancedAnalysis && (
                     <ComponentErrorBoundary>
                       <ExportButton
@@ -450,14 +450,14 @@ const Dashboard: React.FC = React.memo(() => {
                         businessType={businessType}
                         data={enhancedAnalysis}
                         dateRange={dateRange}
-                        disabled={!selectedBusiness || selectedBusiness === "all"}
+                        disabled={!selectedBusiness || selectedBusiness === 'all'}
                       />
                     </ComponentErrorBoundary>
                   )}
-                  
+
                   <Button
                     onClick={handleGenerateRecommendations}
-                    disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
+                    disabled={!selectedBusiness || selectedBusiness === 'all' || recommendationsLoading || hasNoReviews}
                     size="icon"
                     className="w-10 h-10"
                     title="Generate Recommendations"
@@ -469,7 +469,7 @@ const Dashboard: React.FC = React.memo(() => {
             </div>
           </div>
         </SectionErrorBoundary>
-        
+
         {/* Phase 5: Enhanced Main Content Tabs with error boundaries and lazy loading */}
         <SectionErrorBoundary>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -492,7 +492,7 @@ const Dashboard: React.FC = React.memo(() => {
                 ))
               )}
             </TabsList>
-            
+
             {/* Overview Tab with error boundary - passing allReviews and businessData */}
             <TabsContent value="overview" className="mt-4 sm:mt-6">
               <SectionErrorBoundary>
@@ -508,7 +508,7 @@ const Dashboard: React.FC = React.memo(() => {
                 </Suspense>
               </SectionErrorBoundary>
             </TabsContent>
-            
+
             {/* Enhanced Analysis Tab with error boundary */}
             <TabsContent value="enhanced" className="mt-4 sm:mt-6">
               <SectionErrorBoundary>
@@ -532,7 +532,7 @@ const Dashboard: React.FC = React.memo(() => {
                     </p>
                     <Button
                       onClick={handleGenerateRecommendations}
-                      disabled={!selectedBusiness || selectedBusiness === "all" || recommendationsLoading || hasNoReviews}
+                      disabled={!selectedBusiness || selectedBusiness === 'all' || recommendationsLoading || hasNoReviews}
                       className="mt-4"
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
@@ -542,11 +542,11 @@ const Dashboard: React.FC = React.memo(() => {
                 )}
               </SectionErrorBoundary>
             </TabsContent>
-            
+
             {/* Period Comparison Tab with error boundary */}
             <TabsContent value="comparison" className="mt-4 sm:mt-6">
               <SectionErrorBoundary>
-                {selectedBusiness && selectedBusiness !== "all" ? (
+                {selectedBusiness && selectedBusiness !== 'all' ? (
                   <Suspense fallback={<LoadingFallback size="large" message="Loading comparison..." />}>
                     <PeriodComparisonDisplay businessName={selectedBusiness} />
                   </Suspense>
@@ -561,7 +561,7 @@ const Dashboard: React.FC = React.memo(() => {
                 )}
               </SectionErrorBoundary>
             </TabsContent>
-            
+
             {/* AI Recommendations Tab with error boundary - now passing progress */}
             <TabsContent value="recommendations" className="mt-4 sm:mt-6">
               <SectionErrorBoundary>
@@ -578,14 +578,14 @@ const Dashboard: React.FC = React.memo(() => {
                     </Button>
                   </div>
                 )}
-                
+
                 {/* Edge Function Test Component */}
                 {showDebugTools && !isMobile && (
                   <ComponentErrorBoundary>
                     <EdgeFunctionTest />
                   </ComponentErrorBoundary>
                 )}
-                
+
                 <Suspense fallback={<LoadingFallback size="large" message="Loading recommendations..." />}>
                   <RecommendationsDashboard
                     recommendations={recommendations}
@@ -598,11 +598,11 @@ const Dashboard: React.FC = React.memo(() => {
                 </Suspense>
               </SectionErrorBoundary>
             </TabsContent>
-            
+
             {/* Notifications Tab with error boundary */}
             <TabsContent value="notifications" className="mt-4 sm:mt-6">
               <SectionErrorBoundary>
-                {selectedBusiness && selectedBusiness !== "all" ? (
+                {selectedBusiness && selectedBusiness !== 'all' ? (
                   <Suspense fallback={<LoadingFallback size="medium" message="Loading notifications..." />}>
                     <EmailSettingsForm
                       businessName={selectedBusiness}
@@ -622,7 +622,7 @@ const Dashboard: React.FC = React.memo(() => {
             </TabsContent>
           </Tabs>
         </SectionErrorBoundary>
-        
+
         {/* Phase 5: Development performance stats */}
         {process.env.NODE_ENV === 'development' && !isMobile && (
           <ComponentErrorBoundary>
@@ -641,9 +641,9 @@ const Dashboard: React.FC = React.memo(() => {
         )}
       </DashboardLayout>
     </PageErrorBoundary>
-  );
-});
+  )
+})
 
-Dashboard.displayName = 'Dashboard';
+Dashboard.displayName = 'Dashboard'
 
-export default Dashboard;
+export default Dashboard

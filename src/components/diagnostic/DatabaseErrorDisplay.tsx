@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { AlertCircle, RefreshCw, Database } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { useConnectionTest } from "@/hooks/useConnectionTest";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from 'react'
+import { AlertCircle, RefreshCw, Database } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { useConnectionTest } from '@/hooks/useConnectionTest'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface DatabaseErrorDisplayProps {
   onRefresh: () => void;
@@ -11,8 +11,8 @@ interface DatabaseErrorDisplayProps {
 }
 
 export const DatabaseErrorDisplay = ({ onRefresh, isRefreshing }: DatabaseErrorDisplayProps) => {
-  const [showDetails, setShowDetails] = useState(false);
-  const { isChecking, isConnected, error, details } = useConnectionTest();
+  const [showDetails, setShowDetails] = useState(false)
+  const { isChecking, isConnected, error, details } = useConnectionTest()
 
   return (
     <>
@@ -22,14 +22,14 @@ export const DatabaseErrorDisplay = ({ onRefresh, isRefreshing }: DatabaseErrorD
         <AlertDescription>
           <p className="mb-4">
             {isChecking ? (
-              "Checking database connection..."
+              'Checking database connection...'
             ) : (
-              isConnected ? 
-                "Connection established, but unable to load data. Database may be empty or permissions issue." :
-                "Unable to load data from the database. Please check your database connection settings."
+              isConnected ?
+                'Connection established, but unable to load data. Database may be empty or permissions issue.' :
+                'Unable to load data from the database. Please check your database connection settings.'
             )}
           </p>
-          
+
           <div className="p-3 bg-destructive/10 rounded mb-4 text-destructive/90">
             <p className="font-medium">Possible Solutions:</p>
             <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
@@ -40,17 +40,17 @@ export const DatabaseErrorDisplay = ({ onRefresh, isRefreshing }: DatabaseErrorD
               <li>Try using the service_role key for full access to tables</li>
             </ul>
           </div>
-          
+
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={onRefresh}
               disabled={isRefreshing}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               {isRefreshing ? 'Checking...' : 'Retry Connection'}
             </Button>
-            
+
             <Button
               variant="secondary"
               onClick={() => setShowDetails(!showDetails)}
@@ -60,7 +60,7 @@ export const DatabaseErrorDisplay = ({ onRefresh, isRefreshing }: DatabaseErrorD
           </div>
         </AlertDescription>
       </Alert>
-      
+
       {showDetails && (
         <Card className="mb-6">
           <CardHeader>
@@ -75,7 +75,7 @@ export const DatabaseErrorDisplay = ({ onRefresh, isRefreshing }: DatabaseErrorD
               <p>Checking: {isChecking ? 'Yes' : 'No'}</p>
               <p>Connected: {isConnected ? 'Yes' : 'No'}</p>
               {error && <p>Error: {error}</p>}
-              
+
               {details && (
                 <>
                   <p className="text-sm font-medium mt-4 mb-2">Table Status:</p>
@@ -87,5 +87,5 @@ export const DatabaseErrorDisplay = ({ onRefresh, isRefreshing }: DatabaseErrorD
         </Card>
       )}
     </>
-  );
-};
+  )
+}

@@ -1,15 +1,15 @@
 
-import React from "react";
-import { Review } from "@/types/reviews";
-import { extractStaffMentions_sync } from "@/utils/dataUtils";
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
-} from "@/components/ui/accordion";
-import { UserIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import React from 'react'
+import type { Review } from '@/types/reviews'
+import { extractStaffMentions_sync } from '@/utils/dataUtils'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { UserIcon } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 interface StaffMentionsProps {
   reviews: Review[];
@@ -17,14 +17,14 @@ interface StaffMentionsProps {
 }
 
 const StaffMentions: React.FC<StaffMentionsProps> = ({ reviews, loading }) => {
-  const staffMentions = extractStaffMentions_sync(reviews);
+  const staffMentions = extractStaffMentions_sync(reviews)
 
   return (
     <div>
       <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">
         Staff Mentioned {loading && <span className="text-sm font-normal text-gray-500">(AI-enhanced)</span>}
       </h3>
-      
+
       {staffMentions.length === 0 ? (
         <div className="p-6 text-center bg-gray-50 dark:bg-gray-700/20 rounded-lg border">
           <UserIcon className="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500 mb-2" />
@@ -42,11 +42,11 @@ const StaffMentions: React.FC<StaffMentionsProps> = ({ reviews, loading }) => {
                   <div className="flex items-center">
                     <span className="font-medium text-gray-900 dark:text-white">{staff.name}</span>
                     <Badge className={`ml-2 ${
-                      staff.sentiment === "positive" 
-                        ? "bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300" 
-                        : staff.sentiment === "negative"
-                        ? "bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300"
-                        : "bg-gray-100 text-gray-800 hover:bg-gray-100 dark:bg-gray-600 dark:text-gray-300"
+                      staff.sentiment === 'positive'
+                        ? 'bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-300'
+                        : staff.sentiment === 'negative'
+                        ? 'bg-red-100 text-red-800 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-300'
+                        : 'bg-gray-100 text-gray-800 hover:bg-gray-100 dark:bg-gray-600 dark:text-gray-300'
                     }`}>
                       {staff.sentiment}
                     </Badge>
@@ -75,7 +75,7 @@ const StaffMentions: React.FC<StaffMentionsProps> = ({ reviews, loading }) => {
         </Accordion>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default StaffMentions;
+export default StaffMentions

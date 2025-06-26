@@ -1,9 +1,9 @@
-import React, { useState, memo, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AllReviewsContent from "./AllReviewsContent";
-import MonthlyReport from "@/components/monthly-report";
-import BusinessComparison from "./BusinessComparison";
-import { Review } from "@/types/reviews";
+import React, { useState, memo, useEffect } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import AllReviewsContent from './AllReviewsContent'
+import MonthlyReport from '@/components/monthly-report'
+import BusinessComparison from './BusinessComparison'
+import type { Review } from '@/types/reviews'
 
 interface DashboardContentProps {
   loading: boolean;
@@ -22,34 +22,34 @@ interface DashboardContentProps {
 }
 
 // Use React.memo to prevent unnecessary re-renders
-const DashboardContent: React.FC<DashboardContentProps> = memo(({ 
-  loading, 
-  reviews, 
+const DashboardContent: React.FC<DashboardContentProps> = memo(({
+  loading,
+  reviews,
   chartData,
   totalReviewCount,
   loadingMore,
   onLoadMore,
   hasMoreData,
-  selectedBusiness = "all",
+  selectedBusiness = 'all',
   allReviews = [],
-  businessData
+  businessData,
 }) => {
-  const [activeTab, setActiveTab] = useState("all-reviews");
-  
+  const [activeTab, setActiveTab] = useState('all-reviews')
+
   // Force delayed rendering to avoid chunk errors
-  const [renderContent, setRenderContent] = useState(false);
-  
+  const [renderContent, setRenderContent] = useState(false)
+
   // Check if we should show the comparison tab
-  const showComparisonTab = selectedBusiness === "all" || selectedBusiness === "All Businesses";
-  
+  const showComparisonTab = selectedBusiness === 'all' || selectedBusiness === 'All Businesses'
+
   useEffect(() => {
     // Only render content after component has mounted
     const timer = setTimeout(() => {
-      setRenderContent(true);
-    }, 50);
-    
-    return () => clearTimeout(timer);
-  }, []);
+      setRenderContent(true)
+    }, 50)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   if (loading) {
     return (
@@ -59,13 +59,13 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
           <p className="mt-4 text-gray-600 dark:text-gray-300">Loading review data...</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
-    <Tabs 
-      defaultValue="all-reviews" 
-      value={activeTab} 
+    <Tabs
+      defaultValue="all-reviews"
+      value={activeTab}
       onValueChange={setActiveTab}
       className="w-full"
     >
@@ -76,13 +76,13 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
           <TabsTrigger value="comparison">Business Comparison</TabsTrigger>
         )}
       </TabsList>
-      
+
       {renderContent && (
         <>
           <TabsContent value="all-reviews" className="mt-0">
-            <AllReviewsContent 
-              reviews={reviews} 
-              chartData={chartData} 
+            <AllReviewsContent
+              reviews={reviews}
+              chartData={chartData}
               totalReviewCount={totalReviewCount}
               loadingMore={loadingMore}
               onLoadMore={onLoadMore}
@@ -90,17 +90,17 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
               selectedBusiness={selectedBusiness}
             />
           </TabsContent>
-          
+
           <TabsContent value="monthly-report" className="mt-0">
-            <MonthlyReport 
-              reviews={reviews} 
-              businessName={selectedBusiness === "all" ? "All Businesses" : selectedBusiness}
+            <MonthlyReport
+              reviews={reviews}
+              businessName={selectedBusiness === 'all' ? 'All Businesses' : selectedBusiness}
             />
           </TabsContent>
-          
+
           {showComparisonTab && businessData && (
             <TabsContent value="comparison" className="mt-0">
-              <BusinessComparison 
+              <BusinessComparison
                 allReviews={allReviews}
                 businessData={businessData}
               />
@@ -109,9 +109,9 @@ const DashboardContent: React.FC<DashboardContentProps> = memo(({
         </>
       )}
     </Tabs>
-  );
-});
+  )
+})
 
-DashboardContent.displayName = "DashboardContent";
+DashboardContent.displayName = 'DashboardContent'
 
-export default DashboardContent;
+export default DashboardContent

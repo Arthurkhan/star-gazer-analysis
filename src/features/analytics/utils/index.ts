@@ -1,2 +1,2 @@
 // Analytics feature utilities
-export * from './analyticsUtils';
+export * from './analyticsUtils'

@@ -1,17 +1,19 @@
-import { Review } from '@/types/reviews';
-import { BusinessType } from '@/types/businessTypes';
-import { EmailSettings, EmailOptions, sendUrgentAlert } from './emailService';
-import { 
-  ThresholdAlert, 
-  PerformanceThresholds, 
+import type { Review } from '@/types/reviews'
+import type { BusinessType } from '@/types/businessTypes'
+import type { EmailSettings, EmailOptions} from './emailService'
+import { sendUrgentAlert } from './emailService'
+import type {
+  PerformanceThresholds} from '@/utils/comparisonUtils'
+import {
+  ThresholdAlert,
   DEFAULT_THRESHOLDS,
   checkPerformanceThresholds,
   ComparisonMetrics,
   comparePeriods,
   generateComparisonPeriods,
-  PeriodData
-} from '@/utils/comparisonUtils';
-import { supabase } from '@/integrations/supabase/client';
+  PeriodData,
+} from '@/utils/comparisonUtils'
+import { supabase } from '@/integrations/supabase/client'
 
 export interface NotificationRule {
   id: string;
@@ -69,15 +71,15 @@ export interface TrendAlert {
 }
 
 export class AnalysisNotificationService {
-  private static instance: AnalysisNotificationService;
-  private alertHistory: Map<string, AnalysisAlert[]> = new Map();
-  private notificationRules: Map<string, NotificationRule[]> = new Map();
+  private static instance: AnalysisNotificationService
+  private alertHistory: Map<string, AnalysisAlert[]> = new Map()
+  private notificationRules: Map<string, NotificationRule[]> = new Map()
 
   public static getInstance(): AnalysisNotificationService {
     if (!AnalysisNotificationService.instance) {
-      AnalysisNotificationService.instance = new AnalysisNotificationService();
+      AnalysisNotificationService.instance = new AnalysisNotificationService()
     }
-    return AnalysisNotificationService.instance;
+    return AnalysisNotificationService.instance
   }
 
   /**
@@ -87,36 +89,36 @@ export class AnalysisNotificationService {
     reviews: Review[],
     businessName: string,
     businessType: BusinessType,
-    emailSettings?: EmailSettings
+    emailSettings?: EmailSettings,
   ): Promise<AnalysisAlert[]> {
-    const alerts: AnalysisAlert[] = [];
+    const alerts: AnalysisAlert[] = []
 
     try {
       // Get notification rules for this business
-      const rules = await this.getNotificationRules(businessName);
+      const rules = await this.getNotificationRules(businessName)
 
       // Check performance thresholds
-      const thresholdAlerts = await this.checkThresholdAlerts(reviews, businessName, rules);
-      alerts.push(...thresholdAlerts);
+      const thresholdAlerts = await this.checkThresholdAlerts(reviews, businessName, rules)
+      alerts.push(...thresholdAlerts)
 
       // Check trend alerts
-      const trendAlerts = await this.checkTrendAlerts(reviews, businessName, rules);
-      alerts.push(...trendAlerts);
+      const trendAlerts = await this.checkTrendAlerts(reviews, businessName, rules)
+      alerts.push(...trendAlerts)
 
       // Check comparison alerts
-      const comparisonAlerts = await this.checkComparisonAlerts(reviews, businessName, rules);
-      alerts.push(...comparisonAlerts);
+      const comparisonAlerts = await this.checkComparisonAlerts(reviews, businessName, rules)
+      alerts.push(...comparisonAlerts)
 
       // Process notifications for triggered alerts
-      await this.processNotifications(alerts, businessName, businessType, emailSettings);
+      await this.processNotifications(alerts, businessName, businessType, emailSettings)
 
       // Store alerts in history
-      this.storeAlerts(businessName, alerts);
+      this.storeAlerts(businessName, alerts)
 
-      return alerts;
+      return alerts
     } catch (error) {
-      console.error('Error in analyzeAndNotify:', error);
-      throw error;
+      console.error('Error in analyzeAndNotify:', error)
+      throw error
     }
   }
 
@@ -126,20 +128,20 @@ export class AnalysisNotificationService {
   private async checkThresholdAlerts(
     reviews: Review[],
     businessName: string,
-    rules: NotificationRule[]
+    rules: NotificationRule[],
   ): Promise<AnalysisAlert[]> {
-    const alerts: AnalysisAlert[] = [];
-    
-    const thresholdRules = rules.filter(rule => rule.type === 'threshold' && rule.enabled);
-    
+    const alerts: AnalysisAlert[] = []
+
+    const thresholdRules = rules.filter(rule => rule.type === 'threshold' && rule.enabled)
+
     for (const rule of thresholdRules) {
-      const thresholds = rule.conditions.thresholds || DEFAULT_THRESHOLDS;
-      const thresholdAlerts = checkPerformanceThresholds(reviews, businessName, thresholds);
-      
+      const thresholds = rule.conditions.thresholds || DEFAULT_THRESHOLDS
+      const thresholdAlerts = checkPerformanceThresholds(reviews, businessName, thresholds)
+
       // Filter by severity if specified
-      const filteredAlerts = rule.conditions.severity 
+      const filteredAlerts = rule.conditions.severity
         ? thresholdAlerts.filter(alert => rule.conditions.severity!.includes(alert.severity))
-        : thresholdAlerts;
+        : thresholdAlerts
 
       // Convert threshold alerts to analysis alerts
       for (const thresholdAlert of filteredAlerts) {
@@ -157,11 +159,11 @@ export class AnalysisNotificationService {
           triggered: new Date(),
           acknowledged: false,
           emailSent: false,
-        });
+        })
       }
     }
 
-    return alerts;
+    return alerts
   }
 
   /**
@@ -170,20 +172,20 @@ export class AnalysisNotificationService {
   private async checkTrendAlerts(
     reviews: Review[],
     businessName: string,
-    rules: NotificationRule[]
+    rules: NotificationRule[],
   ): Promise<AnalysisAlert[]> {
-    const alerts: AnalysisAlert[] = [];
-    
-    const trendRules = rules.filter(rule => rule.type === 'trend' && rule.enabled);
-    
+    const alerts: AnalysisAlert[] = []
+
+    const trendRules = rules.filter(rule => rule.type === 'trend' && rule.enabled)
+
     for (const rule of trendRules) {
-      const period = rule.conditions.trendPeriod || 'weekly';
-      const trendAlerts = await this.analyzeTrends(reviews, businessName, period);
-      
+      const period = rule.conditions.trendPeriod || 'weekly'
+      const trendAlerts = await this.analyzeTrends(reviews, businessName, period)
+
       // Filter by severity if specified
-      const filteredAlerts = rule.conditions.severity 
+      const filteredAlerts = rule.conditions.severity
         ? trendAlerts.filter(alert => rule.conditions.severity!.includes(alert.severity))
-        : trendAlerts;
+        : trendAlerts
 
       // Convert trend alerts to analysis alerts
       for (const trendAlert of filteredAlerts) {
@@ -201,11 +203,11 @@ export class AnalysisNotificationService {
           triggered: new Date(),
           acknowledged: false,
           emailSent: false,
-        });
+        })
       }
     }
 
-    return alerts;
+    return alerts
   }
 
   /**
@@ -214,25 +216,25 @@ export class AnalysisNotificationService {
   private async checkComparisonAlerts(
     reviews: Review[],
     businessName: string,
-    rules: NotificationRule[]
+    rules: NotificationRule[],
   ): Promise<AnalysisAlert[]> {
-    const alerts: AnalysisAlert[] = [];
-    
-    const comparisonRules = rules.filter(rule => rule.type === 'comparison' && rule.enabled);
-    
-    for (const rule of comparisonRules) {
-      const period = rule.conditions.comparisonPeriod || 'month';
-      const comparisonAlerts = await this.analyzeComparisons(reviews, businessName, period);
-      
-      // Filter by severity if specified
-      const filteredAlerts = rule.conditions.severity 
-        ? comparisonAlerts.filter(alert => rule.conditions.severity!.includes(alert.severity))
-        : comparisonAlerts;
+    const alerts: AnalysisAlert[] = []
 
-      alerts.push(...filteredAlerts);
+    const comparisonRules = rules.filter(rule => rule.type === 'comparison' && rule.enabled)
+
+    for (const rule of comparisonRules) {
+      const period = rule.conditions.comparisonPeriod || 'month'
+      const comparisonAlerts = await this.analyzeComparisons(reviews, businessName, period)
+
+      // Filter by severity if specified
+      const filteredAlerts = rule.conditions.severity
+        ? comparisonAlerts.filter(alert => rule.conditions.severity!.includes(alert.severity))
+        : comparisonAlerts
+
+      alerts.push(...filteredAlerts)
     }
 
-    return alerts;
+    return alerts
   }
 
   /**
@@ -241,17 +243,17 @@ export class AnalysisNotificationService {
   private async analyzeTrends(
     reviews: Review[],
     businessName: string,
-    period: 'daily' | 'weekly' | 'monthly'
+    period: 'daily' | 'weekly' | 'monthly',
   ): Promise<TrendAlert[]> {
-    const alerts: TrendAlert[] = [];
-    
-    // Generate comparison periods based on trend period
-    const comparisons = generateComparisonPeriods(reviews);
-    const relevantComparison = period === 'monthly' ? comparisons[1] : comparisons[0]; // 90-day or 30-day
-    
-    if (!relevantComparison) return alerts;
+    const alerts: TrendAlert[] = []
 
-    const metrics = comparePeriods(relevantComparison.current, relevantComparison.previous);
+    // Generate comparison periods based on trend period
+    const comparisons = generateComparisonPeriods(reviews)
+    const relevantComparison = period === 'monthly' ? comparisons[1] : comparisons[0] // 90-day or 30-day
+
+    if (!relevantComparison) return alerts
+
+    const metrics = comparePeriods(relevantComparison.current, relevantComparison.previous)
 
     // Check for significant rating decline
     if (metrics.averageRating.trend === 'down' && Math.abs(metrics.averageRating.changePercent) > 10) {
@@ -268,7 +270,7 @@ export class AnalysisNotificationService {
         businessName,
         period,
         timestamp: new Date(),
-      });
+      })
     }
 
     // Check for significant sentiment shift
@@ -286,7 +288,7 @@ export class AnalysisNotificationService {
         businessName,
         period,
         timestamp: new Date(),
-      });
+      })
     }
 
     // Check for significant volume change
@@ -304,7 +306,7 @@ export class AnalysisNotificationService {
         businessName,
         period,
         timestamp: new Date(),
-      });
+      })
     }
 
     // Check for response rate drop
@@ -322,10 +324,10 @@ export class AnalysisNotificationService {
         businessName,
         period,
         timestamp: new Date(),
-      });
+      })
     }
 
-    return alerts;
+    return alerts
   }
 
   /**
@@ -334,37 +336,37 @@ export class AnalysisNotificationService {
   private async analyzeComparisons(
     reviews: Review[],
     businessName: string,
-    period: 'week' | 'month' | 'quarter' | 'year'
+    period: 'week' | 'month' | 'quarter' | 'year',
   ): Promise<AnalysisAlert[]> {
-    const alerts: AnalysisAlert[] = [];
-    
-    const comparisons = generateComparisonPeriods(reviews);
-    let relevantComparison;
-    
+    const alerts: AnalysisAlert[] = []
+
+    const comparisons = generateComparisonPeriods(reviews)
+    let relevantComparison
+
     switch (period) {
       case 'week':
       case 'month':
-        relevantComparison = comparisons[0]; // 30-day comparison
-        break;
+        relevantComparison = comparisons[0] // 30-day comparison
+        break
       case 'quarter':
-        relevantComparison = comparisons[1]; // 90-day comparison
-        break;
+        relevantComparison = comparisons[1] // 90-day comparison
+        break
       case 'year':
-        relevantComparison = comparisons[2]; // Year-over-year
-        break;
+        relevantComparison = comparisons[2] // Year-over-year
+        break
     }
-    
-    if (!relevantComparison) return alerts;
 
-    const metrics = comparePeriods(relevantComparison.current, relevantComparison.previous);
+    if (!relevantComparison) return alerts
+
+    const metrics = comparePeriods(relevantComparison.current, relevantComparison.previous)
 
     // Check for competitive performance issues (significant declines across multiple metrics)
     const declineCount = [
       metrics.averageRating.trend === 'down',
       metrics.sentiment.changes.negative > 5,
       metrics.responseRate.trend === 'down',
-      metrics.reviewCount.trend === 'down'
-    ].filter(Boolean).length;
+      metrics.reviewCount.trend === 'down',
+    ].filter(Boolean).length
 
     if (declineCount >= 2) {
       alerts.push({
@@ -381,10 +383,10 @@ export class AnalysisNotificationService {
         triggered: new Date(),
         acknowledged: false,
         emailSent: false,
-      });
+      })
     }
 
-    return alerts;
+    return alerts
   }
 
   /**
@@ -394,26 +396,26 @@ export class AnalysisNotificationService {
     alerts: AnalysisAlert[],
     businessName: string,
     businessType: BusinessType,
-    emailSettings?: EmailSettings
+    emailSettings?: EmailSettings,
   ): Promise<void> {
-    const rules = await this.getNotificationRules(businessName);
-    
+    const rules = await this.getNotificationRules(businessName)
+
     for (const alert of alerts) {
       // Find applicable rules based on alert data
       const applicableRules = rules.filter(rule => {
-        if (!rule.enabled) return false;
-        
-        const ruleId = alert.data?.ruleId;
-        return !ruleId || rule.id === ruleId;
-      });
+        if (!rule.enabled) return false
+
+        const ruleId = alert.data?.ruleId
+        return !ruleId || rule.id === ruleId
+      })
 
       // Process each rule's actions
       for (const rule of applicableRules) {
         for (const action of rule.actions) {
           try {
-            await this.executeNotificationAction(action, alert, businessName, businessType, emailSettings);
+            await this.executeNotificationAction(action, alert, businessName, businessType, emailSettings)
           } catch (error) {
-            console.error(`Failed to execute notification action:`, error);
+            console.error('Failed to execute notification action:', error)
           }
         }
       }
@@ -428,18 +430,18 @@ export class AnalysisNotificationService {
     alert: AnalysisAlert,
     businessName: string,
     businessType: BusinessType,
-    emailSettings?: EmailSettings
+    emailSettings?: EmailSettings,
   ): Promise<void> {
     switch (action.type) {
       case 'email':
-        await this.sendEmailNotification(action, alert, businessName, businessType, emailSettings);
-        break;
+        await this.sendEmailNotification(action, alert, businessName, businessType, emailSettings)
+        break
       case 'dashboard_alert':
         // Dashboard alerts are handled by storing the alert
-        break;
+        break
       case 'webhook':
-        await this.sendWebhookNotification(action, alert, businessName);
-        break;
+        await this.sendWebhookNotification(action, alert, businessName)
+        break
     }
   }
 
@@ -451,32 +453,32 @@ export class AnalysisNotificationService {
     alert: AnalysisAlert,
     businessName: string,
     businessType: BusinessType,
-    emailSettings?: EmailSettings
+    emailSettings?: EmailSettings,
   ): Promise<void> {
-    if (!emailSettings?.enabled) return;
+    if (!emailSettings?.enabled) return
 
-    const recipients = action.config.recipients || [emailSettings.recipient];
-    
+    const recipients = action.config.recipients || [emailSettings.recipient]
+
     for (const recipient of recipients) {
       const options: EmailOptions = {
         recipient,
         businessName,
         businessType,
         subject: `⚠️ ${alert.title} - ${businessName}`,
-      };
+      }
 
       const issue = {
         title: alert.title,
         description: alert.message,
         impact: this.getSeverityDescription(alert.severity),
         recommendations: this.getRecommendationsForAlert(alert),
-      };
+      }
 
       try {
-        await sendUrgentAlert(options, issue);
-        alert.emailSent = true;
+        await sendUrgentAlert(options, issue)
+        alert.emailSent = true
       } catch (error) {
-        console.error('Failed to send email notification:', error);
+        console.error('Failed to send email notification:', error)
       }
     }
   }
@@ -487,9 +489,9 @@ export class AnalysisNotificationService {
   private async sendWebhookNotification(
     action: NotificationAction,
     alert: AnalysisAlert,
-    businessName: string
+    businessName: string,
   ): Promise<void> {
-    if (!action.config.webhookUrl) return;
+    if (!action.config.webhookUrl) return
 
     const payload = {
       business: businessName,
@@ -501,7 +503,7 @@ export class AnalysisNotificationService {
         message: alert.message,
         timestamp: alert.triggered.toISOString(),
       },
-    };
+    }
 
     try {
       const response = await fetch(action.config.webhookUrl, {
@@ -510,13 +512,13 @@ export class AnalysisNotificationService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error(`Webhook request failed: ${response.status}`);
+        throw new Error(`Webhook request failed: ${response.status}`)
       }
     } catch (error) {
-      console.error('Failed to send webhook notification:', error);
+      console.error('Failed to send webhook notification:', error)
     }
   }
 
@@ -526,15 +528,15 @@ export class AnalysisNotificationService {
   private getSeverityDescription(severity: string): string {
     switch (severity) {
       case 'critical':
-        return 'Critical impact requiring immediate attention';
+        return 'Critical impact requiring immediate attention'
       case 'high':
-        return 'High impact requiring urgent action';
+        return 'High impact requiring urgent action'
       case 'medium':
-        return 'Moderate impact requiring timely action';
+        return 'Moderate impact requiring timely action'
       case 'low':
-        return 'Low impact for awareness';
+        return 'Low impact for awareness'
       default:
-        return 'Impact assessment needed';
+        return 'Impact assessment needed'
     }
   }
 
@@ -542,36 +544,36 @@ export class AnalysisNotificationService {
    * Get recommendations for alert
    */
   private getRecommendationsForAlert(alert: AnalysisAlert): string[] {
-    const recommendations: string[] = [];
-    
+    const recommendations: string[] = []
+
     switch (alert.type) {
       case 'performance':
         recommendations.push(
           'Review recent customer feedback for specific issues',
           'Analyze staff performance and training needs',
           'Consider adjusting service processes',
-          'Respond to negative reviews promptly and professionally'
-        );
-        break;
+          'Respond to negative reviews promptly and professionally',
+        )
+        break
       case 'trend':
         recommendations.push(
           'Investigate root causes of declining performance',
           'Implement corrective measures based on customer feedback',
           'Monitor trends more closely in the coming period',
-          'Consider customer satisfaction surveys'
-        );
-        break;
+          'Consider customer satisfaction surveys',
+        )
+        break
       case 'anomaly':
         recommendations.push(
           'Conduct comprehensive performance review',
           'Identify and address systemic issues',
           'Develop action plan with specific timelines',
-          'Increase monitoring frequency'
-        );
-        break;
+          'Increase monitoring frequency',
+        )
+        break
     }
-    
-    return recommendations;
+
+    return recommendations
   }
 
   /**
@@ -579,15 +581,15 @@ export class AnalysisNotificationService {
    */
   private storeAlerts(businessName: string, alerts: AnalysisAlert[]): void {
     if (!this.alertHistory.has(businessName)) {
-      this.alertHistory.set(businessName, []);
+      this.alertHistory.set(businessName, [])
     }
-    
-    const history = this.alertHistory.get(businessName)!;
-    history.push(...alerts);
-    
+
+    const history = this.alertHistory.get(businessName)!
+    history.push(...alerts)
+
     // Keep only last 100 alerts per business
     if (history.length > 100) {
-      history.splice(0, history.length - 100);
+      history.splice(0, history.length - 100)
     }
   }
 
@@ -597,7 +599,7 @@ export class AnalysisNotificationService {
   async getNotificationRules(businessName: string): Promise<NotificationRule[]> {
     // Check cache first
     if (this.notificationRules.has(businessName)) {
-      return this.notificationRules.get(businessName)!;
+      return this.notificationRules.get(businessName)!
     }
 
     try {
@@ -605,11 +607,11 @@ export class AnalysisNotificationService {
         .from('notification_rules')
         .select('*')
         .eq('business_name', businessName)
-        .eq('enabled', true);
+        .eq('enabled', true)
 
       if (error) {
-        console.error('Error fetching notification rules:', error);
-        return this.getDefaultNotificationRules(businessName);
+        console.error('Error fetching notification rules:', error)
+        return this.getDefaultNotificationRules(businessName)
       }
 
       const rules = (data || []).map(row => ({
@@ -621,13 +623,13 @@ export class AnalysisNotificationService {
         actions: row.actions,
         createdAt: new Date(row.created_at),
         updatedAt: new Date(row.updated_at),
-      }));
+      }))
 
-      this.notificationRules.set(businessName, rules);
-      return rules;
+      this.notificationRules.set(businessName, rules)
+      return rules
     } catch (error) {
-      console.error('Error in getNotificationRules:', error);
-      return this.getDefaultNotificationRules(businessName);
+      console.error('Error in getNotificationRules:', error)
+      return this.getDefaultNotificationRules(businessName)
     }
   }
 
@@ -676,37 +678,37 @@ export class AnalysisNotificationService {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-    ];
+    ]
   }
 
   /**
    * Get alert history for a business
    */
   getAlertHistory(businessName: string): AnalysisAlert[] {
-    return this.alertHistory.get(businessName) || [];
+    return this.alertHistory.get(businessName) || []
   }
 
   /**
    * Acknowledge an alert
    */
   acknowledgeAlert(businessName: string, alertId: string): boolean {
-    const history = this.alertHistory.get(businessName);
-    if (!history) return false;
+    const history = this.alertHistory.get(businessName)
+    if (!history) return false
 
-    const alert = history.find(a => a.id === alertId);
-    if (!alert) return false;
+    const alert = history.find(a => a.id === alertId)
+    if (!alert) return false
 
-    alert.acknowledged = true;
-    return true;
+    alert.acknowledged = true
+    return true
   }
 
   /**
    * Clear alert history for a business
    */
   clearAlertHistory(businessName: string): void {
-    this.alertHistory.delete(businessName);
+    this.alertHistory.delete(businessName)
   }
 }
 
 // Export singleton instance
-export const analysisNotificationService = AnalysisNotificationService.getInstance();
+export const analysisNotificationService = AnalysisNotificationService.getInstance()

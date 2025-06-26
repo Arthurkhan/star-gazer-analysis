@@ -1,18 +1,18 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Globe, Calendar, Users, Star } from "lucide-react";
-import { OperationalInsights } from "@/types/analysisSummary";
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Globe, Calendar, Users, Star } from 'lucide-react'
+import type { OperationalInsights } from '@/types/analysisSummary'
 
 interface OperationalInsightsSectionProps {
   operationalInsights: OperationalInsights;
 }
 
 export const OperationalInsightsSection: React.FC<OperationalInsightsSectionProps> = ({
-  operationalInsights
+  operationalInsights,
 }) => {
-  const { languageDiversity, reviewPatterns } = operationalInsights;
+  const { languageDiversity, reviewPatterns } = operationalInsights
 
   // Helper to get language flag emoji (simplified)
   const getLanguageFlag = (language: string) => {
@@ -31,17 +31,17 @@ export const OperationalInsightsSection: React.FC<OperationalInsightsSectionProp
       'Thai': '🇹🇭',
       'Vietnamese': '🇻🇳',
       'Arabic': '🇸🇦',
-      'Hindi': '🇮🇳'
-    };
-    return flags[language] || '🌍';
-  };
+      'Hindi': '🇮🇳',
+    }
+    return flags[language] || '🌍'
+  }
 
   // Helper to format month names
   const formatMonth = (month: string) => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthNum = parseInt(month);
-    return months[monthNum - 1] || month;
-  };
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const monthNum = parseInt(month)
+    return months[monthNum - 1] || month
+  }
 
   return (
     <Card>
@@ -53,11 +53,11 @@ export const OperationalInsightsSection: React.FC<OperationalInsightsSectionProp
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
+
           {/* Language Diversity */}
           <div className="space-y-4">
             <h3 className="font-semibold">Language Diversity</h3>
-            
+
             {languageDiversity.length > 0 ? (
               <div className="space-y-3">
                 {languageDiversity.slice(0, 8).map((lang) => (
@@ -119,7 +119,7 @@ export const OperationalInsightsSection: React.FC<OperationalInsightsSectionProp
           {/* Review Patterns */}
           <div className="space-y-4">
             <h3 className="font-semibold">Review Patterns</h3>
-            
+
             <div className="space-y-4">
               {/* Peak Months */}
               {reviewPatterns.peakMonths.length > 0 && (
@@ -186,14 +186,14 @@ export const OperationalInsightsSection: React.FC<OperationalInsightsSectionProp
                 </div>
                 <div className="text-sm text-purple-800 space-y-1">
                   <p>
-                    {languageDiversity.length > 1 
+                    {languageDiversity.length > 1
                       ? `International clientele (${languageDiversity.length} languages)`
-                      : "Local customer base"}
+                      : 'Local customer base'}
                   </p>
                   <p>
                     {reviewPatterns.peakMonths.length > 0
                       ? `Seasonal business with ${reviewPatterns.peakMonths.length} peak months`
-                      : "Consistent year-round activity"}
+                      : 'Consistent year-round activity'}
                   </p>
                   <p>Growing customer engagement across all periods</p>
                 </div>
@@ -203,5 +203,5 @@ export const OperationalInsightsSection: React.FC<OperationalInsightsSectionProp
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

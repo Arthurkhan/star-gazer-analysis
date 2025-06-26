@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React from 'react'
 
 export const ReviewAnalytics = () => {
   return (
@@ -7,5 +7,5 @@ export const ReviewAnalytics = () => {
       <h3 className="text-lg font-medium mb-2">Review Analytics</h3>
       <p className="text-muted-foreground">This is a placeholder component.</p>
     </div>
-  );
-};
+  )
+}

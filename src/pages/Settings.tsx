@@ -1,50 +1,50 @@
-import { useState } from 'react';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import { AISettingsPanel } from '@/components/AISettingsPanel';
-import { DatabaseTableInspector } from '@/components/DatabaseTableInspector';
-import { Button } from '@/components/ui/button';
-import { 
-  Settings, 
-  Database, 
-  Bot, 
-  RefreshCw 
-} from 'lucide-react';
-import { clearAllCaches } from '@/services/reviewDataService';
-import { clearCaches } from '@/utils/reviewDataUtils';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react'
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
+import { AISettingsPanel } from '@/components/AISettingsPanel'
+import { DatabaseTableInspector } from '@/components/DatabaseTableInspector'
+import { Button } from '@/components/ui/button'
+import {
+  Settings,
+  Database,
+  Bot,
+  RefreshCw,
+} from 'lucide-react'
+import { clearAllCaches } from '@/services/reviewDataService'
+import { clearCaches } from '@/utils/reviewDataUtils'
+import { useToast } from '@/hooks/use-toast'
 
 export function SettingsPage() {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const { toast } = useToast();
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const { toast } = useToast()
 
   const handleClearCache = async () => {
-    setIsRefreshing(true);
+    setIsRefreshing(true)
     try {
       // Clear caches
-      clearAllCaches();
-      clearCaches();
-      
+      clearAllCaches()
+      clearCaches()
+
       toast({
         title: 'Caches Cleared',
         description: 'All data caches have been cleared. Reload the dashboard to fetch fresh data.',
         variant: 'default',
-      });
+      })
     } catch (error) {
-      console.error('Error clearing caches:', error);
+      console.error('Error clearing caches:', error)
       toast({
         title: 'Error Clearing Caches',
         description: 'There was an error clearing the caches.',
         variant: 'destructive',
-      });
+      })
     } finally {
-      setIsRefreshing(false);
+      setIsRefreshing(false)
     }
-  };
+  }
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -53,8 +53,8 @@ export function SettingsPage() {
           <Settings className="h-8 w-8" />
           Settings
         </h1>
-        <Button 
-          onClick={handleClearCache} 
+        <Button
+          onClick={handleClearCache}
           variant="outline"
           disabled={isRefreshing}
           className="flex items-center gap-2"
@@ -63,7 +63,7 @@ export function SettingsPage() {
           Clear Data Cache
         </Button>
       </div>
-      
+
       <Tabs defaultValue="ai" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="ai" className="flex items-center gap-2">
@@ -75,17 +75,17 @@ export function SettingsPage() {
             Database
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="ai" className="mt-6">
           <AISettingsPanel />
         </TabsContent>
-        
+
         <TabsContent value="database" className="mt-6 space-y-6">
           <DatabaseTableInspector />
         </TabsContent>
       </Tabs>
     </div>
-  );
+  )
 }
 
-export default SettingsPage;
+export default SettingsPage

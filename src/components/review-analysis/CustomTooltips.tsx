@@ -1,10 +1,10 @@
 
-import React from "react";
+import React from 'react'
 
 // Custom tooltip for the pie chart with improved dark mode text
 export const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload;
+    const data = payload[0].payload
     return (
       <div className="bg-white dark:bg-gray-800 p-4 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 text-sm">
         <p className="font-semibold text-gray-900 dark:text-white mb-1">{data.name}</p>
@@ -17,30 +17,30 @@ export const CustomPieTooltip = ({ active, payload }: any) => {
           </div>
         )}
       </div>
-    );
+    )
   }
-  return null;
-};
+  return null
+}
 
 // Custom Treemap tooltip for common terms
 export const CustomTermsTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload;
+    const data = payload[0].payload
     return (
       <div className="bg-white dark:bg-gray-800 p-3 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 text-sm">
         <p className="font-semibold text-gray-900 dark:text-white">{data.category || 'Uncategorized'}</p>
         <p className="text-gray-900 dark:text-white font-medium">{data.name}</p>
         <p className="text-gray-600 dark:text-gray-300">Mentioned in {data.value} reviews</p>
       </div>
-    );
+    )
   }
-  return null;
-};
+  return null
+}
 
 // Generic chart tooltip that works with all chart types
 export const CustomChartTooltip = ({ active, payload, label, formatter, labelFormatter }: any) => {
   if (!active || !payload || !payload.length) {
-    return null;
+    return null
   }
 
   return (
@@ -67,13 +67,13 @@ export const CustomChartTooltip = ({ active, payload, label, formatter, labelFor
         </div>
       ))}
     </div>
-  );
-};
+  )
+}
 
 // Simplified bar/line chart tooltip
 export const CustomBarLineTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload || !payload.length) {
-    return null;
+    return null
   }
 
   return (
@@ -90,7 +90,7 @@ export const CustomBarLineTooltip = ({ active, payload, label }: any) => {
             style={{ backgroundColor: entry.color }}
           />
           <span className="text-gray-700 dark:text-gray-300 text-sm">
-            {entry.name}: 
+            {entry.name}:
           </span>
           <span className="font-medium text-gray-900 dark:text-gray-50 text-sm">
             {entry.value}
@@ -98,5 +98,5 @@ export const CustomBarLineTooltip = ({ active, payload, label }: any) => {
         </div>
       ))}
     </div>
-  );
-};
+  )
+}

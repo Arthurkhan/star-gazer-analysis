@@ -1,9 +1,9 @@
-import { supabase } from '@/integrations/supabase/client';
-import { Recommendations, RecommendationMetadata } from '@/types/recommendations';
-import { BusinessContext } from '@/utils/businessContext';
-import { ConsolidatedLogger } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client'
+import type { Recommendations, RecommendationMetadata } from '@/types/recommendations'
+import type { BusinessContext } from '@/utils/businessContext'
+import { ConsolidatedLogger } from '@/utils/logger'
 
-const logger = new ConsolidatedLogger('RecommendationService');
+const logger = new ConsolidatedLogger('RecommendationService')
 
 export interface BusinessData {
   businessName: string;
@@ -72,14 +72,14 @@ export class RecommendationService {
   private transformRecommendations(edgeResponse: EdgeFunctionRecommendations, businessData: BusinessData): Recommendations {
     const transformedRecommendations: Recommendations = {
       businessName: businessData.businessName,
-      
+
       // Preserve original edge function structure for UI components
       urgentActions: edgeResponse.urgentActions,
       growthStrategies: edgeResponse.growthStrategies,
       customerAttractionPlan: edgeResponse.customerAttractionPlan,
       competitivePositioning: edgeResponse.competitivePositioning,
       futureProjections: edgeResponse.futureProjections,
-      
+
       // Also transform for backward compatibility with other components - Now taking all 5 growth strategies
       patternInsights: edgeResponse.growthStrategies.map((strategy, index) => ({
         id: `pattern-${index}`,
@@ -88,9 +88,9 @@ export class RecommendationService {
         sentiment: 'neutral' as const,
         impact: (strategy.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
         recommendation: strategy.description,
-        examples: []
+        examples: [],
       })),
-      
+
       // Transform long term strategies
       longTermStrategies: edgeResponse.futureProjections.longTerm.map((projection, index) => ({
         id: `strategy-${index}`,
@@ -102,7 +102,7 @@ export class RecommendationService {
           description: projection,
           timeline: '1-2 years',
           owner: 'Management',
-          kpis: []
+          kpis: [],
         }],
         expectedOutcomes: [projection],
         category: 'growth',
@@ -110,9 +110,9 @@ export class RecommendationService {
         riskLevel: 'medium',
         timeframe: 'long_term',
         expectedROI: 'high',
-        actions: []
+        actions: [],
       })),
-      
+
       // Create competitive position from positioning data
       competitivePosition: {
         overview: edgeResponse.competitivePositioning.description,
@@ -121,24 +121,24 @@ export class RecommendationService {
           strengths: edgeResponse.competitivePositioning.strengths,
           weaknesses: [],
           opportunities: edgeResponse.competitivePositioning.opportunities,
-          threats: []
+          threats: [],
         },
         recommendations: edgeResponse.competitivePositioning.recommendations,
         position: 'average' as const,
         metrics: {},
         strengths: edgeResponse.competitivePositioning.strengths,
         weaknesses: [],
-        opportunities: edgeResponse.competitivePositioning.opportunities
+        opportunities: edgeResponse.competitivePositioning.opportunities,
       },
-      
+
       // Create analysis result
       analysis: {
         sentimentAnalysis: [],
         staffMentions: [],
         commonTerms: [],
-        overallAnalysis: `${edgeResponse.urgentActions.length} urgent actions identified, ${edgeResponse.growthStrategies.length} growth strategies recommended.`
+        overallAnalysis: `${edgeResponse.urgentActions.length} urgent actions identified, ${edgeResponse.growthStrategies.length} growth strategies recommended.`,
       },
-      
+
       // Create suggestions from all recommendations
       suggestions: [
         ...edgeResponse.urgentActions.map((action) => ({
@@ -148,7 +148,7 @@ export class RecommendationService {
           description: action.description,
           impact: (action.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
           effort: (action.effort?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
-          timeframe: 'immediate' as const
+          timeframe: 'immediate' as const,
         })),
         ...edgeResponse.growthStrategies.map((strategy) => ({
           category: 'marketing' as const,
@@ -157,10 +157,10 @@ export class RecommendationService {
           description: strategy.description,
           impact: (strategy.impact?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
           effort: (strategy.effort?.toLowerCase() || 'medium') as 'high' | 'medium' | 'low',
-          timeframe: 'short_term' as const
-        }))
+          timeframe: 'short_term' as const,
+        })),
       ],
-      
+
       // Create action plan - Now taking all 5 urgent actions
       actionPlan: {
         title: 'Comprehensive Business Improvement Plan',
@@ -168,17 +168,17 @@ export class RecommendationService {
         steps: edgeResponse.urgentActions.map((action) => ({
           title: action.title,
           description: action.description,
-          status: 'pending' as const
+          status: 'pending' as const,
         })),
         expectedResults: edgeResponse.futureProjections.shortTerm[0] || 'Improved customer satisfaction and business growth',
-        timeframe: 'ongoing' as const
+        timeframe: 'ongoing' as const,
       },
-      
+
       // Include metadata if available
-      metadata: edgeResponse.metadata
-    };
-    
-    return transformedRecommendations;
+      metadata: edgeResponse.metadata,
+    }
+
+    return transformedRecommendations
   }
 
   /**
@@ -186,8 +186,8 @@ export class RecommendationService {
    */
   async testEdgeFunction(): Promise<{ success: boolean; message: string; data?: any }> {
     try {
-      logger.info('Testing edge function connectivity...');
-      
+      logger.info('Testing edge function connectivity...')
+
       // Create test data that matches the exact format expected by the edge function
       const testData = {
         businessData: {
@@ -198,28 +198,28 @@ export class RecommendationService {
               stars: 5,
               text: 'Great service! Very happy with my experience.',
               publishedAtDate: new Date().toISOString(),
-              name: 'Test User'
+              name: 'Test User',
             },
             {
               stars: 4,
               text: 'Good food but service could be faster.',
               publishedAtDate: new Date().toISOString(),
-              name: 'Another User'
+              name: 'Another User',
             },
             {
               stars: 3,
               text: 'Average experience, nothing special.',
               publishedAtDate: new Date().toISOString(),
-              name: 'Third User'
-            }
-          ]
+              name: 'Third User',
+            },
+          ],
         },
         provider: 'openai',
         apiKey: 'test-key-for-edge-function-testing', // Use a test key
-        model: 'gpt-3.5-turbo'
-      };
+        model: 'gpt-3.5-turbo',
+      }
 
-      logger.info('Sending test request:', JSON.stringify(testData, null, 2));
+      logger.info('Sending test request:', JSON.stringify(testData, null, 2))
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recommendations`, {
         method: 'POST',
@@ -227,26 +227,26 @@ export class RecommendationService {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify(testData)
-      });
+        body: JSON.stringify(testData),
+      })
 
-      const responseData = await response.json();
-      logger.info('Edge function test response:', responseData);
+      const responseData = await response.json()
+      logger.info('Edge function test response:', responseData)
 
       if (!responseData) {
         return {
           success: false,
-          message: 'No response from edge function'
-        };
+          message: 'No response from edge function',
+        }
       }
-      
+
       // Check if it's a fallback response (which means the edge function is working)
       if (responseData.fallback) {
         return {
           success: true,
           message: 'Edge function is deployed and responding correctly! It returned a fallback response as expected for test data.',
-          data: responseData
-        };
+          data: responseData,
+        }
       }
 
       // If we got actual recommendations, that's also good
@@ -254,32 +254,32 @@ export class RecommendationService {
         return {
           success: true,
           message: 'Edge function is working and returned recommendations!',
-          data: responseData
-        };
+          data: responseData,
+        }
       }
 
       return {
         success: false,
         message: 'Unexpected response format from edge function',
-        data: responseData
-      };
+        data: responseData,
+      }
 
     } catch (error) {
-      logger.error('Edge function test failed:', error);
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+      logger.error('Edge function test failed:', error)
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
       if (errorMessage.includes('not found') || errorMessage.includes('404')) {
         return {
           success: false,
-          message: 'Edge function not found. Please deploy it using: supabase functions deploy generate-recommendations'
-        };
+          message: 'Edge function not found. Please deploy it using: supabase functions deploy generate-recommendations',
+        }
       }
-      
+
       return {
         success: false,
-        message: `Edge function test failed: ${errorMessage}`
-      };
+        message: `Edge function test failed: ${errorMessage}`,
+      }
     }
   }
 
@@ -288,25 +288,25 @@ export class RecommendationService {
    */
   async generateRecommendations(businessData: BusinessData): Promise<Recommendations> {
     // Get the selected provider and API key
-    const provider = localStorage.getItem('AI_PROVIDER') || 'openai';
-    const apiKey = localStorage.getItem(`${provider.toUpperCase()}_API_KEY`);
-    const model = localStorage.getItem(`${provider.toUpperCase()}_MODEL`);
-    
+    const provider = localStorage.getItem('AI_PROVIDER') || 'openai'
+    const apiKey = localStorage.getItem(`${provider.toUpperCase()}_API_KEY`)
+    const model = localStorage.getItem(`${provider.toUpperCase()}_MODEL`)
+
     if (!apiKey) {
-      throw new Error(`${provider} API key is required. Please add it in AI Settings.`);
+      throw new Error(`${provider} API key is required. Please add it in AI Settings.`)
     }
 
     if (!businessData.reviews || businessData.reviews.length === 0) {
-      throw new Error('No reviews available for analysis');
+      throw new Error('No reviews available for analysis')
     }
 
-    logger.info(`Generating recommendations for ${businessData.businessName}`);
-    logger.info(`Using ${provider} with model ${model || 'default'}`);
-    logger.info(`Using ${businessData.reviews.length} reviews for analysis`);
-    
+    logger.info(`Generating recommendations for ${businessData.businessName}`)
+    logger.info(`Using ${provider} with model ${model || 'default'}`)
+    logger.info(`Using ${businessData.reviews.length} reviews for analysis`)
+
     // Log if business context is included
     if (businessData.businessContext) {
-      logger.info('Including comprehensive business context in analysis');
+      logger.info('Including comprehensive business context in analysis')
     }
 
     // Ensure all required fields are present in businessData
@@ -318,16 +318,16 @@ export class RecommendationService {
           stars: review.stars || 0,
           text: review.text || '',
           publishedAtDate: review.publishedAtDate || new Date().toISOString(),
-          name: review.name || 'Anonymous'
+          name: review.name || 'Anonymous',
         })),
-        businessContext: businessData.businessContext
+        businessContext: businessData.businessContext,
       },
       provider,
       apiKey,
-      model: model || undefined
-    };
+      model: model || undefined,
+    }
 
-    logger.info('Sending request to edge function...');
+    logger.info('Sending request to edge function...')
     logger.info('Request body structure:', {
       hasBusinessData: !!requestBody.businessData,
       businessName: requestBody.businessData.businessName,
@@ -335,12 +335,12 @@ export class RecommendationService {
       reviewCount: requestBody.businessData.reviews.length,
       provider: requestBody.provider,
       hasApiKey: !!requestBody.apiKey,
-      model: requestBody.model
-    });
+      model: requestBody.model,
+    })
 
     // Create abort controller for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 45000) // 45 second timeout
 
     try {
       // Use direct fetch instead of supabase.functions.invoke to ensure proper body handling
@@ -352,109 +352,109 @@ export class RecommendationService {
         },
         body: JSON.stringify(requestBody),
         signal: controller.signal,
-      });
+      })
 
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId)
 
-      const responseData = await response.json();
+      const responseData = await response.json()
 
       // Debug logging
-      logger.info('Raw edge function response:', responseData);
+      logger.info('Raw edge function response:', responseData)
       if (responseData) {
-        logger.info('Response data type:', typeof responseData);
-        logger.info('Response data keys:', Object.keys(responseData));
+        logger.info('Response data type:', typeof responseData)
+        logger.info('Response data keys:', Object.keys(responseData))
       }
 
       // The edge function now returns 200 status always, so check the response data
       if (!responseData) {
-        throw new Error('No data returned from recommendation service');
+        throw new Error('No data returned from recommendation service')
       }
 
       // Check if it's an error response with fallback
       if (responseData.error && responseData.fallback) {
-        logger.warn('Edge function returned error, using fallback:', responseData.error);
-        
+        logger.warn('Edge function returned error, using fallback:', responseData.error)
+
         // Log whether we're using fallback
-        logger.info('🔄 Using FALLBACK recommendations (not AI-generated)');
-        logger.info(`Fallback reason: ${responseData.error}`);
-        
+        logger.info('🔄 Using FALLBACK recommendations (not AI-generated)')
+        logger.info(`Fallback reason: ${responseData.error}`)
+
         // Provide more helpful error messages
         if (responseData.error.includes('401') || responseData.error.includes('Invalid API key')) {
-          throw new Error(`Invalid ${provider} API key. Please check your API key in AI Settings.`);
+          throw new Error(`Invalid ${provider} API key. Please check your API key in AI Settings.`)
         }
-        
+
         if (responseData.error.includes('429') || responseData.error.includes('Rate limit')) {
-          throw new Error(`${provider} rate limit exceeded. Please wait a moment and try again.`);
+          throw new Error(`${provider} rate limit exceeded. Please wait a moment and try again.`)
         }
-        
+
         if (responseData.error.includes('500') || responseData.error.includes('503')) {
-          logger.info(`${provider} service is temporarily unavailable, using fallback recommendations`);
-          return this.transformRecommendations(responseData.fallback, businessData);
+          logger.info(`${provider} service is temporarily unavailable, using fallback recommendations`)
+          return this.transformRecommendations(responseData.fallback, businessData)
         }
-        
+
         // For "Invalid request format", log more details
         if (responseData.error.includes('Invalid request format')) {
-          logger.error('Invalid request format error. This usually means the edge function needs to be redeployed.');
-          logger.error('Run: supabase functions deploy generate-recommendations');
+          logger.error('Invalid request format error. This usually means the edge function needs to be redeployed.')
+          logger.error('Run: supabase functions deploy generate-recommendations')
         }
-        
+
         // Use fallback recommendations for other errors
-        logger.info('Using fallback recommendations due to API error');
-        return this.transformRecommendations(responseData.fallback, businessData);
+        logger.info('Using fallback recommendations due to API error')
+        return this.transformRecommendations(responseData.fallback, businessData)
       }
 
       // Check if response has the expected structure
       if (!responseData.urgentActions || !responseData.growthStrategies) {
-        logger.error('Invalid response structure:', responseData);
-        throw new Error('Invalid response format from recommendation service');
+        logger.error('Invalid response structure:', responseData)
+        throw new Error('Invalid response format from recommendation service')
       }
 
       // Log whether we're using AI or fallback
       if (responseData.metadata?.source) {
-        const source = responseData.metadata.source;
-        const providerName = responseData.metadata.provider || provider;
-        const modelName = responseData.metadata.model || model || 'Unknown';
-        
+        const {source} = responseData.metadata
+        const providerName = responseData.metadata.provider || provider
+        const modelName = responseData.metadata.model || model || 'Unknown'
+
         if (source === 'openai' || source === 'claude' || source === 'gemini') {
-          logger.info(`✅ Successfully generated AI recommendations using ${providerName}`);
-          logger.info(`Model: ${modelName}`);
+          logger.info(`✅ Successfully generated AI recommendations using ${providerName}`)
+          logger.info(`Model: ${modelName}`)
           if (responseData.metadata.responseTime) {
-            logger.info(`Response time: ${responseData.metadata.responseTime}ms`);
+            logger.info(`Response time: ${responseData.metadata.responseTime}ms`)
           }
         } else if (source === 'fallback') {
-          logger.info('🔄 Using FALLBACK recommendations');
+          logger.info('🔄 Using FALLBACK recommendations')
           if (responseData.metadata.reason) {
-            logger.info(`Reason: ${responseData.metadata.reason}`);
+            logger.info(`Reason: ${responseData.metadata.reason}`)
           }
         }
       }
 
       // Otherwise it's a success response with recommendations
-      return this.transformRecommendations(responseData as EdgeFunctionRecommendations, businessData);
+      return this.transformRecommendations(responseData as EdgeFunctionRecommendations, businessData)
 
     } catch (error: unknown) {
-      clearTimeout(timeoutId);
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      const errorName = error instanceof Error ? error.name : 'UnknownError';
-      
+      clearTimeout(timeoutId)
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      const errorName = error instanceof Error ? error.name : 'UnknownError'
+
       // Handle abort/timeout
       if (errorName === 'AbortError' || errorMessage?.includes('aborted')) {
-        throw new Error('Request timed out after 45 seconds. Please check your internet connection and try again.');
+        throw new Error('Request timed out after 45 seconds. Please check your internet connection and try again.')
       }
-      
+
       // Network errors
       if (errorMessage?.includes('Failed to fetch') || errorMessage?.includes('Network')) {
-        throw new Error('Network error. Please check your internet connection and try again.');
+        throw new Error('Network error. Please check your internet connection and try again.')
       }
-      
+
       // Edge function not found
       if (errorMessage?.includes('not found') || errorMessage?.includes('404')) {
-        throw new Error('AI recommendation service is not deployed. Please deploy the Supabase edge function using: supabase functions deploy generate-recommendations');
+        throw new Error('AI recommendation service is not deployed. Please deploy the Supabase edge function using: supabase functions deploy generate-recommendations')
       }
-      
-      logger.error('Recommendation generation failed:', error);
-      throw error;
+
+      logger.error('Recommendation generation failed:', error)
+      throw error
     }
   }
 
@@ -464,11 +464,11 @@ export class RecommendationService {
   async saveRecommendations(businessName: string, _recommendations: Recommendations): Promise<void> {
     try {
       // This would save to your saved_recommendations table
-      logger.info(`Saving recommendations for ${businessName}`);
+      logger.info(`Saving recommendations for ${businessName}`)
       // Implementation depends on your database schema
     } catch (error) {
-      logger.error('Failed to save recommendations:', error);
-      throw error;
+      logger.error('Failed to save recommendations:', error)
+      throw error
     }
   }
 
@@ -476,8 +476,8 @@ export class RecommendationService {
    * Export recommendations as text
    */
   exportRecommendations(businessName: string, recommendations: Recommendations): string {
-    const timestamp = new Date().toLocaleDateString();
-    
+    const timestamp = new Date().toLocaleDateString()
+
     return `
 # Business Recommendations for ${businessName}
 Generated on: ${timestamp}
@@ -500,9 +500,9 @@ ${recommendations.futureProjections?.shortTerm?.map(projection => `• ${project
 
 ### Long Term (1-2 years)
 ${recommendations.futureProjections?.longTerm?.map(projection => `• ${projection}`).join('\n') || 'No long-term projections available.'}
-    `.trim();
+    `.trim()
   }
 }
 
 // Export singleton instance
-export const recommendationService = new RecommendationService();
+export const recommendationService = new RecommendationService()

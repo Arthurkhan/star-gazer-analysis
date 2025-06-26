@@ -1,14 +1,14 @@
-import { BusinessType } from './businessTypes';
+import { BusinessType } from './businessTypes'
 
 /**
  * Maps business names to their types
  * This provides a consistent way to determine business types from names
  */
 const businessTypeMap: Record<string, BusinessType> = {
-  "The Little Prince Cafe": BusinessType.CAFE,
-  "Vol de Nuit, The Hidden Bar": BusinessType.BAR,
-  "L'Envol Art Space": BusinessType.GALLERY
-};
+  'The Little Prince Cafe': BusinessType.CAFE,
+  'Vol de Nuit, The Hidden Bar': BusinessType.BAR,
+  "L'Envol Art Space": BusinessType.GALLERY,
+}
 
 /**
  * Get business type from business name
@@ -16,7 +16,7 @@ const businessTypeMap: Record<string, BusinessType> = {
  * @returns The business type
  */
 export function getBusinessTypeFromName(businessName: string): BusinessType {
-  return businessTypeMap[businessName] || BusinessType.OTHER;
+  return businessTypeMap[businessName] || BusinessType.OTHER
 }
 
 /**
@@ -26,15 +26,15 @@ export const businessTypeLabels: Record<BusinessType, string> = {
   [BusinessType.CAFE]: 'Café',
   [BusinessType.BAR]: 'Bar',
   [BusinessType.GALLERY]: 'Art Gallery',
-  [BusinessType.OTHER]: 'Business'
-};
+  [BusinessType.OTHER]: 'Business',
+}
 
 /**
  * Get all known business names
  * @returns Array of known business names
  */
 export function getKnownBusinessNames(): string[] {
-  return Object.keys(businessTypeMap);
+  return Object.keys(businessTypeMap)
 }
 
 /**
@@ -43,5 +43,5 @@ export function getKnownBusinessNames(): string[] {
  * @returns True if the business name is known
  */
 export function isKnownBusiness(businessName: string): boolean {
-  return !!businessTypeMap[businessName];
+  return !!businessTypeMap[businessName]
 }

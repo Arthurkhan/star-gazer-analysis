@@ -1,13 +1,13 @@
 
-import React, { useState, useEffect } from "react";
-import { Review } from "@/types/reviews";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCw, FileText, ClipboardCopy, Download } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { getAnalysis, clearCache } from "@/utils/ai/analysisService";
-import { generatePDF } from "@/utils/pdfExport";
+import React, { useState, useEffect } from 'react'
+import type { Review } from '@/types/reviews'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { RefreshCw, FileText, ClipboardCopy, Download } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { getAnalysis, clearCache } from '@/utils/ai/analysisService'
+import { generatePDF } from '@/utils/pdfExport'
 
 interface DateRange {
   from: Date;
@@ -21,113 +21,113 @@ interface AIAnalysisReportProps {
   className?: string;
 }
 
-const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({ 
+const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
   reviews,
   dateRange,
-  title = "Analysis Report", 
-  className = ""
+  title = 'Analysis Report',
+  className = '',
 }) => {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const [analysis, setAnalysis] = useState<any>(null)
 
   const fetchAnalysis = async (forceRefresh = false) => {
     if (reviews.length === 0) {
       toast({
-        title: "No reviews",
-        description: "No reviews available to analyze",
-        variant: "default",
-      });
-      return;
+        title: 'No reviews',
+        description: 'No reviews available to analyze',
+        variant: 'default',
+      })
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
 
     try {
       // Clear cache if forcing refresh
       if (forceRefresh) {
-        clearCache();
+        clearCache()
       }
 
       // Get analysis from the service - now using pre-computed data
       const result = await getAnalysis(reviews, dateRange ? {
         startDate: dateRange.from.toISOString(),
-        endDate: dateRange.to ? dateRange.to.toISOString() : new Date().toISOString()
-      } : undefined);
-      
-      setAnalysis(result);
-      
+        endDate: dateRange.to ? dateRange.to.toISOString() : new Date().toISOString(),
+      } : undefined)
+
+      setAnalysis(result)
+
       toast({
-        title: "Analysis complete",
-        description: "Report has been generated",
-      });
+        title: 'Analysis complete',
+        description: 'Report has been generated',
+      })
     } catch (err) {
-      console.error("Analysis error:", err);
+      console.error('Analysis error:', err)
       toast({
-        title: "Analysis failed",
-        description: "Could not generate analysis",
-        variant: "destructive",
-      });
+        title: 'Analysis failed',
+        description: 'Could not generate analysis',
+        variant: 'destructive',
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   // Initialize analysis on first load
   useEffect(() => {
     if (reviews.length > 0 && !analysis && !loading) {
-      fetchAnalysis();
+      fetchAnalysis()
     }
-  }, [reviews, dateRange]);
+  }, [reviews, dateRange])
 
   const copyToClipboard = () => {
     if (analysis?.overallAnalysis) {
-      navigator.clipboard.writeText(analysis.overallAnalysis);
+      navigator.clipboard.writeText(analysis.overallAnalysis)
       toast({
-        title: "Copied to clipboard",
-        description: "Analysis copied to clipboard",
-      });
+        title: 'Copied to clipboard',
+        description: 'Analysis copied to clipboard',
+      })
     }
-  };
+  }
 
   const downloadPDF = () => {
     if (analysis?.overallAnalysis) {
       generatePDF({
         title: `${title} - ${new Date().toLocaleDateString()}`,
         content: analysis.overallAnalysis,
-        filename: `review-analysis-${new Date().toISOString().split('T')[0]}.pdf`
-      });
-      
+        filename: `review-analysis-${new Date().toISOString().split('T')[0]}.pdf`,
+      })
+
       toast({
-        title: "PDF downloaded",
-        description: "Analysis report has been downloaded",
-      });
+        title: 'PDF downloaded',
+        description: 'Analysis report has been downloaded',
+      })
     }
-  };
+  }
 
   const renderFormattedAnalysis = () => {
-    if (!analysis?.overallAnalysis) return null;
+    if (!analysis?.overallAnalysis) return null
 
     // Split by sections (each section starts with an emoji)
-    const sections = analysis.overallAnalysis.split(/(?=📊|📈|🗣️|💬|🌍|🎯)/g);
-    
+    const sections = analysis.overallAnalysis.split(/(?=📊|📈|🗣️|💬|🌍|🎯)/g)
+
     return (
       <div className="space-y-4">
         {sections.map((section: string, index: number) => (
           <div key={index} className="space-y-2">
-            <div 
+            <div
               className="whitespace-pre-line"
-              dangerouslySetInnerHTML={{ 
+              dangerouslySetInnerHTML={{
                 __html: section
                   .replace(/\n/g, '<br />')
-                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-              }} 
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'),
+              }}
             />
           </div>
         ))}
       </div>
-    );
-  };
+    )
+  }
 
   return (
     <Card className={className}>
@@ -137,9 +137,9 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => copyToClipboard()}
                   disabled={!analysis?.overallAnalysis || loading}
                 >
@@ -151,13 +151,13 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => downloadPDF()}
                   disabled={!analysis?.overallAnalysis || loading}
                 >
@@ -169,17 +169,17 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => fetchAnalysis(true)}
                   disabled={loading}
                 >
-                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -205,7 +205,7 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
         ) : (
           <div className="space-y-4">
             {renderFormattedAnalysis()}
-            
+
             {/* Additional visualizations */}
             {analysis.mainThemes && analysis.mainThemes.length > 0 && (
               <div className="mt-6">
@@ -223,7 +223,7 @@ const AIAnalysisReport: React.FC<AIAnalysisReportProps> = ({
         )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
-export default AIAnalysisReport;
+export default AIAnalysisReport

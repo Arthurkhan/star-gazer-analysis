@@ -1,7 +1,7 @@
-import { useDashboardData } from "@/hooks/useDashboardData";
-import { BusinessData } from "@/types/reviews";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { useDashboardData } from '@/hooks/useDashboardData'
+import type { BusinessData } from '@/types/reviews'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 
 interface NoReviewsAlertProps {
   businessData: BusinessData;
@@ -9,10 +9,10 @@ interface NoReviewsAlertProps {
 }
 
 export const NoReviewsAlert = ({ businessData, selectedBusiness }: NoReviewsAlertProps) => {
-  const businessInfo = selectedBusiness === 'all' 
-    ? businessData.allBusinesses 
-    : businessData.businesses[selectedBusiness];
-    
+  const businessInfo = selectedBusiness === 'all'
+    ? businessData.allBusinesses
+    : businessData.businesses[selectedBusiness]
+
   return (
     <Alert variant="warning" className="mb-6">
       <AlertCircle className="h-4 w-4" />
@@ -20,7 +20,7 @@ export const NoReviewsAlert = ({ businessData, selectedBusiness }: NoReviewsAler
       <AlertDescription>
         <p>
           {selectedBusiness === 'all'
-            ? `No reviews found for any businesses.`
+            ? 'No reviews found for any businesses.'
             : `No reviews found for ${selectedBusiness}.`
           }
         </p>
@@ -29,5 +29,5 @@ export const NoReviewsAlert = ({ businessData, selectedBusiness }: NoReviewsAler
         </p>
       </AlertDescription>
     </Alert>
-  );
-};
+  )
+}

@@ -44,8 +44,8 @@ export const industryBenchmarks: Record<BusinessType, IndustryBenchmark> = {
     successMetrics: {
       excellentThreshold: 4.5,
       goodThreshold: 4.0,
-      needsImprovementThreshold: 3.5
-    }
+      needsImprovementThreshold: 3.5,
+    },
   },
   [BusinessType.BAR]: {
     businessType: BusinessType.BAR,
@@ -56,8 +56,8 @@ export const industryBenchmarks: Record<BusinessType, IndustryBenchmark> = {
     successMetrics: {
       excellentThreshold: 4.3,
       goodThreshold: 3.8,
-      needsImprovementThreshold: 3.3
-    }
+      needsImprovementThreshold: 3.3,
+    },
   },
   [BusinessType.RESTAURANT]: {
     businessType: BusinessType.RESTAURANT,
@@ -68,8 +68,8 @@ export const industryBenchmarks: Record<BusinessType, IndustryBenchmark> = {
     successMetrics: {
       excellentThreshold: 4.4,
       goodThreshold: 3.9,
-      needsImprovementThreshold: 3.4
-    }
+      needsImprovementThreshold: 3.4,
+    },
   },
   [BusinessType.GALLERY]: {
     businessType: BusinessType.GALLERY,
@@ -80,8 +80,8 @@ export const industryBenchmarks: Record<BusinessType, IndustryBenchmark> = {
     successMetrics: {
       excellentThreshold: 4.6,
       goodThreshold: 4.2,
-      needsImprovementThreshold: 3.8
-    }
+      needsImprovementThreshold: 3.8,
+    },
   },
   [BusinessType.RETAIL]: {
     businessType: BusinessType.RETAIL,
@@ -92,8 +92,8 @@ export const industryBenchmarks: Record<BusinessType, IndustryBenchmark> = {
     successMetrics: {
       excellentThreshold: 4.3,
       goodThreshold: 3.8,
-      needsImprovementThreshold: 3.3
-    }
+      needsImprovementThreshold: 3.3,
+    },
   },
   [BusinessType.SERVICE]: {
     businessType: BusinessType.SERVICE,
@@ -104,8 +104,8 @@ export const industryBenchmarks: Record<BusinessType, IndustryBenchmark> = {
     successMetrics: {
       excellentThreshold: 4.5,
       goodThreshold: 4.0,
-      needsImprovementThreshold: 3.5
-    }
+      needsImprovementThreshold: 3.5,
+    },
   },
   [BusinessType.OTHER]: {
     businessType: BusinessType.OTHER,
@@ -116,7 +116,7 @@ export const industryBenchmarks: Record<BusinessType, IndustryBenchmark> = {
     successMetrics: {
       excellentThreshold: 4.4,
       goodThreshold: 3.9,
-      needsImprovementThreshold: 3.4
-    }
-  }
-};
+      needsImprovementThreshold: 3.4,
+    },
+  },
+}

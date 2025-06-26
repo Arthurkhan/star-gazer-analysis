@@ -1,56 +1,56 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  AlertTriangle, 
-  TrendingUp, 
-  CheckCircle, 
-  Eye, 
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  AlertTriangle,
+  TrendingUp,
+  CheckCircle,
+  Eye,
   Target,
   Lightbulb,
   Star,
-  Users
-} from "lucide-react";
-import { ActionItems } from "@/types/analysisSummary";
+  Users,
+} from 'lucide-react'
+import type { ActionItems } from '@/types/analysisSummary'
 
 interface ActionItemsSectionProps {
   actionItems: ActionItems;
 }
 
 export const ActionItemsSection: React.FC<ActionItemsSectionProps> = ({
-  actionItems
+  actionItems,
 }) => {
-  const { urgent, improvements, strengths, monitoring } = actionItems;
+  const { urgent, improvements, strengths, monitoring } = actionItems
 
   // Helper to get priority color and icon
-  const getPriorityInfo = (priority: "critical" | "high" | "medium") => {
+  const getPriorityInfo = (priority: 'critical' | 'high' | 'medium') => {
     switch (priority) {
-      case "critical":
-        return { color: "text-red-600 bg-red-100", icon: AlertTriangle, border: "border-red-500" };
-      case "high":
-        return { color: "text-orange-600 bg-orange-100", icon: AlertTriangle, border: "border-orange-500" };
+      case 'critical':
+        return { color: 'text-red-600 bg-red-100', icon: AlertTriangle, border: 'border-red-500' }
+      case 'high':
+        return { color: 'text-orange-600 bg-orange-100', icon: AlertTriangle, border: 'border-orange-500' }
       default:
-        return { color: "text-yellow-600 bg-yellow-100", icon: AlertTriangle, border: "border-yellow-500" };
+        return { color: 'text-yellow-600 bg-yellow-100', icon: AlertTriangle, border: 'border-yellow-500' }
     }
-  };
+  }
 
   // Helper to get impact/effort badges
-  const getImpactColor = (impact: "high" | "medium" | "low") => {
+  const getImpactColor = (impact: 'high' | 'medium' | 'low') => {
     switch (impact) {
-      case "high": return "bg-green-100 text-green-700";
-      case "medium": return "bg-yellow-100 text-yellow-700";
-      default: return "bg-gray-100 text-gray-700";
+      case 'high': return 'bg-green-100 text-green-700'
+      case 'medium': return 'bg-yellow-100 text-yellow-700'
+      default: return 'bg-gray-100 text-gray-700'
     }
-  };
+  }
 
-  const getEffortColor = (effort: "high" | "medium" | "low") => {
+  const getEffortColor = (effort: 'high' | 'medium' | 'low') => {
     switch (effort) {
-      case "low": return "bg-green-100 text-green-700";
-      case "medium": return "bg-yellow-100 text-yellow-700";
-      default: return "bg-red-100 text-red-700";
+      case 'low': return 'bg-green-100 text-green-700'
+      case 'medium': return 'bg-yellow-100 text-yellow-700'
+      default: return 'bg-red-100 text-red-700'
     }
-  };
+  }
 
   return (
     <Card>
@@ -62,20 +62,20 @@ export const ActionItemsSection: React.FC<ActionItemsSectionProps> = ({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
+
           {/* Urgent Actions */}
           <div className="space-y-4">
             <h3 className="font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-500" />
               Urgent Actions
             </h3>
-            
+
             {urgent.length > 0 ? (
               <div className="space-y-3">
                 {urgent.map((item, index) => {
-                  const priorityInfo = getPriorityInfo(item.priority);
-                  const PriorityIcon = priorityInfo.icon;
-                  
+                  const priorityInfo = getPriorityInfo(item.priority)
+                  const PriorityIcon = priorityInfo.icon
+
                   return (
                     <Alert key={index} className={`${priorityInfo.border} border-l-4`}>
                       <PriorityIcon className="h-4 w-4" />
@@ -96,7 +96,7 @@ export const ActionItemsSection: React.FC<ActionItemsSectionProps> = ({
                         </div>
                       </AlertDescription>
                     </Alert>
-                  );
+                  )
                 })}
               </div>
             ) : (
@@ -114,7 +114,7 @@ export const ActionItemsSection: React.FC<ActionItemsSectionProps> = ({
               <TrendingUp className="w-4 h-4 text-blue-500" />
               Improvement Opportunities
             </h3>
-            
+
             {improvements.length > 0 ? (
               <div className="space-y-3">
                 {improvements.slice(0, 6).map((item, index) => (
@@ -254,5 +254,5 @@ export const ActionItemsSection: React.FC<ActionItemsSectionProps> = ({
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

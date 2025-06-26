@@ -1,2 +1,2 @@
 // Analytics feature hooks
-export { useBusinessStats } from './useBusinessStats';
+export { useBusinessStats } from './useBusinessStats'

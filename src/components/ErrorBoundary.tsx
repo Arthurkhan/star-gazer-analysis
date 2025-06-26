@@ -1,27 +1,26 @@
 /**
  * Error Boundary Component - Phase 5
- * 
+ *
  * React Error Boundary to catch JavaScript errors anywhere in the component tree,
  * log those errors, and display a fallback UI instead of crashing the whole app.
  */
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  AlertTriangle, 
-  RefreshCw, 
-  Home, 
-  Bug, 
-  MessageCircle 
-} from 'lucide-react';
-import { 
-  ErrorBoundaryState, 
-  ErrorBoundaryError, 
-  logError, 
-  ErrorSeverity 
-} from '@/utils/errorHandling';
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  AlertTriangle,
+  RefreshCw,
+  Home,
+  Bug,
+  MessageCircle,
+} from 'lucide-react'
+import {
+  ErrorBoundaryError,
+  logError,
+  type ErrorBoundaryState,
+} from '@/utils/errorHandling'
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -39,48 +38,48 @@ interface ErrorFallbackProps {
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  private retryCount = 0;
-  private readonly maxRetries = 3;
+  private retryCount = 0
+  private readonly maxRetries = 3
 
   constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
+    super(props)
+    this.state = { hasError: false }
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+    return { hasError: true, error }
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    const boundaryError = new ErrorBoundaryError(error.message, error);
-    
+    const boundaryError = new ErrorBoundaryError(error.message, error)
+
     // Log the error using the standalone logError function
-    logError(boundaryError, `ErrorBoundary-${this.props.level || 'component'}`);
-    
+    logError(boundaryError, `ErrorBoundary-${this.props.level || 'component'}`)
+
     // Call custom error handler if provided
-    this.props.onError?.(error, errorInfo);
-    
+    this.props.onError?.(error, errorInfo)
+
     // Store error info in state
-    this.setState({ error, errorInfo });
+    this.setState({ error, errorInfo })
   }
 
   handleReset = () => {
-    this.retryCount++;
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
-  };
+    this.retryCount++
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined })
+  }
 
   handleReload = () => {
-    window.location.reload();
-  };
+    window.location.reload()
+  }
 
   handleGoHome = () => {
-    window.location.href = '/';
-  };
+    window.location.href = '/'
+  }
 
   render() {
     if (this.state.hasError) {
-      const { fallback: Fallback, level = 'component' } = this.props;
-      
+      const { fallback: Fallback, level = 'component' } = this.props
+
       if (Fallback) {
         return (
           <Fallback
@@ -89,7 +88,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             resetError={this.handleReset}
             level={level}
           />
-        );
+        )
       }
 
       return (
@@ -103,10 +102,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           onReload={this.handleReload}
           onGoHome={this.handleGoHome}
         />
-      );
+      )
     }
 
-    return this.props.children;
+    return this.props.children
   }
 }
 
@@ -126,34 +125,34 @@ function DefaultErrorFallback({
   retryCount,
   maxRetries,
   onReload,
-  onGoHome
+  onGoHome,
 }: DefaultErrorFallbackProps) {
-  const canRetry = retryCount < maxRetries;
-  
+  const canRetry = retryCount < maxRetries
+
   const getErrorTitle = () => {
     switch (level) {
       case 'page':
-        return 'Page Error';
+        return 'Page Error'
       case 'section':
-        return 'Section Error';
+        return 'Section Error'
       default:
-        return 'Component Error';
+        return 'Component Error'
     }
-  };
+  }
 
   const getErrorDescription = () => {
     switch (level) {
       case 'page':
-        return 'An error occurred while loading this page. You can try refreshing the page or return to the home page.';
+        return 'An error occurred while loading this page. You can try refreshing the page or return to the home page.'
       case 'section':
-        return 'An error occurred in this section. You can try refreshing this section or continue using other parts of the application.';
+        return 'An error occurred in this section. You can try refreshing this section or continue using other parts of the application.'
       default:
-        return 'An error occurred in this component. You can try refreshing this component or continue using the application.';
+        return 'An error occurred in this component. You can try refreshing this component or continue using the application.'
     }
-  };
+  }
 
   const getErrorActions = () => {
-    const actions = [];
+    const actions = []
 
     if (canRetry && level !== 'page') {
       actions.push(
@@ -166,8 +165,8 @@ function DefaultErrorFallback({
         >
           <RefreshCw className="h-4 w-4" />
           Try Again
-        </Button>
-      );
+        </Button>,
+      )
     }
 
     if (level === 'page' || !canRetry) {
@@ -181,8 +180,8 @@ function DefaultErrorFallback({
         >
           <RefreshCw className="h-4 w-4" />
           Reload Page
-        </Button>
-      );
+        </Button>,
+      )
     }
 
     actions.push(
@@ -195,17 +194,17 @@ function DefaultErrorFallback({
       >
         <Home className="h-4 w-4" />
         Go Home
-      </Button>
-    );
+      </Button>,
+    )
 
-    return actions;
-  };
+    return actions
+  }
 
-  const containerClass = level === 'page' 
+  const containerClass = level === 'page'
     ? 'min-h-screen flex items-center justify-center p-4'
     : level === 'section'
     ? 'min-h-[300px] flex items-center justify-center p-4'
-    : 'min-h-[200px] flex items-center justify-center p-2';
+    : 'min-h-[200px] flex items-center justify-center p-2'
 
   return (
     <div className={containerClass}>
@@ -261,7 +260,7 @@ function DefaultErrorFallback({
               variant="ghost"
               size="sm"
               onClick={() => {
-                const subject = encodeURIComponent(`Error Report: ${error?.message || 'Unknown error'}`);
+                const subject = encodeURIComponent(`Error Report: ${error?.message || 'Unknown error'}`)
                 const body = encodeURIComponent(
                   `Error occurred in ${level}:\n\n` +
                   `Message: ${error?.message || 'Unknown error'}\n` +
@@ -269,9 +268,9 @@ function DefaultErrorFallback({
                   `Component Stack: ${errorInfo?.componentStack || 'No component stack'}\n` +
                   `User Agent: ${navigator.userAgent}\n` +
                   `URL: ${window.location.href}\n` +
-                  `Timestamp: ${new Date().toISOString()}`
-                );
-                window.location.href = `mailto:support@example.com?subject=${subject}&body=${body}`;
+                  `Timestamp: ${new Date().toISOString()}`,
+                )
+                window.location.href = `mailto:support@example.com?subject=${subject}&body=${body}`
               }}
               className="flex items-center gap-2"
             >
@@ -282,51 +281,51 @@ function DefaultErrorFallback({
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
 // Higher-order component to wrap components with error boundary
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
-  errorBoundaryProps?: Omit<ErrorBoundaryProps, 'children'>
+  errorBoundaryProps?: Omit<ErrorBoundaryProps, 'children'>,
 ) {
   const WrappedComponent = (props: P) => (
     <ErrorBoundary {...errorBoundaryProps}>
       <Component {...props} />
     </ErrorBoundary>
-  );
+  )
 
-  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
-  
-  return WrappedComponent;
+  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`
+
+  return WrappedComponent
 }
 
 // Hook to programmatically trigger error boundary
 export function useErrorHandler() {
-  const [error, setError] = React.useState<Error | null>(null);
+  const [error, setError] = React.useState<Error | null>(null)
 
   React.useEffect(() => {
     if (error) {
-      throw error;
+      throw error
     }
-  }, [error]);
+  }, [error])
 
   return React.useCallback((error: Error) => {
-    setError(error);
-  }, []);
+    setError(error)
+  }, [])
 }
 
 // Async error boundary hook
 export function useAsyncError() {
-  const throwError = useErrorHandler();
+  const throwError = useErrorHandler()
 
   return React.useCallback((error: Error) => {
     // Log async error
-    logError(error, 'AsyncError');
-    
+    logError(error, 'AsyncError')
+
     // Throw to nearest error boundary
-    throwError(error);
-  }, [throwError]);
+    throwError(error)
+  }, [throwError])
 }
 
 // Component-level error boundary for specific components
@@ -334,20 +333,20 @@ export const ComponentErrorBoundary: React.FC<{ children: React.ReactNode }> = (
   <ErrorBoundary level="component">
     {children}
   </ErrorBoundary>
-);
+)
 
 // Section-level error boundary
 export const SectionErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <ErrorBoundary level="section">
     {children}
   </ErrorBoundary>
-);
+)
 
-// Page-level error boundary  
+// Page-level error boundary
 export const PageErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <ErrorBoundary level="page">
     {children}
   </ErrorBoundary>
-);
+)
 
-export default ErrorBoundary;
+export default ErrorBoundary

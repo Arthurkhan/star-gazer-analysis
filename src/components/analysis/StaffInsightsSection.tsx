@@ -1,33 +1,33 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Users, TrendingUp, TrendingDown, Star } from "lucide-react";
-import { StaffInsights } from "@/types/analysisSummary";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Users, TrendingUp, TrendingDown, Star } from 'lucide-react'
+import type { StaffInsights } from '@/types/analysisSummary'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface StaffInsightsSectionProps {
   staffInsights: StaffInsights;
 }
 
 export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
-  staffInsights
+  staffInsights,
 }) => {
-  const { mentions, overallStaffScore, trainingOpportunities } = staffInsights;
+  const { mentions, overallStaffScore, trainingOpportunities } = staffInsights
 
   // Helper to get trend icon
-  const getTrendIcon = (trend: "improving" | "declining" | "stable") => {
+  const getTrendIcon = (trend: 'improving' | 'declining' | 'stable') => {
     switch (trend) {
-      case "improving": return <TrendingUp className="w-3 h-3 text-green-500" />;
-      case "declining": return <TrendingDown className="w-3 h-3 text-red-500" />;
-      default: return null;
+      case 'improving': return <TrendingUp className="w-3 h-3 text-green-500" />
+      case 'declining': return <TrendingDown className="w-3 h-3 text-red-500" />
+      default: return null
     }
-  };
+  }
 
   // Helper to calculate performance score
   const getPerformanceScore = (positive: number, negative: number, total: number) => {
-    if (total === 0) return 0;
-    return Math.round(((positive - negative) / total) * 100);
-  };
+    if (total === 0) return 0
+    return Math.round(((positive - negative) / total) * 100)
+  }
 
   return (
     <Card>
@@ -39,7 +39,7 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
+
           {/* Staff Mentions Analysis */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -48,7 +48,7 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
                 Overall Score: {overallStaffScore}/100
               </Badge>
             </div>
-            
+
             {mentions.length > 0 ? (
               <div className="space-y-4">
                 {/* Show scrollable area if more than 6 staff members */}
@@ -61,11 +61,11 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
                       <div className="space-y-4">
                         {mentions.map((staff) => {
                           const performanceScore = getPerformanceScore(
-                            staff.positiveMentions, 
-                            staff.negativeMentions, 
-                            staff.totalMentions
-                          );
-                          
+                            staff.positiveMentions,
+                            staff.negativeMentions,
+                            staff.totalMentions,
+                          )
+
                           return (
                             <div key={staff.name} className="space-y-2 p-3 rounded-lg border">
                               <div className="flex items-center justify-between">
@@ -73,19 +73,19 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
                                   <span className="font-medium">{staff.name}</span>
                                   {getTrendIcon(staff.trend)}
                                 </div>
-                                <Badge 
-                                  variant={performanceScore > 50 ? "default" : "secondary"}
+                                <Badge
+                                  variant={performanceScore > 50 ? 'default' : 'secondary'}
                                   className={
-                                    performanceScore > 70 ? "bg-green-100 text-green-700" :
-                                    performanceScore > 30 ? "bg-yellow-100 text-yellow-700" :
-                                    "bg-red-100 text-red-700"
+                                    performanceScore > 70 ? 'bg-green-100 text-green-700' :
+                                    performanceScore > 30 ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-red-100 text-red-700'
                                   }
                                 >
-                                  {performanceScore > 70 ? "Excellent" :
-                                   performanceScore > 30 ? "Good" : "Needs Support"}
+                                  {performanceScore > 70 ? 'Excellent' :
+                                   performanceScore > 30 ? 'Good' : 'Needs Support'}
                                 </Badge>
                               </div>
-                              
+
                               <div className="grid grid-cols-3 gap-2 text-sm">
                                 <div className="text-center">
                                   <div className="font-semibold">{staff.totalMentions}</div>
@@ -108,7 +108,7 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
                                 </div>
                               )}
                             </div>
-                          );
+                          )
                         })}
                       </div>
                     </ScrollArea>
@@ -118,11 +118,11 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
                   <div className="space-y-4">
                     {mentions.map((staff) => {
                       const performanceScore = getPerformanceScore(
-                        staff.positiveMentions, 
-                        staff.negativeMentions, 
-                        staff.totalMentions
-                      );
-                      
+                        staff.positiveMentions,
+                        staff.negativeMentions,
+                        staff.totalMentions,
+                      )
+
                       return (
                         <div key={staff.name} className="space-y-2 p-3 rounded-lg border">
                           <div className="flex items-center justify-between">
@@ -130,19 +130,19 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
                               <span className="font-medium">{staff.name}</span>
                               {getTrendIcon(staff.trend)}
                             </div>
-                            <Badge 
-                              variant={performanceScore > 50 ? "default" : "secondary"}
+                            <Badge
+                              variant={performanceScore > 50 ? 'default' : 'secondary'}
                               className={
-                                performanceScore > 70 ? "bg-green-100 text-green-700" :
-                                performanceScore > 30 ? "bg-yellow-100 text-yellow-700" :
-                                "bg-red-100 text-red-700"
+                                performanceScore > 70 ? 'bg-green-100 text-green-700' :
+                                performanceScore > 30 ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
                               }
                             >
-                              {performanceScore > 70 ? "Excellent" :
-                               performanceScore > 30 ? "Good" : "Needs Support"}
+                              {performanceScore > 70 ? 'Excellent' :
+                               performanceScore > 30 ? 'Good' : 'Needs Support'}
                             </Badge>
                           </div>
-                          
+
                           <div className="grid grid-cols-3 gap-2 text-sm">
                             <div className="text-center">
                               <div className="font-semibold">{staff.totalMentions}</div>
@@ -165,7 +165,7 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
                             </div>
                           )}
                         </div>
-                      );
+                      )
                     })}
                   </div>
                 )}
@@ -182,7 +182,7 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
           {/* Staff Examples and Training */}
           <div className="space-y-4">
             <h3 className="font-semibold">Performance Examples</h3>
-            
+
             {mentions.length > 0 ? (
               <div className="space-y-4">
                 {mentions.slice(0, 3).map((staff) => (
@@ -192,7 +192,7 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
                       <div className="space-y-2">
                         {staff.examples.slice(0, 2).map((example, index) => (
                           <div key={index} className="p-2 bg-muted/50 rounded text-sm">
-                            "{example.length > 150 ? example.substring(0, 150) + '...' : example}"
+                            "{example.length > 150 ? `${example.substring(0, 150)}...` : example}"
                           </div>
                         ))}
                       </div>
@@ -233,9 +233,9 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
                 <div className="flex justify-between">
                   <span>Positive Ratio:</span>
                   <span className="font-medium text-green-600">
-                    {mentions.length > 0 ? 
-                      Math.round((mentions.reduce((sum, staff) => sum + staff.positiveMentions, 0) / 
-                                 mentions.reduce((sum, staff) => sum + staff.totalMentions, 0)) * 100) 
+                    {mentions.length > 0 ?
+                      Math.round((mentions.reduce((sum, staff) => sum + staff.positiveMentions, 0) /
+                                 mentions.reduce((sum, staff) => sum + staff.totalMentions, 0)) * 100)
                       : 0}%
                   </span>
                 </div>
@@ -245,5 +245,5 @@ export const StaffInsightsSection: React.FC<StaffInsightsSectionProps> = ({
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

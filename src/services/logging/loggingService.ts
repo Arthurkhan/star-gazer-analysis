@@ -1,9 +1,9 @@
 // src/services/logging/loggingService.ts
 // Centralized logging service for application monitoring
 
-import { appLogger } from '@/utils/logger';
-import { safeLocalStorage } from '@/utils/storage/safeStorage';
-import { ErrorSeverity } from '@/utils/errorHandling';
+import { appLogger } from '@/utils/logger'
+import { safeLocalStorage } from '@/utils/storage/safeStorage'
+import { ErrorSeverity } from '@/utils/errorHandling'
 
 // Error event data structure
 interface ErrorEvent {
@@ -28,25 +28,25 @@ interface LoggingConfig {
  * Centralized logging service to collect, buffer and report errors
  */
 export class LoggingService {
-  private static instance: LoggingService;
-  private errorBuffer: ErrorEvent[] = [];
-  private warningBuffer: ErrorEvent[] = [];
-  private bufferSize: number;
-  private flushInterval: number;
-  private persistLogs: boolean;
-  private consoleOutput: boolean;
-  private flushTimer: number | null = null;
-  private isInitialized: boolean = false;
+  private static instance: LoggingService
+  private errorBuffer: ErrorEvent[] = []
+  private warningBuffer: ErrorEvent[] = []
+  private bufferSize: number
+  private flushInterval: number
+  private persistLogs: boolean
+  private consoleOutput: boolean
+  private flushTimer: number | null = null
+  private isInitialized: boolean = false
 
   private constructor(config: LoggingConfig = {}) {
-    this.bufferSize = config.bufferSize || 50;
-    this.flushInterval = config.flushInterval || 30000; // 30 seconds
-    this.persistLogs = config.persistLogs !== undefined ? config.persistLogs : true;
-    this.consoleOutput = config.consoleOutput !== undefined ? config.consoleOutput : true;
+    this.bufferSize = config.bufferSize || 50
+    this.flushInterval = config.flushInterval || 30000 // 30 seconds
+    this.persistLogs = config.persistLogs !== undefined ? config.persistLogs : true
+    this.consoleOutput = config.consoleOutput !== undefined ? config.consoleOutput : true
 
     // Load persisted logs if enabled
     if (this.persistLogs) {
-      this.loadPersistedLogs();
+      this.loadPersistedLogs()
     }
   }
 
@@ -55,31 +55,31 @@ export class LoggingService {
    */
   public static getInstance(config?: LoggingConfig): LoggingService {
     if (!LoggingService.instance) {
-      LoggingService.instance = new LoggingService(config);
+      LoggingService.instance = new LoggingService(config)
     }
-    return LoggingService.instance;
+    return LoggingService.instance
   }
 
   /**
    * Initialize the logging service and start the flush timer
    */
   public initialize(): void {
-    if (this.isInitialized) return;
+    if (this.isInitialized) return
 
     // Start the flush timer
     if (this.flushInterval > 0) {
       this.flushTimer = window.setInterval(() => {
-        this.flush();
-      }, this.flushInterval);
+        this.flush()
+      }, this.flushInterval)
     }
 
     // Subscribe to window unload to persist logs
     window.addEventListener('beforeunload', () => {
-      this.persistLogsToStorage();
-    });
+      this.persistLogsToStorage()
+    })
 
-    this.isInitialized = true;
-    appLogger.info('Logging service initialized');
+    this.isInitialized = true
+    appLogger.info('Logging service initialized')
   }
 
   /**
@@ -88,29 +88,29 @@ export class LoggingService {
   public logError(
     message: string,
     severity: ErrorSeverity = ErrorSeverity.HIGH,
-    metadata: any = {}
+    metadata: any = {},
   ): void {
     const errorEvent: ErrorEvent = {
       timestamp: new Date().toISOString(),
       message,
       severity,
       ...metadata,
-    };
+    }
 
     // Add to appropriate buffer based on severity
     if (severity === ErrorSeverity.HIGH) {
-      this.errorBuffer.push(errorEvent);
+      this.errorBuffer.push(errorEvent)
 
       // Trim if buffer exceeds max size
       if (this.errorBuffer.length > this.bufferSize) {
-        this.errorBuffer = this.errorBuffer.slice(-this.bufferSize);
+        this.errorBuffer = this.errorBuffer.slice(-this.bufferSize)
       }
     } else {
-      this.warningBuffer.push(errorEvent);
+      this.warningBuffer.push(errorEvent)
 
       // Trim if buffer exceeds max size
       if (this.warningBuffer.length > this.bufferSize) {
-        this.warningBuffer = this.warningBuffer.slice(-this.bufferSize);
+        this.warningBuffer = this.warningBuffer.slice(-this.bufferSize)
       }
     }
 
@@ -118,20 +118,20 @@ export class LoggingService {
     if (this.consoleOutput) {
       switch (severity) {
         case ErrorSeverity.LOW:
-          appLogger.info(message, metadata);
-          break;
+          appLogger.info(message, metadata)
+          break
         case ErrorSeverity.MEDIUM:
-          appLogger.warn(message, metadata);
-          break;
+          appLogger.warn(message, metadata)
+          break
         case ErrorSeverity.HIGH:
-          appLogger.error(message, metadata);
-          break;
+          appLogger.error(message, metadata)
+          break
       }
     }
 
     // Auto-flush on high severity errors
     if (severity === ErrorSeverity.HIGH) {
-      this.flush();
+      this.flush()
     }
   }
 
@@ -140,56 +140,56 @@ export class LoggingService {
    */
   public flush(): void {
     // Persist logs to localStorage
-    this.persistLogsToStorage();
+    this.persistLogsToStorage()
 
     // Here you would also send logs to server if implemented
     // this.sendLogsToServer();
 
     appLogger.info('Logs flushed', {
       errorCount: this.errorBuffer.length,
-      warningCount: this.warningBuffer.length
-    });
+      warningCount: this.warningBuffer.length,
+    })
   }
 
   /**
    * Get all logged errors
    */
   public getErrors(): ErrorEvent[] {
-    return [...this.errorBuffer];
+    return [...this.errorBuffer]
   }
 
   /**
    * Get all logged warnings
    */
   public getWarnings(): ErrorEvent[] {
-    return [...this.warningBuffer];
+    return [...this.warningBuffer]
   }
 
   /**
    * Get error statistics
    */
   public getErrorStats(): any {
-    const moduleStats = new Map<string, number>();
+    const moduleStats = new Map<string, number>()
     const severityCounts = {
       [ErrorSeverity.LOW]: 0,
       [ErrorSeverity.MEDIUM]: 0,
       [ErrorSeverity.HIGH]: 0,
-    };
+    }
 
     // Process error buffer
     this.errorBuffer.forEach(error => {
       // Count by module
-      const module = error.module || 'unknown';
-      moduleStats.set(module, (moduleStats.get(module) || 0) + 1);
+      const module = error.module || 'unknown'
+      moduleStats.set(module, (moduleStats.get(module) || 0) + 1)
 
       // Count by severity
-      severityCounts[error.severity]++;
-    });
+      severityCounts[error.severity]++
+    })
 
     // Process warning buffer for severity counts
     this.warningBuffer.forEach(warning => {
-      severityCounts[warning.severity]++;
-    });
+      severityCounts[warning.severity]++
+    })
 
     return {
       total: this.errorBuffer.length + this.warningBuffer.length,
@@ -198,34 +198,34 @@ export class LoggingService {
       byModule: Object.fromEntries(moduleStats),
       bySeverity: severityCounts,
       lastError: this.errorBuffer.length > 0 ? this.errorBuffer[this.errorBuffer.length - 1] : null,
-    };
+    }
   }
 
   /**
    * Clear all logged errors and warnings
    */
   public clearLogs(): void {
-    this.errorBuffer = [];
-    this.warningBuffer = [];
-    this.persistLogsToStorage();
-    appLogger.info('Logs cleared');
+    this.errorBuffer = []
+    this.warningBuffer = []
+    this.persistLogsToStorage()
+    appLogger.info('Logs cleared')
   }
 
   /**
    * Save logs to localStorage
    */
   private persistLogsToStorage(): void {
-    if (!this.persistLogs) return;
+    if (!this.persistLogs) return
 
     try {
       // Only keep the most recent logs
-      const errorsToSave = this.errorBuffer.slice(-this.bufferSize);
-      const warningsToSave = this.warningBuffer.slice(-this.bufferSize);
+      const errorsToSave = this.errorBuffer.slice(-this.bufferSize)
+      const warningsToSave = this.warningBuffer.slice(-this.bufferSize)
 
-      safeLocalStorage.setJSON('error_logs', errorsToSave);
-      safeLocalStorage.setJSON('warning_logs', warningsToSave);
+      safeLocalStorage.setJSON('error_logs', errorsToSave)
+      safeLocalStorage.setJSON('warning_logs', warningsToSave)
     } catch (error) {
-      appLogger.error('Failed to persist logs to storage', error);
+      appLogger.error('Failed to persist logs to storage', error)
     }
   }
 
@@ -234,18 +234,18 @@ export class LoggingService {
    */
   private loadPersistedLogs(): void {
     try {
-      const savedErrors = safeLocalStorage.getJSON<ErrorEvent[]>('error_logs', []);
-      const savedWarnings = safeLocalStorage.getJSON<ErrorEvent[]>('warning_logs', []);
+      const savedErrors = safeLocalStorage.getJSON<ErrorEvent[]>('error_logs', [])
+      const savedWarnings = safeLocalStorage.getJSON<ErrorEvent[]>('warning_logs', [])
 
-      this.errorBuffer = savedErrors;
-      this.warningBuffer = savedWarnings;
+      this.errorBuffer = savedErrors
+      this.warningBuffer = savedWarnings
 
       appLogger.info('Loaded persisted logs', {
         errorCount: savedErrors.length,
-        warningCount: savedWarnings.length
-      });
+        warningCount: savedWarnings.length,
+      })
     } catch (error) {
-      appLogger.error('Failed to load persisted logs', error);
+      appLogger.error('Failed to load persisted logs', error)
     }
   }
 
@@ -254,16 +254,16 @@ export class LoggingService {
    */
   public dispose(): void {
     if (this.flushTimer !== null) {
-      clearInterval(this.flushTimer);
-      this.flushTimer = null;
+      clearInterval(this.flushTimer)
+      this.flushTimer = null
     }
 
     // Final flush before disposing
-    this.flush();
-    this.isInitialized = false;
+    this.flush()
+    this.isInitialized = false
   }
 }
 
 // Create and export default instance
-export const loggingService = LoggingService.getInstance();
-export default loggingService;
+export const loggingService = LoggingService.getInstance()
+export default loggingService

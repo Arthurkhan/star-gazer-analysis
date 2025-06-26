@@ -1,14 +1,14 @@
 /**
  * Lazy Loading Components - Phase 5
- * 
+ *
  * This module provides lazy-loaded versions of analysis components
  * to improve performance and reduce initial bundle size.
  */
 
-import React, { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { createLazyComponent, PerformanceMonitor } from '@/utils/performanceOptimizations';
+import React, { Suspense } from 'react'
+import { Loader2 } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { createLazyComponent, PerformanceMonitor } from '@/utils/performanceOptimizations'
 
 // Loading fallback component
 const LoadingFallback: React.FC<{ componentName: string }> = ({ componentName }) => (
@@ -27,38 +27,38 @@ const LoadingFallback: React.FC<{ componentName: string }> = ({ componentName })
       </div>
     </CardContent>
   </Card>
-);
+)
 
 // Lazy loaded analysis components
 export const LazyInteractiveCharts = createLazyComponent(
   () => import('@/components/analysis/InteractiveCharts'),
-  () => <LoadingFallback componentName="Interactive Charts" />
-);
+  () => <LoadingFallback componentName="Interactive Charts" />,
+)
 
 export const LazyExportManager = createLazyComponent(
   () => import('@/components/analysis/ExportManager'),
-  () => <LoadingFallback componentName="Export Manager" />
-);
+  () => <LoadingFallback componentName="Export Manager" />,
+)
 
 export const LazyDashboardCustomizer = createLazyComponent(
   () => import('@/components/analysis/DashboardCustomizer'),
-  () => <LoadingFallback componentName="Dashboard Customizer" />
-);
+  () => <LoadingFallback componentName="Dashboard Customizer" />,
+)
 
 export const LazyAlertSystem = createLazyComponent(
   () => import('@/components/analysis/AlertSystem'),
-  () => <LoadingFallback componentName="Alert System" />
-);
+  () => <LoadingFallback componentName="Alert System" />,
+)
 
 export const LazyComparativeAnalysis = createLazyComponent(
   () => import('@/components/analysis/ComparativeAnalysis'),
-  () => <LoadingFallback componentName="Comparative Analysis" />
-);
+  () => <LoadingFallback componentName="Comparative Analysis" />,
+)
 
 export const LazyAdvancedFilters = createLazyComponent(
   () => import('@/components/analysis/AdvancedFilters'),
-  () => <LoadingFallback componentName="Advanced Filters" />
-);
+  () => <LoadingFallback componentName="Advanced Filters" />,
+)
 
 // Wrapper component with performance monitoring
 interface LazyComponentWrapperProps {
@@ -70,21 +70,21 @@ interface LazyComponentWrapperProps {
 export const LazyComponentWrapper: React.FC<LazyComponentWrapperProps> = ({
   children,
   componentName,
-  fallback: Fallback = () => <LoadingFallback componentName={componentName} />
+  fallback: Fallback = () => <LoadingFallback componentName={componentName} />,
 }) => {
   React.useEffect(() => {
-    const stopMeasurement = PerformanceMonitor.startMeasurement(`lazy-${componentName}`);
+    const stopMeasurement = PerformanceMonitor.startMeasurement(`lazy-${componentName}`)
     return () => {
-      stopMeasurement();
-    };
-  }, [componentName]);
+      stopMeasurement()
+    }
+  }, [componentName])
 
   return (
     <Suspense fallback={<Fallback />}>
       {children}
     </Suspense>
-  );
-};
+  )
+}
 
 // Preload utility for critical components
 export const preloadComponent = (componentLoader: () => Promise<any>) => {
@@ -92,29 +92,29 @@ export const preloadComponent = (componentLoader: () => Promise<any>) => {
   const handleUserInteraction = () => {
     componentLoader().catch(() => {
       // Ignore preload errors
-    });
-    
+    })
+
     // Remove listeners after first interaction
-    document.removeEventListener('mousemove', handleUserInteraction);
-    document.removeEventListener('keydown', handleUserInteraction);
-    document.removeEventListener('scroll', handleUserInteraction);
-  };
+    document.removeEventListener('mousemove', handleUserInteraction)
+    document.removeEventListener('keydown', handleUserInteraction)
+    document.removeEventListener('scroll', handleUserInteraction)
+  }
 
   // Add listeners for user interaction
-  document.addEventListener('mousemove', handleUserInteraction, { once: true });
-  document.addEventListener('keydown', handleUserInteraction, { once: true });
-  document.addEventListener('scroll', handleUserInteraction, { once: true });
-};
+  document.addEventListener('mousemove', handleUserInteraction, { once: true })
+  document.addEventListener('keydown', handleUserInteraction, { once: true })
+  document.addEventListener('scroll', handleUserInteraction, { once: true })
+}
 
 // Initialize preloading for critical components
 if (typeof window !== 'undefined') {
   // Preload interactive charts after user interaction
-  preloadComponent(() => import('@/components/analysis/InteractiveCharts'));
-  
+  preloadComponent(() => import('@/components/analysis/InteractiveCharts'))
+
   // Preload export manager after a short delay
   setTimeout(() => {
-    preloadComponent(() => import('@/components/analysis/ExportManager'));
-  }, 2000);
+    preloadComponent(() => import('@/components/analysis/ExportManager'))
+  }, 2000)
 }
 
 export default {
@@ -125,5 +125,5 @@ export default {
   LazyComparativeAnalysis,
   LazyAdvancedFilters,
   LazyComponentWrapper,
-  preloadComponent
-};
+  preloadComponent,
+}

@@ -1,78 +1,78 @@
-import { BaseAIProvider } from './baseAIProvider';
-import { AIConfig, ReviewAnalysis, BusinessContext } from '@/types/aiService';
-import { Recommendations } from '@/types/recommendations';
-import { Review } from '@/types/reviews';
-import { getPromptsForBusinessType } from './prompts/businessPrompts';
-import { BusinessType } from '@/types/businessTypes';
+import { BaseAIProvider } from './baseAIProvider'
+import type { AIConfig, ReviewAnalysis, BusinessContext } from '@/types/aiService'
+import type { Recommendations } from '@/types/recommendations'
+import type { Review } from '@/types/reviews'
+import { getPromptsForBusinessType } from './prompts/businessPrompts'
+import type { BusinessType } from '@/types/businessTypes'
 
 export class GeminiProvider extends BaseAIProvider {
-  name = 'Gemini';
-  
+  name = 'Gemini'
+
   constructor(config: AIConfig) {
-    super(config);
+    super(config)
   }
-  
+
   async analyzeReviews(reviews: Review[], businessType: string): Promise<ReviewAnalysis> {
     try {
-      const prompts = getPromptsForBusinessType(businessType as BusinessType);
-      const reviewTexts = reviews.map(r => `Rating: ${r.stars}/5 - ${r.text}`).join('\n\n');
-      
+      const prompts = getPromptsForBusinessType(businessType as BusinessType)
+      const reviewTexts = reviews.map(r => `Rating: ${r.stars}/5 - ${r.text}`).join('\n\n')
+
       const response = await this.callGemini({
         contents: [{
           parts: [{
-            text: `${prompts.analysis.system}\n\n${this.buildPrompt(prompts.analysis.user, { reviews: reviewTexts })}`
-          }]
+            text: `${prompts.analysis.system}\n\n${this.buildPrompt(prompts.analysis.user, { reviews: reviewTexts })}`,
+          }],
         }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 2000
-        }
-      });
-      
-      return this.parseAnalysisResponse(response);
+          maxOutputTokens: 2000,
+        },
+      })
+
+      return this.parseAnalysisResponse(response)
     } catch (error) {
-      console.error('Gemini analysis error:', error);
-      throw new Error('Failed to analyze reviews with Gemini');
+      console.error('Gemini analysis error:', error)
+      throw new Error('Failed to analyze reviews with Gemini')
     }
   }
-  
+
   async generateRecommendations(context: BusinessContext): Promise<Recommendations> {
     try {
-      const prompts = getPromptsForBusinessType(context.businessType as BusinessType);
-      
+      const prompts = getPromptsForBusinessType(context.businessType as BusinessType)
+
       const response = await this.callGemini({
         contents: [{
           parts: [{
             text: `${prompts.recommendations.system}\n\n${this.buildPrompt(prompts.recommendations.user, {
               businessName: context.businessName,
               analysis: JSON.stringify(context.analysis),
-              metrics: JSON.stringify(context.metrics)
-            })}`
-          }]
+              metrics: JSON.stringify(context.metrics),
+            })}`,
+          }],
         }],
         generationConfig: {
           temperature: 0.8,
-          maxOutputTokens: 3000
-        }
-      });
-      
-      return this.parseRecommendationsResponse(response);
+          maxOutputTokens: 3000,
+        },
+      })
+
+      return this.parseRecommendationsResponse(response)
     } catch (error) {
-      console.error('Gemini recommendations error:', error);
-      throw new Error('Failed to generate recommendations with Gemini');
+      console.error('Gemini recommendations error:', error)
+      throw new Error('Failed to generate recommendations with Gemini')
     }
   }
-  
+
   async generateMarketingPlan(context: BusinessContext): Promise<any> {
     // Similar implementation to generateRecommendations
-    return {};
+    return {}
   }
-  
+
   async generateScenarios(context: BusinessContext): Promise<any> {
     // Similar implementation to generateRecommendations
-    return {};
+    return {}
   }
-  
+
   async testConnection(): Promise<boolean> {
     try {
       const response = await fetch(
@@ -80,53 +80,53 @@ export class GeminiProvider extends BaseAIProvider {
         {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      return response.ok;
+            'Content-Type': 'application/json',
+          },
+        },
+      )
+
+      return response.ok
     } catch (error) {
-      console.error('Gemini connection test failed:', error);
-      return false;
+      console.error('Gemini connection test failed:', error)
+      return false
     }
   }
-  
+
   private async callGemini(params: any): Promise<any> {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${this.config.model || 'gemini-pro'}:generateContent?key=${this.config.apiKey}`,
       {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(params)
-      }
-    );
-    
+        body: JSON.stringify(params),
+      },
+    )
+
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      throw new Error(`Gemini API error: ${response.statusText}`)
     }
-    
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+
+    const data = await response.json()
+    return data.candidates[0].content.parts[0].text
   }
-  
+
   private parseAnalysisResponse(response: string): ReviewAnalysis {
     try {
-      return JSON.parse(response);
+      return JSON.parse(response)
     } catch {
       // Implement structured extraction from natural language response
-      return {} as ReviewAnalysis;
+      return {} as ReviewAnalysis
     }
   }
-  
+
   private parseRecommendationsResponse(response: string): Recommendations {
     try {
-      return JSON.parse(response);
+      return JSON.parse(response)
     } catch {
       // Implement structured extraction from natural language response
-      return {} as Recommendations;
+      return {} as Recommendations
     }
   }
 }

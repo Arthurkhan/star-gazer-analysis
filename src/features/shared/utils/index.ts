@@ -1,2 +1,2 @@
 // Shared utilities
-export * from './sharedUtils';
+export * from './sharedUtils'

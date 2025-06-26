@@ -1,26 +1,26 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Recommendations } from '@/types/recommendations';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Info, AlertTriangle, Lightbulb, TrendingUp, Target, Rocket, Loader2, Sparkles, Zap, Shield, Timer, DollarSign, ChevronRight, Bot, Brain } from 'lucide-react';
-import { GenerationProgress } from '@/hooks/useRecommendations';
+import React from 'react'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import type { Recommendations } from '@/types/recommendations'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { Info, AlertTriangle, Lightbulb, TrendingUp, Target, Rocket, Loader2, Sparkles, Zap, Shield, Timer, DollarSign, ChevronRight, Bot, Brain } from 'lucide-react'
+import type { GenerationProgress } from '@/hooks/useRecommendations'
 
 // Enhanced color mappings with gradients
 const impactColors = {
   Low: 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-200',
   Medium: 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 border-amber-200',
-  High: 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-red-200'
-};
+  High: 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-red-200',
+}
 
 const effortColors = {
   Low: 'bg-gradient-to-r from-green-50 to-green-100 text-green-700 border-green-200',
   Medium: 'bg-gradient-to-r from-yellow-50 to-yellow-100 text-yellow-700 border-yellow-200',
-  High: 'bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-200'
-};
+  High: 'bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-200',
+}
 
 // Icon mapping for different categories
 const categoryIcons = {
@@ -28,8 +28,8 @@ const categoryIcons = {
   growth: <TrendingUp className="h-4 w-4" />,
   marketing: <Target className="h-4 w-4" />,
   positioning: <Shield className="h-4 w-4" />,
-  future: <Rocket className="h-4 w-4" />
-};
+  future: <Rocket className="h-4 w-4" />,
+}
 
 interface RecommendationsDashboardProps {
   data?: Recommendations;
@@ -52,11 +52,11 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
   loading,
   generatingMessage,
   businessName,
-  progress
+  progress,
 }) => {
-  const recommendationsData = data || recommendations;
-  const isLoadingState = isLoading || loading;
-  
+  const recommendationsData = data || recommendations
+  const isLoadingState = isLoading || loading
+
   if (error) {
     return (
       <Alert variant="destructive" className="mb-4 border-2">
@@ -71,7 +71,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
           </Button>
         )}
       </Alert>
-    );
+    )
   }
 
   if (isLoadingState) {
@@ -113,7 +113,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   if (generatingMessage && !progress) {
@@ -123,7 +123,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
         <AlertTitle className="text-lg">Creating magic for {businessName} ✨</AlertTitle>
         <AlertDescription className="mt-1">{generatingMessage}</AlertDescription>
       </Alert>
-    );
+    )
   }
 
   if (!recommendationsData) {
@@ -135,13 +135,13 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
           Select a business above and click "Generate Recommendations" to get started with AI-powered insights!
         </AlertDescription>
       </Alert>
-    );
+    )
   }
 
   // Check if recommendations are AI-generated or fallback
-  const isAIGenerated = recommendationsData.metadata?.source && 
-    ['openai', 'claude', 'gemini'].includes(recommendationsData.metadata.source);
-  const isFallback = recommendationsData.metadata?.source === 'fallback';
+  const isAIGenerated = recommendationsData.metadata?.source &&
+    ['openai', 'claude', 'gemini'].includes(recommendationsData.metadata.source)
+  const isFallback = recommendationsData.metadata?.source === 'fallback'
 
   return (
     <>
@@ -163,8 +163,8 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
           </div>
           <AlertDescription className={`mt-1 ${isAIGenerated ? 'text-green-700' : 'text-amber-700'}`}>
             {isAIGenerated ? (
-              <>Generated by {recommendationsData.metadata.provider || 'AI'} 
-              {recommendationsData.metadata.model && ` (${recommendationsData.metadata.model})`} 
+              <>Generated by {recommendationsData.metadata.provider || 'AI'}
+              {recommendationsData.metadata.model && ` (${recommendationsData.metadata.model})`}
               {recommendationsData.metadata.reviewsAnalyzed && ` • Analyzed ${recommendationsData.metadata.reviewsAnalyzed} reviews`}</>
             ) : (
               <>Using pre-configured best practices{recommendationsData.metadata.reason ? ` (${recommendationsData.metadata.reason})` : ''}</>
@@ -175,36 +175,36 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
 
       <Tabs defaultValue="urgent" className="w-full">
         <TabsList className="grid grid-cols-5 mb-6 h-auto p-1 bg-gray-700 backdrop-blur">
-          <TabsTrigger 
-            value="urgent" 
+          <TabsTrigger
+            value="urgent"
             className="flex items-center gap-2 transition-all text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-md"
           >
             {categoryIcons.urgent}
             <span className="hidden sm:inline">Urgent</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="growth" 
+          <TabsTrigger
+            value="growth"
             className="flex items-center gap-2 transition-all text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-teal-600 data-[state=active]:text-white data-[state=active]:shadow-md"
           >
             {categoryIcons.growth}
             <span className="hidden sm:inline">Growth</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="marketing" 
+          <TabsTrigger
+            value="marketing"
             className="flex items-center gap-2 transition-all text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md"
           >
             {categoryIcons.marketing}
             <span className="hidden sm:inline">Marketing</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="positioning" 
+          <TabsTrigger
+            value="positioning"
             className="flex items-center gap-2 transition-all text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md"
           >
             {categoryIcons.positioning}
             <span className="hidden sm:inline">Position</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="future" 
+          <TabsTrigger
+            value="future"
             className="flex items-center gap-2 transition-all text-gray-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md"
           >
             {categoryIcons.future}
@@ -347,7 +347,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              {(recommendationsData.customerAttractionPlan?.strategies && recommendationsData.customerAttractionPlan.strategies.length > 0) || 
+              {(recommendationsData.customerAttractionPlan?.strategies && recommendationsData.customerAttractionPlan.strategies.length > 0) ||
                (recommendationsData.marketingPlan && recommendationsData.marketingPlan.length > 0) ? (
                 <div className="space-y-4">
                   {(recommendationsData.customerAttractionPlan?.strategies || recommendationsData.marketingPlan || []).map((strategy, index) => (
@@ -552,7 +552,7 @@ export const RecommendationsDashboard: React.FC<RecommendationsDashboardProps> =
         </TabsContent>
       </Tabs>
     </>
-  );
-};
+  )
+}
 
-export default RecommendationsDashboard;
+export default RecommendationsDashboard

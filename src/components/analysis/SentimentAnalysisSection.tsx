@@ -1,64 +1,64 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Heart, Meh, Frown, TrendingUp, TrendingDown, Smile, BarChart2, Sparkles } from "lucide-react";
-import { SentimentAnalysis } from "@/types/analysisSummary";
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Heart, Meh, Frown, TrendingUp, TrendingDown, Smile, BarChart2, Sparkles } from 'lucide-react'
+import type { SentimentAnalysis } from '@/types/analysisSummary'
 
 interface SentimentAnalysisSectionProps {
   sentimentAnalysis: SentimentAnalysis;
 }
 
 export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> = ({
-  sentimentAnalysis
+  sentimentAnalysis,
 }) => {
-  const { distribution, trends, correlationWithRating } = sentimentAnalysis;
+  const { distribution, trends, correlationWithRating } = sentimentAnalysis
 
   // Helper to get sentiment icon and colors with enhanced styling
-  const getSentimentInfo = (type: "positive" | "neutral" | "negative") => {
+  const getSentimentInfo = (type: 'positive' | 'neutral' | 'negative') => {
     switch (type) {
-      case "positive":
-        return { 
-          icon: Smile, 
-          color: "text-green-600 dark:text-green-400", 
-          bg: "bg-green-100 dark:bg-green-900/30", 
-          progressColor: "bg-gradient-to-r from-green-400 to-emerald-500",
-          borderColor: "border-green-200 dark:border-green-800",
-          label: "Positive",
-          emoji: "😊"
-        };
-      case "neutral":
-        return { 
-          icon: Meh, 
-          color: "text-yellow-600 dark:text-yellow-400", 
-          bg: "bg-yellow-100 dark:bg-yellow-900/30", 
-          progressColor: "bg-gradient-to-r from-yellow-400 to-amber-500",
-          borderColor: "border-yellow-200 dark:border-yellow-800",
-          label: "Neutral",
-          emoji: "😐"
-        };
-      case "negative":
-        return { 
-          icon: Frown, 
-          color: "text-red-600 dark:text-red-400", 
-          bg: "bg-red-100 dark:bg-red-900/30", 
-          progressColor: "bg-gradient-to-r from-red-400 to-rose-500",
-          borderColor: "border-red-200 dark:border-red-800",
-          label: "Negative",
-          emoji: "😞"
-        };
+      case 'positive':
+        return {
+          icon: Smile,
+          color: 'text-green-600 dark:text-green-400',
+          bg: 'bg-green-100 dark:bg-green-900/30',
+          progressColor: 'bg-gradient-to-r from-green-400 to-emerald-500',
+          borderColor: 'border-green-200 dark:border-green-800',
+          label: 'Positive',
+          emoji: '😊',
+        }
+      case 'neutral':
+        return {
+          icon: Meh,
+          color: 'text-yellow-600 dark:text-yellow-400',
+          bg: 'bg-yellow-100 dark:bg-yellow-900/30',
+          progressColor: 'bg-gradient-to-r from-yellow-400 to-amber-500',
+          borderColor: 'border-yellow-200 dark:border-yellow-800',
+          label: 'Neutral',
+          emoji: '😐',
+        }
+      case 'negative':
+        return {
+          icon: Frown,
+          color: 'text-red-600 dark:text-red-400',
+          bg: 'bg-red-100 dark:bg-red-900/30',
+          progressColor: 'bg-gradient-to-r from-red-400 to-rose-500',
+          borderColor: 'border-red-200 dark:border-red-800',
+          label: 'Negative',
+          emoji: '😞',
+        }
     }
-  };
+  }
 
   // Calculate sentiment score appearance
   const getSentimentScoreAppearance = (score: number) => {
-    if (score >= 80) return { gradient: "from-green-500 to-emerald-500", emoji: "🎉" };
-    if (score >= 60) return { gradient: "from-blue-500 to-cyan-500", emoji: "👍" };
-    if (score >= 40) return { gradient: "from-yellow-500 to-orange-500", emoji: "🤔" };
-    return { gradient: "from-red-500 to-rose-500", emoji: "⚠️" };
-  };
+    if (score >= 80) return { gradient: 'from-green-500 to-emerald-500', emoji: '🎉' }
+    if (score >= 60) return { gradient: 'from-blue-500 to-cyan-500', emoji: '👍' }
+    if (score >= 40) return { gradient: 'from-yellow-500 to-orange-500', emoji: '🤔' }
+    return { gradient: 'from-red-500 to-rose-500', emoji: '⚠️' }
+  }
 
-  const scoreAppearance = getSentimentScoreAppearance(distribution.positive.percentage);
+  const scoreAppearance = getSentimentScoreAppearance(distribution.positive.percentage)
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -72,7 +72,7 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
       </CardHeader>
       <CardContent className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
+
           {/* Current Sentiment Distribution - Enhanced */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -81,12 +81,12 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
                 {distribution.positive.count + distribution.neutral.count + distribution.negative.count} Reviews
               </Badge>
             </div>
-            
-            {(["positive", "neutral", "negative"] as const).map(sentiment => {
-              const data = distribution[sentiment];
-              const info = getSentimentInfo(sentiment);
-              const Icon = info.icon;
-              
+
+            {(['positive', 'neutral', 'negative'] as const).map(sentiment => {
+              const data = distribution[sentiment]
+              const info = getSentimentInfo(sentiment)
+              const Icon = info.icon
+
               return (
                 <div key={sentiment} className={`space-y-3 p-4 rounded-xl ${info.bg} border-2 ${info.borderColor} hover:shadow-md transition-all duration-300`}>
                   <div className="flex items-center justify-between">
@@ -110,14 +110,14 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
                   </div>
                   <div className="relative">
                     <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className={`h-full ${info.progressColor} transition-all duration-700 ease-out`}
                         style={{ width: `${data.percentage}%` }}
                       />
                     </div>
                   </div>
                 </div>
-              );
+              )
             })}
 
             {/* Overall Sentiment Score - Enhanced */}
@@ -135,9 +135,9 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
                         {distribution.positive.percentage.toFixed(1)}%
                       </div>
                       <Badge variant="secondary" className="bg-white/20 text-white border-white/30 font-bold">
-                        {distribution.positive.percentage >= 80 ? "Excellent" :
-                         distribution.positive.percentage >= 60 ? "Good" :
-                         distribution.positive.percentage >= 40 ? "Fair" : "Needs Attention"}
+                        {distribution.positive.percentage >= 80 ? 'Excellent' :
+                         distribution.positive.percentage >= 60 ? 'Good' :
+                         distribution.positive.percentage >= 40 ? 'Fair' : 'Needs Attention'}
                       </Badge>
                     </div>
                   </div>
@@ -152,13 +152,13 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
               <BarChart2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               <h3 className="font-bold text-lg">Sentiment Trends Over Time</h3>
             </div>
-            
+
             {trends.length > 0 ? (
               <div className="space-y-4">
                 {trends.slice(-4).map((trend, index) => {
-                  const prevTrend = index > 0 ? trends[trends.length - 4 + index - 1] : null;
-                  const positiveDiff = prevTrend ? trend.positive - prevTrend.positive : 0;
-                  
+                  const prevTrend = index > 0 ? trends[trends.length - 4 + index - 1] : null
+                  const positiveDiff = prevTrend ? trend.positive - prevTrend.positive : 0
+
                   return (
                     <div key={trend.period} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl hover:shadow-md transition-all duration-300">
                       <div className="flex items-center justify-between mb-3">
@@ -187,16 +187,16 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
                         </div>
                       </div>
                       <div className="flex gap-1 h-3 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
-                        <div 
-                          className="bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-500" 
+                        <div
+                          className="bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-500"
                           style={{ width: `${trend.positive}%` }}
                         />
-                        <div 
-                          className="bg-gradient-to-r from-yellow-400 to-amber-500 transition-all duration-500" 
+                        <div
+                          className="bg-gradient-to-r from-yellow-400 to-amber-500 transition-all duration-500"
                           style={{ width: `${trend.neutral}%` }}
                         />
-                        <div 
-                          className="bg-gradient-to-r from-red-400 to-rose-500 transition-all duration-500" 
+                        <div
+                          className="bg-gradient-to-r from-red-400 to-rose-500 transition-all duration-500"
                           style={{ width: `${trend.negative}%` }}
                         />
                       </div>
@@ -206,7 +206,7 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
                         <span>😞 {trend.negative}%</span>
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             ) : (
@@ -226,7 +226,7 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
             Sentiment vs Rating Correlation
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             {/* High Ratings Sentiment - Enhanced */}
             <Card className="border-0 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
               <div className="h-2 bg-gradient-to-r from-green-400 to-emerald-500" />
@@ -255,8 +255,8 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
                   <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                       {correlationWithRating.highRating.positive > correlationWithRating.highRating.negative * 3
-                        ? "✅ Strong positive correlation"
-                        : "📊 Moderate correlation"}
+                        ? '✅ Strong positive correlation'
+                        : '📊 Moderate correlation'}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       High ratings align well with positive sentiment
@@ -294,8 +294,8 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
                   <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                       {correlationWithRating.lowRating.negative > correlationWithRating.lowRating.positive * 2
-                        ? "❌ Strong negative correlation"
-                        : "⚡ Mixed sentiment in low ratings"}
+                        ? '❌ Strong negative correlation'
+                        : '⚡ Mixed sentiment in low ratings'}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Low ratings show expected negative sentiment
@@ -308,5 +308,5 @@ export const SentimentAnalysisSection: React.FC<SentimentAnalysisSectionProps> =
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

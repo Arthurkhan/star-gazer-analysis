@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { Separator } from "@/components/ui/separator";
-import { saveEmailSettings, getEmailSettings } from "@/services/emailService";
-import { 
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
+import { Separator } from '@/components/ui/separator'
+import { saveEmailSettings, getEmailSettings } from '@/services/emailService'
+import {
   BarChart3,
-  Mail, 
-  Save, 
-  Bell, 
-  Calendar, 
+  Mail,
+  Save,
+  Bell,
+  Calendar,
   CalendarClock,
   CheckCircle,
   AlertTriangle,
-  Loader2
-} from "lucide-react";
-import { BusinessType } from "@/types/businessTypes";
+  Loader2,
+} from 'lucide-react'
+import type { BusinessType } from '@/types/businessTypes'
 
 interface EmailSettings {
   enabled: boolean;
@@ -39,18 +39,18 @@ interface EmailSettings {
 
 const defaultSettings: EmailSettings = {
   enabled: false,
-  recipient: "",
+  recipient: '',
   schedules: {
     weekly: { enabled: false, dayOfWeek: 1 },
     monthly: { enabled: false, dayOfMonth: 1 },
-    urgent: { enabled: false, minSeverity: 3 }
+    urgent: { enabled: false, minSeverity: 3 },
   },
   content: {
     includeCharts: true,
     includeRecommendations: true,
-    includeTables: true
-  }
-};
+    includeTables: true,
+  },
+}
 
 interface EmailSettingsFormProps {
   businessName: string;
@@ -61,63 +61,63 @@ interface EmailSettingsFormProps {
 export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({
   businessName,
   businessType,
-  initialSettings
+  initialSettings,
 }) => {
-  const [settings, setSettings] = useState<EmailSettings>(initialSettings || defaultSettings);
-  const [loading, setLoading] = useState(false);
-  const [saveLoading, setSaveLoading] = useState(false);
-  const { toast } = useToast();
+  const [settings, setSettings] = useState<EmailSettings>(initialSettings || defaultSettings)
+  const [loading, setLoading] = useState(false)
+  const [saveLoading, setSaveLoading] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     const fetchSettings = async () => {
-      if (!businessName || businessName === "all") return;
-      
-      setLoading(true);
+      if (!businessName || businessName === 'all') return
+
+      setLoading(true)
       try {
-        const existingSettings = await getEmailSettings(businessName);
+        const existingSettings = await getEmailSettings(businessName)
         if (existingSettings) {
-          setSettings(existingSettings);
+          setSettings(existingSettings)
         }
       } catch (error) {
-        console.error("Error fetching email settings:", error);
+        console.error('Error fetching email settings:', error)
         toast({
-          title: "Error fetching settings",
-          description: "Could not load email notification settings.",
-          variant: "destructive",
-        });
+          title: 'Error fetching settings',
+          description: 'Could not load email notification settings.',
+          variant: 'destructive',
+        })
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-    
-    fetchSettings();
-  }, [businessName, toast]);
+    }
+
+    fetchSettings()
+  }, [businessName, toast])
 
   const handleSettingsChange = (newSettings: EmailSettings) => {
-    setSettings(newSettings);
-  };
+    setSettings(newSettings)
+  }
 
   const handleSaveSettings = async () => {
-    if (!businessName || businessName === "all") return;
-    
-    setSaveLoading(true);
+    if (!businessName || businessName === 'all') return
+
+    setSaveLoading(true)
     try {
-      await saveEmailSettings(businessName, settings);
+      await saveEmailSettings(businessName, settings)
       toast({
-        title: "Settings Saved",
-        description: "Email notification settings have been saved.",
-      });
+        title: 'Settings Saved',
+        description: 'Email notification settings have been saved.',
+      })
     } catch (error) {
-      console.error("Error saving settings:", error);
+      console.error('Error saving settings:', error)
       toast({
-        title: "Error Saving Settings",
-        description: "Could not save email notification settings.",
-        variant: "destructive",
-      });
+        title: 'Error Saving Settings',
+        description: 'Could not save email notification settings.',
+        variant: 'destructive',
+      })
     } finally {
-      setSaveLoading(false);
+      setSaveLoading(false)
     }
-  };
+  }
 
   if (loading) {
     return (
@@ -125,7 +125,7 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2">Loading settings...</span>
       </div>
-    );
+    )
   }
 
   return (
@@ -376,5 +376,5 @@ export const EmailSettingsForm: React.FC<EmailSettingsFormProps> = ({
         </Button>
       </CardFooter>
     </Card>
-  );
-};
+  )
+}

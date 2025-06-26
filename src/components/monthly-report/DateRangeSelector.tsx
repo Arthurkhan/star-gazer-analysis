@@ -1,11 +1,11 @@
 
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { format } from "date-fns";
-import { CalendarRange } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Input } from '@/components/ui/input'
+import { format } from 'date-fns'
+import { CalendarRange } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface DateRangeSelectorProps {
   dateRange: {
@@ -39,14 +39,14 @@ export function DateRangeSelector({
   applyDateRangePreset,
   handleDateSelect,
   handleManualDateSubmit,
-  isDateInRange
+  isDateInRange,
 }: DateRangeSelectorProps) {
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Reviews Analysis</h2>
         <p className="text-muted-foreground">
-          Analysis for period: {format(dateRange.from, "MMM d, yyyy")} - {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "Select end date"}
+          Analysis for period: {format(dateRange.from, 'MMM d, yyyy')} - {dateRange.to ? format(dateRange.to, 'MMM d, yyyy') : 'Select end date'}
         </p>
       </div>
       <div className="flex flex-col md:flex-row gap-2">
@@ -55,7 +55,7 @@ export function DateRangeSelector({
             <Button variant="outline">
               <CalendarRange className="mr-2 h-4 w-4" />
               <span>
-                {format(dateRange.from, "MMM d, yyyy")} - {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "Select end date"}
+                {format(dateRange.from, 'MMM d, yyyy')} - {dateRange.to ? format(dateRange.to, 'MMM d, yyyy') : 'Select end date'}
               </span>
             </Button>
           </PopoverTrigger>
@@ -63,10 +63,10 @@ export function DateRangeSelector({
             <div className="p-2 border-b">
               <div className="flex justify-center flex-wrap gap-1 mb-2">
                 {dateRangePresets.map((preset, index) => (
-                  <Button 
-                    key={preset.name} 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    key={preset.name}
+                    variant="outline"
+                    size="sm"
                     className="text-xs"
                     onClick={() => applyDateRangePreset(index)}
                   >
@@ -83,9 +83,9 @@ export function DateRangeSelector({
                 <div className="flex gap-2 items-end">
                   <div className="flex-1">
                     <p className="text-xs text-muted-foreground mb-1">Start date</p>
-                    <Input 
-                      type="date" 
-                      value={fromDateInput} 
+                    <Input
+                      type="date"
+                      value={fromDateInput}
                       onChange={(e) => setFromDateInput(e.target.value)}
                       placeholder="YYYY-MM-DD"
                       className="h-8 text-xs"
@@ -93,9 +93,9 @@ export function DateRangeSelector({
                   </div>
                   <div className="flex-1">
                     <p className="text-xs text-muted-foreground mb-1">End date</p>
-                    <Input 
-                      type="date" 
-                      value={toDateInput} 
+                    <Input
+                      type="date"
+                      value={toDateInput}
                       onChange={(e) => setToDateInput(e.target.value)}
                       placeholder="YYYY-MM-DD"
                       className="h-8 text-xs"
@@ -114,14 +114,14 @@ export function DateRangeSelector({
               selected={selectingDate === 'from' ? dateRange.from : dateRange.to}
               onSelect={handleDateSelect}
               numberOfMonths={2}
-              className={cn("p-3 pointer-events-auto")}
+              className={cn('p-3 pointer-events-auto')}
               modifiers={{ range: isDateInRange }}
               modifiersStyles={{
-                range: { backgroundColor: "hsl(var(--primary) / 0.1)" }
+                range: { backgroundColor: 'hsl(var(--primary) / 0.1)' },
               }}
               footer={
                 <p className="pt-2 text-xs text-center text-muted-foreground">
-                  {dateRange.from && format(dateRange.from, "MMM d, yyyy")} - {dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "Select end date"}
+                  {dateRange.from && format(dateRange.from, 'MMM d, yyyy')} - {dateRange.to ? format(dateRange.to, 'MMM d, yyyy') : 'Select end date'}
                 </p>
               }
             />
@@ -129,5 +129,5 @@ export function DateRangeSelector({
         </Popover>
       </div>
     </div>
-  );
+  )
 }

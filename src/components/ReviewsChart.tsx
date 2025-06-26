@@ -1,6 +1,6 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MonthlyReviewData } from "@/types/reviews";
-import { useMemo, useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import type { MonthlyReviewData } from '@/types/reviews'
+import { useMemo, useEffect, useState } from 'react'
 import {
   LineChart,
   Line,
@@ -9,31 +9,31 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from "recharts";
+} from 'recharts'
 
 interface ReviewsChartProps {
   data: MonthlyReviewData[];
 }
 
 const ReviewsChart = ({ data }: ReviewsChartProps) => {
-  const [isMobile, setIsMobile] = useState(false);
-  
+  const [isMobile, setIsMobile] = useState(false)
+
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-    
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+      setIsMobile(window.innerWidth < 640)
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Use the chart data directly
   const chartData = useMemo(() => {
-    if (!data?.length) return [];
-    return data;
-  }, [data]);
+    if (!data?.length) return []
+    return data
+  }, [data])
 
   if (!chartData.length) {
     return (
@@ -48,7 +48,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (
@@ -91,12 +91,12 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "rgba(0, 0, 0, 0.8)",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontSize: "14px",
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
                 }}
-                labelStyle={{ color: "#fff" }}
+                labelStyle={{ color: '#fff' }}
               />
               <Line
                 type="monotone"
@@ -112,7 +112,7 @@ const ReviewsChart = ({ data }: ReviewsChartProps) => {
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
-export default ReviewsChart;
+export default ReviewsChart

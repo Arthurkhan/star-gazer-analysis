@@ -1,11 +1,11 @@
 /**
  * Lazy Loading System - Core Utilities
- * 
+ *
  * This file contains only non-JSX utilities and re-exports JSX components
  * from the .tsx file to maintain compatibility.
  */
 
-import { ComponentType } from 'react';
+import type { ComponentType } from 'react'
 
 // Re-export JSX components from the .tsx file
 export {
@@ -20,8 +20,8 @@ export {
   LazyDashboardCustomizer,
   LazyAlertSystem,
   LazyComparativeAnalysis,
-  LazyAdvancedFilters
-} from './lazyLoading.tsx';
+  LazyAdvancedFilters,
+} from './lazyLoading.tsx'
 
 // Enhanced lazy loading options (non-JSX types)
 export interface LazyLoadOptions {
@@ -53,25 +53,25 @@ export interface ObserverLazyLoadOptions extends LazyLoadOptions {
 // Default export for compatibility
 const LazyLoadingUtils = {
   createLazyComponent: async () => {
-    const module = await import('./lazyLoading.tsx');
-    return module.createLazyComponent;
+    const module = await import('./lazyLoading.tsx')
+    return module.createLazyComponent
   },
   createObserverLazyComponent: async () => {
-    const module = await import('./lazyLoading.tsx');
-    return module.createObserverLazyComponent;
+    const module = await import('./lazyLoading.tsx')
+    return module.createObserverLazyComponent
   },
   createRouteLazyComponent: async () => {
-    const module = await import('./lazyLoading.tsx');
-    return module.createRouteLazyComponent;
+    const module = await import('./lazyLoading.tsx')
+    return module.createRouteLazyComponent
   },
   ComponentPreloader: async () => {
-    const module = await import('./lazyLoading.tsx');
-    return module.ComponentPreloader;
+    const module = await import('./lazyLoading.tsx')
+    return module.ComponentPreloader
   },
   useLazyComponent: async () => {
-    const module = await import('./lazyLoading.tsx');
-    return module.useLazyComponent;
-  }
-};
+    const module = await import('./lazyLoading.tsx')
+    return module.useLazyComponent
+  },
+}
 
-export default LazyLoadingUtils;
+export default LazyLoadingUtils

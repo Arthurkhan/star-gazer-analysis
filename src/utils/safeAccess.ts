@@ -12,20 +12,20 @@
  */
 export function safeGet<T>(obj: any, path: string, defaultValue: T): T {
   if (!obj || !path) {
-    return defaultValue;
+    return defaultValue
   }
-  
-  const keys = path.split('.');
-  let result = obj;
-  
+
+  const keys = path.split('.')
+  let result = obj
+
   for (const key of keys) {
     if (result === undefined || result === null) {
-      return defaultValue;
+      return defaultValue
     }
-    result = result[key];
+    result = result[key]
   }
-  
-  return (result === undefined || result === null) ? defaultValue : result;
+
+  return (result === undefined || result === null) ? defaultValue : result
 }
 
 /**
@@ -37,9 +37,9 @@ export function safeGet<T>(obj: any, path: string, defaultValue: T): T {
  */
 export function safeArrayGet<T>(arr: T[] | null | undefined, index: number, defaultValue: T): T {
   if (!arr || index < 0 || index >= arr.length) {
-    return defaultValue;
+    return defaultValue
   }
-  return arr[index];
+  return arr[index]
 }
 
 /**
@@ -51,14 +51,14 @@ export function safeArrayGet<T>(arr: T[] | null | undefined, index: number, defa
  */
 export function safeCall<T>(fn: Function | null | undefined, args: any[], defaultValue: T): T {
   if (!fn || typeof fn !== 'function') {
-    return defaultValue;
+    return defaultValue
   }
-  
+
   try {
-    return fn(...args);
+    return fn(...args)
   } catch (error) {
-    console.error('Error in safeCall:', error);
-    return defaultValue;
+    console.error('Error in safeCall:', error)
+    return defaultValue
   }
 }
 
@@ -70,11 +70,11 @@ export function safeCall<T>(fn: Function | null | undefined, args: any[], defaul
  */
 export function safeNumber(value: any, defaultValue: number = 0): number {
   if (value === null || value === undefined || value === '') {
-    return defaultValue;
+    return defaultValue
   }
-  
-  const num = Number(value);
-  return isNaN(num) ? defaultValue : num;
+
+  const num = Number(value)
+  return isNaN(num) ? defaultValue : num
 }
 
 /**
@@ -85,13 +85,13 @@ export function safeNumber(value: any, defaultValue: number = 0): number {
  */
 export function safeString(value: any, defaultValue: string = ''): string {
   if (value === null || value === undefined) {
-    return defaultValue;
+    return defaultValue
   }
-  
+
   try {
-    return String(value);
+    return String(value)
   } catch (error) {
-    return defaultValue;
+    return defaultValue
   }
 }
 
@@ -103,13 +103,13 @@ export function safeString(value: any, defaultValue: string = ''): string {
  */
 export function safeJsonParse<T>(jsonString: string | null | undefined, defaultValue: T): T {
   if (!jsonString) {
-    return defaultValue;
+    return defaultValue
   }
-  
+
   try {
-    return JSON.parse(jsonString) as T;
+    return JSON.parse(jsonString) as T
   } catch (error) {
-    console.error('Error parsing JSON:', error);
-    return defaultValue;
+    console.error('Error parsing JSON:', error)
+    return defaultValue
   }
 }

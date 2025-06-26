@@ -1,107 +1,107 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tags, TrendingUp, TrendingDown, AlertTriangle, Star, Sparkles, Hash, Flame, Shield } from "lucide-react";
-import { ThematicAnalysis } from "@/types/analysisSummary";
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Tags, TrendingUp, TrendingDown, AlertTriangle, Star, Sparkles, Hash, Flame, Shield } from 'lucide-react'
+import type { ThematicAnalysis } from '@/types/analysisSummary'
 
 interface ThematicAnalysisSectionProps {
   thematicAnalysis: ThematicAnalysis;
 }
 
 export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = ({
-  thematicAnalysis
+  thematicAnalysis,
 }) => {
-  const { topCategories, trendingTopics, attentionAreas } = thematicAnalysis;
+  const { topCategories, trendingTopics, attentionAreas } = thematicAnalysis
 
   // Helper to get sentiment styling with enhanced visuals
-  const getSentimentStyle = (sentiment: "positive" | "negative" | "neutral") => {
+  const getSentimentStyle = (sentiment: 'positive' | 'negative' | 'neutral') => {
     switch (sentiment) {
-      case "positive": 
+      case 'positive':
         return {
-          color: "text-green-700 dark:text-green-300",
-          bg: "bg-green-100 dark:bg-green-900/30",
-          border: "border-green-200 dark:border-green-800",
-          icon: "✅",
-          gradient: "from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20"
-        };
-      case "negative": 
+          color: 'text-green-700 dark:text-green-300',
+          bg: 'bg-green-100 dark:bg-green-900/30',
+          border: 'border-green-200 dark:border-green-800',
+          icon: '✅',
+          gradient: 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20',
+        }
+      case 'negative':
         return {
-          color: "text-red-700 dark:text-red-300",
-          bg: "bg-red-100 dark:bg-red-900/30",
-          border: "border-red-200 dark:border-red-800",
-          icon: "❌",
-          gradient: "from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20"
-        };
-      default: 
-        return {
-          color: "text-gray-700 dark:text-gray-300",
-          bg: "bg-gray-100 dark:bg-gray-900/30",
-          border: "border-gray-200 dark:border-gray-800",
-          icon: "➖",
-          gradient: "from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20"
-        };
-    }
-  };
-
-  // Helper to get trend styling
-  const getTrendStyle = (trend: "rising" | "declining" | "stable") => {
-    switch (trend) {
-      case "rising": 
-        return {
-          icon: TrendingUp,
-          color: "text-green-600 dark:text-green-400",
-          bg: "bg-green-100 dark:bg-green-900/30",
-          label: "🔥 Rising",
-          gradient: "from-green-400 to-emerald-500"
-        };
-      case "declining": 
-        return {
-          icon: TrendingDown,
-          color: "text-red-600 dark:text-red-400",
-          bg: "bg-red-100 dark:bg-red-900/30",
-          label: "📉 Declining",
-          gradient: "from-red-400 to-rose-500"
-        };
-      default: 
-        return {
-          icon: Minus,
-          color: "text-gray-600 dark:text-gray-400",
-          bg: "bg-gray-100 dark:bg-gray-900/30",
-          label: "➡️ Stable",
-          gradient: "from-gray-400 to-slate-500"
-        };
-    }
-  };
-
-  // Helper to get urgency styling
-  const getUrgencyStyle = (urgency: "high" | "medium" | "low") => {
-    switch (urgency) {
-      case "high":
-        return {
-          bg: "bg-red-100 dark:bg-red-900/30",
-          color: "text-red-700 dark:text-red-300",
-          border: "border-red-300 dark:border-red-700",
-          icon: "🚨",
-          label: "High Priority"
-        };
-      case "medium":
-        return {
-          bg: "bg-yellow-100 dark:bg-yellow-900/30",
-          color: "text-yellow-700 dark:text-yellow-300",
-          border: "border-yellow-300 dark:border-yellow-700",
-          icon: "⚠️",
-          label: "Medium Priority"
-        };
+          color: 'text-red-700 dark:text-red-300',
+          bg: 'bg-red-100 dark:bg-red-900/30',
+          border: 'border-red-200 dark:border-red-800',
+          icon: '❌',
+          gradient: 'from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20',
+        }
       default:
         return {
-          bg: "bg-gray-100 dark:bg-gray-900/30",
-          color: "text-gray-700 dark:text-gray-300",
-          border: "border-gray-300 dark:border-gray-700",
-          icon: "ℹ️",
-          label: "Low Priority"
-        };
+          color: 'text-gray-700 dark:text-gray-300',
+          bg: 'bg-gray-100 dark:bg-gray-900/30',
+          border: 'border-gray-200 dark:border-gray-800',
+          icon: '➖',
+          gradient: 'from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20',
+        }
     }
-  };
+  }
+
+  // Helper to get trend styling
+  const getTrendStyle = (trend: 'rising' | 'declining' | 'stable') => {
+    switch (trend) {
+      case 'rising':
+        return {
+          icon: TrendingUp,
+          color: 'text-green-600 dark:text-green-400',
+          bg: 'bg-green-100 dark:bg-green-900/30',
+          label: '🔥 Rising',
+          gradient: 'from-green-400 to-emerald-500',
+        }
+      case 'declining':
+        return {
+          icon: TrendingDown,
+          color: 'text-red-600 dark:text-red-400',
+          bg: 'bg-red-100 dark:bg-red-900/30',
+          label: '📉 Declining',
+          gradient: 'from-red-400 to-rose-500',
+        }
+      default:
+        return {
+          icon: Minus,
+          color: 'text-gray-600 dark:text-gray-400',
+          bg: 'bg-gray-100 dark:bg-gray-900/30',
+          label: '➡️ Stable',
+          gradient: 'from-gray-400 to-slate-500',
+        }
+    }
+  }
+
+  // Helper to get urgency styling
+  const getUrgencyStyle = (urgency: 'high' | 'medium' | 'low') => {
+    switch (urgency) {
+      case 'high':
+        return {
+          bg: 'bg-red-100 dark:bg-red-900/30',
+          color: 'text-red-700 dark:text-red-300',
+          border: 'border-red-300 dark:border-red-700',
+          icon: '🚨',
+          label: 'High Priority',
+        }
+      case 'medium':
+        return {
+          bg: 'bg-yellow-100 dark:bg-yellow-900/30',
+          color: 'text-yellow-700 dark:text-yellow-300',
+          border: 'border-yellow-300 dark:border-yellow-700',
+          icon: '⚠️',
+          label: 'Medium Priority',
+        }
+      default:
+        return {
+          bg: 'bg-gray-100 dark:bg-gray-900/30',
+          color: 'text-gray-700 dark:text-gray-300',
+          border: 'border-gray-300 dark:border-gray-700',
+          icon: 'ℹ️',
+          label: 'Low Priority',
+        }
+    }
+  }
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -115,7 +115,7 @@ export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = (
       </CardHeader>
       <CardContent className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Top Categories - Enhanced */}
           <div className="space-y-5">
             <div className="flex items-center gap-3">
@@ -125,11 +125,11 @@ export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = (
             {topCategories.length > 0 ? (
               <div className="space-y-3">
                 {topCategories.slice(0, 6).map((category, index) => {
-                  const sentimentStyle = getSentimentStyle(category.sentiment);
-                  
+                  const sentimentStyle = getSentimentStyle(category.sentiment)
+
                   return (
-                    <div 
-                      key={category.category} 
+                    <div
+                      key={category.category}
                       className={`p-4 rounded-xl bg-gradient-to-r ${sentimentStyle.gradient} border-2 ${sentimentStyle.border} hover:shadow-md transition-all duration-300`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -148,8 +148,8 @@ export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = (
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                          <Badge 
-                            variant="secondary" 
+                          <Badge
+                            variant="secondary"
                             className={`${sentimentStyle.bg} ${sentimentStyle.color} font-bold`}
                           >
                             {sentimentStyle.icon} {category.sentiment}
@@ -163,7 +163,7 @@ export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = (
                         </div>
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             ) : (
@@ -183,12 +183,12 @@ export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = (
             {trendingTopics.length > 0 ? (
               <div className="space-y-3">
                 {trendingTopics.slice(0, 6).map((topic) => {
-                  const trendStyle = getTrendStyle(topic.trend);
-                  const TrendIcon = trendStyle.icon;
-                  
+                  const trendStyle = getTrendStyle(topic.trend)
+                  const TrendIcon = trendStyle.icon
+
                   return (
-                    <div 
-                      key={topic.topic} 
+                    <div
+                      key={topic.topic}
                       className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl hover:shadow-md transition-all duration-300"
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -210,13 +210,13 @@ export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = (
                               {trendStyle.label}
                             </span>
                           </div>
-                          {topic.trend === "rising" && (
+                          {topic.trend === 'rising' && (
                             <div className={`h-1 w-16 rounded-full bg-gradient-to-r ${trendStyle.gradient}`} />
                           )}
                         </div>
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             ) : (
@@ -236,11 +236,11 @@ export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = (
             {attentionAreas.length > 0 ? (
               <div className="space-y-3">
                 {attentionAreas.slice(0, 6).map((area) => {
-                  const urgencyStyle = getUrgencyStyle(area.urgency);
-                  
+                  const urgencyStyle = getUrgencyStyle(area.urgency)
+
                   return (
-                    <div 
-                      key={area.theme} 
+                    <div
+                      key={area.theme}
                       className={`p-4 rounded-xl border-2 ${urgencyStyle.border} ${urgencyStyle.bg} hover:shadow-md transition-all duration-300`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -258,14 +258,14 @@ export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = (
                             </div>
                           </div>
                         </div>
-                        <Badge 
-                          variant={area.urgency === "high" ? "destructive" : "secondary"}
+                        <Badge
+                          variant={area.urgency === 'high' ? 'destructive' : 'secondary'}
                           className={`${urgencyStyle.bg} ${urgencyStyle.color} font-bold border ${urgencyStyle.border}`}
                         >
                           {urgencyStyle.icon} {urgencyStyle.label}
                         </Badge>
                       </div>
-                      {area.urgency === "high" && (
+                      {area.urgency === 'high' && (
                         <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
                           <p className="text-xs font-medium text-red-700 dark:text-red-300">
                             ⚡ Immediate action recommended
@@ -273,7 +273,7 @@ export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = (
                         </div>
                       )}
                     </div>
-                  );
+                  )
                 })}
               </div>
             ) : (
@@ -287,5 +287,5 @@ export const ThematicAnalysisSection: React.FC<ThematicAnalysisSectionProps> = (
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

@@ -1,16 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Review } from "@/types/reviews";
-import { 
-  calculateAverageRating, 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { Review } from '@/types/reviews'
+import {
+  calculateAverageRating,
   countReviewsByRating,
   groupReviewsByMonth,
-  calculateMonthlyComparison
-} from "@/utils/dataUtils";
+  calculateMonthlyComparison,
+} from '@/utils/dataUtils'
 // Note: These charts will be migrated to reviews feature
-import ReviewsChart from "@/components/ReviewsChart";
-import CumulativeReviewsChart from "@/components/CumulativeReviewsChart";
-import { Button } from "@/components/ui/button";
-import { Loader, RefreshCw } from "lucide-react";
+import ReviewsChart from '@/components/ReviewsChart'
+import CumulativeReviewsChart from '@/components/CumulativeReviewsChart'
+import { Button } from '@/components/ui/button'
+import { Loader, RefreshCw } from 'lucide-react'
 
 interface OverviewSectionProps {
   reviews: Review[];
@@ -20,29 +20,29 @@ interface OverviewSectionProps {
   hasMoreData?: boolean;
 }
 
-const OverviewSection = ({ 
-  reviews, 
-  totalReviewCount, 
-  loadingMore, 
-  onLoadMore, 
-  hasMoreData 
+const OverviewSection = ({
+  reviews,
+  totalReviewCount,
+  loadingMore,
+  onLoadMore,
+  hasMoreData,
 }: OverviewSectionProps) => {
-  const displayedReviews = reviews.length;
-  const totalReviews = totalReviewCount || displayedReviews;
-  const averageRating = calculateAverageRating(reviews);
-  const reviewsByRating = countReviewsByRating(reviews);
-  const monthlyData = groupReviewsByMonth(reviews);
-  const monthlyComparison = calculateMonthlyComparison(reviews);
-  
-  const fiveStars = reviewsByRating[5] || 0;
-  const fiveStarPercentage = displayedReviews > 0 
-    ? Math.round((fiveStars / displayedReviews) * 100) 
-    : 0;
-  
-  const loadPercentage = totalReviews > 0 
+  const displayedReviews = reviews.length
+  const totalReviews = totalReviewCount || displayedReviews
+  const averageRating = calculateAverageRating(reviews)
+  const reviewsByRating = countReviewsByRating(reviews)
+  const monthlyData = groupReviewsByMonth(reviews)
+  const monthlyComparison = calculateMonthlyComparison(reviews)
+
+  const fiveStars = reviewsByRating[5] || 0
+  const fiveStarPercentage = displayedReviews > 0
+    ? Math.round((fiveStars / displayedReviews) * 100)
+    : 0
+
+  const loadPercentage = totalReviews > 0
     ? Math.round((displayedReviews / totalReviews) * 100)
-    : 100;
-  
+    : 100
+
   return (
     <div className="space-y-6">
       {/* Top stats cards */}
@@ -57,21 +57,21 @@ const OverviewSection = ({
               {displayedReviews < totalReviews ? (
                 <span className="text-blue-500">{displayedReviews} loaded (showing {loadPercentage}%)</span>
               ) : (
-                monthlyComparison.vsLastMonth > 0 
-                  ? `+${monthlyComparison.vsLastMonth} from last month` 
-                  : monthlyComparison.vsLastMonth < 0 
+                monthlyComparison.vsLastMonth > 0
+                  ? `+${monthlyComparison.vsLastMonth} from last month`
+                  : monthlyComparison.vsLastMonth < 0
                     ? `${monthlyComparison.vsLastMonth} from last month`
-                    : `Same as last month`
+                    : 'Same as last month'
               )}
             </p>
-            
+
             {/* Load All Reviews Button - only show when partial data is loaded */}
             {displayedReviews < totalReviews && hasMoreData && onLoadMore && (
-              <Button 
-                onClick={onLoadMore} 
+              <Button
+                onClick={onLoadMore}
                 disabled={loadingMore}
-                variant="outline" 
-                size="sm" 
+                variant="outline"
+                size="sm"
                 className="mt-2"
               >
                 {loadingMore ? (
@@ -89,7 +89,7 @@ const OverviewSection = ({
             )}
           </CardContent>
         </Card>
-        
+
         <Card className="shadow-md border-0 dark:bg-gray-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-md font-medium">Average Rating</CardTitle>
@@ -101,7 +101,7 @@ const OverviewSection = ({
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="shadow-md border-0 dark:bg-gray-800">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-md font-medium">Review Distribution</CardTitle>
@@ -112,10 +112,10 @@ const OverviewSection = ({
                 <div key={star} className="flex items-center gap-2">
                   <div className="text-xs min-w-[1.5rem]">{star}★</div>
                   <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-blue-500 rounded-full"
-                      style={{ 
-                        width: `${displayedReviews ? (reviewsByRating[star] || 0) / displayedReviews * 100 : 0}%` 
+                      style={{
+                        width: `${displayedReviews ? (reviewsByRating[star] || 0) / displayedReviews * 100 : 0}%`,
                       }}
                     />
                   </div>
@@ -126,17 +126,17 @@ const OverviewSection = ({
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Charts section */}
       <div className="space-y-6">
         {/* Reviews Timeline Chart */}
         <ReviewsChart data={monthlyData} />
-        
+
         {/* Cumulative Reviews Growth Chart */}
         <CumulativeReviewsChart data={monthlyData} />
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default OverviewSection;
+export default OverviewSection

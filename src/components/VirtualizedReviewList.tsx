@@ -1,6 +1,6 @@
-import React, { memo, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import { Review } from '@/types/reviews';
+import React, { memo, useMemo } from 'react'
+import { FixedSizeList as List } from 'react-window'
+import type { Review } from '@/types/reviews'
 
 export interface VirtualizedReviewListProps {
   reviews: Review[];
@@ -24,21 +24,21 @@ interface ReviewItemProps {
 
 // Memoized item renderer to prevent unnecessary re-renders
 const ReviewItem = memo<ReviewItemProps>(({ index, style, data }) => {
-  const { reviews, renderReview } = data;
-  const review = reviews[index];
-  
+  const { reviews, renderReview } = data
+  const review = reviews[index]
+
   if (!review) {
-    return <div style={style}>Loading...</div>;
+    return <div style={style}>Loading...</div>
   }
-  
+
   return (
     <div style={style}>
       {renderReview(review, index)}
     </div>
-  );
-});
+  )
+})
 
-ReviewItem.displayName = 'ReviewItem';
+ReviewItem.displayName = 'ReviewItem'
 
 /**
  * Virtualized list component for efficiently rendering large numbers of reviews
@@ -58,16 +58,16 @@ export const VirtualizedReviewList = memo<VirtualizedReviewListProps>(({
     reviews,
     onReviewClick,
     renderReview,
-  }), [reviews, onReviewClick, renderReview]);
-  
+  }), [reviews, onReviewClick, renderReview])
+
   if (reviews.length === 0) {
     return (
       <div className={`flex items-center justify-center ${className}`} style={{ height }}>
         <p className="text-muted-foreground">No reviews found</p>
       </div>
-    );
+    )
   }
-  
+
   return (
     <div className={className}>
       <List
@@ -81,10 +81,10 @@ export const VirtualizedReviewList = memo<VirtualizedReviewListProps>(({
         {ReviewItem}
       </List>
     </div>
-  );
-});
+  )
+})
 
-VirtualizedReviewList.displayName = 'VirtualizedReviewList';
+VirtualizedReviewList.displayName = 'VirtualizedReviewList'
 
 /**
  * Hook for calculating optimal item height based on content
@@ -92,53 +92,53 @@ VirtualizedReviewList.displayName = 'VirtualizedReviewList';
 export const useOptimalItemHeight = (
   baseHeight: number = 120,
   hasLongText: boolean = false,
-  hasImages: boolean = false
+  hasImages: boolean = false,
 ) => {
   return useMemo(() => {
-    let height = baseHeight;
-    
+    let height = baseHeight
+
     if (hasLongText) {
-      height += 40; // Extra space for longer review text
+      height += 40 // Extra space for longer review text
     }
-    
+
     if (hasImages) {
-      height += 60; // Extra space for images
+      height += 60 // Extra space for images
     }
-    
-    return height;
-  }, [baseHeight, hasLongText, hasImages]);
-};
+
+    return height
+  }, [baseHeight, hasLongText, hasImages])
+}
 
 /**
  * Hook for managing virtualized list state and performance
  */
 export const useVirtualizedListState = (
   reviews: Review[],
-  initialItemHeight: number = 120
+  initialItemHeight: number = 120,
 ) => {
-  const [scrollOffset, setScrollOffset] = React.useState(0);
-  const [isScrolling, setIsScrolling] = React.useState(false);
-  
+  const [scrollOffset, setScrollOffset] = React.useState(0)
+  const [isScrolling, setIsScrolling] = React.useState(false)
+
   // Calculate dynamic item height based on review content
   const itemHeight = useOptimalItemHeight(
     initialItemHeight,
     reviews.some(review => review.text && review.text.length > 200),
-    false // Assuming no images for now
-  );
-  
+    false, // Assuming no images for now
+  )
+
   // Handle scroll events with throttling
   const handleScroll = React.useCallback((scrollTop: number) => {
-    setScrollOffset(scrollTop);
-  }, []);
-  
+    setScrollOffset(scrollTop)
+  }, [])
+
   const handleScrollStart = React.useCallback(() => {
-    setIsScrolling(true);
-  }, []);
-  
+    setIsScrolling(true)
+  }, [])
+
   const handleScrollStop = React.useCallback(() => {
-    setIsScrolling(false);
-  }, []);
-  
+    setIsScrolling(false)
+  }, [])
+
   return {
     itemHeight,
     scrollOffset,
@@ -146,5 +146,5 @@ export const useVirtualizedListState = (
     handleScroll,
     handleScrollStart,
     handleScrollStop,
-  };
-};
+  }
+}

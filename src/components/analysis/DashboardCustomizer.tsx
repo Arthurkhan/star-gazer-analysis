@@ -1,16 +1,16 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import React, { useState, useMemo, useCallback } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Slider } from '@/components/ui/slider'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Settings,
   Layout,
@@ -39,9 +39,9 @@ import {
   Minus,
   Copy,
   Trash2,
-  RefreshCw
-} from 'lucide-react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+  RefreshCw,
+} from 'lucide-react'
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 
 // Widget types and configurations
 interface WidgetConfig {
@@ -97,7 +97,7 @@ const AVAILABLE_WIDGETS: WidgetConfig[] = [
     minWidth: 400,
     minHeight: 300,
     configurable: true,
-    settings: { showTrends: true, showBenchmarks: true }
+    settings: { showTrends: true, showBenchmarks: true },
   },
   {
     id: 'performance-metrics',
@@ -110,7 +110,7 @@ const AVAILABLE_WIDGETS: WidgetConfig[] = [
     minWidth: 600,
     minHeight: 400,
     configurable: true,
-    settings: { displayMode: 'grid', showComparisons: true }
+    settings: { displayMode: 'grid', showComparisons: true },
   },
   {
     id: 'sentiment-analysis',
@@ -123,7 +123,7 @@ const AVAILABLE_WIDGETS: WidgetConfig[] = [
     minWidth: 400,
     minHeight: 250,
     configurable: true,
-    settings: { showTimeline: true, showBreakdown: true }
+    settings: { showTimeline: true, showBreakdown: true },
   },
   {
     id: 'thematic-analysis',
@@ -136,7 +136,7 @@ const AVAILABLE_WIDGETS: WidgetConfig[] = [
     minWidth: 400,
     minHeight: 300,
     configurable: true,
-    settings: { maxThemes: 10, showTrendingOnly: false }
+    settings: { maxThemes: 10, showTrendingOnly: false },
   },
   {
     id: 'staff-insights',
@@ -149,7 +149,7 @@ const AVAILABLE_WIDGETS: WidgetConfig[] = [
     minWidth: 350,
     minHeight: 250,
     configurable: true,
-    settings: { showExamples: true, showTraining: true }
+    settings: { showExamples: true, showTraining: true },
   },
   {
     id: 'action-items',
@@ -162,7 +162,7 @@ const AVAILABLE_WIDGETS: WidgetConfig[] = [
     minWidth: 500,
     minHeight: 350,
     configurable: true,
-    settings: { showUrgentOnly: false, groupByPriority: true }
+    settings: { showUrgentOnly: false, groupByPriority: true },
   },
   {
     id: 'interactive-charts',
@@ -175,7 +175,7 @@ const AVAILABLE_WIDGETS: WidgetConfig[] = [
     minWidth: 700,
     minHeight: 500,
     configurable: true,
-    settings: { defaultChart: 'ratingTrends', showControls: true }
+    settings: { defaultChart: 'ratingTrends', showControls: true },
   },
   {
     id: 'export-manager',
@@ -188,7 +188,7 @@ const AVAILABLE_WIDGETS: WidgetConfig[] = [
     minWidth: 400,
     minHeight: 300,
     configurable: true,
-    settings: { quickExport: true, showHistory: true }
+    settings: { quickExport: true, showHistory: true },
   },
   {
     id: 'rating-overview',
@@ -200,7 +200,7 @@ const AVAILABLE_WIDGETS: WidgetConfig[] = [
     size: 'small',
     minWidth: 250,
     minHeight: 150,
-    configurable: false
+    configurable: false,
   },
   {
     id: 'recent-reviews',
@@ -213,9 +213,9 @@ const AVAILABLE_WIDGETS: WidgetConfig[] = [
     minWidth: 400,
     minHeight: 300,
     configurable: true,
-    settings: { maxReviews: 5, showSentiment: true }
-  }
-];
+    settings: { maxReviews: 5, showSentiment: true },
+  },
+]
 
 // Predefined dashboard templates
 const DEFAULT_TEMPLATES: DashboardLayout[] = [
@@ -230,8 +230,8 @@ const DEFAULT_TEMPLATES: DashboardLayout[] = [
       AVAILABLE_WIDGETS.find(w => w.id === 'executive-summary')!,
       AVAILABLE_WIDGETS.find(w => w.id === 'performance-metrics')!,
       AVAILABLE_WIDGETS.find(w => w.id === 'action-items')!,
-      AVAILABLE_WIDGETS.find(w => w.id === 'rating-overview')!
-    ]
+      AVAILABLE_WIDGETS.find(w => w.id === 'rating-overview')!,
+    ],
   },
   {
     id: 'operational-dashboard',
@@ -245,8 +245,8 @@ const DEFAULT_TEMPLATES: DashboardLayout[] = [
       AVAILABLE_WIDGETS.find(w => w.id === 'recent-reviews')!,
       AVAILABLE_WIDGETS.find(w => w.id === 'thematic-analysis')!,
       AVAILABLE_WIDGETS.find(w => w.id === 'sentiment-analysis')!,
-      AVAILABLE_WIDGETS.find(w => w.id === 'export-manager')!
-    ]
+      AVAILABLE_WIDGETS.find(w => w.id === 'export-manager')!,
+    ],
   },
   {
     id: 'analytics-dashboard',
@@ -259,8 +259,8 @@ const DEFAULT_TEMPLATES: DashboardLayout[] = [
       AVAILABLE_WIDGETS.find(w => w.id === 'interactive-charts')!,
       AVAILABLE_WIDGETS.find(w => w.id === 'sentiment-analysis')!,
       AVAILABLE_WIDGETS.find(w => w.id === 'thematic-analysis')!,
-      AVAILABLE_WIDGETS.find(w => w.id === 'performance-metrics')!
-    ]
+      AVAILABLE_WIDGETS.find(w => w.id === 'performance-metrics')!,
+    ],
   },
   {
     id: 'minimal-dashboard',
@@ -272,10 +272,10 @@ const DEFAULT_TEMPLATES: DashboardLayout[] = [
     widgets: [
       AVAILABLE_WIDGETS.find(w => w.id === 'executive-summary')!,
       AVAILABLE_WIDGETS.find(w => w.id === 'rating-overview')!,
-      AVAILABLE_WIDGETS.find(w => w.id === 'recent-reviews')!
-    ]
-  }
-];
+      AVAILABLE_WIDGETS.find(w => w.id === 'recent-reviews')!,
+    ],
+  },
+]
 
 export function DashboardCustomizer({
   currentLayout,
@@ -283,146 +283,146 @@ export function DashboardCustomizer({
   onSaveTemplate,
   onLoadTemplate,
   availableTemplates = DEFAULT_TEMPLATES,
-  className = ''
+  className = '',
 }: DashboardCustomizerProps) {
-  const [activeTab, setActiveTab] = useState('layout');
-  const [previewMode, setPreviewMode] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [activeTab, setActiveTab] = useState('layout')
+  const [previewMode, setPreviewMode] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [unsavedChanges, setUnsavedChanges] = useState(false)
   const [customColors, setCustomColors] = useState(currentLayout.customColors || {
     primary: '#3b82f6',
     secondary: '#64748b',
     accent: '#10b981',
     background: '#ffffff',
-    text: '#1f2937'
-  });
+    text: '#1f2937',
+  })
 
   // Filter available widgets
   const filteredWidgets = useMemo(() => {
     return AVAILABLE_WIDGETS.filter(widget => {
       const matchesSearch = widget.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           widget.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === 'all' || widget.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
-  }, [searchTerm, selectedCategory]);
+                           widget.description.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesCategory = selectedCategory === 'all' || widget.category === selectedCategory
+      return matchesSearch && matchesCategory
+    })
+  }, [searchTerm, selectedCategory])
 
   // Handle drag and drop for widget reordering
   const handleDragEnd = useCallback((result: any) => {
-    if (!result.destination) return;
+    if (!result.destination) return
 
-    const newWidgets = Array.from(currentLayout.widgets);
-    const [reorderedItem] = newWidgets.splice(result.source.index, 1);
-    newWidgets.splice(result.destination.index, 0, reorderedItem);
+    const newWidgets = Array.from(currentLayout.widgets)
+    const [reorderedItem] = newWidgets.splice(result.source.index, 1)
+    newWidgets.splice(result.destination.index, 0, reorderedItem)
 
-    const updatedLayout = { ...currentLayout, widgets: newWidgets };
-    onLayoutChange(updatedLayout);
-    setUnsavedChanges(true);
-  }, [currentLayout, onLayoutChange]);
+    const updatedLayout = { ...currentLayout, widgets: newWidgets }
+    onLayoutChange(updatedLayout)
+    setUnsavedChanges(true)
+  }, [currentLayout, onLayoutChange])
 
   // Add widget to dashboard
   const handleAddWidget = useCallback((widgetConfig: WidgetConfig) => {
     const updatedLayout = {
       ...currentLayout,
-      widgets: [...currentLayout.widgets, { ...widgetConfig, id: `${widgetConfig.id}-${Date.now()}` }]
-    };
-    onLayoutChange(updatedLayout);
-    setUnsavedChanges(true);
-  }, [currentLayout, onLayoutChange]);
+      widgets: [...currentLayout.widgets, { ...widgetConfig, id: `${widgetConfig.id}-${Date.now()}` }],
+    }
+    onLayoutChange(updatedLayout)
+    setUnsavedChanges(true)
+  }, [currentLayout, onLayoutChange])
 
   // Remove widget from dashboard
   const handleRemoveWidget = useCallback((widgetId: string) => {
     const updatedLayout = {
       ...currentLayout,
-      widgets: currentLayout.widgets.filter(widget => widget.id !== widgetId)
-    };
-    onLayoutChange(updatedLayout);
-    setUnsavedChanges(true);
-  }, [currentLayout, onLayoutChange]);
+      widgets: currentLayout.widgets.filter(widget => widget.id !== widgetId),
+    }
+    onLayoutChange(updatedLayout)
+    setUnsavedChanges(true)
+  }, [currentLayout, onLayoutChange])
 
   // Update widget settings
   const handleUpdateWidgetSettings = useCallback((widgetId: string, settings: Record<string, any>) => {
     const updatedLayout = {
       ...currentLayout,
-      widgets: currentLayout.widgets.map(widget => 
-        widget.id === widgetId ? { ...widget, settings: { ...widget.settings, ...settings } } : widget
-      )
-    };
-    onLayoutChange(updatedLayout);
-    setUnsavedChanges(true);
-  }, [currentLayout, onLayoutChange]);
+      widgets: currentLayout.widgets.map(widget =>
+        widget.id === widgetId ? { ...widget, settings: { ...widget.settings, ...settings } } : widget,
+      ),
+    }
+    onLayoutChange(updatedLayout)
+    setUnsavedChanges(true)
+  }, [currentLayout, onLayoutChange])
 
   // Update layout settings
   const handleLayoutSettingsChange = useCallback((key: string, value: any) => {
-    const updatedLayout = { ...currentLayout, [key]: value };
-    onLayoutChange(updatedLayout);
-    setUnsavedChanges(true);
-  }, [currentLayout, onLayoutChange]);
+    const updatedLayout = { ...currentLayout, [key]: value }
+    onLayoutChange(updatedLayout)
+    setUnsavedChanges(true)
+  }, [currentLayout, onLayoutChange])
 
   // Save current layout as template
   const handleSaveTemplate = useCallback(() => {
-    const templateName = prompt('Enter template name:');
+    const templateName = prompt('Enter template name:')
     if (templateName) {
       const template = {
         ...currentLayout,
         id: `custom-${Date.now()}`,
         name: templateName,
-        description: `Custom template created on ${new Date().toLocaleDateString()}`
-      };
-      onSaveTemplate(template);
-      setUnsavedChanges(false);
+        description: `Custom template created on ${new Date().toLocaleDateString()}`,
+      }
+      onSaveTemplate(template)
+      setUnsavedChanges(false)
     }
-  }, [currentLayout, onSaveTemplate]);
+  }, [currentLayout, onSaveTemplate])
 
   // Load template
   const handleLoadTemplate = useCallback((templateId: string) => {
     if (unsavedChanges) {
       if (!confirm('You have unsaved changes. Are you sure you want to load a new template?')) {
-        return;
+        return
       }
     }
-    onLoadTemplate(templateId);
-    setUnsavedChanges(false);
-  }, [unsavedChanges, onLoadTemplate]);
+    onLoadTemplate(templateId)
+    setUnsavedChanges(false)
+  }, [unsavedChanges, onLoadTemplate])
 
   // Reset to default
   const handleResetToDefault = useCallback(() => {
     if (confirm('Reset to default layout? This will discard all customizations.')) {
-      onLoadTemplate('executive-dashboard');
-      setUnsavedChanges(false);
+      onLoadTemplate('executive-dashboard')
+      setUnsavedChanges(false)
     }
-  }, [onLoadTemplate]);
+  }, [onLoadTemplate])
 
   // Export/Import configuration
   const handleExportConfig = useCallback(() => {
-    const configBlob = new Blob([JSON.stringify(currentLayout, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(configBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `dashboard-config-${currentLayout.name.replace(/\s+/g, '-').toLowerCase()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, [currentLayout]);
+    const configBlob = new Blob([JSON.stringify(currentLayout, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(configBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `dashboard-config-${currentLayout.name.replace(/\s+/g, '-').toLowerCase()}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }, [currentLayout])
 
   const handleImportConfig = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]
     if (file) {
-      const reader = new FileReader();
+      const reader = new FileReader()
       reader.onload = (e) => {
         try {
-          const config = JSON.parse(e.target?.result as string);
-          onLayoutChange(config);
-          setUnsavedChanges(true);
+          const config = JSON.parse(e.target?.result as string)
+          onLayoutChange(config)
+          setUnsavedChanges(true)
         } catch (error) {
-          alert('Invalid configuration file');
+          alert('Invalid configuration file')
         }
-      };
-      reader.readAsText(file);
+      }
+      reader.readAsText(file)
     }
-  }, [onLayoutChange]);
+  }, [onLayoutChange])
 
   // Render widget configuration
   const renderWidgetConfig = (widget: WidgetConfig) => (
@@ -459,7 +459,7 @@ export function DashboardCustomizer({
                   <Switch
                     id={`${widget.id}-${key}`}
                     checked={value}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       handleUpdateWidgetSettings(widget.id, { [key]: checked })
                     }
                   />
@@ -468,7 +468,7 @@ export function DashboardCustomizer({
                     id={`${widget.id}-${key}`}
                     type="number"
                     value={value}
-                    onChange={(e) => 
+                    onChange={(e) =>
                       handleUpdateWidgetSettings(widget.id, { [key]: parseInt(e.target.value) })
                     }
                     className="w-20"
@@ -477,7 +477,7 @@ export function DashboardCustomizer({
                   <Input
                     id={`${widget.id}-${key}`}
                     value={value}
-                    onChange={(e) => 
+                    onChange={(e) =>
                       handleUpdateWidgetSettings(widget.id, { [key]: e.target.value })
                     }
                     className="w-32"
@@ -489,7 +489,7 @@ export function DashboardCustomizer({
         </CardContent>
       )}
     </Card>
-  );
+  )
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -550,7 +550,7 @@ export function DashboardCustomizer({
                         onChange={(e) => handleLayoutSettingsChange('name', e.target.value)}
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="dashboard-description">Description</Label>
                       <Textarea
@@ -745,18 +745,18 @@ export function DashboardCustomizer({
                             type="color"
                             value={value}
                             onChange={(e) => {
-                              const newColors = { ...customColors, [key]: e.target.value };
-                              setCustomColors(newColors);
-                              handleLayoutSettingsChange('customColors', newColors);
+                              const newColors = { ...customColors, [key]: e.target.value }
+                              setCustomColors(newColors)
+                              handleLayoutSettingsChange('customColors', newColors)
                             }}
                             className="w-16 h-10 p-1 border rounded"
                           />
                           <Input
                             value={value}
                             onChange={(e) => {
-                              const newColors = { ...customColors, [key]: e.target.value };
-                              setCustomColors(newColors);
-                              handleLayoutSettingsChange('customColors', newColors);
+                              const newColors = { ...customColors, [key]: e.target.value }
+                              setCustomColors(newColors)
+                              handleLayoutSettingsChange('customColors', newColors)
                             }}
                             placeholder="#000000"
                             className="flex-1"
@@ -765,11 +765,11 @@ export function DashboardCustomizer({
                       </div>
                     ))}
                   </div>
-                  
+
                   <div className="mt-6 p-4 border rounded-lg" style={{
                     backgroundColor: customColors.background,
                     color: customColors.text,
-                    borderColor: customColors.secondary
+                    borderColor: customColors.secondary,
                   }}>
                     <h3 className="font-semibold mb-2" style={{ color: customColors.primary }}>
                       Color Preview
@@ -778,18 +778,18 @@ export function DashboardCustomizer({
                       This is how your dashboard will look with the current color scheme.
                     </p>
                     <div className="flex gap-2">
-                      <div 
-                        className="w-8 h-8 rounded" 
+                      <div
+                        className="w-8 h-8 rounded"
                         style={{ backgroundColor: customColors.primary }}
                         title="Primary"
                       />
-                      <div 
-                        className="w-8 h-8 rounded" 
+                      <div
+                        className="w-8 h-8 rounded"
                         style={{ backgroundColor: customColors.secondary }}
                         title="Secondary"
                       />
-                      <div 
-                        className="w-8 h-8 rounded" 
+                      <div
+                        className="w-8 h-8 rounded"
                         style={{ backgroundColor: customColors.accent }}
                         title="Accent"
                       />
@@ -878,12 +878,12 @@ export function DashboardCustomizer({
             </p>
           </CardHeader>
           <CardContent>
-            <div 
+            <div
               className="grid gap-4 p-4 border rounded-lg min-h-[400px]"
               style={{
                 gridTemplateColumns: `repeat(${currentLayout.columns}, 1fr)`,
                 gap: `${currentLayout.spacing}px`,
-                backgroundColor: customColors.background
+                backgroundColor: customColors.background,
               }}
             >
               {currentLayout.widgets.map((widget, index) => (
@@ -895,7 +895,7 @@ export function DashboardCustomizer({
                     backgroundColor: 'rgba(255, 255, 255, 0.5)',
                     minHeight: `${widget.minHeight}px`,
                     gridColumn: widget.size === 'extra-large' ? `span ${Math.min(currentLayout.columns, 2)}` :
-                               widget.size === 'large' ? `span ${Math.min(currentLayout.columns, 2)}` : 'span 1'
+                               widget.size === 'large' ? `span ${Math.min(currentLayout.columns, 2)}` : 'span 1',
                   }}
                 >
                   <div className="text-center">
@@ -914,7 +914,7 @@ export function DashboardCustomizer({
         </Card>
       )}
     </div>
-  );
+  )
 }
 
-export default DashboardCustomizer;
+export default DashboardCustomizer

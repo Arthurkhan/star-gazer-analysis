@@ -1,11 +1,11 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { BarChart, LineChart, PieChart, Calendar, Lightbulb, Info } from 'lucide-react';
-import { 
+import React from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { BarChart, LineChart, PieChart, Calendar, Lightbulb, Info } from 'lucide-react'
+import {
   BarChart as RechartsBarChart,
   Bar,
   LineChart as RechartsLineChart,
@@ -18,9 +18,9 @@ import {
   ResponsiveContainer,
   PieChart as RechartsPieChart,
   Pie,
-  Cell
-} from 'recharts';
-import { CustomBarLineTooltip, CustomPieTooltip } from '@/components/review-analysis/CustomTooltips';
+  Cell,
+} from 'recharts'
+import { CustomBarLineTooltip, CustomPieTooltip } from '@/components/review-analysis/CustomTooltips'
 
 // Define the props interface based on the enhancedAnalysis structure
 interface EnhancedAnalysisDisplayProps {
@@ -61,7 +61,7 @@ const InfoTooltip: React.FC<{ content: string }> = ({ content }) => (
       </TooltipContent>
     </Tooltip>
   </TooltipProvider>
-);
+)
 
 export function EnhancedAnalysisDisplay({
   temporalPatterns,
@@ -70,17 +70,17 @@ export function EnhancedAnalysisDisplay({
   seasonalAnalysis,
   insights,
   loading = false,
-  fullView = false
+  fullView = false,
 }: EnhancedAnalysisDisplayProps) {
   // Custom colors for charts
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
-  
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d']
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
-    );
+    )
   }
 
   // Component for Key Insights section
@@ -114,7 +114,7 @@ export function EnhancedAnalysisDisplay({
         )}
       </CardContent>
     </Card>
-  );
+  )
 
   // Component for Performance Metrics (Historical Trends)
   const PerformanceSection = () => (
@@ -144,27 +144,27 @@ export function EnhancedAnalysisDisplay({
               <YAxis yAxisId="right" orientation="right" domain={[0, 5]} label={{ value: 'Average Rating', angle: 90, position: 'insideRight' }} />
               <RechartsTooltip content={<CustomBarLineTooltip />} />
               <Legend />
-              <Line 
+              <Line
                 yAxisId="left"
-                type="monotone" 
-                dataKey="reviewCount" 
-                name="Review Count" 
-                stroke="#8884d8" 
-                activeDot={{ r: 8 }} 
+                type="monotone"
+                dataKey="reviewCount"
+                name="Review Count"
+                stroke="#8884d8"
+                activeDot={{ r: 8 }}
               />
-              <Line 
+              <Line
                 yAxisId="right"
-                type="monotone" 
-                dataKey="avgRating" 
-                name="Average Rating" 
-                stroke="#82ca9d" 
+                type="monotone"
+                dataKey="avgRating"
+                name="Average Rating"
+                stroke="#82ca9d"
               />
             </RechartsLineChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
-  );
+  )
 
   // Component for Sentiment Analysis (Temporal Patterns)
   const SentimentSection = () => (
@@ -205,7 +205,7 @@ export function EnhancedAnalysisDisplay({
               </ResponsiveContainer>
             </div>
           </div>
-          
+
           {/* Time of Day Chart */}
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -231,7 +231,7 @@ export function EnhancedAnalysisDisplay({
         </div>
       </CardContent>
     </Card>
-  );
+  )
 
   // Component for Thematic Analysis (Review Clusters)
   const ThematicSection = () => (
@@ -279,7 +279,7 @@ export function EnhancedAnalysisDisplay({
               </ResponsiveContainer>
             </div>
           </div>
-          
+
           {/* Clusters Details */}
           <div className="lg:col-span-7">
             <div className="flex items-center justify-between mb-4">
@@ -292,8 +292,8 @@ export function EnhancedAnalysisDisplay({
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-medium">{cluster.name}</h3>
                     <Badge variant={
-                      cluster.sentiment === 'positive' ? 'default' : 
-                      cluster.sentiment === 'negative' ? 'destructive' : 
+                      cluster.sentiment === 'positive' ? 'default' :
+                      cluster.sentiment === 'negative' ? 'destructive' :
                       'secondary'
                     }>
                       {cluster.sentiment}
@@ -310,7 +310,7 @@ export function EnhancedAnalysisDisplay({
                   {index < reviewClusters.length - 1 && <Separator className="mt-4" />}
                 </div>
               ))}
-              
+
               {reviewClusters.length === 0 && (
                 <p className="text-muted-foreground text-center py-8">
                   No review clusters detected. Try analyzing more reviews.
@@ -321,7 +321,7 @@ export function EnhancedAnalysisDisplay({
         </div>
       </CardContent>
     </Card>
-  );
+  )
 
   // Component for Operational Insights (Seasonal Analysis)
   const OperationalSection = () => (
@@ -362,7 +362,7 @@ export function EnhancedAnalysisDisplay({
               </ResponsiveContainer>
             </div>
           </div>
-          
+
           {/* Seasonal Rating */}
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -388,7 +388,7 @@ export function EnhancedAnalysisDisplay({
         </div>
       </CardContent>
     </Card>
-  );
+  )
 
   // If fullView is enabled, render all sections vertically
   if (fullView) {
@@ -400,7 +400,7 @@ export function EnhancedAnalysisDisplay({
         <ThematicSection />
         <OperationalSection />
       </div>
-    );
+    )
   }
 
   // Default tabbed view
@@ -414,12 +414,12 @@ export function EnhancedAnalysisDisplay({
           <TabsTrigger value="clusters">Review Clusters</TabsTrigger>
           <TabsTrigger value="seasonal">Seasonal Analysis</TabsTrigger>
         </TabsList>
-        
+
         {/* Insights Tab */}
         <TabsContent value="insights" className="mt-6">
           <InsightsSection />
         </TabsContent>
-        
+
         {/* Temporal Patterns Tab */}
         <TabsContent value="temporal" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -455,7 +455,7 @@ export function EnhancedAnalysisDisplay({
                 </div>
               </CardContent>
             </Card>
-            
+
             {/* Time of Day Chart */}
             <Card>
               <CardHeader>
@@ -490,7 +490,7 @@ export function EnhancedAnalysisDisplay({
             </Card>
           </div>
         </TabsContent>
-        
+
         {/* Historical Trends Tab */}
         <TabsContent value="trends" className="mt-6">
           <Card>
@@ -519,20 +519,20 @@ export function EnhancedAnalysisDisplay({
                     <YAxis yAxisId="right" orientation="right" domain={[0, 5]} label={{ value: 'Average Rating', angle: 90, position: 'insideRight' }} />
                     <RechartsTooltip content={<CustomBarLineTooltip />} />
                     <Legend />
-                    <Line 
+                    <Line
                       yAxisId="left"
-                      type="monotone" 
-                      dataKey="reviewCount" 
-                      name="Review Count" 
-                      stroke="#8884d8" 
-                      activeDot={{ r: 8 }} 
+                      type="monotone"
+                      dataKey="reviewCount"
+                      name="Review Count"
+                      stroke="#8884d8"
+                      activeDot={{ r: 8 }}
                     />
-                    <Line 
+                    <Line
                       yAxisId="right"
-                      type="monotone" 
-                      dataKey="avgRating" 
-                      name="Average Rating" 
-                      stroke="#82ca9d" 
+                      type="monotone"
+                      dataKey="avgRating"
+                      name="Average Rating"
+                      stroke="#82ca9d"
                     />
                   </RechartsLineChart>
                 </ResponsiveContainer>
@@ -540,7 +540,7 @@ export function EnhancedAnalysisDisplay({
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Review Clusters Tab */}
         <TabsContent value="clusters" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -583,7 +583,7 @@ export function EnhancedAnalysisDisplay({
                 </div>
               </CardContent>
             </Card>
-            
+
             {/* Clusters Details */}
             <Card className="lg:col-span-7">
               <CardHeader>
@@ -605,8 +605,8 @@ export function EnhancedAnalysisDisplay({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Badge variant={
-                                cluster.sentiment === 'positive' ? 'default' : 
-                                cluster.sentiment === 'negative' ? 'destructive' : 
+                                cluster.sentiment === 'positive' ? 'default' :
+                                cluster.sentiment === 'negative' ? 'destructive' :
                                 'secondary'
                               } className="cursor-help">
                                 {cluster.sentiment}
@@ -633,7 +633,7 @@ export function EnhancedAnalysisDisplay({
                       {index < reviewClusters.length - 1 && <Separator className="mt-4" />}
                     </div>
                   ))}
-                  
+
                   {reviewClusters.length === 0 && (
                     <p className="text-muted-foreground text-center py-8">
                       No review clusters detected. Try analyzing more reviews.
@@ -644,7 +644,7 @@ export function EnhancedAnalysisDisplay({
             </Card>
           </div>
         </TabsContent>
-        
+
         {/* Seasonal Analysis Tab */}
         <TabsContent value="seasonal" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -680,7 +680,7 @@ export function EnhancedAnalysisDisplay({
                 </div>
               </CardContent>
             </Card>
-            
+
             {/* Seasonal Rating */}
             <Card>
               <CardHeader>
@@ -717,5 +717,5 @@ export function EnhancedAnalysisDisplay({
         </TabsContent>
       </Tabs>
     </div>
-  );
+  )
 }

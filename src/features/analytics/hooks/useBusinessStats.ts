@@ -1,7 +1,7 @@
-import { useMemo } from "react";
-import { Review } from "@/types/reviews";
-import { calculateBusinessStats } from "@/utils/reviewDataUtils";
-import { performanceUtils } from "@/utils/performanceUtils";
+import { useMemo } from 'react'
+import type { Review } from '@/types/reviews'
+import { calculateBusinessStats } from '@/utils/reviewDataUtils'
+import { performanceUtils } from '@/utils/performanceUtils'
 
 interface UseBusinessStatsConfig {
   enablePerformanceMonitoring?: boolean;
@@ -20,40 +20,40 @@ interface UseBusinessStatsReturn {
  * Focused responsibility: Business metrics calculation
  */
 export function useBusinessStats(
-  reviews: Review[], 
-  config: UseBusinessStatsConfig = {}
+  reviews: Review[],
+  config: UseBusinessStatsConfig = {},
 ): UseBusinessStatsReturn {
-  const { enablePerformanceMonitoring = process.env.NODE_ENV === 'development' } = config;
+  const { enablePerformanceMonitoring = process.env.NODE_ENV === 'development' } = config
 
   /**
    * Memoized business statistics calculation
    */
   const businessStats = useMemo(() => {
-    if (reviews.length === 0) return {};
-    
-    const stopMeasurement = enablePerformanceMonitoring 
+    if (reviews.length === 0) return {}
+
+    const stopMeasurement = enablePerformanceMonitoring
       ? performanceUtils.startMeasurement('business-stats')
-      : () => 0;
-    
-    const stats = calculateBusinessStats(reviews, reviews.length);
-    
+      : () => 0
+
+    const stats = calculateBusinessStats(reviews, reviews.length)
+
     if (enablePerformanceMonitoring) {
-      stopMeasurement();
+      stopMeasurement()
     }
-    
-    return stats;
-  }, [reviews, enablePerformanceMonitoring]);
+
+    return stats
+  }, [reviews, enablePerformanceMonitoring])
 
   /**
    * Memoized business data structure
    */
   const businessData = useMemo(() => ({
-    allBusinesses: { name: "All Businesses", count: reviews.length },
+    allBusinesses: { name: 'All Businesses', count: reviews.length },
     businesses: businessStats,
-  }), [reviews.length, businessStats]);
+  }), [reviews.length, businessStats])
 
   return {
     businessStats,
     businessData,
-  };
+  }
 }

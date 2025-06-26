@@ -1,30 +1,30 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
-import { 
+import React, { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Progress } from '@/components/ui/progress'
+import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
-} from 'recharts';
-import { 
-  Calendar, TrendingUp, TrendingDown, Minus, Loader2, 
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts'
+import {
+  Calendar, TrendingUp, TrendingDown, Minus, Loader2,
   Download, ChevronDown, Clock, Globe, MessageCircle,
-  CalendarDays, CalendarRange, CalendarClock, FileText, FileSpreadsheet
-} from 'lucide-react';
-import { format, subMonths, subQuarters, subYears, startOfMonth, endOfMonth, isValid } from 'date-fns';
-import { usePeriodComparison } from '@/hooks/usePeriodComparison';
-import { DateRangeSelector } from '@/components/monthly-report/DateRangeSelector';
-import { useSelectedDateRange } from '@/components/monthly-report/hooks/useSelectedDateRange';
-import { exportPeriodComparisonReport, exportPeriodComparisonCSV } from '@/utils/periodComparisonExport';
+  CalendarDays, CalendarRange, CalendarClock, FileText, FileSpreadsheet,
+} from 'lucide-react'
+import { format, subMonths, subQuarters, subYears, startOfMonth, endOfMonth, isValid } from 'date-fns'
+import { usePeriodComparison } from '@/hooks/usePeriodComparison'
+import { DateRangeSelector } from '@/components/monthly-report/DateRangeSelector'
+import { useSelectedDateRange } from '@/components/monthly-report/hooks/useSelectedDateRange'
+import { exportPeriodComparisonReport, exportPeriodComparisonCSV } from '@/utils/periodComparisonExport'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu'
 
 interface EnhancedPeriodComparisonProps {
   businessName: string;
@@ -37,8 +37,8 @@ const CHART_COLORS = {
   tertiary: '#F59E0B',
   positive: '#10B981',
   negative: '#EF4444',
-  neutral: '#6B7280'
-};
+  neutral: '#6B7280',
+}
 
 // Custom Tooltip component for dark mode support
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -52,36 +52,36 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           </p>
         ))}
       </div>
-    );
+    )
   }
-  return null;
-};
+  return null
+}
 
 export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodComparisonProps) {
-  const [showDateSelectors, setShowDateSelectors] = useState(false);
-  
+  const [showDateSelectors, setShowDateSelectors] = useState(false)
+
   // Initialize with last month vs previous month - ensure valid dates
-  const today = new Date();
-  const oneMonthAgo = subMonths(today, 1);
-  const twoMonthsAgo = subMonths(today, 2);
-  
+  const today = new Date()
+  const oneMonthAgo = subMonths(today, 1)
+  const twoMonthsAgo = subMonths(today, 2)
+
   // Ensure dates are valid before using them
-  const initialCurrentFrom = isValid(oneMonthAgo) ? startOfMonth(oneMonthAgo) : startOfMonth(today);
-  const initialCurrentTo = isValid(oneMonthAgo) ? endOfMonth(oneMonthAgo) : endOfMonth(today);
-  const initialPreviousFrom = isValid(twoMonthsAgo) ? startOfMonth(twoMonthsAgo) : startOfMonth(subMonths(today, 2));
-  const initialPreviousTo = isValid(twoMonthsAgo) ? endOfMonth(twoMonthsAgo) : endOfMonth(subMonths(today, 2));
-  
+  const initialCurrentFrom = isValid(oneMonthAgo) ? startOfMonth(oneMonthAgo) : startOfMonth(today)
+  const initialCurrentTo = isValid(oneMonthAgo) ? endOfMonth(oneMonthAgo) : endOfMonth(today)
+  const initialPreviousFrom = isValid(twoMonthsAgo) ? startOfMonth(twoMonthsAgo) : startOfMonth(subMonths(today, 2))
+  const initialPreviousTo = isValid(twoMonthsAgo) ? endOfMonth(twoMonthsAgo) : endOfMonth(subMonths(today, 2))
+
   // Date range hooks with validated dates
   const currentPeriod = useSelectedDateRange({
     initialFrom: initialCurrentFrom,
-    initialTo: initialCurrentTo
-  });
-  
+    initialTo: initialCurrentTo,
+  })
+
   const previousPeriod = useSelectedDateRange({
     initialFrom: initialPreviousFrom,
-    initialTo: initialPreviousTo
-  });
-  
+    initialTo: initialPreviousTo,
+  })
+
   // Period comparison hook
   const {
     isLoading,
@@ -91,258 +91,258 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
     previousData,
     comparisonResult,
     comparePeriods,
-  } = usePeriodComparison();
-  
+  } = usePeriodComparison()
+
   // Quick comparison presets
   const handleQuickCompare = (preset: 'lastMonth' | 'lastQuarter' | 'lastYear') => {
-    const now = new Date();
-    let currentStart, currentEnd, previousStart, previousEnd;
-    
+    const now = new Date()
+    let currentStart, currentEnd, previousStart, previousEnd
+
     switch (preset) {
       case 'lastMonth':
-        currentEnd = endOfMonth(subMonths(now, 1));
-        currentStart = startOfMonth(subMonths(now, 1));
-        previousEnd = endOfMonth(subMonths(now, 2));
-        previousStart = startOfMonth(subMonths(now, 2));
-        break;
+        currentEnd = endOfMonth(subMonths(now, 1))
+        currentStart = startOfMonth(subMonths(now, 1))
+        previousEnd = endOfMonth(subMonths(now, 2))
+        previousStart = startOfMonth(subMonths(now, 2))
+        break
       case 'lastQuarter':
-        currentEnd = endOfMonth(subMonths(now, 1));
-        currentStart = startOfMonth(subMonths(now, 3));
-        previousEnd = endOfMonth(subMonths(now, 4));
-        previousStart = startOfMonth(subMonths(now, 6));
-        break;
+        currentEnd = endOfMonth(subMonths(now, 1))
+        currentStart = startOfMonth(subMonths(now, 3))
+        previousEnd = endOfMonth(subMonths(now, 4))
+        previousStart = startOfMonth(subMonths(now, 6))
+        break
       case 'lastYear':
-        currentEnd = endOfMonth(subMonths(now, 1));
-        currentStart = startOfMonth(subMonths(now, 1));
-        previousEnd = endOfMonth(subMonths(now, 13));
-        previousStart = startOfMonth(subMonths(now, 13));
-        break;
+        currentEnd = endOfMonth(subMonths(now, 1))
+        currentStart = startOfMonth(subMonths(now, 1))
+        previousEnd = endOfMonth(subMonths(now, 13))
+        previousStart = startOfMonth(subMonths(now, 13))
+        break
     }
-    
-    currentPeriod.setDateRange({ from: currentStart, to: currentEnd });
-    previousPeriod.setDateRange({ from: previousStart, to: previousEnd });
-    
+
+    currentPeriod.setDateRange({ from: currentStart, to: currentEnd })
+    previousPeriod.setDateRange({ from: previousStart, to: previousEnd })
+
     comparePeriods(
       businessName,
       { from: currentStart, to: currentEnd },
-      { from: previousStart, to: previousEnd }
-    );
-  };
-  
+      { from: previousStart, to: previousEnd },
+    )
+  }
+
   // Handle custom comparison
   const handleCustomCompare = () => {
     comparePeriods(
       businessName,
       currentPeriod.dateRange,
-      previousPeriod.dateRange
-    );
-  };
-  
+      previousPeriod.dateRange,
+    )
+  }
+
   // Prepare chart data
   const ratingTrendData = React.useMemo(() => {
-    if (!currentData || !previousData) return [];
-    
+    if (!currentData || !previousData) return []
+
     // Group reviews by day for both periods
     const groupByDay = (reviews: any[]) => {
-      const grouped = new Map<string, { date: string; rating: number; count: number }>();
-      
+      const grouped = new Map<string, { date: string; rating: number; count: number }>()
+
       reviews.forEach(review => {
-        if (!review.publishedAtDate) return;
-        const reviewDate = new Date(review.publishedAtDate);
-        if (!isValid(reviewDate)) return;
-        
-        const date = format(reviewDate, 'yyyy-MM-dd');
-        const existing = grouped.get(date) || { date, rating: 0, count: 0 };
-        existing.rating += review.stars || 0;
-        existing.count += 1;
-        grouped.set(date, existing);
-      });
-      
+        if (!review.publishedAtDate) return
+        const reviewDate = new Date(review.publishedAtDate)
+        if (!isValid(reviewDate)) return
+
+        const date = format(reviewDate, 'yyyy-MM-dd')
+        const existing = grouped.get(date) || { date, rating: 0, count: 0 }
+        existing.rating += review.stars || 0
+        existing.count += 1
+        grouped.set(date, existing)
+      })
+
       return Array.from(grouped.values())
         .map(item => ({
           date: format(new Date(item.date), 'MMM dd'),
-          rating: item.count > 0 ? Number((item.rating / item.count).toFixed(2)) : 0
+          rating: item.count > 0 ? Number((item.rating / item.count).toFixed(2)) : 0,
         }))
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    };
-    
-    const currentTrend = groupByDay(currentData.reviews);
-    const previousTrend = groupByDay(previousData.reviews);
-    
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    }
+
+    const currentTrend = groupByDay(currentData.reviews)
+    const previousTrend = groupByDay(previousData.reviews)
+
     // Merge data for comparison
     const allDates = new Set([
       ...currentTrend.map(d => d.date),
-      ...previousTrend.map(d => d.date)
-    ]);
-    
+      ...previousTrend.map(d => d.date),
+    ])
+
     return Array.from(allDates).map(date => ({
       date,
       current: currentTrend.find(d => d.date === date)?.rating || null,
-      previous: previousTrend.find(d => d.date === date)?.rating || null
-    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [currentData, previousData]);
-  
+      previous: previousTrend.find(d => d.date === date)?.rating || null,
+    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  }, [currentData, previousData])
+
   // New: Review volume data
   const reviewVolumeData = React.useMemo(() => {
-    if (!currentData || !previousData) return [];
-    
+    if (!currentData || !previousData) return []
+
     // Group reviews by day for both periods
     const groupByDay = (reviews: any[]) => {
-      const grouped = new Map<string, { date: string; count: number }>();
-      
+      const grouped = new Map<string, { date: string; count: number }>()
+
       reviews.forEach(review => {
-        if (!review.publishedAtDate) return;
-        const reviewDate = new Date(review.publishedAtDate);
-        if (!isValid(reviewDate)) return;
-        
-        const date = format(reviewDate, 'yyyy-MM-dd');
-        const existing = grouped.get(date) || { date, count: 0 };
-        existing.count += 1;
-        grouped.set(date, existing);
-      });
-      
+        if (!review.publishedAtDate) return
+        const reviewDate = new Date(review.publishedAtDate)
+        if (!isValid(reviewDate)) return
+
+        const date = format(reviewDate, 'yyyy-MM-dd')
+        const existing = grouped.get(date) || { date, count: 0 }
+        existing.count += 1
+        grouped.set(date, existing)
+      })
+
       return Array.from(grouped.values())
         .map(item => ({
           date: format(new Date(item.date), 'MMM dd'),
           fullDate: item.date,
-          count: item.count
+          count: item.count,
         }))
-        .sort((a, b) => new Date(a.fullDate).getTime() - new Date(b.fullDate).getTime());
-    };
-    
-    const currentVolume = groupByDay(currentData.reviews);
-    const previousVolume = groupByDay(previousData.reviews);
-    
+        .sort((a, b) => new Date(a.fullDate).getTime() - new Date(b.fullDate).getTime())
+    }
+
+    const currentVolume = groupByDay(currentData.reviews)
+    const previousVolume = groupByDay(previousData.reviews)
+
     // Get all unique dates from both periods
     const allDates = new Set([
       ...currentVolume.map(d => d.date),
-      ...previousVolume.map(d => d.date)
-    ]);
-    
+      ...previousVolume.map(d => d.date),
+    ])
+
     return Array.from(allDates).map(date => ({
       date,
       currentCount: currentVolume.find(d => d.date === date)?.count || 0,
-      previousCount: previousVolume.find(d => d.date === date)?.count || 0
+      previousCount: previousVolume.find(d => d.date === date)?.count || 0,
     })).sort((a, b) => {
       // Sort by date
-      const dateA = currentVolume.find(d => d.date === a.date)?.fullDate || 
-                    previousVolume.find(d => d.date === a.date)?.fullDate || '';
-      const dateB = currentVolume.find(d => d.date === b.date)?.fullDate || 
-                    previousVolume.find(d => d.date === b.date)?.fullDate || '';
-      return new Date(dateA).getTime() - new Date(dateB).getTime();
-    });
-  }, [currentData, previousData]);
-  
+      const dateA = currentVolume.find(d => d.date === a.date)?.fullDate ||
+                    previousVolume.find(d => d.date === a.date)?.fullDate || ''
+      const dateB = currentVolume.find(d => d.date === b.date)?.fullDate ||
+                    previousVolume.find(d => d.date === b.date)?.fullDate || ''
+      return new Date(dateA).getTime() - new Date(dateB).getTime()
+    })
+  }, [currentData, previousData])
+
   const sentimentData = React.useMemo(() => {
-    if (!comparisonResult) return [];
-    
+    if (!comparisonResult) return []
+
     return [
       {
         name: 'Current Period',
         positive: currentData?.reviews.filter(r => r.sentiment === 'positive').length || 0,
         neutral: currentData?.reviews.filter(r => r.sentiment === 'neutral').length || 0,
-        negative: currentData?.reviews.filter(r => r.sentiment === 'negative').length || 0
+        negative: currentData?.reviews.filter(r => r.sentiment === 'negative').length || 0,
       },
       {
         name: 'Previous Period',
         positive: previousData?.reviews.filter(r => r.sentiment === 'positive').length || 0,
         neutral: previousData?.reviews.filter(r => r.sentiment === 'neutral').length || 0,
-        negative: previousData?.reviews.filter(r => r.sentiment === 'negative').length || 0
-      }
-    ];
-  }, [currentData, previousData, comparisonResult]);
-  
+        negative: previousData?.reviews.filter(r => r.sentiment === 'negative').length || 0,
+      },
+    ]
+  }, [currentData, previousData, comparisonResult])
+
   const themeEvolutionData = React.useMemo(() => {
-    if (!comparisonResult) return [];
-    
+    if (!comparisonResult) return []
+
     const allThemes = new Set([
       ...Object.keys(currentData?.themeAnalysis || {}),
-      ...Object.keys(previousData?.themeAnalysis || {})
-    ]);
-    
+      ...Object.keys(previousData?.themeAnalysis || {}),
+    ])
+
     return Array.from(allThemes).map(theme => ({
       theme,
       current: currentData?.themeAnalysis[theme] || 0,
-      previous: previousData?.themeAnalysis[theme] || 0
-    })).sort((a, b) => (b.current + b.previous) - (a.current + a.previous));
-  }, [currentData, previousData, comparisonResult]);
-  
+      previous: previousData?.themeAnalysis[theme] || 0,
+    })).sort((a, b) => (b.current + b.previous) - (a.current + a.previous))
+  }, [currentData, previousData, comparisonResult])
+
   const languageData = React.useMemo(() => {
-    if (!currentData || !previousData) return [];
-    
+    if (!currentData || !previousData) return []
+
     const getLanguageDistribution = (reviews: any[]) => {
-      const languages = new Map<string, number>();
+      const languages = new Map<string, number>()
       reviews.forEach(review => {
-        const lang = review.language || 'Unknown';
-        languages.set(lang, (languages.get(lang) || 0) + 1);
-      });
-      return languages;
-    };
-    
-    const currentLangs = getLanguageDistribution(currentData.reviews);
-    const previousLangs = getLanguageDistribution(previousData.reviews);
-    const allLangs = new Set([...currentLangs.keys(), ...previousLangs.keys()]);
-    
+        const lang = review.language || 'Unknown'
+        languages.set(lang, (languages.get(lang) || 0) + 1)
+      })
+      return languages
+    }
+
+    const currentLangs = getLanguageDistribution(currentData.reviews)
+    const previousLangs = getLanguageDistribution(previousData.reviews)
+    const allLangs = new Set([...currentLangs.keys(), ...previousLangs.keys()])
+
     return Array.from(allLangs).map(lang => ({
       language: lang,
       current: currentLangs.get(lang) || 0,
-      previous: previousLangs.get(lang) || 0
-    }));
-  }, [currentData, previousData]);
-  
+      previous: previousLangs.get(lang) || 0,
+    }))
+  }, [currentData, previousData])
+
   // Export functionality
   const handleExportPDF = () => {
-    if (!currentData || !previousData || !comparisonResult) return;
-    
+    if (!currentData || !previousData || !comparisonResult) return
+
     exportPeriodComparisonReport({
       businessName,
       currentPeriod: {
         from: currentPeriod.dateRange.from!,
         to: currentPeriod.dateRange.to!,
-        reviews: currentData.reviews
+        reviews: currentData.reviews,
       },
       previousPeriod: {
         from: previousPeriod.dateRange.from!,
         to: previousPeriod.dateRange.to!,
-        reviews: previousData.reviews
+        reviews: previousData.reviews,
       },
       comparisonResult: {
         ...comparisonResult,
         currentSentimentScore: currentData.metrics.sentimentScore,
-        previousSentimentScore: previousData.metrics.sentimentScore
-      }
-    });
-  };
-  
+        previousSentimentScore: previousData.metrics.sentimentScore,
+      },
+    })
+  }
+
   const handleExportCSV = () => {
-    if (!currentData || !previousData || !comparisonResult) return;
-    
+    if (!currentData || !previousData || !comparisonResult) return
+
     exportPeriodComparisonCSV({
       businessName,
       currentPeriod: {
         from: currentPeriod.dateRange.from!,
         to: currentPeriod.dateRange.to!,
-        reviews: currentData.reviews
+        reviews: currentData.reviews,
       },
       previousPeriod: {
         from: previousPeriod.dateRange.from!,
         to: previousPeriod.dateRange.to!,
-        reviews: previousData.reviews
+        reviews: previousData.reviews,
       },
       comparisonResult: {
         ...comparisonResult,
         currentSentimentScore: currentData.metrics.sentimentScore,
-        previousSentimentScore: previousData.metrics.sentimentScore
-      }
-    });
-  };
-  
+        previousSentimentScore: previousData.metrics.sentimentScore,
+      },
+    })
+  }
+
   // Safe date formatting helper
   const formatDate = (date: Date | undefined) => {
-    if (!date || !isValid(date)) return 'N/A';
-    return format(date, 'MMM dd, yyyy');
-  };
-  
+    if (!date || !isValid(date)) return 'N/A'
+    return format(date, 'MMM dd, yyyy')
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -377,7 +377,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             <Button
               variant="outline"
               size="sm"
@@ -386,7 +386,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
               <Calendar className="mr-2 h-4 w-4" />
               Custom Dates
             </Button>
-            
+
             {comparisonResult && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -409,7 +409,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-6">
         {/* Date Selection (Collapsible) */}
         {showDateSelectors && (
@@ -451,7 +451,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
               />
             </div>
             <div className="md:col-span-2 flex justify-center mt-4">
-              <Button 
+              <Button
                 onClick={handleCustomCompare}
                 disabled={isLoading || !currentPeriod.dateRange.to || !previousPeriod.dateRange.to}
               >
@@ -467,7 +467,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
             </div>
           </div>
         )}
-        
+
         {/* Loading State */}
         {isLoading && (
           <div className="space-y-4 p-6 border rounded-lg">
@@ -481,7 +481,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
             </p>
           </div>
         )}
-        
+
         {/* Results */}
         {!isLoading && comparisonResult && (
           <>
@@ -511,7 +511,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                 </Badge>
               </div>
             </div>
-            
+
             {/* Key Metrics Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <MetricCard
@@ -540,7 +540,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
               />
               <MetricCard
                 title="Response Rate"
-                value={currentData?.metrics?.responseRate ? 
+                value={currentData?.metrics?.responseRate ?
                   currentData.metrics.responseRate - (previousData?.metrics?.responseRate || 0) : 0}
                 formatter={(val) => `${val > 0 ? '+' : ''}${val.toFixed(1)}%`}
                 positive={(currentData?.metrics?.responseRate || 0) > (previousData?.metrics?.responseRate || 0)}
@@ -548,7 +548,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                 subtitle={`Current: ${currentData?.metrics?.responseRate?.toFixed(1) || '0'}%`}
               />
             </div>
-            
+
             {/* Detailed Analysis Tabs */}
             <Tabs defaultValue="trends" className="w-full">
               <TabsList className="grid w-full grid-cols-5">
@@ -558,7 +558,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                 <TabsTrigger value="languages">Languages</TabsTrigger>
                 <TabsTrigger value="insights">Insights</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="trends" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
@@ -595,7 +595,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 {/* Review Volume Chart - Changed to Line Chart */}
                 <Card>
                   <CardHeader>
@@ -638,7 +638,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="sentiment" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
@@ -662,7 +662,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="themes" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
@@ -700,7 +700,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 {/* Theme Changes */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card>
@@ -722,7 +722,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                       )}
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base">Declining Themes</CardTitle>
@@ -744,7 +744,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                   </Card>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="languages" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
@@ -767,7 +767,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="insights" className="space-y-4 mt-4">
                 <Card>
                   <CardHeader>
@@ -778,7 +778,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                     <div className="p-4 border rounded-lg bg-muted/20">
                       <h4 className="font-medium mb-2">Overall Performance</h4>
                       <p className="text-sm text-muted-foreground">
-                        {comparisonResult.ratingChange > 0 ? 
+                        {comparisonResult.ratingChange > 0 ?
                           `Ratings improved by ${comparisonResult.ratingChange.toFixed(2)} stars` :
                           comparisonResult.ratingChange < 0 ?
                           `Ratings declined by ${Math.abs(comparisonResult.ratingChange).toFixed(2)} stars` :
@@ -793,7 +793,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                         }.
                       </p>
                     </div>
-                    
+
                     {/* Top Improvements */}
                     {comparisonResult.improvingThemes.length > 0 && (
                       <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950">
@@ -805,7 +805,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                         </p>
                       </div>
                     )}
-                    
+
                     {/* Areas of Concern */}
                     {comparisonResult.decliningThemes.length > 0 && (
                       <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950">
@@ -817,7 +817,7 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
                         </p>
                       </div>
                     )}
-                    
+
                     {/* New Themes */}
                     {comparisonResult.newThemes.length > 0 && (
                       <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950">
@@ -837,27 +837,27 @@ export function EnhancedPeriodComparison({ businessName }: EnhancedPeriodCompari
         )}
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // Helper component for metric cards
-const MetricCard = ({ 
-  title, 
-  value, 
-  formatter, 
-  positive, 
+const MetricCard = ({
+  title,
+  value,
+  formatter,
+  positive,
   icon: Icon,
-  subtitle 
-}: { 
-  title: string; 
-  value: number; 
+  subtitle,
+}: {
+  title: string;
+  value: number;
   formatter: (val: number) => string;
   positive: boolean;
   icon: any;
   subtitle?: string;
 }) => {
-  const isNeutral = Math.abs(value) < 0.05;
-  
+  const isNeutral = Math.abs(value) < 0.05
+
   return (
     <div className="p-4 border rounded-lg">
       <div className="flex items-center justify-between mb-2">
@@ -866,13 +866,13 @@ const MetricCard = ({
       </div>
       <div className="flex items-center gap-2">
         {!isNeutral && (
-          positive ? 
-            <TrendingUp className="h-5 w-5 text-green-500" /> : 
+          positive ?
+            <TrendingUp className="h-5 w-5 text-green-500" /> :
             <TrendingDown className="h-5 w-5 text-red-500" />
         )}
         <span className={`text-2xl font-semibold ${
           isNeutral ? 'text-foreground' :
-          positive ? 'text-green-600 dark:text-green-400' : 
+          positive ? 'text-green-600 dark:text-green-400' :
                    'text-red-600 dark:text-red-400'
         }`}>
           {formatter(value)}
@@ -882,5 +882,5 @@ const MetricCard = ({
         <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
       )}
     </div>
-  );
-};
+  )
+}

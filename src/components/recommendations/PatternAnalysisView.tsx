@@ -1,7 +1,7 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { type PatternInsight, type Strategy } from "@/types/recommendations";
-import { TrendingUp, TrendingDown, Minus, AlertCircle, Lightbulb } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { type PatternInsight, type Strategy } from '@/types/recommendations'
+import { TrendingUp, TrendingDown, Minus, AlertCircle, Lightbulb } from 'lucide-react'
 
 interface PatternAnalysisViewProps {
   insights: PatternInsight[];
@@ -11,37 +11,37 @@ interface PatternAnalysisViewProps {
 export const PatternAnalysisView = ({ insights, longTermStrategies }: PatternAnalysisViewProps) => {
   const getSentimentIcon = (sentiment: string) => {
     switch (sentiment) {
-      case 'positive': return <TrendingUp className="w-4 h-4 text-green-500" />;
-      case 'negative': return <TrendingDown className="w-4 h-4 text-red-500" />;
-      default: return <Minus className="w-4 h-4 text-gray-500" />;
+      case 'positive': return <TrendingUp className="w-4 h-4 text-green-500" />
+      case 'negative': return <TrendingDown className="w-4 h-4 text-red-500" />
+      default: return <Minus className="w-4 h-4 text-gray-500" />
     }
-  };
+  }
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
-      case 'positive': return 'bg-green-500';
-      case 'negative': return 'bg-red-500';
-      default: return 'bg-gray-500';
+      case 'positive': return 'bg-green-500'
+      case 'negative': return 'bg-red-500'
+      default: return 'bg-gray-500'
     }
-  };
+  }
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'brand': return <Lightbulb className="w-5 h-5" />;
-      case 'customer': return <TrendingUp className="w-5 h-5" />;
-      case 'innovation': return <AlertCircle className="w-5 h-5" />;
-      default: return <TrendingUp className="w-5 h-5" />;
+      case 'brand': return <Lightbulb className="w-5 h-5" />
+      case 'customer': return <TrendingUp className="w-5 h-5" />
+      case 'innovation': return <AlertCircle className="w-5 h-5" />
+      default: return <TrendingUp className="w-5 h-5" />
     }
-  };
+  }
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
-      case 'low': return 'text-green-600';
-      case 'medium': return 'text-yellow-600';
-      case 'high': return 'text-red-600';
-      default: return 'text-gray-600';
+      case 'low': return 'text-green-600'
+      case 'medium': return 'text-yellow-600'
+      case 'high': return 'text-red-600'
+      default: return 'text-gray-600'
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -137,5 +137,5 @@ export const PatternAnalysisView = ({ insights, longTermStrategies }: PatternAna
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

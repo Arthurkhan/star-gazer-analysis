@@ -1,6 +1,6 @@
-import { supabase } from '@/integrations/supabase/client';
-import { BusinessType } from '@/types/businessTypes';
-import { EnhancedAnalysis } from '@/types/dataAnalysis';
+import { supabase } from '@/integrations/supabase/client'
+import type { BusinessType } from '@/types/businessTypes'
+import type { EnhancedAnalysis } from '@/types/dataAnalysis'
 
 export interface EmailSettings {
   enabled: boolean;
@@ -36,21 +36,21 @@ export async function getEmailSettings(businessName: string): Promise<EmailSetti
       .from('email_settings')
       .select('*')
       .eq('business_name', businessName)
-      .single();
+      .single()
 
     if (error) {
       if (error.code === 'PGRST116') {
         // No settings found, return null
-        return null;
+        return null
       }
-      console.error('Error fetching email settings:', error);
-      throw new Error(`Failed to fetch email settings: ${error.message}`);
+      console.error('Error fetching email settings:', error)
+      throw new Error(`Failed to fetch email settings: ${error.message}`)
     }
 
-    return data as EmailSettings;
+    return data as EmailSettings
   } catch (err) {
-    console.error('Error in getEmailSettings:', err);
-    throw err;
+    console.error('Error in getEmailSettings:', err)
+    throw err
   }
 }
 
@@ -61,7 +61,7 @@ export async function saveEmailSettings(businessName: string, settings: EmailSet
       .from('email_settings')
       .select('id')
       .eq('business_name', businessName)
-      .single();
+      .single()
 
     // Either update existing or insert new
     if (existingSettings) {
@@ -69,13 +69,13 @@ export async function saveEmailSettings(businessName: string, settings: EmailSet
         .from('email_settings')
         .update({
           ...settings,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('business_name', businessName);
+        .eq('business_name', businessName)
 
       if (error) {
-        console.error('Error updating email settings:', error);
-        throw new Error(`Failed to update email settings: ${error.message}`);
+        console.error('Error updating email settings:', error)
+        throw new Error(`Failed to update email settings: ${error.message}`)
       }
     } else {
       const { error } = await supabase
@@ -84,49 +84,49 @@ export async function saveEmailSettings(businessName: string, settings: EmailSet
           business_name: businessName,
           ...settings,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+          updated_at: new Date().toISOString(),
+        })
 
       if (error) {
-        console.error('Error inserting email settings:', error);
-        throw new Error(`Failed to insert email settings: ${error.message}`);
+        console.error('Error inserting email settings:', error)
+        throw new Error(`Failed to insert email settings: ${error.message}`)
       }
     }
   } catch (err) {
-    console.error('Error in saveEmailSettings:', err);
-    throw err;
+    console.error('Error in saveEmailSettings:', err)
+    throw err
   }
 }
 
 export async function sendWeeklySummary(options: EmailOptions, analysisData: EnhancedAnalysis) {
   try {
-    const template = generateWeeklySummaryTemplate(options, analysisData);
-    
+    const template = generateWeeklySummaryTemplate(options, analysisData)
+
     const { data: result, error } = await supabase.functions.invoke('send-email-summary', {
       body: {
         recipient: options.recipient,
         subject: template.subject,
         html: template.html,
         includeAttachments: options.includeAttachments || false,
-      }
-    });
+      },
+    })
 
     if (error) {
-      console.error('Email notification error:', error);
-      throw new Error(`Failed to send email: ${error.message}`);
+      console.error('Email notification error:', error)
+      throw new Error(`Failed to send email: ${error.message}`)
     }
 
-    return result;
+    return result
   } catch (err) {
-    console.error('Email service error:', err);
-    throw err;
+    console.error('Email service error:', err)
+    throw err
   }
 }
 
 export async function sendUrgentAlert(options: EmailOptions, issue: any) {
   try {
-    const subject = `⚠️ URGENT: Issue detected for ${options.businessName}`;
-    
+    const subject = `⚠️ URGENT: Issue detected for ${options.businessName}`
+
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #FF5252; color: white; padding: 15px; text-align: center;">
@@ -150,81 +150,81 @@ export async function sendUrgentAlert(options: EmailOptions, issue: any) {
           </div>
         </div>
       </div>
-    `;
-    
+    `
+
     const { data: result, error } = await supabase.functions.invoke('send-email-summary', {
       body: {
         recipient: options.recipient,
         subject,
         html,
         includeAttachments: false,
-      }
-    });
+      },
+    })
 
     if (error) {
-      console.error('Urgent email notification error:', error);
-      throw new Error(`Failed to send urgent alert: ${error.message}`);
+      console.error('Urgent email notification error:', error)
+      throw new Error(`Failed to send urgent alert: ${error.message}`)
     }
 
-    return result;
+    return result
   } catch (err) {
-    console.error('Email service error:', err);
-    throw err;
+    console.error('Email service error:', err)
+    throw err
   }
 }
 
 export async function sendMonthlyPerformance(options: EmailOptions, analysisData: EnhancedAnalysis) {
   try {
     // Generate a more comprehensive monthly performance report
-    const template = generateMonthlyReportTemplate(options, analysisData);
-    
+    const template = generateMonthlyReportTemplate(options, analysisData)
+
     const { data: result, error } = await supabase.functions.invoke('send-email-summary', {
       body: {
         recipient: options.recipient,
         subject: template.subject,
         html: template.html,
         includeAttachments: options.includeAttachments || true, // Default to including attachments for monthly reports
-      }
-    });
+      },
+    })
 
     if (error) {
-      console.error('Monthly report email error:', error);
-      throw new Error(`Failed to send monthly report: ${error.message}`);
+      console.error('Monthly report email error:', error)
+      throw new Error(`Failed to send monthly report: ${error.message}`)
     }
 
-    return result;
+    return result
   } catch (err) {
-    console.error('Email service error:', err);
-    throw err;
+    console.error('Email service error:', err)
+    throw err
   }
 }
 
 function generateWeeklySummaryTemplate(options: EmailOptions, data: EnhancedAnalysis): EmailTemplate {
-  const subject = options.subject || `Weekly Review Summary - ${options.businessName}`;
-  
+  const subject = options.subject || `Weekly Review Summary - ${options.businessName}`
+
   // Extract key metrics for the summary
   const topClusters = data.reviewClusters
     .sort((a, b) => b.count - a.count)
-    .slice(0, 3);
-  
+    .slice(0, 3)
+
   // Get latest trend (most recent period in historical trends)
-  const latestTrend = data.historicalTrends[data.historicalTrends.length - 1] || { 
+  const latestTrend = data.historicalTrends[data.historicalTrends.length - 1] || {
     period: 'Recent',
     avgRating: 0,
-    reviewCount: 0
-  };
-  
+    reviewCount: 0,
+  }
+
   // Calculate trend direction
-  let trendDirection = 'stable';
+  let trendDirection = 'stable'
   if (data.historicalTrends.length >= 2) {
-    const prevTrend = data.historicalTrends[data.historicalTrends.length - 2];
+    const prevTrend = data.historicalTrends[data.historicalTrends.length - 2]
     if (latestTrend.avgRating > prevTrend.avgRating + 0.2) {
-      trendDirection = 'improving';
+      trendDirection = 'improving'
     } else if (latestTrend.avgRating < prevTrend.avgRating - 0.2) {
-      trendDirection = 'declining';
+      trendDirection = 'declining'
     }
   }
-  
+
   // Build the HTML template
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -245,8 +245,8 @@ function generateWeeklySummaryTemplate(options: EmailOptions, data: EnhancedAnal
           <div style="flex: 1; padding: 10px; background-color: #f5f5f5; margin-left: 10px; text-align: center;">
             <h3 style="margin-top: 0;">Trend</h3>
             <p style="font-size: 24px; font-weight: bold; color: ${
-              trendDirection === 'improving' ? 'green' : 
-              trendDirection === 'declining' ? 'red' : 
+              trendDirection === 'improving' ? 'green' :
+              trendDirection === 'declining' ? 'red' :
               'grey'
             }">
               ${trendDirection.charAt(0).toUpperCase() + trendDirection.slice(1)}
@@ -286,35 +286,35 @@ function generateWeeklySummaryTemplate(options: EmailOptions, data: EnhancedAnal
         </div>
       </div>
     </div>
-  `;
-  
-  return { subject, html };
+  `
+
+  return { subject, html }
 }
 
 function generateMonthlyReportTemplate(options: EmailOptions, data: EnhancedAnalysis): EmailTemplate {
-  const subject = options.subject || `Monthly Performance Report - ${options.businessName}`;
-  
+  const subject = options.subject || `Monthly Performance Report - ${options.businessName}`
+
   // Extract insights and trends
-  const insights = data.insights;
-  
+  const {insights} = data
+
   // Get seasonal data
   const seasonalData = data.seasonalAnalysis.map(season => ({
     name: season.season,
     avgRating: season.avgRating,
-    count: season.count
-  }));
-  
+    count: season.count,
+  }))
+
   // Get best and worst seasonal performance
-  const bestSeason = seasonalData.sort((a, b) => b.avgRating - a.avgRating)[0];
-  const worstSeason = seasonalData.sort((a, b) => a.avgRating - b.avgRating)[0];
-  
+  const bestSeason = seasonalData.sort((a, b) => b.avgRating - a.avgRating)[0]
+  const worstSeason = seasonalData.sort((a, b) => a.avgRating - b.avgRating)[0]
+
   // Calculate review cluster sentiment
   const sentimentBreakdown = {
     positive: data.reviewClusters.filter(c => c.sentiment === 'positive').length,
     neutral: data.reviewClusters.filter(c => c.sentiment === 'neutral').length,
-    negative: data.reviewClusters.filter(c => c.sentiment === 'negative').length
-  };
-  
+    negative: data.reviewClusters.filter(c => c.sentiment === 'negative').length,
+  }
+
   // Build the HTML template for a more comprehensive monthly report
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -400,7 +400,7 @@ function generateMonthlyReportTemplate(options: EmailOptions, data: EnhancedAnal
         </div>
       </div>
     </div>
-  `;
-  
-  return { subject, html };
+  `
+
+  return { subject, html }
 }

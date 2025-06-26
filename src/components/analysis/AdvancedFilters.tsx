@@ -1,32 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { 
-  Filter, 
-  Search, 
-  Calendar, 
-  Star, 
-  MessageSquare, 
-  User, 
-  Hash, 
+import React, { useState, useEffect, useMemo } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
+import {
+  Filter,
+  Search,
+  Star,
   ChevronDown,
   ChevronUp,
-  X,
   RefreshCw,
   Save,
   Download,
-  Upload
-} from 'lucide-react';
-import { Review } from '@/types/reviews';
+  Upload,
+} from 'lucide-react'
+import type { Review } from '@/types/reviews'
 
 export interface FilterCriteria {
   // Date filters
@@ -35,14 +30,14 @@ export interface FilterCriteria {
     endDate: string;
     enabled: boolean;
   };
-  
+
   // Rating filters
   ratingRange: {
     min: number;
     max: number;
     enabled: boolean;
   };
-  
+
   // Sentiment filters
   sentiment: {
     positive: boolean;
@@ -51,7 +46,7 @@ export interface FilterCriteria {
     mixed: boolean;
     enabled: boolean;
   };
-  
+
   // Text search
   textSearch: {
     query: string;
@@ -60,14 +55,14 @@ export interface FilterCriteria {
     wholeWords: boolean;
     enabled: boolean;
   };
-  
+
   // Staff filters
   staffFilter: {
     mentionedStaff: string[];
     hasStaffMention: boolean | null; // null = all, true = only with mentions, false = only without
     enabled: boolean;
   };
-  
+
   // Response filters
   responseFilter: {
     hasResponse: boolean | null; // null = all, true = only with response, false = only without
@@ -78,14 +73,14 @@ export interface FilterCriteria {
     };
     enabled: boolean;
   };
-  
+
   // Theme filters
   themeFilter: {
     themes: string[];
     themeMode: 'include' | 'exclude'; // include = must have these themes, exclude = must not have these themes
     enabled: boolean;
   };
-  
+
   // Advanced filters
   advanced: {
     reviewLength: {
@@ -165,141 +160,141 @@ const DEFAULT_FILTERS: FilterCriteria = {
     },
     enabled: false,
   },
-};
+}
 
 export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   reviews,
   onFiltersChange,
   initialFilters = {},
   showResultCount = true,
-  enablePresets = true
+  enablePresets = true,
 }) => {
   const [filters, setFilters] = useState<FilterCriteria>({
     ...DEFAULT_FILTERS,
-    ...initialFilters
-  });
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [savedPresets, setSavedPresets] = useState<Array<{name: string; filters: FilterCriteria}>>([]);
+    ...initialFilters,
+  })
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [savedPresets, setSavedPresets] = useState<Array<{name: string; filters: FilterCriteria}>>([])
 
   // Extract unique values from reviews for filter options
   const filterOptions = useMemo(() => {
-    const staff = new Set<string>();
-    const themes = new Set<string>();
-    const languages = new Set<string>();
+    const staff = new Set<string>()
+    const themes = new Set<string>()
+    const languages = new Set<string>()
 
     reviews.forEach(review => {
       // Extract staff mentions
       if (review.staffMentioned) {
-        const staffNames = review.staffMentioned.split(/[,;|&]/).map(name => name.trim()).filter(name => name.length > 0);
-        staffNames.forEach(name => staff.add(name));
+        const staffNames = review.staffMentioned.split(/[,;|&]/).map(name => name.trim()).filter(name => name.length > 0)
+        staffNames.forEach(name => staff.add(name))
       }
 
       // Extract themes
       if (review.mainThemes) {
-        const reviewThemes = review.mainThemes.split(/[,;|]/).map(theme => theme.trim()).filter(theme => theme.length > 0);
-        reviewThemes.forEach(theme => themes.add(theme));
+        const reviewThemes = review.mainThemes.split(/[,;|]/).map(theme => theme.trim()).filter(theme => theme.length > 0)
+        reviewThemes.forEach(theme => themes.add(theme))
       }
 
       // Detect language (simplified - you might want to use a proper language detection library)
       if (review.text) {
         // This is a very basic language detection - in practice, you'd use a proper library
-        const hasNonLatin = /[^\u0000-\u007F]/.test(review.text);
+        const hasNonLatin = /[^\u0020-\u007F]/.test(review.text)
         if (hasNonLatin) {
-          languages.add('Non-Latin');
+          languages.add('Non-Latin')
         } else {
-          languages.add('English');
+          languages.add('English')
         }
       }
-    });
+    })
 
     return {
       staff: Array.from(staff).sort(),
       themes: Array.from(themes).sort(),
       languages: Array.from(languages).sort(),
-    };
-  }, [reviews]);
+    }
+  }, [reviews])
 
   // Apply filters and get filtered results
   const filteredReviews = useMemo(() => {
-    let filtered = [...reviews];
+    let filtered = [...reviews]
 
     // Date range filter
     if (filters.dateRange.enabled && (filters.dateRange.startDate || filters.dateRange.endDate)) {
       filtered = filtered.filter(review => {
-        if (!review.publishedAtDate) return false;
-        const reviewDate = new Date(review.publishedAtDate);
-        
+        if (!review.publishedAtDate) return false
+        const reviewDate = new Date(review.publishedAtDate)
+
         if (filters.dateRange.startDate) {
-          const startDate = new Date(filters.dateRange.startDate);
-          if (reviewDate < startDate) return false;
+          const startDate = new Date(filters.dateRange.startDate)
+          if (reviewDate < startDate) return false
         }
-        
+
         if (filters.dateRange.endDate) {
-          const endDate = new Date(filters.dateRange.endDate);
-          if (reviewDate > endDate) return false;
+          const endDate = new Date(filters.dateRange.endDate)
+          if (reviewDate > endDate) return false
         }
-        
-        return true;
-      });
+
+        return true
+      })
     }
 
     // Rating range filter
     if (filters.ratingRange.enabled) {
       filtered = filtered.filter(review => {
-        if (!review.stars) return false;
-        return review.stars >= filters.ratingRange.min && review.stars <= filters.ratingRange.max;
-      });
+        if (!review.stars) return false
+        return review.stars >= filters.ratingRange.min && review.stars <= filters.ratingRange.max
+      })
     }
 
     // Sentiment filter
     if (filters.sentiment.enabled) {
       filtered = filtered.filter(review => {
-        const sentiment = review.sentiment?.toLowerCase() || 'neutral';
-        
-        if (sentiment.includes('positive') && filters.sentiment.positive) return true;
-        if (sentiment.includes('negative') && filters.sentiment.negative) return true;
-        if (sentiment.includes('mixed') && filters.sentiment.mixed) return true;
-        if (!sentiment.includes('positive') && !sentiment.includes('negative') && !sentiment.includes('mixed') && filters.sentiment.neutral) return true;
-        
-        return false;
-      });
+        const sentiment = review.sentiment?.toLowerCase() || 'neutral'
+
+        if (sentiment.includes('positive') && filters.sentiment.positive) return true
+        if (sentiment.includes('negative') && filters.sentiment.negative) return true
+        if (sentiment.includes('mixed') && filters.sentiment.mixed) return true
+        if (!sentiment.includes('positive') && !sentiment.includes('negative') && !sentiment.includes('mixed') && filters.sentiment.neutral) return true
+
+        return false
+      })
     }
 
     // Text search filter
     if (filters.textSearch.enabled && filters.textSearch.query) {
-      const query = filters.textSearch.caseSensitive ? filters.textSearch.query : filters.textSearch.query.toLowerCase();
-      const regex = filters.textSearch.wholeWords 
+      const query = filters.textSearch.caseSensitive ? filters.textSearch.query : filters.textSearch.query.toLowerCase()
+      const regex = filters.textSearch.wholeWords
         ? new RegExp(`\\b${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, filters.textSearch.caseSensitive ? 'g' : 'gi')
-        : new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), filters.textSearch.caseSensitive ? 'g' : 'gi');
+        : new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), filters.textSearch.caseSensitive ? 'g' : 'gi')
 
       filtered = filtered.filter(review => {
         return filters.textSearch.fields.some(field => {
-          const fieldValue = review[field];
-          if (!fieldValue) return false;
-          
-          const searchText = filters.textSearch.caseSensitive ? fieldValue : fieldValue.toLowerCase();
-          return regex.test(searchText);
-        });
-      });
+          const fieldValue = review[field]
+          if (!fieldValue) return false
+
+          const searchText = filters.textSearch.caseSensitive ? fieldValue : fieldValue.toLowerCase()
+          return regex.test(searchText)
+        })
+      })
     }
 
     // Staff filter
     if (filters.staffFilter.enabled) {
       if (filters.staffFilter.hasStaffMention !== null) {
         filtered = filtered.filter(review => {
-          const hasStaff = !!(review.staffMentioned && review.staffMentioned.trim());
-          return hasStaff === filters.staffFilter.hasStaffMention;
-        });
+          const hasStaff = !!(review.staffMentioned && review.staffMentioned.trim())
+          return hasStaff === filters.staffFilter.hasStaffMention
+        })
       }
 
       if (filters.staffFilter.mentionedStaff.length > 0) {
         filtered = filtered.filter(review => {
-          if (!review.staffMentioned) return false;
-          const staffMentions = review.staffMentioned.toLowerCase();
-          return filters.staffFilter.mentionedStaff.some(staff => 
-            staffMentions.includes(staff.toLowerCase())
-          );
-        });
+          if (!review.staffMentioned) return false
+          const staffMentions = review.staffMentioned.toLowerCase()
+          return filters.staffFilter.mentionedStaff.some(staff =>
+            staffMentions.includes(staff.toLowerCase()),
+          )
+        })
       }
     }
 
@@ -307,33 +302,33 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
     if (filters.responseFilter.enabled) {
       if (filters.responseFilter.hasResponse !== null) {
         filtered = filtered.filter(review => {
-          const hasResponse = !!(review.responseFromOwnerText && review.responseFromOwnerText.trim());
-          return hasResponse === filters.responseFilter.hasResponse;
-        });
+          const hasResponse = !!(review.responseFromOwnerText && review.responseFromOwnerText.trim())
+          return hasResponse === filters.responseFilter.hasResponse
+        })
       }
 
       if (filters.responseFilter.responseLength.enabled) {
         filtered = filtered.filter(review => {
-          if (!review.responseFromOwnerText) return false;
-          const length = review.responseFromOwnerText.length;
-          return length >= filters.responseFilter.responseLength.min && 
-                 length <= filters.responseFilter.responseLength.max;
-        });
+          if (!review.responseFromOwnerText) return false
+          const {length} = review.responseFromOwnerText
+          return length >= filters.responseFilter.responseLength.min &&
+                 length <= filters.responseFilter.responseLength.max
+        })
       }
     }
 
     // Theme filter
     if (filters.themeFilter.enabled && filters.themeFilter.themes.length > 0) {
       filtered = filtered.filter(review => {
-        if (!review.mainThemes) return filters.themeFilter.themeMode === 'exclude';
-        
-        const reviewThemes = review.mainThemes.toLowerCase();
-        const hasAnyTheme = filters.themeFilter.themes.some(theme => 
-          reviewThemes.includes(theme.toLowerCase())
-        );
-        
-        return filters.themeFilter.themeMode === 'include' ? hasAnyTheme : !hasAnyTheme;
-      });
+        if (!review.mainThemes) return filters.themeFilter.themeMode === 'exclude'
+
+        const reviewThemes = review.mainThemes.toLowerCase()
+        const hasAnyTheme = filters.themeFilter.themes.some(theme =>
+          reviewThemes.includes(theme.toLowerCase()),
+        )
+
+        return filters.themeFilter.themeMode === 'include' ? hasAnyTheme : !hasAnyTheme
+      })
     }
 
     // Advanced filters
@@ -341,92 +336,93 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
       // Review length filter
       if (filters.advanced.reviewLength.enabled) {
         filtered = filtered.filter(review => {
-          if (!review.text) return false;
-          const length = review.text.length;
-          return length >= filters.advanced.reviewLength.min && 
-                 length <= filters.advanced.reviewLength.max;
-        });
+          if (!review.text) return false
+          const {length} = review.text
+          return length >= filters.advanced.reviewLength.min &&
+                 length <= filters.advanced.reviewLength.max
+        })
       }
 
       // Language filter
       if (filters.advanced.language.enabled && filters.advanced.language.languages.length > 0) {
         filtered = filtered.filter(review => {
-          if (!review.text) return false;
-          const hasNonLatin = /[^\u0000-\u007F]/.test(review.text);
-          const detectedLanguage = hasNonLatin ? 'Non-Latin' : 'English';
-          return filters.advanced.language.languages.includes(detectedLanguage);
-        });
+          if (!review.text) return false
+          const hasNonLatin = /[^\u0020-\u007F]/.test(review.text)
+          const detectedLanguage = hasNonLatin ? 'Non-Latin' : 'English'
+          return filters.advanced.language.languages.includes(detectedLanguage)
+        })
       }
     }
 
-    return filtered;
-  }, [reviews, filters]);
+    return filtered
+  }, [reviews, filters])
 
   // Update parent component when filters change
   useEffect(() => {
-    onFiltersChange(filteredReviews, filters);
-  }, [filteredReviews, filters, onFiltersChange]);
+    onFiltersChange(filteredReviews, filters)
+  }, [filteredReviews, filters, onFiltersChange])
 
-  const updateFilter = (path: string, value: any) => {
+  const updateFilter = (path: string, value: string | number | boolean | string[]) => {
     setFilters(prev => {
-      const newFilters = { ...prev };
-      const keys = path.split('.');
-      let current: any = newFilters;
-      
+      const newFilters = { ...prev }
+      const keys = path.split('.')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let current: any = newFilters
+
       for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]];
+        current = current[keys[i]]
       }
-      
-      current[keys[keys.length - 1]] = value;
-      return newFilters;
-    });
-  };
+
+      current[keys[keys.length - 1]] = value
+      return newFilters
+    })
+  }
 
   const resetFilters = () => {
-    setFilters(DEFAULT_FILTERS);
-  };
+    setFilters(DEFAULT_FILTERS)
+  }
 
   const savePreset = () => {
-    const name = prompt('Enter preset name:');
+    const name = window.prompt('Enter preset name:')
     if (name) {
-      setSavedPresets(prev => [...prev, { name, filters }]);
+      setSavedPresets(prev => [...prev, { name, filters }])
     }
-  };
+  }
 
   const loadPreset = (preset: {name: string; filters: FilterCriteria}) => {
-    setFilters(preset.filters);
-  };
+    setFilters(preset.filters)
+  }
 
   const exportFilters = () => {
-    const dataStr = JSON.stringify(filters, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = 'review-filters.json';
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  };
+    const dataStr = JSON.stringify(filters, null, 2)
+    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`
+    const exportFileDefaultName = 'review-filters.json'
+
+    const linkElement = document.createElement('a')
+    linkElement.setAttribute('href', dataUri)
+    linkElement.setAttribute('download', exportFileDefaultName)
+    linkElement.click()
+  }
 
   const importFilters = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]
     if (file) {
-      const reader = new FileReader();
+      const reader = new FileReader()
       reader.onload = (e) => {
         try {
-          const imported = JSON.parse(e.target?.result as string);
-          setFilters(imported);
+          const imported = JSON.parse(e.target?.result as string)
+          setFilters(imported)
         } catch (error) {
-          alert('Invalid filter file format');
+          window.alert('Invalid filter file format')
         }
-      };
-      reader.readAsText(file);
+      }
+      reader.readAsText(file)
     }
-  };
+  }
 
-  const activeFilterCount = Object.values(filters).filter(filter => 
-    typeof filter === 'object' && filter !== null && 'enabled' in filter && filter.enabled
-  ).length;
+  const activeFilterCount = Object.values(filters).filter(filter =>
+    typeof filter === 'object' && filter !== null && 'enabled' in filter && filter.enabled,
+  ).length
 
   return (
     <Card className="w-full">
@@ -455,12 +451,12 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <CollapsibleContent>
           <CardContent>
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                 <TabsTrigger value="basic">Basic</TabsTrigger>
                 <TabsTrigger value="content">Content</TabsTrigger>
                 <TabsTrigger value="interaction">Interaction</TabsTrigger>
@@ -471,14 +467,14 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 {/* Date Range Filter */}
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
-                    <Switch 
+                    <Switch
                       checked={filters.dateRange.enabled}
                       onCheckedChange={(enabled) => updateFilter('dateRange.enabled', enabled)}
                     />
                     <Label className="font-medium">Date Range</Label>
                   </div>
                   {filters.dateRange.enabled && (
-                    <div className="grid grid-cols-2 gap-4 ml-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 ml-6">
                       <div>
                         <Label>Start Date</Label>
                         <Input
@@ -502,7 +498,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 {/* Rating Range Filter */}
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
-                    <Switch 
+                    <Switch
                       checked={filters.ratingRange.enabled}
                       onCheckedChange={(enabled) => updateFilter('ratingRange.enabled', enabled)}
                     />
@@ -516,8 +512,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                         <Slider
                           value={[filters.ratingRange.min, filters.ratingRange.max]}
                           onValueChange={([min, max]) => {
-                            updateFilter('ratingRange.min', min);
-                            updateFilter('ratingRange.max', max);
+                            updateFilter('ratingRange.min', min)
+                            updateFilter('ratingRange.max', max)
                           }}
                           min={1}
                           max={5}
@@ -534,14 +530,14 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 {/* Sentiment Filter */}
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
-                    <Switch 
+                    <Switch
                       checked={filters.sentiment.enabled}
                       onCheckedChange={(enabled) => updateFilter('sentiment.enabled', enabled)}
                     />
                     <Label className="font-medium">Sentiment</Label>
                   </div>
                   {filters.sentiment.enabled && (
-                    <div className="ml-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="ml-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           checked={filters.sentiment.positive}
@@ -579,7 +575,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 {/* Text Search Filter */}
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
-                    <Switch 
+                    <Switch
                       checked={filters.textSearch.enabled}
                       onCheckedChange={(enabled) => updateFilter('textSearch.enabled', enabled)}
                     />
@@ -614,7 +610,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Search in:</Label>
-                        <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                           {[
                             { key: 'text', label: 'Review Text' },
                             { key: 'responseFromOwnerText', label: 'Owner Response' },
@@ -623,12 +619,12 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                           ].map(field => (
                             <div key={field.key} className="flex items-center space-x-2">
                               <Checkbox
-                                checked={filters.textSearch.fields.includes(field.key as any)}
+                                checked={filters.textSearch.fields.includes(field.key as 'text' | 'responseFromOwnerText' | 'staffMentioned' | 'mainThemes')}
                                 onCheckedChange={(checked) => {
-                                  const newFields = checked 
-                                    ? [...filters.textSearch.fields, field.key as any]
-                                    : filters.textSearch.fields.filter(f => f !== field.key);
-                                  updateFilter('textSearch.fields', newFields);
+                                  const newFields = checked
+                                    ? [...filters.textSearch.fields, field.key as 'text' | 'responseFromOwnerText' | 'staffMentioned' | 'mainThemes']
+                                    : filters.textSearch.fields.filter(f => f !== field.key)
+                                  updateFilter('textSearch.fields', newFields)
                                 }}
                               />
                               <Label className="text-sm">{field.label}</Label>
@@ -643,7 +639,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 {/* Theme Filter */}
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
-                    <Switch 
+                    <Switch
                       checked={filters.themeFilter.enabled}
                       onCheckedChange={(enabled) => updateFilter('themeFilter.enabled', enabled)}
                     />
@@ -653,11 +649,11 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                     <div className="ml-6 space-y-4">
                       <div className="flex items-center space-x-4">
                         <Label>Mode:</Label>
-                        <Select 
-                          value={filters.themeFilter.themeMode} 
+                        <Select
+                          value={filters.themeFilter.themeMode}
                           onValueChange={(value: 'include' | 'exclude') => updateFilter('themeFilter.themeMode', value)}
                         >
-                          <SelectTrigger className="w-32">
+                          <SelectTrigger className="w-full sm:w-32">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -674,10 +670,10 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                               <Checkbox
                                 checked={filters.themeFilter.themes.includes(theme)}
                                 onCheckedChange={(checked) => {
-                                  const newThemes = checked 
+                                  const newThemes = checked
                                     ? [...filters.themeFilter.themes, theme]
-                                    : filters.themeFilter.themes.filter(t => t !== theme);
-                                  updateFilter('themeFilter.themes', newThemes);
+                                    : filters.themeFilter.themes.filter(t => t !== theme)
+                                  updateFilter('themeFilter.themes', newThemes)
                                 }}
                               />
                               <Label className="text-sm">{theme}</Label>
@@ -694,7 +690,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 {/* Staff Filter */}
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
-                    <Switch 
+                    <Switch
                       checked={filters.staffFilter.enabled}
                       onCheckedChange={(enabled) => updateFilter('staffFilter.enabled', enabled)}
                     />
@@ -704,14 +700,14 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                     <div className="ml-6 space-y-4">
                       <div>
                         <Label className="text-sm font-medium">Staff mention requirement:</Label>
-                        <Select 
-                          value={filters.staffFilter.hasStaffMention === null ? 'all' : filters.staffFilter.hasStaffMention.toString()} 
+                        <Select
+                          value={filters.staffFilter.hasStaffMention === null ? 'all' : filters.staffFilter.hasStaffMention.toString()}
                           onValueChange={(value) => {
-                            const val = value === 'all' ? null : value === 'true';
-                            updateFilter('staffFilter.hasStaffMention', val);
+                            const val = value === 'all' ? null : value === 'true'
+                            updateFilter('staffFilter.hasStaffMention', val)
                           }}
                         >
-                          <SelectTrigger className="w-48 mt-1">
+                          <SelectTrigger className="w-full sm:w-48 mt-1">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -730,10 +726,10 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                                 <Checkbox
                                   checked={filters.staffFilter.mentionedStaff.includes(staff)}
                                   onCheckedChange={(checked) => {
-                                    const newStaff = checked 
+                                    const newStaff = checked
                                       ? [...filters.staffFilter.mentionedStaff, staff]
-                                      : filters.staffFilter.mentionedStaff.filter(s => s !== staff);
-                                    updateFilter('staffFilter.mentionedStaff', newStaff);
+                                      : filters.staffFilter.mentionedStaff.filter(s => s !== staff)
+                                    updateFilter('staffFilter.mentionedStaff', newStaff)
                                   }}
                                 />
                                 <Label className="text-sm">{staff}</Label>
@@ -749,7 +745,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 {/* Response Filter */}
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
-                    <Switch 
+                    <Switch
                       checked={filters.responseFilter.enabled}
                       onCheckedChange={(enabled) => updateFilter('responseFilter.enabled', enabled)}
                     />
@@ -759,14 +755,14 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                     <div className="ml-6 space-y-4">
                       <div>
                         <Label className="text-sm font-medium">Response requirement:</Label>
-                        <Select 
-                          value={filters.responseFilter.hasResponse === null ? 'all' : filters.responseFilter.hasResponse.toString()} 
+                        <Select
+                          value={filters.responseFilter.hasResponse === null ? 'all' : filters.responseFilter.hasResponse.toString()}
                           onValueChange={(value) => {
-                            const val = value === 'all' ? null : value === 'true';
-                            updateFilter('responseFilter.hasResponse', val);
+                            const val = value === 'all' ? null : value === 'true'
+                            updateFilter('responseFilter.hasResponse', val)
                           }}
                         >
-                          <SelectTrigger className="w-48 mt-1">
+                          <SelectTrigger className="w-full sm:w-48 mt-1">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -778,7 +774,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                       </div>
                       <div className="space-y-3">
                         <div className="flex items-center space-x-2">
-                          <Switch 
+                          <Switch
                             checked={filters.responseFilter.responseLength.enabled}
                             onCheckedChange={(enabled) => updateFilter('responseFilter.responseLength.enabled', enabled)}
                           />
@@ -791,8 +787,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                               <Slider
                                 value={[filters.responseFilter.responseLength.min, filters.responseFilter.responseLength.max]}
                                 onValueChange={([min, max]) => {
-                                  updateFilter('responseFilter.responseLength.min', min);
-                                  updateFilter('responseFilter.responseLength.max', max);
+                                  updateFilter('responseFilter.responseLength.min', min)
+                                  updateFilter('responseFilter.responseLength.max', max)
                                 }}
                                 min={0}
                                 max={1000}
@@ -813,7 +809,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                 {/* Advanced Filters */}
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
-                    <Switch 
+                    <Switch
                       checked={filters.advanced.enabled}
                       onCheckedChange={(enabled) => updateFilter('advanced.enabled', enabled)}
                     />
@@ -824,7 +820,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                       {/* Review Length Filter */}
                       <div className="space-y-3">
                         <div className="flex items-center space-x-2">
-                          <Switch 
+                          <Switch
                             checked={filters.advanced.reviewLength.enabled}
                             onCheckedChange={(enabled) => updateFilter('advanced.reviewLength.enabled', enabled)}
                           />
@@ -837,8 +833,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                               <Slider
                                 value={[filters.advanced.reviewLength.min, filters.advanced.reviewLength.max]}
                                 onValueChange={([min, max]) => {
-                                  updateFilter('advanced.reviewLength.min', min);
-                                  updateFilter('advanced.reviewLength.max', max);
+                                  updateFilter('advanced.reviewLength.min', min)
+                                  updateFilter('advanced.reviewLength.max', max)
                                 }}
                                 min={0}
                                 max={1000}
@@ -854,7 +850,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                       {/* Language Filter */}
                       <div className="space-y-3">
                         <div className="flex items-center space-x-2">
-                          <Switch 
+                          <Switch
                             checked={filters.advanced.language.enabled}
                             onCheckedChange={(enabled) => updateFilter('advanced.language.enabled', enabled)}
                           />
@@ -868,10 +864,10 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                                   <Checkbox
                                     checked={filters.advanced.language.languages.includes(language)}
                                     onCheckedChange={(checked) => {
-                                      const newLanguages = checked 
+                                      const newLanguages = checked
                                         ? [...filters.advanced.language.languages, language]
-                                        : filters.advanced.language.languages.filter(l => l !== language);
-                                      updateFilter('advanced.language.languages', newLanguages);
+                                        : filters.advanced.language.languages.filter(l => l !== language)
+                                      updateFilter('advanced.language.languages', newLanguages)
                                     }}
                                   />
                                   <Label className="text-sm">{language}</Label>
@@ -902,8 +898,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                     </Button>
                     {savedPresets.length > 0 && (
                       <Select onValueChange={(value) => {
-                        const preset = savedPresets.find(p => p.name === value);
-                        if (preset) loadPreset(preset);
+                        const preset = savedPresets.find(p => p.name === value)
+                        if (preset) loadPreset(preset)
                       }}>
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="Load Preset" />
@@ -942,7 +938,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         </CollapsibleContent>
       </Collapsible>
     </Card>
-  );
-};
+  )
+}
 
-export default AdvancedFilters;
+export default AdvancedFilters

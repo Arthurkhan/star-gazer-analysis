@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'
 
 export interface EmailPreferences {
   id?: string;
@@ -29,7 +29,7 @@ export interface EmailTemplate {
 }
 
 export class EmailPreferencesService {
-  private static readonly TABLE_NAME = 'email_preferences';
+  private static readonly TABLE_NAME = 'email_preferences'
 
   /**
    * Get email preferences for a specific business
@@ -40,20 +40,20 @@ export class EmailPreferencesService {
         .from(this.TABLE_NAME)
         .select('*')
         .eq('businessId', businessId)
-        .single();
+        .single()
 
       if (error) {
         if (error.code === 'PGRST116') {
           // No preferences found, return default
-          return this.getDefaultPreferences(businessId);
+          return this.getDefaultPreferences(businessId)
         }
-        throw error;
+        throw error
       }
 
-      return data;
+      return data
     } catch (error) {
-      console.error('Error fetching email preferences:', error);
-      return this.getDefaultPreferences(businessId);
+      console.error('Error fetching email preferences:', error)
+      return this.getDefaultPreferences(businessId)
     }
   }
 
@@ -69,14 +69,14 @@ export class EmailPreferencesService {
           updatedAt: new Date().toISOString(),
         })
         .select()
-        .single();
+        .single()
 
-      if (error) throw error;
+      if (error) throw error
 
-      return data;
+      return data
     } catch (error) {
-      console.error('Error saving email preferences:', error);
-      throw error;
+      console.error('Error saving email preferences:', error)
+      throw error
     }
   }
 
@@ -88,12 +88,12 @@ export class EmailPreferencesService {
       const { error } = await supabase
         .from(this.TABLE_NAME)
         .delete()
-        .eq('businessId', businessId);
+        .eq('businessId', businessId)
 
-      if (error) throw error;
+      if (error) throw error
     } catch (error) {
-      console.error('Error deleting email preferences:', error);
-      throw error;
+      console.error('Error deleting email preferences:', error)
+      throw error
     }
   }
 
@@ -105,14 +105,14 @@ export class EmailPreferencesService {
       const { data, error } = await supabase
         .from(this.TABLE_NAME)
         .select('*')
-        .eq('enabled', true);
+        .eq('enabled', true)
 
-      if (error) throw error;
+      if (error) throw error
 
-      return data || [];
+      return data || []
     } catch (error) {
-      console.error('Error fetching enabled preferences:', error);
-      return [];
+      console.error('Error fetching enabled preferences:', error)
+      return []
     }
   }
 
@@ -122,17 +122,17 @@ export class EmailPreferencesService {
   static async updateNotificationType(
     businessId: string,
     notificationType: keyof EmailPreferences['notificationTypes'],
-    enabled: boolean
+    enabled: boolean,
   ): Promise<void> {
     try {
-      const preferences = await this.getPreferences(businessId);
-      if (!preferences) throw new Error('Preferences not found');
+      const preferences = await this.getPreferences(businessId)
+      if (!preferences) throw new Error('Preferences not found')
 
-      preferences.notificationTypes[notificationType] = enabled;
-      await this.savePreferences(preferences);
+      preferences.notificationTypes[notificationType] = enabled
+      await this.savePreferences(preferences)
     } catch (error) {
-      console.error('Error updating notification type:', error);
-      throw error;
+      console.error('Error updating notification type:', error)
+      throw error
     }
   }
 
@@ -141,20 +141,20 @@ export class EmailPreferencesService {
    */
   static async updateAlertThresholds(
     businessId: string,
-    thresholds: Partial<EmailPreferences['alertThresholds']>
+    thresholds: Partial<EmailPreferences['alertThresholds']>,
   ): Promise<void> {
     try {
-      const preferences = await this.getPreferences(businessId);
-      if (!preferences) throw new Error('Preferences not found');
+      const preferences = await this.getPreferences(businessId)
+      if (!preferences) throw new Error('Preferences not found')
 
       preferences.alertThresholds = {
         ...preferences.alertThresholds,
         ...thresholds,
-      };
-      await this.savePreferences(preferences);
+      }
+      await this.savePreferences(preferences)
     } catch (error) {
-      console.error('Error updating alert thresholds:', error);
-      throw error;
+      console.error('Error updating alert thresholds:', error)
+      throw error
     }
   }
 
@@ -178,7 +178,7 @@ export class EmailPreferencesService {
         sentimentDropThreshold: 20,
       },
       enabled: false,
-    };
+    }
   }
 
   /**
@@ -312,46 +312,46 @@ export class EmailPreferencesService {
         `,
         variables: ['businessName', 'trendType', 'trendTitle', 'trendDescription', 'trendDuration', 'trendMagnitude', 'trendConfidence', 'strategicImplications'],
       },
-    ];
+    ]
   }
 
   /**
    * Validate email preferences
    */
   static validatePreferences(preferences: EmailPreferences): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
+    const errors: string[] = []
 
     if (!preferences.businessId) {
-      errors.push('Business ID is required');
+      errors.push('Business ID is required')
     }
 
     if (!preferences.emailAddress) {
-      errors.push('Email address is required');
+      errors.push('Email address is required')
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(preferences.emailAddress)) {
-      errors.push('Invalid email address format');
+      errors.push('Invalid email address format')
     }
 
     if (!['daily', 'weekly', 'monthly'].includes(preferences.frequency)) {
-      errors.push('Invalid frequency');
+      errors.push('Invalid frequency')
     }
 
     if (preferences.alertThresholds.lowRatingThreshold < 1 || preferences.alertThresholds.lowRatingThreshold > 5) {
-      errors.push('Low rating threshold must be between 1 and 5');
+      errors.push('Low rating threshold must be between 1 and 5')
     }
 
     if (preferences.alertThresholds.highVolumeThreshold < 1) {
-      errors.push('High volume threshold must be at least 1');
+      errors.push('High volume threshold must be at least 1')
     }
 
     if (preferences.alertThresholds.sentimentDropThreshold < 1 || preferences.alertThresholds.sentimentDropThreshold > 100) {
-      errors.push('Sentiment drop threshold must be between 1 and 100');
+      errors.push('Sentiment drop threshold must be between 1 and 100')
     }
 
     return {
       isValid: errors.length === 0,
       errors,
-    };
+    }
   }
 }
 
-export default EmailPreferencesService;
+export default EmailPreferencesService

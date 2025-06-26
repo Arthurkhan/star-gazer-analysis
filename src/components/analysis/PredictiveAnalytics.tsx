@@ -1,36 +1,36 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  LineChart, 
-  Line, 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
-} from 'recharts';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle, 
-  Target, 
-  Calendar, 
+import React, { useState, useMemo } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts'
+import {
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  Target,
+  Calendar,
   Activity,
   Brain,
-  Zap
-} from 'lucide-react';
-import { Review } from '@/types/reviews';
-import { CustomBarLineTooltip } from '@/components/review-analysis/CustomTooltips';
-import { format, addMonths, subMonths, parseISO, differenceInDays } from 'date-fns';
+  Zap,
+} from 'lucide-react'
+import type { Review } from '@/types/reviews'
+import { CustomBarLineTooltip } from '@/components/review-analysis/CustomTooltips'
+import { format, addMonths, subMonths, parseISO, differenceInDays } from 'date-fns'
 
 interface PredictiveAnalyticsProps {
   reviews: Review[];
@@ -66,22 +66,22 @@ interface SeasonalForecast {
 }
 
 export function PredictiveAnalytics({ reviews, businessName, businessType }: PredictiveAnalyticsProps) {
-  const [selectedPredictionType, setSelectedPredictionType] = useState<string>('trends');
+  const [selectedPredictionType, setSelectedPredictionType] = useState<string>('trends')
 
   // Group reviews by month for trend analysis
   const monthlyData = useMemo(() => {
     const monthlyGroups = reviews.reduce((acc, review) => {
-      const date = parseISO(review.publishedAtDate);
-      const monthKey = format(date, 'yyyy-MM');
-      
+      const date = parseISO(review.publishedAtDate)
+      const monthKey = format(date, 'yyyy-MM')
+
       if (!acc[monthKey]) {
-        acc[monthKey] = { reviews: [], total: 0, ratingSum: 0 };
+        acc[monthKey] = { reviews: [], total: 0, ratingSum: 0 }
       }
-      acc[monthKey].reviews.push(review);
-      acc[monthKey].total += 1;
-      acc[monthKey].ratingSum += review.stars;
-      return acc;
-    }, {} as Record<string, { reviews: Review[], total: number, ratingSum: number }>);
+      acc[monthKey].reviews.push(review)
+      acc[monthKey].total += 1
+      acc[monthKey].ratingSum += review.stars
+      return acc
+    }, {} as Record<string, { reviews: Review[], total: number, ratingSum: number }>)
 
     return Object.entries(monthlyGroups)
       .map(([month, data]) => ({
@@ -89,35 +89,35 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
         avgRating: data.ratingSum / data.total,
         volume: data.total,
         reviews: data.reviews,
-        date: parseISO(month + '-01')
+        date: parseISO(`${month}-01`),
       }))
-      .sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [reviews]);
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+  }, [reviews])
 
   // Generate trend predictions using simple linear regression
   const trendPredictions = useMemo((): TrendPrediction[] => {
-    if (monthlyData.length < 3) return [];
+    if (monthlyData.length < 3) return []
 
     // Calculate linear regression for ratings and volume
-    const n = monthlyData.length;
-    const sumX = monthlyData.reduce((sum, _, i) => sum + i, 0);
-    const sumY = monthlyData.reduce((sum, data) => sum + data.avgRating, 0);
-    const sumXY = monthlyData.reduce((sum, data, i) => sum + (i * data.avgRating), 0);
-    const sumX2 = monthlyData.reduce((sum, _, i) => sum + (i * i), 0);
+    const n = monthlyData.length
+    const sumX = monthlyData.reduce((sum, _, i) => sum + i, 0)
+    const sumY = monthlyData.reduce((sum, data) => sum + data.avgRating, 0)
+    const sumXY = monthlyData.reduce((sum, data, i) => sum + (i * data.avgRating), 0)
+    const sumX2 = monthlyData.reduce((sum, _, i) => sum + (i * i), 0)
 
     // Rating trend
-    const ratingSlope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-    const ratingIntercept = (sumY - ratingSlope * sumX) / n;
+    const ratingSlope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+    const ratingIntercept = (sumY - ratingSlope * sumX) / n
 
     // Volume trend
-    const sumVY = monthlyData.reduce((sum, data) => sum + data.volume, 0);
-    const sumVXY = monthlyData.reduce((sum, data, i) => sum + (i * data.volume), 0);
-    const volumeSlope = (n * sumVXY - sumX * sumVY) / (n * sumX2 - sumX * sumX);
-    const volumeIntercept = (sumVY - volumeSlope * sumX) / n;
+    const sumVY = monthlyData.reduce((sum, data) => sum + data.volume, 0)
+    const sumVXY = monthlyData.reduce((sum, data, i) => sum + (i * data.volume), 0)
+    const volumeSlope = (n * sumVXY - sumX * sumVY) / (n * sumX2 - sumX * sumX)
+    const volumeIntercept = (sumVY - volumeSlope * sumX) / n
 
     // Generate predictions for next 6 months
-    const predictions: TrendPrediction[] = [];
-    
+    const predictions: TrendPrediction[] = []
+
     // Add historical data
     monthlyData.forEach((data, i) => {
       predictions.push({
@@ -127,39 +127,39 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
         actualVolume: data.volume,
         predictedVolume: Math.max(0, volumeIntercept + volumeSlope * i),
         confidence: 95 - (i * 2), // Confidence decreases over time
-        isPredicted: false
-      });
-    });
+        isPredicted: false,
+      })
+    })
 
     // Add future predictions
     for (let i = 0; i < 6; i++) {
-      const futureIndex = n + i;
-      const futureDate = addMonths(monthlyData[n - 1].date, i + 1);
-      const predictedRating = ratingIntercept + ratingSlope * futureIndex;
-      const predictedVolume = Math.max(0, volumeIntercept + volumeSlope * futureIndex);
-      
+      const futureIndex = n + i
+      const futureDate = addMonths(monthlyData[n - 1].date, i + 1)
+      const predictedRating = ratingIntercept + ratingSlope * futureIndex
+      const predictedVolume = Math.max(0, volumeIntercept + volumeSlope * futureIndex)
+
       predictions.push({
         period: format(futureDate, 'MMM yyyy'),
         predictedRating: Math.max(1, Math.min(5, predictedRating)),
         predictedVolume: Math.round(predictedVolume),
         confidence: Math.max(50, 90 - (i * 8)), // Decreasing confidence
-        isPredicted: true
-      });
+        isPredicted: true,
+      })
     }
 
-    return predictions;
-  }, [monthlyData]);
+    return predictions
+  }, [monthlyData])
 
   // Identify risk indicators
   const riskIndicators = useMemo((): RiskIndicator[] => {
-    const risks: RiskIndicator[] = [];
-    
-    if (monthlyData.length < 2) return risks;
+    const risks: RiskIndicator[] = []
+
+    if (monthlyData.length < 2) return risks
 
     // Recent rating trend analysis
-    const recentMonths = monthlyData.slice(-3);
-    const ratingTrend = recentMonths.length > 1 ? 
-      recentMonths[recentMonths.length - 1].avgRating - recentMonths[0].avgRating : 0;
+    const recentMonths = monthlyData.slice(-3)
+    const ratingTrend = recentMonths.length > 1 ?
+      recentMonths[recentMonths.length - 1].avgRating - recentMonths[0].avgRating : 0
 
     if (ratingTrend < -0.3) {
       risks.push({
@@ -168,13 +168,13 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
         probability: Math.min(90, Math.abs(ratingTrend) * 100),
         description: `Rating has declined by ${Math.abs(ratingTrend).toFixed(1)} stars over recent months`,
         recommendation: 'Investigate recent service issues and implement immediate improvements',
-        timeframe: '1-2 months'
-      });
+        timeframe: '1-2 months',
+      })
     }
 
     // Volume drop analysis
     const volumeTrend = recentMonths.length > 1 ?
-      ((recentMonths[recentMonths.length - 1].volume - recentMonths[0].volume) / recentMonths[0].volume) * 100 : 0;
+      ((recentMonths[recentMonths.length - 1].volume - recentMonths[0].volume) / recentMonths[0].volume) * 100 : 0
 
     if (volumeTrend < -20) {
       risks.push({
@@ -183,18 +183,18 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
         probability: Math.min(85, Math.abs(volumeTrend)),
         description: `Review volume has decreased by ${Math.abs(volumeTrend).toFixed(0)}%`,
         recommendation: 'Increase customer engagement and implement review solicitation strategies',
-        timeframe: '2-3 months'
-      });
+        timeframe: '2-3 months',
+      })
     }
 
     // Sentiment shift analysis
     const sentimentScores = recentMonths.map(month => {
-      const positiveReviews = month.reviews.filter(r => r.stars >= 4).length;
-      return (positiveReviews / month.reviews.length) * 100;
-    });
+      const positiveReviews = month.reviews.filter(r => r.stars >= 4).length
+      return (positiveReviews / month.reviews.length) * 100
+    })
 
     if (sentimentScores.length > 1) {
-      const sentimentChange = sentimentScores[sentimentScores.length - 1] - sentimentScores[0];
+      const sentimentChange = sentimentScores[sentimentScores.length - 1] - sentimentScores[0]
       if (sentimentChange < -15) {
         risks.push({
           type: 'sentiment_shift',
@@ -202,14 +202,14 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
           probability: Math.min(80, Math.abs(sentimentChange) * 2),
           description: `Customer sentiment has declined by ${Math.abs(sentimentChange).toFixed(0)}%`,
           recommendation: 'Address negative feedback patterns and improve customer experience',
-          timeframe: '1-2 months'
-        });
+          timeframe: '1-2 months',
+        })
       }
     }
 
     // Seasonal risk analysis
-    const currentMonth = new Date().getMonth();
-    const historicalSeasonality = calculateSeasonalRisk(monthlyData, currentMonth);
+    const currentMonth = new Date().getMonth()
+    const historicalSeasonality = calculateSeasonalRisk(monthlyData, currentMonth)
     if (historicalSeasonality.risk > 0.6) {
       risks.push({
         type: 'seasonal_risk',
@@ -217,47 +217,47 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
         probability: historicalSeasonality.risk * 100,
         description: 'Historical data suggests lower performance during this season',
         recommendation: 'Prepare seasonal strategies and promotional campaigns',
-        timeframe: '1-3 months'
-      });
+        timeframe: '1-3 months',
+      })
     }
 
-    return risks.sort((a, b) => b.probability - a.probability);
-  }, [monthlyData]);
+    return risks.sort((a, b) => b.probability - a.probability)
+  }, [monthlyData])
 
   // Generate seasonal forecasts
   const seasonalForecasts = useMemo((): SeasonalForecast[] => {
-    if (monthlyData.length < 12) return [];
+    if (monthlyData.length < 12) return []
 
-    const forecasts: SeasonalForecast[] = [];
-    
+    const forecasts: SeasonalForecast[] = []
+
     for (let i = 0; i < 12; i++) {
-      const month = addMonths(new Date(), i);
-      const monthName = format(month, 'MMMM yyyy');
-      const monthIndex = month.getMonth();
-      
+      const month = addMonths(new Date(), i)
+      const monthName = format(month, 'MMMM yyyy')
+      const monthIndex = month.getMonth()
+
       // Calculate historical averages for this month
-      const historicalData = monthlyData.filter(data => data.date.getMonth() === monthIndex);
-      
+      const historicalData = monthlyData.filter(data => data.date.getMonth() === monthIndex)
+
       if (historicalData.length > 0) {
-        const avgVolume = historicalData.reduce((sum, data) => sum + data.volume, 0) / historicalData.length;
-        const avgRating = historicalData.reduce((sum, data) => sum + data.avgRating, 0) / historicalData.length;
-        
+        const avgVolume = historicalData.reduce((sum, data) => sum + data.volume, 0) / historicalData.length
+        const avgRating = historicalData.reduce((sum, data) => sum + data.avgRating, 0) / historicalData.length
+
         // Calculate seasonality factor
-        const overallAvgVolume = monthlyData.reduce((sum, data) => sum + data.volume, 0) / monthlyData.length;
-        const seasonalityFactor = avgVolume / overallAvgVolume;
-        
+        const overallAvgVolume = monthlyData.reduce((sum, data) => sum + data.volume, 0) / monthlyData.length
+        const seasonalityFactor = avgVolume / overallAvgVolume
+
         // Generate recommendations based on historical patterns
-        const recommendations: string[] = [];
+        const recommendations: string[] = []
         if (seasonalityFactor > 1.2) {
-          recommendations.push('Peak season - ensure adequate staffing');
-          recommendations.push('Leverage high traffic for upselling opportunities');
+          recommendations.push('Peak season - ensure adequate staffing')
+          recommendations.push('Leverage high traffic for upselling opportunities')
         } else if (seasonalityFactor < 0.8) {
-          recommendations.push('Quiet season - focus on customer retention');
-          recommendations.push('Consider promotional campaigns to drive traffic');
+          recommendations.push('Quiet season - focus on customer retention')
+          recommendations.push('Consider promotional campaigns to drive traffic')
         }
-        
+
         if (avgRating < 4.0) {
-          recommendations.push('Historical data shows quality issues - implement preventive measures');
+          recommendations.push('Historical data shows quality issues - implement preventive measures')
         }
 
         forecasts.push({
@@ -265,13 +265,13 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
           expectedVolume: Math.round(avgVolume),
           expectedRating: Number(avgRating.toFixed(1)),
           seasonalityFactor: Number(seasonalityFactor.toFixed(2)),
-          recommendations
-        });
+          recommendations,
+        })
       }
     }
 
-    return forecasts;
-  }, [monthlyData]);
+    return forecasts
+  }, [monthlyData])
 
   return (
     <Card>
@@ -308,18 +308,18 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
                       <YAxis domain={[0, 5]} />
                       <Tooltip content={<CustomBarLineTooltip />} />
                       <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="actualRating" 
-                        stroke="#8884d8" 
+                      <Line
+                        type="monotone"
+                        dataKey="actualRating"
+                        stroke="#8884d8"
                         strokeWidth={3}
                         name="Actual Rating"
                         connectNulls={false}
                       />
-                      <Line 
-                        type="monotone" 
-                        dataKey="predictedRating" 
-                        stroke="#ff7300" 
+                      <Line
+                        type="monotone"
+                        dataKey="predictedRating"
+                        stroke="#ff7300"
                         strokeWidth={2}
                         strokeDasharray="5 5"
                         name="Predicted Rating"
@@ -345,18 +345,18 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
                       <YAxis />
                       <Tooltip content={<CustomBarLineTooltip />} />
                       <Legend />
-                      <Area 
-                        type="monotone" 
-                        dataKey="actualVolume" 
-                        stroke="#82ca9d" 
+                      <Area
+                        type="monotone"
+                        dataKey="actualVolume"
+                        stroke="#82ca9d"
                         fill="#82ca9d"
                         fillOpacity={0.6}
                         name="Actual Volume"
                       />
-                      <Area 
-                        type="monotone" 
-                        dataKey="predictedVolume" 
-                        stroke="#ffc658" 
+                      <Area
+                        type="monotone"
+                        dataKey="predictedVolume"
+                        stroke="#ffc658"
                         fill="#ffc658"
                         fillOpacity={0.3}
                         name="Predicted Volume"
@@ -405,7 +405,7 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
               <div className="space-y-4">
                 {riskIndicators.map((risk, index) => (
                   <Alert key={index} variant={
-                    risk.severity === 'critical' ? 'destructive' : 
+                    risk.severity === 'critical' ? 'destructive' :
                     risk.severity === 'high' ? 'destructive' : 'default'
                   }>
                     <AlertTriangle className="h-4 w-4" />
@@ -585,20 +585,20 @@ export function PredictiveAnalytics({ reviews, businessName, businessType }: Pre
         </Tabs>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // Helper function to calculate seasonal risk
 function calculateSeasonalRisk(monthlyData: any[], currentMonth: number): { risk: number } {
-  const sameMonthData = monthlyData.filter(data => data.date.getMonth() === currentMonth);
-  if (sameMonthData.length === 0) return { risk: 0 };
+  const sameMonthData = monthlyData.filter(data => data.date.getMonth() === currentMonth)
+  if (sameMonthData.length === 0) return { risk: 0 }
 
-  const avgRating = sameMonthData.reduce((sum, data) => sum + data.avgRating, 0) / sameMonthData.length;
-  const overallAvg = monthlyData.reduce((sum, data) => sum + data.avgRating, 0) / monthlyData.length;
-  
+  const avgRating = sameMonthData.reduce((sum, data) => sum + data.avgRating, 0) / sameMonthData.length
+  const overallAvg = monthlyData.reduce((sum, data) => sum + data.avgRating, 0) / monthlyData.length
+
   // Risk is higher when this month historically performs worse
-  const risk = Math.max(0, (overallAvg - avgRating) / overallAvg);
-  return { risk };
+  const risk = Math.max(0, (overallAvg - avgRating) / overallAvg)
+  return { risk }
 }
 
-export default PredictiveAnalytics;
+export default PredictiveAnalytics

@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  TrendingUp, 
-  TrendingDown, 
+import React, { useState, useEffect, useMemo } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  TrendingUp,
+  TrendingDown,
   Minus,
   BarChart3,
   Calendar,
@@ -17,19 +17,20 @@ import {
   Users,
   ArrowUpRight,
   ArrowDownRight,
-  RefreshCw
-} from 'lucide-react';
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Review } from '@/types/reviews';
-import { BusinessType } from '@/types/businessTypes';
-import { 
+  RefreshCw,
+} from 'lucide-react'
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import type { Review } from '@/types/reviews'
+import type { BusinessType } from '@/types/businessTypes'
+import type {
+  ComparisonMetrics,
+  PeriodData} from '@/utils/comparisonUtils'
+import {
   comparePeriods,
   generateComparisonPeriods,
   createPeriodData,
-  ComparisonMetrics,
-  PeriodData
-} from '@/utils/comparisonUtils';
-import { CustomBarLineTooltip, CustomPieTooltip } from '@/components/review-analysis/CustomTooltips';
+} from '@/utils/comparisonUtils'
+import { CustomBarLineTooltip, CustomPieTooltip } from '@/components/review-analysis/CustomTooltips'
 
 interface ComparativeAnalysisProps {
   reviews: Review[];
@@ -42,65 +43,65 @@ type ComparisonPeriod = '30days' | '90days' | 'year' | 'custom';
 export const ComparativeAnalysis: React.FC<ComparativeAnalysisProps> = ({
   reviews,
   businessName,
-  businessType
+  businessType,
 }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<ComparisonPeriod>('30days');
-  const [customStartDate, setCustomStartDate] = useState<string>('');
-  const [customEndDate, setCustomEndDate] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  
+  const [selectedPeriod, setSelectedPeriod] = useState<ComparisonPeriod>('30days')
+  const [customStartDate, setCustomStartDate] = useState<string>('')
+  const [customEndDate, setCustomEndDate] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+
   // Generate comparison data
   const comparisonData = useMemo(() => {
-    if (!reviews.length) return null;
-    
+    if (!reviews.length) return null
+
     try {
-      setLoading(true);
-      
-      let currentPeriod: PeriodData;
-      let previousPeriod: PeriodData;
-      let label: string;
-      
+      setLoading(true)
+
+      let currentPeriod: PeriodData
+      let previousPeriod: PeriodData
+      let label: string
+
       if (selectedPeriod === 'custom' && customStartDate && customEndDate) {
-        const customEnd = new Date(customEndDate);
-        const customStart = new Date(customStartDate);
-        const duration = customEnd.getTime() - customStart.getTime();
-        
-        const prevEnd = new Date(customStart.getTime() - 1); // Day before custom start
-        const prevStart = new Date(prevEnd.getTime() - duration);
-        
-        currentPeriod = createPeriodData(reviews, customStart, customEnd, 'Custom Period');
-        previousPeriod = createPeriodData(reviews, prevStart, prevEnd, 'Previous Period');
-        label = 'Custom Comparison';
+        const customEnd = new Date(customEndDate)
+        const customStart = new Date(customStartDate)
+        const duration = customEnd.getTime() - customStart.getTime()
+
+        const prevEnd = new Date(customStart.getTime() - 1) // Day before custom start
+        const prevStart = new Date(prevEnd.getTime() - duration)
+
+        currentPeriod = createPeriodData(reviews, customStart, customEnd, 'Custom Period')
+        previousPeriod = createPeriodData(reviews, prevStart, prevEnd, 'Previous Period')
+        label = 'Custom Comparison'
       } else {
-        const pregenerated = generateComparisonPeriods(reviews);
-        
+        const pregenerated = generateComparisonPeriods(reviews)
+
         switch (selectedPeriod) {
           case '30days':
-            ({ current: currentPeriod, previous: previousPeriod, label } = pregenerated[0]);
-            break;
+            ({ current: currentPeriod, previous: previousPeriod, label } = pregenerated[0])
+            break
           case '90days':
-            ({ current: currentPeriod, previous: previousPeriod, label } = pregenerated[1]);
-            break;
+            ({ current: currentPeriod, previous: previousPeriod, label } = pregenerated[1])
+            break
           case 'year':
-            ({ current: currentPeriod, previous: previousPeriod, label } = pregenerated[2]);
-            break;
+            ({ current: currentPeriod, previous: previousPeriod, label } = pregenerated[2])
+            break
           default:
-            ({ current: currentPeriod, previous: previousPeriod, label } = pregenerated[0]);
+            ({ current: currentPeriod, previous: previousPeriod, label } = pregenerated[0])
         }
       }
-      
-      const metrics = comparePeriods(currentPeriod, previousPeriod);
-      
+
+      const metrics = comparePeriods(currentPeriod, previousPeriod)
+
       return {
         metrics,
         currentPeriod,
         previousPeriod,
-        label
-      };
+        label,
+      }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [reviews, selectedPeriod, customStartDate, customEndDate]);
+  }, [reviews, selectedPeriod, customStartDate, customEndDate])
 
   if (!comparisonData) {
     return (
@@ -109,10 +110,10 @@ export const ComparativeAnalysis: React.FC<ComparativeAnalysisProps> = ({
           <p className="text-gray-500">No data available for comparison</p>
         </CardContent>
       </Card>
-    );
+    )
   }
 
-  const { metrics, currentPeriod, previousPeriod, label } = comparisonData;
+  const { metrics, currentPeriod, previousPeriod, label } = comparisonData
 
   return (
     <div className="space-y-6">
@@ -145,7 +146,7 @@ export const ComparativeAnalysis: React.FC<ComparativeAnalysisProps> = ({
             <span>Comparing: {currentPeriod.label} vs {previousPeriod.label}</span>
             <span>{label}</span>
           </div>
-          
+
           {selectedPeriod === 'custom' && (
             <div className="flex items-center space-x-4 mt-4">
               <div className="flex items-center space-x-2">
@@ -239,8 +240,8 @@ export const ComparativeAnalysis: React.FC<ComparativeAnalysisProps> = ({
         </TabsContent>
       </Tabs>
     </div>
-  );
-};
+  )
+}
 
 interface MetricCardProps {
   title: string;
@@ -261,29 +262,29 @@ const MetricCard: React.FC<MetricCardProps> = ({
   trend,
   icon,
   unit,
-  precision = 0
+  precision = 0,
 }) => {
   const getTrendIcon = () => {
     switch (trend) {
       case 'up':
-        return <ArrowUpRight className="w-4 h-4 text-green-500" />;
+        return <ArrowUpRight className="w-4 h-4 text-green-500" />
       case 'down':
-        return <ArrowDownRight className="w-4 h-4 text-red-500" />;
+        return <ArrowDownRight className="w-4 h-4 text-red-500" />
       case 'stable':
-        return <Minus className="w-4 h-4 text-gray-500" />;
+        return <Minus className="w-4 h-4 text-gray-500" />
     }
-  };
+  }
 
   const getTrendColor = () => {
     switch (trend) {
       case 'up':
-        return 'text-green-600';
+        return 'text-green-600'
       case 'down':
-        return 'text-red-600';
+        return 'text-red-600'
       case 'stable':
-        return 'text-gray-600';
+        return 'text-gray-600'
     }
-  };
+  }
 
   return (
     <Card>
@@ -308,8 +309,8 @@ const MetricCard: React.FC<MetricCardProps> = ({
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
 const SentimentComparison: React.FC<{ metrics: ComparisonMetrics }> = ({ metrics }) => {
   const sentimentData = [
@@ -327,14 +328,14 @@ const SentimentComparison: React.FC<{ metrics: ComparisonMetrics }> = ({ metrics
       negative: metrics.sentiment.previous.negative,
       mixed: metrics.sentiment.previous.mixed,
     },
-  ];
+  ]
 
   const changeData = [
     { name: 'Positive', change: metrics.sentiment.changes.positive },
     { name: 'Neutral', change: metrics.sentiment.changes.neutral },
     { name: 'Negative', change: metrics.sentiment.changes.negative },
     { name: 'Mixed', change: metrics.sentiment.changes.mixed },
-  ];
+  ]
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -387,8 +388,8 @@ const SentimentComparison: React.FC<{ metrics: ComparisonMetrics }> = ({ metrics
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}
 
 const ThemeComparison: React.FC<{ metrics: ComparisonMetrics }> = ({ metrics }) => {
   return (
@@ -469,8 +470,8 @@ const ThemeComparison: React.FC<{ metrics: ComparisonMetrics }> = ({ metrics }) 
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}
 
 const StaffComparison: React.FC<{ metrics: ComparisonMetrics }> = ({ metrics }) => {
   const staffChanges = Object.entries(metrics.staffMentions.changes)
@@ -480,7 +481,7 @@ const StaffComparison: React.FC<{ metrics: ComparisonMetrics }> = ({ metrics }) 
       current: metrics.staffMentions.current[name] || 0,
       previous: metrics.staffMentions.previous[name] || 0,
     }))
-    .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+    .sort((a, b) => Math.abs(b.change) - Math.abs(a.change))
 
   return (
     <Card>
@@ -520,36 +521,36 @@ const StaffComparison: React.FC<{ metrics: ComparisonMetrics }> = ({ metrics }) 
         )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
 const TrendAnalysis: React.FC<{ currentPeriod: PeriodData; previousPeriod: PeriodData }> = ({
   currentPeriod,
-  previousPeriod
+  previousPeriod,
 }) => {
   // Generate monthly data for trend visualization
   const trendData = useMemo(() => {
-    const allReviews = [...currentPeriod.reviews, ...previousPeriod.reviews];
-    const monthlyMap = new Map<string, { month: string; count: number; avgRating: number; total: number }>();
+    const allReviews = [...currentPeriod.reviews, ...previousPeriod.reviews]
+    const monthlyMap = new Map<string, { month: string; count: number; avgRating: number; total: number }>()
 
     allReviews.forEach(review => {
-      if (!review.publishedAtDate) return;
-      
-      const date = new Date(review.publishedAtDate);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      
-      if (!monthlyMap.has(monthKey)) {
-        monthlyMap.set(monthKey, { month: monthKey, count: 0, avgRating: 0, total: 0 });
-      }
-      
-      const data = monthlyMap.get(monthKey)!;
-      data.count++;
-      data.total += review.stars || 0;
-      data.avgRating = data.total / data.count;
-    });
+      if (!review.publishedAtDate) return
 
-    return Array.from(monthlyMap.values()).sort((a, b) => a.month.localeCompare(b.month));
-  }, [currentPeriod, previousPeriod]);
+      const date = new Date(review.publishedAtDate)
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+      if (!monthlyMap.has(monthKey)) {
+        monthlyMap.set(monthKey, { month: monthKey, count: 0, avgRating: 0, total: 0 })
+      }
+
+      const data = monthlyMap.get(monthKey)!
+      data.count++
+      data.total += review.stars || 0
+      data.avgRating = data.total / data.count
+    })
+
+    return Array.from(monthlyMap.values()).sort((a, b) => a.month.localeCompare(b.month))
+  }, [currentPeriod, previousPeriod])
 
   return (
     <div className="space-y-6">
@@ -587,7 +588,7 @@ const TrendAnalysis: React.FC<{ currentPeriod: PeriodData; previousPeriod: Perio
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}
 
-export default ComparativeAnalysis;
+export default ComparativeAnalysis

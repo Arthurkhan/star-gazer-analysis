@@ -1,14 +1,14 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { ChevronDown, Coffee, Wine, Palette, Building } from 'lucide-react';
+} from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
+import { ChevronDown, Coffee, Wine, Palette, Building } from 'lucide-react'
 
 export type BusinessType = 'CAFE' | 'BAR' | 'GALLERY' | 'ALL';
 
@@ -54,7 +54,7 @@ const businessTypeOptions: BusinessTypeOption[] = [
     color: 'green',
     businesses: ["L'Envol Art Space"],
   },
-];
+]
 
 export interface BusinessTypeSelectorProps {
   selectedType: BusinessType;
@@ -73,8 +73,8 @@ export const BusinessTypeSelector: React.FC<BusinessTypeSelectorProps> = ({
   showDescription = true,
   showBusinessCount = true,
 }) => {
-  const selectedOption = businessTypeOptions.find(option => option.value === selectedType) 
-    || businessTypeOptions[0];
+  const selectedOption = businessTypeOptions.find(option => option.value === selectedType)
+    || businessTypeOptions[0]
 
   if (variant === 'compact') {
     return (
@@ -123,7 +123,7 @@ export const BusinessTypeSelector: React.FC<BusinessTypeSelectorProps> = ({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-    );
+    )
   }
 
   if (variant === 'cards') {
@@ -160,7 +160,7 @@ export const BusinessTypeSelector: React.FC<BusinessTypeSelectorProps> = ({
                   {option.description}
                 </CardDescription>
                 <div className="mt-2">
-                  {option.businesses.map((business, index) => (
+                  {option.businesses.map((business) => (
                     <div key={business} className="text-xs text-muted-foreground">
                       {business}
                     </div>
@@ -171,14 +171,14 @@ export const BusinessTypeSelector: React.FC<BusinessTypeSelectorProps> = ({
           </Card>
         ))}
       </div>
-    );
+    )
   }
 
   // Default variant - button group
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>
       {businessTypeOptions.map((option) => {
-        const isSelected = selectedType === option.value;
+        const isSelected = selectedType === option.value
         return (
           <Button
             key={option.value}
@@ -198,35 +198,35 @@ export const BusinessTypeSelector: React.FC<BusinessTypeSelectorProps> = ({
               </Badge>
             )}
           </Button>
-        );
+        )
       })}
     </div>
-  );
-};
+  )
+}
 
-export default BusinessTypeSelector;
+export default BusinessTypeSelector
 
 // Utility functions for business type handling
 export const getBusinessTypeFromName = (businessName: string): BusinessType => {
   if (businessName.toLowerCase().includes('cafe') || businessName.toLowerCase().includes('coffee')) {
-    return 'CAFE';
+    return 'CAFE'
   }
   if (businessName.toLowerCase().includes('bar') || businessName.toLowerCase().includes('nuit')) {
-    return 'BAR';
+    return 'BAR'
   }
   if (businessName.toLowerCase().includes('art') || businessName.toLowerCase().includes('gallery') || businessName.toLowerCase().includes('envol')) {
-    return 'GALLERY';
+    return 'GALLERY'
   }
-  return 'ALL';
-};
+  return 'ALL'
+}
 
 export const getBusinessesForType = (type: BusinessType): string[] => {
-  const option = businessTypeOptions.find(opt => opt.value === type);
-  return option ? option.businesses : [];
-};
+  const option = businessTypeOptions.find(opt => opt.value === type)
+  return option ? option.businesses : []
+}
 
 export const getBusinessTypeMetadata = (type: BusinessType): BusinessTypeOption | undefined => {
-  return businessTypeOptions.find(opt => opt.value === type);
-};
+  return businessTypeOptions.find(opt => opt.value === type)
+}
 
-export { businessTypeOptions };
+export { businessTypeOptions }

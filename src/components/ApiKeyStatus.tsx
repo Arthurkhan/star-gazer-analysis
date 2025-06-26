@@ -1,25 +1,25 @@
-import { useEffect, useState } from "react";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, CheckCircleIcon } from "lucide-react";
+import { useEffect, useState } from 'react'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { InfoIcon, CheckCircleIcon } from 'lucide-react'
 
 export function ApiKeyStatus() {
-  const [status, setStatus] = useState<"ready" | "checking">("checking");
+  const [status, setStatus] = useState<'ready' | 'checking'>('checking')
 
   useEffect(() => {
     // Since we no longer use external APIs, always show as ready
     setTimeout(() => {
-      setStatus("ready");
-    }, 500); // Small delay for visual feedback
-  }, []);
+      setStatus('ready')
+    }, 500) // Small delay for visual feedback
+  }, [])
 
-  if (status === "checking") {
+  if (status === 'checking') {
     return (
       <Alert className="mb-4">
         <InfoIcon className="h-4 w-4" />
         <AlertTitle>Checking Analysis Status</AlertTitle>
         <AlertDescription>Preparing analysis tools...</AlertDescription>
       </Alert>
-    );
+    )
   }
 
   return (
@@ -30,5 +30,5 @@ export function ApiKeyStatus() {
         Review analysis is available using pre-computed data. No API keys required.
       </AlertDescription>
     </Alert>
-  );
+  )
 }

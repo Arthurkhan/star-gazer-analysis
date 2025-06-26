@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from "react";
-import { KeyRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react'
+import { KeyRound } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -10,162 +10,162 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { supabase } from '@/integrations/supabase/client'
 
 export function SetupApiKeyDialog() {
-  const [apiProvider, setApiProvider] = useState(localStorage.getItem("AI_PROVIDER") || "openai");
-  const [openaiKey, setOpenaiKey] = useState("");
-  const [anthropicKey, setAnthropicKey] = useState("");
-  const [geminiKey, setGeminiKey] = useState("");
-  const [openaiModel, setOpenaiModel] = useState(localStorage.getItem("OPENAI_MODEL") || "gpt-4o-mini");
-  const [anthropicModel, setAnthropicModel] = useState(localStorage.getItem("ANTHROPIC_MODEL") || "claude-3-haiku-20240307");
-  const [geminiModel, setGeminiModel] = useState(localStorage.getItem("GEMINI_MODEL") || "gemini-1.5-pro");
-  const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const [apiProvider, setApiProvider] = useState(localStorage.getItem('AI_PROVIDER') || 'openai')
+  const [openaiKey, setOpenaiKey] = useState('')
+  const [anthropicKey, setAnthropicKey] = useState('')
+  const [geminiKey, setGeminiKey] = useState('')
+  const [openaiModel, setOpenaiModel] = useState(localStorage.getItem('OPENAI_MODEL') || 'gpt-4o-mini')
+  const [anthropicModel, setAnthropicModel] = useState(localStorage.getItem('ANTHROPIC_MODEL') || 'claude-3-haiku-20240307')
+  const [geminiModel, setGeminiModel] = useState(localStorage.getItem('GEMINI_MODEL') || 'gemini-1.5-pro')
+  const [isOpen, setIsOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
 
   // Load saved API keys from localStorage on component mount
   useEffect(() => {
-    const savedOpenaiKey = localStorage.getItem("OPENAI_API_KEY");
+    const savedOpenaiKey = localStorage.getItem('OPENAI_API_KEY')
     if (savedOpenaiKey) {
-      setOpenaiKey(savedOpenaiKey);
+      setOpenaiKey(savedOpenaiKey)
     }
-    
-    const savedAnthropicKey = localStorage.getItem("ANTHROPIC_API_KEY");
+
+    const savedAnthropicKey = localStorage.getItem('ANTHROPIC_API_KEY')
     if (savedAnthropicKey) {
-      setAnthropicKey(savedAnthropicKey);
+      setAnthropicKey(savedAnthropicKey)
     }
-    
-    const savedGeminiKey = localStorage.getItem("GEMINI_API_KEY");
+
+    const savedGeminiKey = localStorage.getItem('GEMINI_API_KEY')
     if (savedGeminiKey) {
-      setGeminiKey(savedGeminiKey);
+      setGeminiKey(savedGeminiKey)
     }
-  }, []);
+  }, [])
 
   const handleSaveApiKey = async () => {
     try {
-      setLoading(true);
-      
+      setLoading(true)
+
       // Save the selected provider to localStorage
-      localStorage.setItem("AI_PROVIDER", apiProvider);
-      
+      localStorage.setItem('AI_PROVIDER', apiProvider)
+
       // Save API keys using Supabase Edge Function Secrets
-      if (apiProvider === "openai" && openaiKey) {
+      if (apiProvider === 'openai' && openaiKey) {
         // Store in localStorage for UI display purposes
-        localStorage.setItem("OPENAI_API_KEY", openaiKey);
-        localStorage.setItem("OPENAI_MODEL", openaiModel);
-        
+        localStorage.setItem('OPENAI_API_KEY', openaiKey)
+        localStorage.setItem('OPENAI_MODEL', openaiModel)
+
         // Call Edge Function to set up the secret
         try {
-          const { error } = await supabase.functions.invoke("analyze-reviews", {
-            body: { 
-              action: "test",
-              provider: "openai",
-              apiKey: openaiKey
-            }
-          });
-          
+          const { error } = await supabase.functions.invoke('analyze-reviews', {
+            body: {
+              action: 'test',
+              provider: 'openai',
+              apiKey: openaiKey,
+            },
+          })
+
           if (error) {
-            throw new Error(`Error testing OpenAI API key: ${error.message}`);
+            throw new Error(`Error testing OpenAI API key: ${error.message}`)
           }
         } catch (error) {
-          console.error("Error setting OpenAI API key:", error);
+          console.error('Error setting OpenAI API key:', error)
           toast({
-            title: "Error Setting OpenAI API Key",
+            title: 'Error Setting OpenAI API Key',
             description: error.message,
-            variant: "destructive",
-          });
+            variant: 'destructive',
+          })
         }
-      } else if (apiProvider === "anthropic" && anthropicKey) {
-        localStorage.setItem("ANTHROPIC_API_KEY", anthropicKey);
-        localStorage.setItem("ANTHROPIC_MODEL", anthropicModel);
-        
+      } else if (apiProvider === 'anthropic' && anthropicKey) {
+        localStorage.setItem('ANTHROPIC_API_KEY', anthropicKey)
+        localStorage.setItem('ANTHROPIC_MODEL', anthropicModel)
+
         try {
-          const { error } = await supabase.functions.invoke("analyze-reviews", {
-            body: { 
-              action: "test",
-              provider: "anthropic",
-              apiKey: anthropicKey
-            }
-          });
-          
+          const { error } = await supabase.functions.invoke('analyze-reviews', {
+            body: {
+              action: 'test',
+              provider: 'anthropic',
+              apiKey: anthropicKey,
+            },
+          })
+
           if (error) {
-            throw new Error(`Error testing Anthropic API key: ${error.message}`);
+            throw new Error(`Error testing Anthropic API key: ${error.message}`)
           }
         } catch (error) {
-          console.error("Error setting Anthropic API key:", error);
+          console.error('Error setting Anthropic API key:', error)
           toast({
-            title: "Error Setting Anthropic API Key",
+            title: 'Error Setting Anthropic API Key',
             description: error.message,
-            variant: "destructive",
-          });
+            variant: 'destructive',
+          })
         }
-      } else if (apiProvider === "gemini" && geminiKey) {
-        localStorage.setItem("GEMINI_API_KEY", geminiKey);
-        localStorage.setItem("GEMINI_MODEL", geminiModel);
-        
+      } else if (apiProvider === 'gemini' && geminiKey) {
+        localStorage.setItem('GEMINI_API_KEY', geminiKey)
+        localStorage.setItem('GEMINI_MODEL', geminiModel)
+
         try {
-          const { error } = await supabase.functions.invoke("analyze-reviews", {
-            body: { 
-              action: "test",
-              provider: "gemini",
-              apiKey: geminiKey
-            }
-          });
-          
+          const { error } = await supabase.functions.invoke('analyze-reviews', {
+            body: {
+              action: 'test',
+              provider: 'gemini',
+              apiKey: geminiKey,
+            },
+          })
+
           if (error) {
-            throw new Error(`Error testing Gemini API key: ${error.message}`);
+            throw new Error(`Error testing Gemini API key: ${error.message}`)
           }
         } catch (error) {
-          console.error("Error setting Gemini API key:", error);
+          console.error('Error setting Gemini API key:', error)
           toast({
-            title: "Error Setting Gemini API Key",
+            title: 'Error Setting Gemini API Key',
             description: error.message,
-            variant: "destructive",
-          });
+            variant: 'destructive',
+          })
         }
       }
-      
+
       toast({
-        title: "API Settings Saved",
+        title: 'API Settings Saved',
         description: `Your ${apiProvider.charAt(0).toUpperCase() + apiProvider.slice(1)} settings have been saved successfully.`,
-      });
-      
+      })
+
       // Close the dialog
-      setIsOpen(false);
-      
+      setIsOpen(false)
+
       // Force a cache refresh for analysis
-      localStorage.removeItem("analysis_cache_key");
+      localStorage.removeItem('analysis_cache_key')
     } catch (error) {
-      console.error("Error saving API settings:", error);
+      console.error('Error saving API settings:', error)
       toast({
-        title: "Error Saving Settings",
-        description: "There was an error saving your settings: " + error.message,
-        variant: "destructive",
-      });
+        title: 'Error Saving Settings',
+        description: `There was an error saving your settings: ${error.message}`,
+        variant: 'destructive',
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="icon"
           className="relative"
         >
@@ -179,14 +179,14 @@ export function SetupApiKeyDialog() {
             Select your preferred AI provider and enter your API key to enable AI-powered analysis features.
           </DialogDescription>
         </DialogHeader>
-        
+
         <Tabs defaultValue={apiProvider} onValueChange={setApiProvider} className="w-full">
           <TabsList className="grid grid-cols-3 mb-4">
             <TabsTrigger value="openai">OpenAI</TabsTrigger>
             <TabsTrigger value="anthropic">Anthropic</TabsTrigger>
             <TabsTrigger value="gemini">Gemini</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="openai" className="space-y-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="openai-api-key" className="text-right">
@@ -221,7 +221,7 @@ export function SetupApiKeyDialog() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="border p-4 rounded-md">
                       <h4 className="font-medium mb-2 text-sm">GPT-4.1 Series</h4>
                       <div className="space-y-2">
@@ -244,7 +244,7 @@ export function SetupApiKeyDialog() {
               </div>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="anthropic" className="space-y-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="anthropic-api-key" className="text-right">
@@ -288,7 +288,7 @@ export function SetupApiKeyDialog() {
               </div>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="gemini" className="space-y-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="gemini-api-key" className="text-right">
@@ -329,13 +329,13 @@ export function SetupApiKeyDialog() {
             </div>
           </TabsContent>
         </Tabs>
-        
+
         <DialogFooter>
           <Button type="button" onClick={handleSaveApiKey} disabled={loading}>
-            {loading ? "Saving..." : "Save Settings"}
+            {loading ? 'Saving...' : 'Save Settings'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

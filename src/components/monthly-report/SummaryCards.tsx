@@ -1,10 +1,10 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 // Colors for the charts
-const COLORS = ['#FF5252', '#FF9800', '#FFC107', '#8BC34A', '#4CAF50'];
+const COLORS = ['#FF5252', '#FF9800', '#FFC107', '#8BC34A', '#4CAF50']
 
 interface SummaryCardsProps {
   summaryData: {
@@ -98,7 +98,7 @@ export function SummaryCards({ summaryData }: SummaryCardsProps) {
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip 
+                <Tooltip
                   formatter={(value) => [`${value} reviews`, 'Count']}
                   contentStyle={{ borderRadius: '6px' }}
                 />
@@ -113,5 +113,5 @@ export function SummaryCards({ summaryData }: SummaryCardsProps) {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

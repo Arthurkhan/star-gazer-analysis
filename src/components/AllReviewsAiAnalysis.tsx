@@ -1,114 +1,114 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Review } from "@/types/reviews";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCw, FileText, ClipboardCopy } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { getAnalysis, clearCache } from "@/utils/ai/analysisService";
+import React, { useState, useEffect, useRef } from 'react'
+import type { Review } from '@/types/reviews'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { RefreshCw, FileText, ClipboardCopy } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { getAnalysis, clearCache } from '@/utils/ai/analysisService'
 
 interface AllReviewsAiAnalysisProps {
   reviews: Review[];
 }
 
 const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) => {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [analysis, setAnalysis] = useState<any>(null);
-  const prevReviewsRef = useRef<Review[]>([]);
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const [analysis, setAnalysis] = useState<any>(null)
+  const prevReviewsRef = useRef<Review[]>([])
 
   const fetchAnalysis = async (forceRefresh = false) => {
     if (reviews.length === 0) {
       toast({
-        title: "No reviews",
-        description: "No reviews available to analyze",
-        variant: "default",
-      });
-      return;
+        title: 'No reviews',
+        description: 'No reviews available to analyze',
+        variant: 'default',
+      })
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
 
     try {
       if (forceRefresh) {
-        clearCache();
+        clearCache()
       }
 
-      const result = await getAnalysis(reviews);
-      setAnalysis(result);
-      
+      const result = await getAnalysis(reviews)
+      setAnalysis(result)
+
       toast({
-        title: "Analysis complete",
-        description: "Review analysis has been generated",
-      });
+        title: 'Analysis complete',
+        description: 'Review analysis has been generated',
+      })
     } catch (err) {
-      console.error("Analysis error:", err);
+      console.error('Analysis error:', err)
       toast({
-        title: "Analysis failed",
-        description: "Could not generate analysis",
-        variant: "destructive",
-      });
+        title: 'Analysis failed',
+        description: 'Could not generate analysis',
+        variant: 'destructive',
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     // Check if reviews have changed
-    const reviewsChanged = reviews !== prevReviewsRef.current && 
+    const reviewsChanged = reviews !== prevReviewsRef.current &&
                           (reviews.length !== prevReviewsRef.current.length ||
-                           JSON.stringify(reviews[0]) !== JSON.stringify(prevReviewsRef.current[0]));
-    
+                           JSON.stringify(reviews[0]) !== JSON.stringify(prevReviewsRef.current[0]))
+
     if (reviewsChanged) {
-      prevReviewsRef.current = reviews;
-      
+      prevReviewsRef.current = reviews
+
       // Clear existing analysis when reviews change
       if (analysis) {
-        console.log("Reviews changed, clearing analysis and re-fetching");
-        setAnalysis(null);
-        clearCache(); // Clear the cache to ensure fresh analysis
+        console.log('Reviews changed, clearing analysis and re-fetching')
+        setAnalysis(null)
+        clearCache() // Clear the cache to ensure fresh analysis
       }
-      
+
       // Fetch new analysis if we have reviews
       if (reviews.length > 0) {
-        fetchAnalysis();
+        fetchAnalysis()
       }
     }
-  }, [reviews]);
+  }, [reviews])
 
   const copyToClipboard = () => {
     if (analysis?.overallAnalysis) {
-      navigator.clipboard.writeText(analysis.overallAnalysis);
+      navigator.clipboard.writeText(analysis.overallAnalysis)
       toast({
-        title: "Copied to clipboard",
-        description: "Analysis copied to clipboard",
-      });
+        title: 'Copied to clipboard',
+        description: 'Analysis copied to clipboard',
+      })
     }
-  };
+  }
 
   const renderFormattedAnalysis = () => {
-    if (!analysis?.overallAnalysis) return null;
+    if (!analysis?.overallAnalysis) return null
 
     // Split by sections (each section starts with an emoji)
-    const sections = analysis.overallAnalysis.split(/(?=📊|📈|🗣️|💬|🌍|🎯)/g);
-    
+    const sections = analysis.overallAnalysis.split(/(?=📊|📈|🗣️|💬|🌍|🎯)/g)
+
     return (
       <div className="space-y-4">
         {sections.map((section: string, index: number) => (
           <div key={index} className="space-y-2">
-            <div 
+            <div
               className="whitespace-pre-line"
-              dangerouslySetInnerHTML={{ 
+              dangerouslySetInnerHTML={{
                 __html: section
                   .replace(/\n/g, '<br />')
-                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-              }} 
+                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'),
+              }}
             />
           </div>
         ))}
       </div>
-    );
-  };
+    )
+  }
 
   return (
     <Card>
@@ -118,9 +118,9 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => copyToClipboard()}
                   disabled={!analysis?.overallAnalysis || loading}
                 >
@@ -132,17 +132,17 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => fetchAnalysis(true)}
                   disabled={loading}
                 >
-                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -168,7 +168,7 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
         ) : (
           <div className="space-y-4">
             {renderFormattedAnalysis()}
-            
+
             {/* Additional visualizations */}
             {analysis.mainThemes && analysis.mainThemes.length > 0 && (
               <div className="mt-6">
@@ -182,7 +182,7 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
                 </div>
               </div>
             )}
-            
+
             {analysis.staffMentions && analysis.staffMentions.length > 0 && (
               <div className="mt-6">
                 <h3 className="font-semibold mb-2">Staff Performance</h3>
@@ -211,7 +211,7 @@ const AllReviewsAiAnalysis: React.FC<AllReviewsAiAnalysisProps> = ({ reviews }) 
         )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
-export default AllReviewsAiAnalysis;
+export default AllReviewsAiAnalysis

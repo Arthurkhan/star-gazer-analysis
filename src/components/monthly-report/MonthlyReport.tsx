@@ -1,35 +1,35 @@
-import { useMemo, useState } from "react";
-import { Review } from "@/types/reviews";
-import { DateRangeSelector } from "./DateRangeSelector";
-import { EnhancedSummaryCards } from "./EnhancedSummaryCards";
-import { TimeReviewsChart } from "./TimeReviewsChart";
-import ReviewsTable from "@/components/ReviewsTable";
-import { useSelectedDateRange } from "./hooks/useSelectedDateRange";
-import { useMonthlySummaryData } from "./hooks/useMonthlySummaryData";
-import AIAnalysisReport from "@/components/review-analysis/AIAnalysisReport";
-import { CustomPromptDialog } from "@/components/CustomPromptDialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { 
-  Calendar, 
-  MessageSquare, 
+import { useMemo, useState } from 'react'
+import type { Review } from '@/types/reviews'
+import { DateRangeSelector } from './DateRangeSelector'
+import { EnhancedSummaryCards } from './EnhancedSummaryCards'
+import { TimeReviewsChart } from './TimeReviewsChart'
+import ReviewsTable from '@/components/ReviewsTable'
+import { useSelectedDateRange } from './hooks/useSelectedDateRange'
+import { useMonthlySummaryData } from './hooks/useMonthlySummaryData'
+import AIAnalysisReport from '@/components/review-analysis/AIAnalysisReport'
+import { CustomPromptDialog } from '@/components/CustomPromptDialog'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Calendar,
+  MessageSquare,
   Activity,
   RefreshCw,
-} from "lucide-react";
+} from 'lucide-react'
 
 interface MonthlyReportProps {
   reviews: Review[];
   businessName?: string;
 }
 
-const MonthlyReport = ({ 
-  reviews, 
-  businessName = "Current Business"
+const MonthlyReport = ({
+  reviews,
+  businessName = 'Current Business',
 }: MonthlyReportProps) => {
   // State for view mode (day, week, month)
-  const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
-  const [refreshing, setRefreshing] = useState(false);
-  
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day')
+  const [refreshing, setRefreshing] = useState(false)
+
   // Use our custom hooks for handling date range and summary data
   const {
     dateRange,
@@ -44,11 +44,11 @@ const MonthlyReport = ({
     setToDateInput,
     handleManualDateSubmit,
     applyDateRangePreset,
-    isDateInRange
+    isDateInRange,
   } = useSelectedDateRange({
     initialFrom: new Date(new Date().setDate(1)), // First day of current month
-    initialTo: new Date()
-  });
+    initialTo: new Date(),
+  })
 
   // Get all the selected reviews and summary data
   const {
@@ -56,20 +56,20 @@ const MonthlyReport = ({
     summaryData,
     timeReviewsData,
     viewMode: internalViewMode,
-    setViewMode: setInternalViewMode
-  } = useMonthlySummaryData({ 
-    reviews, 
+    setViewMode: setInternalViewMode,
+  } = useMonthlySummaryData({
+    reviews,
     dateRange,
-    viewMode // Pass the viewMode to the hook
-  });
+    viewMode, // Pass the viewMode to the hook
+  })
 
   // Refresh data function
   const handleRefresh = async () => {
-    setRefreshing(true);
+    setRefreshing(true)
     // Simulate refresh - in real app this would refetch data
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setRefreshing(false);
-  };
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    setRefreshing(false)
+  }
 
   // Memoize the rendered components for better performance
   const dateSelector = useMemo(() => (
@@ -109,16 +109,16 @@ const MonthlyReport = ({
         />
       </CardContent>
     </Card>
-  ), [dateRange, selectingDate, fromDateInput, toDateInput, dateInputError, refreshing]);
+  ), [dateRange, selectingDate, fromDateInput, toDateInput, dateInputError, refreshing])
 
   const enhancedSummaryCards = useMemo(() => (
-    <EnhancedSummaryCards 
-      summaryData={summaryData} 
+    <EnhancedSummaryCards
+      summaryData={summaryData}
       selectedReviews={selectedReviews}
       dateRange={dateRange}
       businessName={businessName}
     />
-  ), [summaryData, selectedReviews, dateRange, businessName]);
+  ), [summaryData, selectedReviews, dateRange, businessName])
 
   const timeChart = useMemo(() => (
     <TimeReviewsChart
@@ -126,7 +126,7 @@ const MonthlyReport = ({
       viewMode={internalViewMode}
       setViewMode={setViewMode}
     />
-  ), [timeReviewsData, internalViewMode, setViewMode]);
+  ), [timeReviewsData, internalViewMode, setViewMode])
 
   const aiAnalysis = useMemo(() => (
     <Card>
@@ -140,15 +140,15 @@ const MonthlyReport = ({
         </div>
       </CardHeader>
       <CardContent>
-        <AIAnalysisReport 
-          reviews={selectedReviews} 
-          dateRange={dateRange} 
+        <AIAnalysisReport
+          reviews={selectedReviews}
+          dateRange={dateRange}
           title="Monthly AI Analysis"
           className="border-0 shadow-none p-0"
         />
       </CardContent>
     </Card>
-  ), [selectedReviews, dateRange]);
+  ), [selectedReviews, dateRange])
 
   const reviewsTableCard = useMemo(() => (
     <Card>
@@ -162,7 +162,7 @@ const MonthlyReport = ({
         <ReviewsTable reviews={selectedReviews} />
       </CardContent>
     </Card>
-  ), [selectedReviews]);
+  ), [selectedReviews])
 
   return (
     <div className="space-y-8">
@@ -181,7 +181,7 @@ const MonthlyReport = ({
       {/* Reviews Table */}
       {reviewsTableCard}
     </div>
-  );
-};
+  )
+}
 
-export default MonthlyReport;
+export default MonthlyReport

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useCallback } from 'react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -9,20 +9,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu'
 import {
   Dialog,
   DialogContent,
@@ -30,172 +30,172 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
-} from "@/components/ui/dialog";
-import { Review } from "@/types/reviews";
-import { formatDistanceToNow } from "date-fns";
-import { Search, Eye, ChevronDown, ChevronUp, ArrowUpDown, Filter } from "lucide-react";
-import { MobileReviewsList } from "@/components/reviews/MobileReviewCard";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+} from '@/components/ui/dialog'
+import type { Review } from '@/types/reviews'
+import { formatDistanceToNow } from 'date-fns'
+import { Search, Eye, ChevronDown, ChevronUp, ArrowUpDown, Filter } from 'lucide-react'
+import { MobileReviewsList } from '@/components/reviews/MobileReviewCard'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 
 interface ReviewsTableProps {
   reviews: Review[];
 }
 
 const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterRating, setFilterRating] = useState("all");
-  const [filterTimeframe, setFilterTimeframe] = useState("all");
-  const [filterResponse, setFilterResponse] = useState("all");
-  const [sortBy, setSortBy] = useState("date");
-  const [sortOrder, setSortOrder] = useState("desc");
-  const [filteredReviews, setFilteredReviews] = useState<Review[]>(reviews);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [reviewsPerPage, setReviewsPerPage] = useState(25);
-  const [virtualizedView, setVirtualizedView] = useState(true);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterRating, setFilterRating] = useState('all')
+  const [filterTimeframe, setFilterTimeframe] = useState('all')
+  const [filterResponse, setFilterResponse] = useState('all')
+  const [sortBy, setSortBy] = useState('date')
+  const [sortOrder, setSortOrder] = useState('desc')
+  const [filteredReviews, setFilteredReviews] = useState<Review[]>(reviews)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedReview, setSelectedReview] = useState<Review | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [reviewsPerPage, setReviewsPerPage] = useState(25)
+  const [virtualizedView, setVirtualizedView] = useState(true)
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+
   // Check if we're on a mobile device
-  const [isMobile, setIsMobile] = useState(false);
-  
+  const [isMobile, setIsMobile] = useState(false)
+
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-  
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   // Apply filters and sorting when dependencies change
   useEffect(() => {
-    let results = [...reviews];
-    
+    let results = [...reviews]
+
     // Apply search filter
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
+      const term = searchTerm.toLowerCase()
       results = results.filter(
-        (review) => 
+        (review) =>
           review.text?.toLowerCase().includes(term) ||
           (review.textTranslated && review.textTranslated.toLowerCase().includes(term)) ||
-          review.name?.toLowerCase().includes(term)
-      );
+          review.name?.toLowerCase().includes(term),
+      )
     }
-    
+
     // Apply rating filter
-    if (filterRating !== "all") {
+    if (filterRating !== 'all') {
       results = results.filter(
-        (review) => review.stars === parseInt(filterRating)
-      );
+        (review) => review.stars === parseInt(filterRating),
+      )
     }
-    
+
     // Apply timeframe filter
-    if (filterTimeframe !== "all") {
-      const now = new Date();
-      let cutoffDate = new Date();
-      
+    if (filterTimeframe !== 'all') {
+      const now = new Date()
+      const cutoffDate = new Date()
+
       switch (filterTimeframe) {
-        case "30days":
-          cutoffDate.setDate(now.getDate() - 30);
-          break;
-        case "3months":
-          cutoffDate.setMonth(now.getMonth() - 3);
-          break;
-        case "6months":
-          cutoffDate.setMonth(now.getMonth() - 6);
-          break;
-        case "1year":
-          cutoffDate.setFullYear(now.getFullYear() - 1);
-          break;
+        case '30days':
+          cutoffDate.setDate(now.getDate() - 30)
+          break
+        case '3months':
+          cutoffDate.setMonth(now.getMonth() - 3)
+          break
+        case '6months':
+          cutoffDate.setMonth(now.getMonth() - 6)
+          break
+        case '1year':
+          cutoffDate.setFullYear(now.getFullYear() - 1)
+          break
         default:
-          break;
+          break
       }
-      
+
       results = results.filter(
-        (review) => new Date(review.publishedAtDate) >= cutoffDate
-      );
+        (review) => new Date(review.publishedAtDate) >= cutoffDate,
+      )
     }
-    
+
     // Apply response filter
-    if (filterResponse !== "all") {
-      if (filterResponse === "yes") {
+    if (filterResponse !== 'all') {
+      if (filterResponse === 'yes') {
         results = results.filter(
-          (review) => !!review.responseFromOwnerText?.trim()
-        );
+          (review) => !!review.responseFromOwnerText?.trim(),
+        )
       } else {
         results = results.filter(
-          (review) => !review.responseFromOwnerText?.trim()
-        );
+          (review) => !review.responseFromOwnerText?.trim(),
+        )
       }
     }
-    
+
     // Apply sorting
     results.sort((a, b) => {
-      if (sortBy === "date") {
-        const dateA = new Date(a.publishedAtDate || 0).getTime();
-        const dateB = new Date(b.publishedAtDate || 0).getTime();
-        return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
-      } else if (sortBy === "rating") {
-        return sortOrder === "desc" ? b.stars - a.stars : a.stars - b.stars;
+      if (sortBy === 'date') {
+        const dateA = new Date(a.publishedAtDate || 0).getTime()
+        const dateB = new Date(b.publishedAtDate || 0).getTime()
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB
+      } else if (sortBy === 'rating') {
+        return sortOrder === 'desc' ? b.stars - a.stars : a.stars - b.stars
       } else {
         // Default to date sorting
-        const dateA = new Date(a.publishedAtDate || 0).getTime();
-        const dateB = new Date(b.publishedAtDate || 0).getTime();
-        return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+        const dateA = new Date(a.publishedAtDate || 0).getTime()
+        const dateB = new Date(b.publishedAtDate || 0).getTime()
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB
       }
-    });
-    
-    setFilteredReviews(results);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [reviews, searchTerm, filterRating, filterTimeframe, filterResponse, sortBy, sortOrder]);
-  
+    })
+
+    setFilteredReviews(results)
+    setCurrentPage(1) // Reset to first page when filters change
+  }, [reviews, searchTerm, filterRating, filterTimeframe, filterResponse, sortBy, sortOrder])
+
   // Calculate pagination
-  const indexOfLastReview = currentPage * reviewsPerPage;
-  const indexOfFirstReview = indexOfLastReview - reviewsPerPage;
-  const currentReviews = filteredReviews.slice(indexOfFirstReview, indexOfLastReview);
-  const totalPages = Math.ceil(filteredReviews.length / reviewsPerPage);
-  
+  const indexOfLastReview = currentPage * reviewsPerPage
+  const indexOfFirstReview = indexOfLastReview - reviewsPerPage
+  const currentReviews = filteredReviews.slice(indexOfFirstReview, indexOfLastReview)
+  const totalPages = Math.ceil(filteredReviews.length / reviewsPerPage)
+
   // Format date
   const formatDate = (dateStr: string) => {
     try {
-      const date = new Date(dateStr);
-      return `${formatDistanceToNow(date, { addSuffix: true })}`;
+      const date = new Date(dateStr)
+      return `${formatDistanceToNow(date, { addSuffix: true })}`
     } catch (e) {
-      return "Unknown date";
+      return 'Unknown date'
     }
-  };
-  
+  }
+
   // Toggle sort order
   const toggleSort = (column: string) => {
     if (sortBy === column) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
     } else {
-      setSortBy(column);
-      setSortOrder("desc"); // Default to descending when changing columns
+      setSortBy(column)
+      setSortOrder('desc') // Default to descending when changing columns
     }
-  };
-  
+  }
+
   // Open dialog with full review
   const openReviewDialog = (review: Review) => {
-    setSelectedReview(review);
-    setIsDialogOpen(true);
-  };
+    setSelectedReview(review)
+    setIsDialogOpen(true)
+  }
 
   // Toggle between virtualized and paginated view
   const toggleView = useCallback(() => {
-    setVirtualizedView(!virtualizedView);
+    setVirtualizedView(!virtualizedView)
     // When switching to virtualized view, increase rows per page
-    setReviewsPerPage(virtualizedView ? 25 : 1000);
-  }, [virtualizedView]);
-  
+    setReviewsPerPage(virtualizedView ? 25 : 1000)
+  }, [virtualizedView])
+
   // Handle "Show All" button click
   const handleShowAll = useCallback(() => {
-    setReviewsPerPage(filteredReviews.length || 1000);
-    setVirtualizedView(false);
-  }, [filteredReviews.length]);
+    setReviewsPerPage(filteredReviews.length || 1000)
+    setVirtualizedView(false)
+  }, [filteredReviews.length])
 
   // Mobile filter content
   const filterContent = (
@@ -217,7 +217,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
             <SelectItem value="1">1 star</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select
           value={filterTimeframe}
           onValueChange={setFilterTimeframe}
@@ -233,7 +233,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
             <SelectItem value="1year">Last year</SelectItem>
           </SelectContent>
         </Select>
-        
+
         <Select
           value={filterResponse}
           onValueChange={setFilterResponse}
@@ -251,8 +251,8 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
         <Select
           value={sortBy}
           onValueChange={(value) => {
-            setSortBy(value);
-            setSortOrder("desc");
+            setSortBy(value)
+            setSortOrder('desc')
           }}
         >
           <SelectTrigger className="w-full">
@@ -265,8 +265,8 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
         </Select>
       </div>
     </div>
-  );
-  
+  )
+
   return (
     <Card className="shadow-md border-0 dark:bg-gray-800 mb-8">
       <CardHeader>
@@ -295,16 +295,16 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
             </Select>
             {!isMobile && (
               <>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={toggleView}
                   className="whitespace-nowrap hidden lg:inline-flex"
                 >
-                  {virtualizedView ? "Paginated View" : "Virtual Scroll"}
+                  {virtualizedView ? 'Paginated View' : 'Virtual Scroll'}
                 </Button>
-                <Button 
-                  variant="secondary" 
+                <Button
+                  variant="secondary"
                   size="sm"
                   onClick={handleShowAll}
                   className="whitespace-nowrap hidden md:inline-flex"
@@ -329,7 +329,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                 className="pl-10"
               />
             </div>
-            
+
             {/* Mobile Filters */}
             {isMobile && (
               <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
@@ -347,7 +347,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                 </SheetContent>
               </Sheet>
             )}
-            
+
             {/* Desktop Filters */}
             {!isMobile && (
               <div className="flex gap-4 flex-wrap md:flex-nowrap">
@@ -367,7 +367,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                     <SelectItem value="1">1 star</SelectItem>
                   </SelectContent>
                 </Select>
-                
+
                 <Select
                   value={filterTimeframe}
                   onValueChange={setFilterTimeframe}
@@ -383,7 +383,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                     <SelectItem value="1year">Last year</SelectItem>
                   </SelectContent>
                 </Select>
-                
+
                 <Select
                   value={filterResponse}
                   onValueChange={setFilterResponse}
@@ -400,7 +400,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
               </div>
             )}
           </div>
-          
+
           {/* Mobile Reviews List */}
           {isMobile ? (
             <MobileReviewsList
@@ -417,14 +417,14 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                       Reviewer
                     </TableHead>
                     <TableHead className="w-[45%] min-w-[300px]">Review</TableHead>
-                    <TableHead 
+                    <TableHead
                       className="w-[15%] cursor-pointer min-w-[120px]"
-                      onClick={() => toggleSort("date")}
+                      onClick={() => toggleSort('date')}
                     >
                       <div className="flex items-center gap-1">
                         Date
-                        {sortBy === "date" ? (
-                          sortOrder === "desc" ? (
+                        {sortBy === 'date' ? (
+                          sortOrder === 'desc' ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
                             <ChevronUp className="h-4 w-4" />
@@ -463,9 +463,9 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                               Response: {review.responseFromOwnerText}
                             </div>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="mt-1 flex items-center gap-1 text-xs"
                             onClick={() => openReviewDialog(review)}
                           >
@@ -484,7 +484,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() => window.open(review.reviewUrl, "_blank")}
+                                onClick={() => window.open(review.reviewUrl, '_blank')}
                               >
                                 View Original
                               </DropdownMenuItem>
@@ -509,13 +509,13 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
               </Table>
             </div>
           )}
-          
+
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
               <div className="text-sm text-gray-500 text-center sm:text-left">
-                Showing {indexOfFirstReview + 1} to{" "}
-                {Math.min(indexOfLastReview, filteredReviews.length)} of{" "}
+                Showing {indexOfFirstReview + 1} to{' '}
+                {Math.min(indexOfLastReview, filteredReviews.length)} of{' '}
                 {filteredReviews.length} reviews
               </div>
               <div className="flex items-center gap-2 sm:gap-4">
@@ -563,7 +563,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
           )}
         </div>
       </CardContent>
-      
+
       {/* Full Review Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-[95vw] sm:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -579,7 +579,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
               <span>{selectedReview && formatDate(selectedReview.publishedAtDate)}</span>
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {/* Original language review text */}
             <div className="space-y-2">
@@ -588,7 +588,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                 {selectedReview?.text}
               </p>
             </div>
-            
+
             {/* Translated text when available */}
             {selectedReview?.textTranslated && (
               <div className="space-y-2">
@@ -598,7 +598,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                 </p>
               </div>
             )}
-            
+
             {/* Owner's response when available */}
             {selectedReview?.responseFromOwnerText && (
               <div className="space-y-2 border-t pt-4">
@@ -610,7 +610,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                 </p>
               </div>
             )}
-            
+
             {/* Additional review metadata */}
             <div className="pt-2 mt-4 border-t">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-500">
@@ -618,17 +618,17 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
                   <span className="font-medium">Review Date:</span> {selectedReview && new Date(selectedReview.publishedAtDate).toLocaleDateString()}
                 </div>
                 <div>
-                  <span className="font-medium">Original Language:</span> {selectedReview?.originalLanguage || "Unknown"}
+                  <span className="font-medium">Original Language:</span> {selectedReview?.originalLanguage || 'Unknown'}
                 </div>
               </div>
             </div>
-            
+
             <div className="pt-4 flex flex-col sm:flex-row gap-2 sm:justify-between">
               {selectedReview?.reviewUrl && (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
-                  onClick={() => window.open(selectedReview.reviewUrl, "_blank")}
+                  onClick={() => window.open(selectedReview.reviewUrl, '_blank')}
                   className="w-full sm:w-auto"
                 >
                   View Original Source
@@ -642,7 +642,7 @@ const ReviewsTable = ({ reviews }: ReviewsTableProps) => {
         </DialogContent>
       </Dialog>
     </Card>
-  );
-};
+  )
+}
 
-export default ReviewsTable;
+export default ReviewsTable

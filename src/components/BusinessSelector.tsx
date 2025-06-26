@@ -1,15 +1,15 @@
-import { Building2, Users, MapPin, TrendingUp } from "lucide-react";
+import { Building2, Users, MapPin, TrendingUp } from 'lucide-react'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { BusinessType } from "@/types/businessTypes";
-import { getBusinessTypeFromName, getKnownBusinessNames } from "@/types/BusinessMappings";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import type { BusinessType } from '@/types/businessTypes'
+import { getBusinessTypeFromName, getKnownBusinessNames } from '@/types/BusinessMappings'
+import { cn } from '@/lib/utils'
 
 interface BusinessData {
   totalReviews: number;
@@ -32,60 +32,60 @@ const businessIcons: Record<BusinessType | 'all', React.ComponentType<any>> = {
   retail: Building2,
   service: Building2,
   other: Building2,
-  all: Users
-};
+  all: Users,
+}
 
 const businessColors: Record<BusinessType | 'all', string> = {
-  cafe: "bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100",
-  bar: "bg-purple-100 dark:bg-purple-900/30 text-purple-900 dark:text-purple-100",
-  restaurant: "bg-rose-100 dark:bg-rose-900/30 text-rose-900 dark:text-rose-100",
-  gallery: "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100",
-  retail: "bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-100",
-  service: "bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-100",
-  other: "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100",
-  all: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-100"
-};
+  cafe: 'bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100',
+  bar: 'bg-purple-100 dark:bg-purple-900/30 text-purple-900 dark:text-purple-100',
+  restaurant: 'bg-rose-100 dark:bg-rose-900/30 text-rose-900 dark:text-rose-100',
+  gallery: 'bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100',
+  retail: 'bg-green-100 dark:bg-green-900/30 text-green-900 dark:text-green-100',
+  service: 'bg-orange-100 dark:bg-orange-900/30 text-orange-900 dark:text-orange-100',
+  other: 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
+  all: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-100',
+}
 
 export default function BusinessSelector({
   selectedBusiness,
   onBusinessChange,
   businessData,
-  className
+  className,
 }: BusinessSelectorProps) {
   // Get all known business names
-  const allBusinesses = getKnownBusinessNames();
-  
+  const allBusinesses = getKnownBusinessNames()
+
   const getBusinessType = (name: string): BusinessType | 'all' => {
-    if (name === 'all') return 'all';
-    return getBusinessTypeFromName(name);
-  };
+    if (name === 'all') return 'all'
+    return getBusinessTypeFromName(name)
+  }
 
   const getBusinessStats = (businessName: string) => {
-    if (!businessData || businessName === 'all') return null;
-    return businessData[businessName];
-  };
+    if (!businessData || businessName === 'all') return null
+    return businessData[businessName]
+  }
 
   const getTrendIcon = (trend?: 'up' | 'down' | 'stable') => {
-    if (!trend) return null;
-    
+    if (!trend) return null
+
     if (trend === 'up') {
-      return <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />;
+      return <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />
     } else if (trend === 'down') {
-      return <TrendingUp className="h-3 w-3 text-red-600 dark:text-red-400 rotate-180" />;
+      return <TrendingUp className="h-3 w-3 text-red-600 dark:text-red-400 rotate-180" />
     }
-    return <span className="h-3 w-3 text-gray-400">—</span>;
-  };
+    return <span className="h-3 w-3 text-gray-400">—</span>
+  }
 
   return (
     <Select value={selectedBusiness} onValueChange={onBusinessChange}>
-      <SelectTrigger className={cn("w-full", className)}>
+      <SelectTrigger className={cn('w-full', className)}>
         <SelectValue placeholder="Select a business">
           <div className="flex items-center gap-2 truncate">
             {(() => {
-              const type = getBusinessType(selectedBusiness);
-              const Icon = businessIcons[type];
-              const stats = getBusinessStats(selectedBusiness);
-              
+              const type = getBusinessType(selectedBusiness)
+              const Icon = businessIcons[type]
+              const stats = getBusinessStats(selectedBusiness)
+
               return (
                 <>
                   <Icon className="h-4 w-4 flex-shrink-0" />
@@ -101,7 +101,7 @@ export default function BusinessSelector({
                     </div>
                   )}
                 </>
-              );
+              )
             })()}
           </div>
         </SelectValue>
@@ -109,7 +109,7 @@ export default function BusinessSelector({
       <SelectContent className="max-h-[300px]">
         <SelectItem value="all" className="py-3">
           <div className="flex items-center gap-3">
-            <div className={cn("p-1.5 rounded", businessColors.all)}>
+            <div className={cn('p-1.5 rounded', businessColors.all)}>
               <Users className="h-4 w-4" />
             </div>
             <div className="flex-1">
@@ -120,19 +120,19 @@ export default function BusinessSelector({
             </div>
           </div>
         </SelectItem>
-        
+
         <div className="my-1 h-px bg-border" />
-        
+
         {allBusinesses.map((business) => {
-          const type = getBusinessType(business);
-          const Icon = businessIcons[type];
-          const stats = getBusinessStats(business);
-          const colorClass = businessColors[type];
-          
+          const type = getBusinessType(business)
+          const Icon = businessIcons[type]
+          const stats = getBusinessStats(business)
+          const colorClass = businessColors[type]
+
           return (
             <SelectItem key={business} value={business} className="py-3">
               <div className="flex items-center gap-3 w-full">
-                <div className={cn("p-1.5 rounded flex-shrink-0", colorClass)}>
+                <div className={cn('p-1.5 rounded flex-shrink-0', colorClass)}>
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -157,9 +157,9 @@ export default function BusinessSelector({
                 </div>
               </div>
             </SelectItem>
-          );
+          )
         })}
       </SelectContent>
     </Select>
-  );
+  )
 }

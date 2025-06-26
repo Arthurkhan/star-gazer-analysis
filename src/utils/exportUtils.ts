@@ -1,6 +1,6 @@
-import { Review } from '@/types/reviews';
-import { AnalysisSummaryData } from '@/types/analysisSummary';
-import { format } from 'date-fns';
+import type { Review } from '@/types/reviews'
+import type { AnalysisSummaryData } from '@/types/analysisSummary'
+import { format } from 'date-fns'
 
 // Export configuration interface
 export interface ExportConfig {
@@ -39,8 +39,8 @@ export const defaultExportConfig: ExportConfig = {
     colors: {
       primary: '#3b82f6',
       secondary: '#64748b',
-      accent: '#10b981'
-    }
+      accent: '#10b981',
+    },
   },
   sections: {
     coverPage: true,
@@ -48,20 +48,20 @@ export const defaultExportConfig: ExportConfig = {
     charts: true,
     detailedAnalysis: true,
     recommendations: true,
-    appendix: false
+    appendix: false,
   },
   chartOptions: {
     includeImages: true,
     resolution: 'high',
-    format: 'png'
-  }
-};
+    format: 'png',
+  },
+}
 
 // Data preparation utilities
 export const prepareExportData = (
   reviews: Review[],
   analysisData: AnalysisSummaryData,
-  config: ExportConfig
+  config: ExportConfig,
 ) => {
   const metadata = {
     title: getReportTitle(config.template),
@@ -70,11 +70,11 @@ export const prepareExportData = (
     totalReviews: reviews.length,
     dateRange: {
       from: analysisData.timePeriod.current.start,
-      to: analysisData.timePeriod.current.end
+      to: analysisData.timePeriod.current.end,
     },
     generatedAt: new Date(),
-    config
-  };
+    config,
+  }
 
   return {
     metadata,
@@ -82,13 +82,13 @@ export const prepareExportData = (
     analysis: analysisData,
     charts: generateChartData(analysisData, config),
     recommendations: extractRecommendations(analysisData),
-    appendix: config.sections.appendix ? generateAppendix(reviews, analysisData) : null
-  };
-};
+    appendix: config.sections.appendix ? generateAppendix(reviews, analysisData) : null,
+  }
+}
 
 // Chart data generation for exports
 export const generateChartData = (analysisData: AnalysisSummaryData, config: ExportConfig) => {
-  if (!config.sections.charts) return null;
+  if (!config.sections.charts) return null
 
   return {
     ratingTrends: {
@@ -99,9 +99,9 @@ export const generateChartData = (analysisData: AnalysisSummaryData, config: Exp
         responsive: true,
         plugins: {
           legend: { position: 'top' as const },
-          title: { display: true, text: 'Monthly Rating Trends' }
-        }
-      }
+          title: { display: true, text: 'Monthly Rating Trends' },
+        },
+      },
     },
     sentimentDistribution: {
       type: 'pie',
@@ -112,11 +112,11 @@ export const generateChartData = (analysisData: AnalysisSummaryData, config: Exp
           data: [
             analysisData.sentimentAnalysis.distribution.positive,
             analysisData.sentimentAnalysis.distribution.neutral,
-            analysisData.sentimentAnalysis.distribution.negative
+            analysisData.sentimentAnalysis.distribution.negative,
           ],
-          backgroundColor: ['#10b981', '#64748b', '#ef4444']
-        }]
-      }
+          backgroundColor: ['#10b981', '#64748b', '#ef4444'],
+        }],
+      },
     },
     themeFrequency: {
       type: 'bar',
@@ -126,9 +126,9 @@ export const generateChartData = (analysisData: AnalysisSummaryData, config: Exp
         datasets: [{
           label: 'Mentions',
           data: analysisData.thematicAnalysis.topCategories.slice(0, 10).map(cat => cat.count),
-          backgroundColor: config.branding.colors?.primary || '#3b82f6'
-        }]
-      }
+          backgroundColor: config.branding.colors?.primary || '#3b82f6',
+        }],
+      },
     },
     performanceMetrics: {
       type: 'radar',
@@ -142,21 +142,21 @@ export const generateChartData = (analysisData: AnalysisSummaryData, config: Exp
             analysisData.sentimentAnalysis.distribution.positive,
             analysisData.responseAnalytics.responseRate,
             Math.min(100, (analysisData.performanceMetrics.totalReviews / 100) * 10),
-            Math.max(0, Math.min(100, analysisData.performanceMetrics.growthRate + 50))
+            Math.max(0, Math.min(100, analysisData.performanceMetrics.growthRate + 50)),
           ],
           backgroundColor: 'rgba(59, 130, 246, 0.2)',
           borderColor: config.branding.colors?.primary || '#3b82f6',
-          borderWidth: 2
-        }]
-      }
-    }
-  };
-};
+          borderWidth: 2,
+        }],
+      },
+    },
+  }
+}
 
 // PDF generation utilities
 export const generatePDFContent = (exportData: any, config: ExportConfig): string => {
-  const { metadata, analysis, charts, recommendations } = exportData;
-  
+  const { metadata, analysis, charts, recommendations } = exportData
+
   let htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -168,77 +168,77 @@ export const generatePDFContent = (exportData: any, config: ExportConfig): strin
       </style>
     </head>
     <body>
-  `;
+  `
 
   // Cover page
   if (config.sections.coverPage) {
-    htmlContent += generateCoverPage(metadata, config);
+    htmlContent += generateCoverPage(metadata, config)
   }
 
   // Executive summary
   if (config.sections.executiveSummary) {
-    htmlContent += generateExecutiveSummary(analysis, config);
+    htmlContent += generateExecutiveSummary(analysis, config)
   }
 
   // Charts section
   if (config.sections.charts && charts) {
-    htmlContent += generateChartsSection(charts, config);
+    htmlContent += generateChartsSection(charts, config)
   }
 
   // Detailed analysis
   if (config.sections.detailedAnalysis) {
-    htmlContent += generateDetailedAnalysis(analysis, config);
+    htmlContent += generateDetailedAnalysis(analysis, config)
   }
 
   // Recommendations
   if (config.sections.recommendations && recommendations) {
-    htmlContent += generateRecommendationsSection(recommendations, config);
+    htmlContent += generateRecommendationsSection(recommendations, config)
   }
 
   // Appendix
   if (config.sections.appendix && exportData.appendix) {
-    htmlContent += generateAppendixSection(exportData.appendix, config);
+    htmlContent += generateAppendixSection(exportData.appendix, config)
   }
 
   htmlContent += `
     </body>
     </html>
-  `;
+  `
 
-  return htmlContent;
-};
+  return htmlContent
+}
 
 // Excel export utilities
 export const generateExcelWorkbook = (exportData: any, config: ExportConfig) => {
-  const { metadata, reviews, analysis } = exportData;
-  
+  const { metadata, reviews, analysis } = exportData
+
   const workbook = {
     SheetNames: [] as string[],
-    Sheets: {} as Record<string, any>
-  };
+    Sheets: {} as Record<string, any>,
+  }
 
   // Summary sheet
-  workbook.SheetNames.push('Summary');
-  workbook.Sheets['Summary'] = generateSummarySheet(analysis, metadata);
+  workbook.SheetNames.push('Summary')
+  workbook.Sheets['Summary'] = generateSummarySheet(analysis, metadata)
 
   // Reviews data sheet
-  workbook.SheetNames.push('Reviews Data');
-  workbook.Sheets['Reviews Data'] = generateReviewsSheet(reviews);
+  workbook.SheetNames.push('Reviews Data')
+  workbook.Sheets['Reviews Data'] = generateReviewsSheet(reviews)
 
   // Performance metrics sheet
-  workbook.SheetNames.push('Performance');
-  workbook.Sheets['Performance'] = generatePerformanceSheet(analysis);
+  workbook.SheetNames.push('Performance')
+  workbook.Sheets['Performance'] = generatePerformanceSheet(analysis)
 
   // Sentiment analysis sheet
-  workbook.SheetNames.push('Sentiment');
-  workbook.Sheets['Sentiment'] = generateSentimentSheet(analysis);
+  workbook.SheetNames.push('Sentiment')
+  workbook.Sheets['Sentiment'] = generateSentimentSheet(analysis)
 
   // Themes sheet
-  workbook.SheetNames.push('Themes');
-  workbook.Sheets['Themes'] = generateThemesSheet(analysis);
+  workbook.SheetNames.push('Themes')
+  workbook.Sheets['Themes'] = generateThemesSheet(analysis)
 
-  return workbook;
-};
+  return workbook
+}
 
 // CSV export utilities
 export const generateCSVContent = (reviews: Review[], config: ExportConfig): string => {
@@ -251,8 +251,8 @@ export const generateCSVContent = (reviews: Review[], config: ExportConfig): str
     'Staff Mentioned',
     'Main Themes',
     'Response Status',
-    'Review URL'
-  ];
+    'Review URL',
+  ]
 
   const rows = reviews.map(review => [
     format(new Date(review.publishedAtDate), 'yyyy-MM-dd'),
@@ -263,13 +263,13 @@ export const generateCSVContent = (reviews: Review[], config: ExportConfig): str
     escapeCSVField(review.staffMentioned || ''),
     escapeCSVField(review.mainThemes || ''),
     review.responseFromOwnerText ? 'Responded' : 'No Response',
-    review.reviewUrl || ''
-  ]);
+    review.reviewUrl || '',
+  ])
 
   return [headers, ...rows]
     .map(row => row.join(','))
-    .join('\n');
-};
+    .join('\n')
+}
 
 // JSON export utilities
 export const generateJSONContent = (exportData: any, config: ExportConfig): string => {
@@ -278,15 +278,15 @@ export const generateJSONContent = (exportData: any, config: ExportConfig): stri
     summary: {
       healthScore: exportData.analysis.businessHealthScore,
       performanceMetrics: exportData.analysis.performanceMetrics,
-      keyInsights: extractKeyInsights(exportData.analysis)
+      keyInsights: extractKeyInsights(exportData.analysis),
     },
     analysis: config.sections.detailedAnalysis ? exportData.analysis : null,
     reviews: config.sections.appendix ? exportData.reviews : null,
-    generatedAt: new Date().toISOString()
-  };
+    generatedAt: new Date().toISOString(),
+  }
 
-  return JSON.stringify(output, null, 2);
-};
+  return JSON.stringify(output, null, 2)
+}
 
 // Template generation functions
 const getReportTitle = (template: string): string => {
@@ -294,10 +294,10 @@ const getReportTitle = (template: string): string => {
     executive: 'Executive Summary Report',
     detailed: 'Comprehensive Analysis Report',
     minimal: 'Key Insights Report',
-    custom: 'Business Analysis Report'
-  };
-  return titles[template as keyof typeof titles] || titles.executive;
-};
+    custom: 'Business Analysis Report',
+  }
+  return titles[template as keyof typeof titles] || titles.executive
+}
 
 const generateCoverPage = (metadata: any, config: ExportConfig): string => {
   return `
@@ -318,8 +318,8 @@ const generateCoverPage = (metadata: any, config: ExportConfig): string => {
       </div>
     </div>
     <div class="page-break"></div>
-  `;
-};
+  `
+}
 
 const generateExecutiveSummary = (analysis: AnalysisSummaryData, config: ExportConfig): string => {
   return `
@@ -356,8 +356,8 @@ const generateExecutiveSummary = (analysis: AnalysisSummaryData, config: ExportC
         </ul>
       </div>
     </div>
-  `;
-};
+  `
+}
 
 const generateChartsSection = (charts: any, config: ExportConfig): string => {
   return `
@@ -377,8 +377,8 @@ const generateChartsSection = (charts: any, config: ExportConfig): string => {
         `).join('')}
       </div>
     </div>
-  `;
-};
+  `
+}
 
 const generateDetailedAnalysis = (analysis: AnalysisSummaryData, config: ExportConfig): string => {
   return `
@@ -433,8 +433,8 @@ const generateDetailedAnalysis = (analysis: AnalysisSummaryData, config: ExportC
         </div>
       ` : ''}
     </div>
-  `;
-};
+  `
+}
 
 const generateRecommendationsSection = (recommendations: any, config: ExportConfig): string => {
   return `
@@ -474,23 +474,23 @@ const generateRecommendationsSection = (recommendations: any, config: ExportConf
         </div>
       ` : ''}
     </div>
-  `;
-};
+  `
+}
 
 // Helper functions
 const filterReviewsForExport = (reviews: Review[], config: ExportConfig): Review[] => {
   // Apply any filtering logic based on config
-  return reviews;
-};
+  return reviews
+}
 
 const extractRecommendations = (analysisData: AnalysisSummaryData) => {
   return {
     urgent: analysisData.actionItems.urgentActions,
     improvements: analysisData.actionItems.improvementOpportunities,
     strengths: analysisData.actionItems.strengthsToLeverage,
-    monitoring: analysisData.actionItems.keyMetricsToMonitor
-  };
-};
+    monitoring: analysisData.actionItems.keyMetricsToMonitor,
+  }
+}
 
 const generateAppendix = (reviews: Review[], analysisData: AnalysisSummaryData) => {
   return {
@@ -498,31 +498,31 @@ const generateAppendix = (reviews: Review[], analysisData: AnalysisSummaryData) 
     methodologyNotes: {
       sentimentAnalysis: 'Sentiment scores calculated using natural language processing algorithms',
       themeExtraction: 'Themes identified through keyword frequency analysis and clustering',
-      healthScore: 'Composite score based on rating (40%), sentiment (30%), response rate (20%), and volume trend (10%)'
+      healthScore: 'Composite score based on rating (40%), sentiment (30%), response rate (20%), and volume trend (10%)',
     },
     dataQuality: {
       totalReviews: reviews.length,
       reviewsWithText: reviews.filter(r => r.text && r.text.length > 0).length,
       reviewsWithSentiment: reviews.filter(r => r.sentiment).length,
-      reviewsWithThemes: reviews.filter(r => r.mainThemes).length
-    }
-  };
-};
+      reviewsWithThemes: reviews.filter(r => r.mainThemes).length,
+    },
+  }
+}
 
 const extractKeyInsights = (analysis: AnalysisSummaryData) => {
   return [
     `Business health score of ${analysis.businessHealthScore.overall}% indicates ${
-      analysis.businessHealthScore.overall >= 80 ? 'excellent' : 
+      analysis.businessHealthScore.overall >= 80 ? 'excellent' :
       analysis.businessHealthScore.overall >= 60 ? 'good' : 'needs improvement'
     } performance`,
     `${analysis.sentimentAnalysis.distribution.positive.toFixed(1)}% of reviews express positive sentiment`,
     `Top concern: ${analysis.thematicAnalysis.attentionAreas[0]?.category || 'None identified'}`,
     `Response rate of ${analysis.responseAnalytics.responseRate.toFixed(1)}% ${
-      analysis.responseAnalytics.responseRate >= 80 ? 'exceeds' : 
+      analysis.responseAnalytics.responseRate >= 80 ? 'exceeds' :
       analysis.responseAnalytics.responseRate >= 60 ? 'meets' : 'falls below'
-    } industry standards`
-  ];
-};
+    } industry standards`,
+  ]
+}
 
 const generateSummarySheet = (analysis: AnalysisSummaryData, metadata: any) => {
   return [
@@ -542,12 +542,12 @@ const generateSummarySheet = (analysis: AnalysisSummaryData, metadata: any) => {
     ['Average Rating', analysis.performanceMetrics.averageRating.toFixed(2)],
     ['Growth Rate', `${analysis.performanceMetrics.growthRate.toFixed(1)}%`],
     ['Response Rate', `${analysis.responseAnalytics.responseRate.toFixed(1)}%`],
-    ['Positive Sentiment', `${analysis.sentimentAnalysis.distribution.positive.toFixed(1)}%`]
-  ];
-};
+    ['Positive Sentiment', `${analysis.sentimentAnalysis.distribution.positive.toFixed(1)}%`],
+  ]
+}
 
 const generateReviewsSheet = (reviews: Review[]) => {
-  const headers = ['Date', 'Rating', 'Customer', 'Review Text', 'Sentiment', 'Staff Mentioned', 'Themes'];
+  const headers = ['Date', 'Rating', 'Customer', 'Review Text', 'Sentiment', 'Staff Mentioned', 'Themes']
   const rows = reviews.map(review => [
     format(new Date(review.publishedAtDate), 'yyyy-MM-dd'),
     review.stars,
@@ -555,11 +555,11 @@ const generateReviewsSheet = (reviews: Review[]) => {
     review.text || '',
     review.sentiment || '',
     review.staffMentioned || '',
-    review.mainThemes || ''
-  ]);
-  
-  return [headers, ...rows];
-};
+    review.mainThemes || '',
+  ])
+
+  return [headers, ...rows]
+}
 
 const generatePerformanceSheet = (analysis: AnalysisSummaryData) => {
   return [
@@ -568,9 +568,9 @@ const generatePerformanceSheet = (analysis: AnalysisSummaryData) => {
     ['Average Rating', analysis.performanceMetrics.averageRating.toFixed(2), '4.0', analysis.performanceMetrics.averageRating >= 4.0 ? 'Above' : 'Below'],
     ['Total Reviews', analysis.performanceMetrics.totalReviews, '100', analysis.performanceMetrics.totalReviews >= 100 ? 'Above' : 'Below'],
     ['Growth Rate', `${analysis.performanceMetrics.growthRate.toFixed(1)}%`, '5%', analysis.performanceMetrics.growthRate >= 5 ? 'Above' : 'Below'],
-    ['Response Rate', `${analysis.responseAnalytics.responseRate.toFixed(1)}%`, '60%', analysis.responseAnalytics.responseRate >= 60 ? 'Above' : 'Below']
-  ];
-};
+    ['Response Rate', `${analysis.responseAnalytics.responseRate.toFixed(1)}%`, '60%', analysis.responseAnalytics.responseRate >= 60 ? 'Above' : 'Below'],
+  ]
+}
 
 const generateSentimentSheet = (analysis: AnalysisSummaryData) => {
   return [
@@ -578,25 +578,25 @@ const generateSentimentSheet = (analysis: AnalysisSummaryData) => {
     ['Category', 'Percentage', 'Count'],
     ['Positive', `${analysis.sentimentAnalysis.distribution.positive.toFixed(1)}%`, Math.round(analysis.sentimentAnalysis.distribution.positive * analysis.performanceMetrics.totalReviews / 100)],
     ['Neutral', `${analysis.sentimentAnalysis.distribution.neutral.toFixed(1)}%`, Math.round(analysis.sentimentAnalysis.distribution.neutral * analysis.performanceMetrics.totalReviews / 100)],
-    ['Negative', `${analysis.sentimentAnalysis.distribution.negative.toFixed(1)}%`, Math.round(analysis.sentimentAnalysis.distribution.negative * analysis.performanceMetrics.totalReviews / 100)]
-  ];
-};
+    ['Negative', `${analysis.sentimentAnalysis.distribution.negative.toFixed(1)}%`, Math.round(analysis.sentimentAnalysis.distribution.negative * analysis.performanceMetrics.totalReviews / 100)],
+  ]
+}
 
 const generateThemesSheet = (analysis: AnalysisSummaryData) => {
-  const headers = ['Theme', 'Mentions', 'Avg Sentiment', 'Category'];
+  const headers = ['Theme', 'Mentions', 'Avg Sentiment', 'Category']
   const rows = analysis.thematicAnalysis.topCategories.map(theme => [
     theme.category,
     theme.count,
     theme.averageSentiment.toFixed(2),
-    theme.averageSentiment > 0.1 ? 'Positive' : theme.averageSentiment < -0.1 ? 'Negative' : 'Neutral'
-  ]);
-  
-  return [headers, ...rows];
-};
+    theme.averageSentiment > 0.1 ? 'Positive' : theme.averageSentiment < -0.1 ? 'Negative' : 'Neutral',
+  ])
+
+  return [headers, ...rows]
+}
 
 const getPDFStyles = (config: ExportConfig): string => {
-  const colors = config.branding.colors || defaultExportConfig.branding.colors!;
-  
+  const colors = config.branding.colors || defaultExportConfig.branding.colors!
+
   return `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
@@ -635,66 +635,66 @@ const getPDFStyles = (config: ExportConfig): string => {
       body { -webkit-print-color-adjust: exact; }
       .page-break { page-break-after: always; }
     }
-  `;
-};
+  `
+}
 
 const escapeCSVField = (field: string): string => {
   if (field.includes(',') || field.includes('"') || field.includes('\n')) {
-    return `"${field.replace(/"/g, '""')}"`;
+    return `"${field.replace(/"/g, '""')}"`
   }
-  return field;
-};
+  return field
+}
 
 const getChartDescription = (key: string, chart: any): string => {
   const descriptions: Record<string, string> = {
     ratingTrends: 'Shows how customer ratings have evolved over time, identifying trends and patterns in satisfaction levels.',
     sentimentDistribution: 'Breaks down customer sentiment across all reviews, showing the proportion of positive, neutral, and negative feedback.',
     themeFrequency: 'Displays the most frequently mentioned topics and themes in customer reviews.',
-    performanceMetrics: 'Provides a comprehensive overview of key performance indicators in a radar chart format.'
-  };
-  return descriptions[key] || 'Performance visualization chart';
-};
+    performanceMetrics: 'Provides a comprehensive overview of key performance indicators in a radar chart format.',
+  }
+  return descriptions[key] || 'Performance visualization chart'
+}
 
 // File download utility
 export const downloadFile = (content: string | Blob, filename: string, mimeType: string) => {
-  let blob: Blob;
-  
+  let blob: Blob
+
   if (content instanceof Blob) {
-    blob = content;
+    blob = content
   } else {
-    blob = new Blob([content], { type: mimeType });
+    blob = new Blob([content], { type: mimeType })
   }
-  
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
 
 // Export format utilities
 export const exportFormats = {
   pdf: {
     extension: 'pdf',
     mimeType: 'application/pdf',
-    generator: generatePDFContent
+    generator: generatePDFContent,
   },
   excel: {
     extension: 'xlsx',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    generator: generateExcelWorkbook
+    generator: generateExcelWorkbook,
   },
   csv: {
     extension: 'csv',
     mimeType: 'text/csv',
-    generator: generateCSVContent
+    generator: generateCSVContent,
   },
   json: {
     extension: 'json',
     mimeType: 'application/json',
-    generator: generateJSONContent
-  }
-};
+    generator: generateJSONContent,
+  },
+}

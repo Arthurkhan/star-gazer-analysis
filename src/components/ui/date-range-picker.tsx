@@ -1,16 +1,16 @@
-import * as React from "react";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
+import * as React from 'react'
+import { format } from 'date-fns'
+import { Calendar as CalendarIcon } from 'lucide-react'
+import type { DateRange } from 'react-day-picker'
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from '@/components/ui/popover'
 
 interface DateRangePickerProps {
   value: DateRange | undefined;
@@ -23,20 +23,20 @@ interface DateRangePickerProps {
 export function DateRangePicker({
   value,
   onChange,
-  placeholder = "Select date range",
+  placeholder = 'Select date range',
   disabled = false,
   className,
 }: DateRangePickerProps) {
   return (
-    <div className={cn("grid gap-2", className)}>
+    <div className={cn('grid gap-2', className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
-            variant={"outline"}
+            variant={'outline'}
             className={cn(
-              "w-full justify-start text-left font-normal",
-              !value && "text-muted-foreground"
+              'w-full justify-start text-left font-normal',
+              !value && 'text-muted-foreground',
             )}
             disabled={disabled}
           >
@@ -44,11 +44,11 @@ export function DateRangePicker({
             {value?.from ? (
               value.to ? (
                 <>
-                  {format(value.from, "LLL dd, yyyy")} -{" "}
-                  {format(value.to, "LLL dd, yyyy")}
+                  {format(value.from, 'LLL dd, yyyy')} -{' '}
+                  {format(value.to, 'LLL dd, yyyy')}
                 </>
               ) : (
-                format(value.from, "LLL dd, yyyy")
+                format(value.from, 'LLL dd, yyyy')
               )
             ) : (
               <span>{placeholder}</span>
@@ -67,7 +67,7 @@ export function DateRangePicker({
         </PopoverContent>
       </Popover>
     </div>
-  );
+  )
 }
 
-export default DateRangePicker;
+export default DateRangePicker

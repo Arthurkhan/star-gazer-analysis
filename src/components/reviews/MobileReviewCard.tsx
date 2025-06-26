@@ -1,9 +1,9 @@
-import { Review } from "@/types/reviews";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from "date-fns";
-import { Eye, Star, MessageSquare, ExternalLink } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import type { Review } from '@/types/reviews'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { formatDistanceToNow } from 'date-fns'
+import { Eye, Star, MessageSquare, ExternalLink } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 interface MobileReviewCardProps {
   review: Review;
@@ -13,12 +13,12 @@ interface MobileReviewCardProps {
 const MobileReviewCard = ({ review, onViewFull }: MobileReviewCardProps) => {
   const formatDate = (dateStr: string) => {
     try {
-      const date = new Date(dateStr);
-      return formatDistanceToNow(date, { addSuffix: true });
+      const date = new Date(dateStr)
+      return formatDistanceToNow(date, { addSuffix: true })
     } catch (e) {
-      return "Unknown date";
+      return 'Unknown date'
     }
-  };
+  }
 
   const getStarDisplay = (stars: number) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -26,18 +26,18 @@ const MobileReviewCard = ({ review, onViewFull }: MobileReviewCardProps) => {
         key={i}
         className={`h-4 w-4 ${
           i < stars
-            ? "fill-yellow-500 text-yellow-500"
-            : "text-gray-300 dark:text-gray-600"
+            ? 'fill-yellow-500 text-yellow-500'
+            : 'text-gray-300 dark:text-gray-600'
         }`}
       />
-    ));
-  };
+    ))
+  }
 
   const truncateText = (text: string, maxLength: number = 150) => {
-    if (!text) return "";
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
-  };
+    if (!text) return ''
+    if (text.length <= maxLength) return text
+    return `${text.substring(0, maxLength)}...`
+  }
 
   return (
     <Card className="mb-4 shadow-sm">
@@ -64,7 +64,7 @@ const MobileReviewCard = ({ review, onViewFull }: MobileReviewCardProps) => {
         {/* Review Text */}
         <div className="mb-3">
           <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-            {truncateText(review.textTranslated || review.text || "")}
+            {truncateText(review.textTranslated || review.text || '')}
           </p>
         </div>
 
@@ -82,7 +82,7 @@ const MobileReviewCard = ({ review, onViewFull }: MobileReviewCardProps) => {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => window.open(review.reviewUrl, "_blank")}
+            onClick={() => window.open(review.reviewUrl, '_blank')}
             className="text-xs"
           >
             <ExternalLink className="h-3 w-3" />
@@ -90,8 +90,8 @@ const MobileReviewCard = ({ review, onViewFull }: MobileReviewCardProps) => {
         </div>
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
 interface MobileReviewsListProps {
   reviews: Review[];
@@ -104,7 +104,7 @@ export const MobileReviewsList = ({ reviews, onViewFull }: MobileReviewsListProp
       <div className="text-center py-8 text-gray-500">
         No reviews found matching your filters
       </div>
-    );
+    )
   }
 
   return (
@@ -117,7 +117,7 @@ export const MobileReviewsList = ({ reviews, onViewFull }: MobileReviewsListProp
         />
       ))}
     </div>
-  );
-};
+  )
+}
 
-export default MobileReviewCard;
+export default MobileReviewCard

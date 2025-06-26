@@ -1,2 +1,2 @@
 // Shared hooks
-export { useConnectionTest } from './useConnectionTest';
+export { useConnectionTest } from './useConnectionTest'

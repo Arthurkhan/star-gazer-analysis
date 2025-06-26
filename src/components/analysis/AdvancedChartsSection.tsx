@@ -1,33 +1,33 @@
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  LineChart, 
-  Line, 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  ScatterChart, 
+import React, { useState, useMemo } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  ScatterChart,
   Scatter,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
-} from 'recharts';
-import { TrendingUp, TrendingDown, BarChart3, Filter, Download, ZoomIn } from 'lucide-react';
-import { Review } from '@/types/reviews';
-import { calculateSeasonalTrends, analyzeCustomerJourney, generateCompetitiveInsights } from '@/utils/performanceMetrics';
-import { CustomBarLineTooltip, CustomPieTooltip } from '@/components/review-analysis/CustomTooltips';
-import { subMonths, format, parseISO } from 'date-fns';
+  Cell,
+} from 'recharts'
+import { TrendingUp, TrendingDown, BarChart3, Filter, Download, ZoomIn } from 'lucide-react'
+import type { Review } from '@/types/reviews'
+import { calculateSeasonalTrends, analyzeCustomerJourney, generateCompetitiveInsights } from '@/utils/performanceMetrics'
+import { CustomBarLineTooltip, CustomPieTooltip } from '@/components/review-analysis/CustomTooltips'
+import { subMonths, format, parseISO } from 'date-fns'
 
 interface AdvancedChartsSectionProps {
   reviews: Review[];
@@ -35,81 +35,81 @@ interface AdvancedChartsSectionProps {
   businessType: string;
 }
 
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1', '#d084d0'];
+const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1', '#d084d0']
 
 export function AdvancedChartsSection({ reviews, businessName, businessType }: AdvancedChartsSectionProps) {
-  const [selectedTimeRange, setSelectedTimeRange] = useState<string>('12m');
-  const [selectedChart, setSelectedChart] = useState<string>('trends');
-  const [drillDownData, setDrillDownData] = useState<any>(null);
+  const [selectedTimeRange, setSelectedTimeRange] = useState<string>('12m')
+  const [selectedChart, setSelectedChart] = useState<string>('trends')
+  const [drillDownData, setDrillDownData] = useState<any>(null)
 
   // Filter reviews based on selected time range
   const filteredReviews = useMemo(() => {
-    const now = new Date();
-    let startDate: Date;
-    
+    const now = new Date()
+    let startDate: Date
+
     switch (selectedTimeRange) {
       case '3m':
-        startDate = subMonths(now, 3);
-        break;
+        startDate = subMonths(now, 3)
+        break
       case '6m':
-        startDate = subMonths(now, 6);
-        break;
+        startDate = subMonths(now, 6)
+        break
       case '12m':
-        startDate = subMonths(now, 12);
-        break;
+        startDate = subMonths(now, 12)
+        break
       case '24m':
-        startDate = subMonths(now, 24);
-        break;
+        startDate = subMonths(now, 24)
+        break
       default:
-        startDate = subMonths(now, 12);
+        startDate = subMonths(now, 12)
     }
-    
+
     return reviews.filter(review => {
-      const reviewDate = parseISO(review.publishedAtDate);
-      return reviewDate >= startDate;
-    });
-  }, [reviews, selectedTimeRange]);
+      const reviewDate = parseISO(review.publishedAtDate)
+      return reviewDate >= startDate
+    })
+  }, [reviews, selectedTimeRange])
 
   // Calculate advanced analytics data
-  const seasonalTrends = useMemo(() => calculateSeasonalTrends(filteredReviews), [filteredReviews]);
-  const customerJourneys = useMemo(() => analyzeCustomerJourney(filteredReviews), [filteredReviews]);
-  const competitiveInsights = useMemo(() => generateCompetitiveInsights(filteredReviews, businessType), [filteredReviews, businessType]);
+  const seasonalTrends = useMemo(() => calculateSeasonalTrends(filteredReviews), [filteredReviews])
+  const customerJourneys = useMemo(() => analyzeCustomerJourney(filteredReviews), [filteredReviews])
+  const competitiveInsights = useMemo(() => generateCompetitiveInsights(filteredReviews, businessType), [filteredReviews, businessType])
 
   // Prepare chart data
   const trendData = seasonalTrends.map(trend => ({
-    period: format(parseISO(trend.period + '-01'), 'MMM yyyy'),
+    period: format(parseISO(`${trend.period}-01`), 'MMM yyyy'),
     rating: trend.avgRating,
     volume: trend.reviewCount,
     sentiment: trend.sentimentScore,
     trendDirection: trend.trendDirection,
-    seasonality: trend.seasonality
-  }));
+    seasonality: trend.seasonality,
+  }))
 
   const customerSegmentData = useMemo(() => {
     const segments = customerJourneys.reduce((acc, journey) => {
-      acc[journey.journeyStage] = (acc[journey.journeyStage] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+      acc[journey.journeyStage] = (acc[journey.journeyStage] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
 
     return Object.entries(segments).map(([stage, count]) => ({
       stage,
       count,
-      percentage: (count / customerJourneys.length) * 100
-    }));
-  }, [customerJourneys]);
+      percentage: (count / customerJourneys.length) * 100,
+    }))
+  }, [customerJourneys])
 
   const competitiveComparisonData = competitiveInsights.map(insight => ({
     category: insight.category,
     yourScore: insight.yourPerformance,
     industry: insight.industryAverage,
     topPerformer: insight.topPerformer,
-    gap: insight.improvementOpportunity
-  }));
+    gap: insight.improvementOpportunity,
+  }))
 
   // Handle chart interactions
   const handleChartClick = (data: any, chartType: string) => {
-    setDrillDownData({ ...data, chartType });
-  };
+    setDrillDownData({ ...data, chartType })
+  }
 
   const exportChartData = () => {
     const dataToExport = {
@@ -118,19 +118,19 @@ export function AdvancedChartsSection({ reviews, businessName, businessType }: A
       competitive: competitiveComparisonData,
       timeRange: selectedTimeRange,
       businessName,
-      generatedAt: new Date().toISOString()
-    };
+      generatedAt: new Date().toISOString(),
+    }
 
-    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${businessName}-advanced-analytics-${selectedTimeRange}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${businessName}-advanced-analytics-${selectedTimeRange}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <Card>
@@ -184,19 +184,19 @@ export function AdvancedChartsSection({ reviews, businessName, businessType }: A
                       <YAxis yAxisId="volume" orientation="right" />
                       <Tooltip content={<CustomBarLineTooltip />} />
                       <Legend />
-                      <Line 
-                        yAxisId="rating" 
-                        type="monotone" 
-                        dataKey="rating" 
-                        stroke="#8884d8" 
+                      <Line
+                        yAxisId="rating"
+                        type="monotone"
+                        dataKey="rating"
+                        stroke="#8884d8"
                         strokeWidth={3}
                         name="Average Rating"
                       />
-                      <Line 
-                        yAxisId="volume" 
-                        type="monotone" 
-                        dataKey="volume" 
-                        stroke="#82ca9d" 
+                      <Line
+                        yAxisId="volume"
+                        type="monotone"
+                        dataKey="volume"
+                        stroke="#82ca9d"
                         strokeWidth={2}
                         name="Review Volume"
                       />
@@ -217,11 +217,11 @@ export function AdvancedChartsSection({ reviews, businessName, businessType }: A
                       <XAxis dataKey="period" />
                       <YAxis domain={[0, 100]} />
                       <Tooltip content={<CustomBarLineTooltip />} />
-                      <Area 
-                        type="monotone" 
-                        dataKey="sentiment" 
-                        stroke="#ffc658" 
-                        fill="#ffc658" 
+                      <Area
+                        type="monotone"
+                        dataKey="sentiment"
+                        stroke="#ffc658"
+                        fill="#ffc658"
                         fillOpacity={0.6}
                         name="Sentiment Score"
                       />
@@ -424,7 +424,7 @@ export function AdvancedChartsSection({ reviews, businessName, businessType }: A
         )}
       </CardContent>
     </Card>
-  );
+  )
 }
 
-export default AdvancedChartsSection;
+export default AdvancedChartsSection

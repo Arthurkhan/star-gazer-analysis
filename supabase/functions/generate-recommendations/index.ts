@@ -1,12 +1,12 @@
 // @ts-check
 /* eslint-disable no-console */
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
 interface Review {
   stars: number;
@@ -39,7 +39,7 @@ interface BusinessContext {
   additionalContext?: string;
 }
 
-interface BusinessData {
+interface _BusinessData {
   businessName?: string;
   businessType?: string;
   businessContext?: BusinessContext;
@@ -49,15 +49,15 @@ interface BusinessData {
 // Always enable logging for debugging
 const log = {
   info: (message: string, ...args: unknown[]) => {
-    console.log(`[INFO] ${message}`, ...args);
+    console.log(`[INFO] ${message}`, ...args)
   },
   error: (message: string, ...args: unknown[]) => {
-    console.error(`[ERROR] ${message}`, ...args);
+    console.error(`[ERROR] ${message}`, ...args)
   },
   warn: (message: string, ...args: unknown[]) => {
-    console.warn(`[WARN] ${message}`, ...args);
-  }
-};
+    console.warn(`[WARN] ${message}`, ...args)
+  },
+}
 
 // Unified prompt for all providers - Updated to request 5 recommendations instead of 3
 const getUnifiedPrompt = (businessInfo: any, reviewsSummary: any[]) => {
@@ -102,7 +102,7 @@ Return this exact structure:
     "shortTerm": ["3-month projection based on current trajectory", "Expected improvement from addressing issues"],
     "longTerm": ["1-year vision if recommendations are implemented", "Market position potential"]
   }
-}`;
+}`
 
   const userPrompt = `Business: ${businessInfo.name} (${businessInfo.type})
 Average rating: ${businessInfo.averageRating}/5
@@ -111,16 +111,16 @@ Total reviews: ${businessInfo.totalReviews}
 Recent customer reviews to analyze:
 ${reviewsSummary.slice(0, 20).map(r => `- ${r.rating}★: ${r.text}`).join('\n')}
 
-Analyze these actual customer reviews and generate specific recommendations based on what customers are saying. Address both positive feedback (to amplify) and negative feedback (to fix). Be specific and reference actual review content in your recommendations.`;
+Analyze these actual customer reviews and generate specific recommendations based on what customers are saying. Address both positive feedback (to amplify) and negative feedback (to fix). Be specific and reference actual review content in your recommendations.`
 
-  return { systemPrompt, userPrompt };
-};
+  return { systemPrompt, userPrompt }
+}
 
 // AI Provider implementations
 async function callOpenAI(apiKey: string, model: string, systemPrompt: string, userPrompt: string) {
-  const openaiModel = model || 'gpt-4o';
-  log.info(`Using OpenAI model: ${openaiModel}`);
-  
+  const openaiModel = model || 'gpt-4o'
+  log.info(`Using OpenAI model: ${openaiModel}`)
+
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -131,29 +131,29 @@ async function callOpenAI(apiKey: string, model: string, systemPrompt: string, u
       model: openaiModel,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: 'user', content: userPrompt },
       ],
       max_tokens: 1500,
       temperature: 0.5,
-      response_format: { type: "json_object" }
+      response_format: { type: 'json_object' },
     }),
-  });
+  })
 
   if (!response.ok) {
-    const errorData = await response.text();
-    log.error('OpenAI API error:', errorData);
-    throw new Error(`OpenAI API error: ${response.status}`);
+    const errorData = await response.text()
+    log.error('OpenAI API error:', errorData)
+    throw new Error(`OpenAI API error: ${response.status}`)
   }
 
-  const data = await response.json();
-  const content = data.choices[0].message.content;
-  return JSON.parse(content);
+  const data = await response.json()
+  const {content} = data.choices[0].message
+  return JSON.parse(content)
 }
 
 async function callClaude(apiKey: string, model: string, systemPrompt: string, userPrompt: string) {
-  const claudeModel = model || 'claude-3-opus-20240229';
-  log.info(`Using Claude model: ${claudeModel}`);
-  
+  const claudeModel = model || 'claude-3-opus-20240229'
+  log.info(`Using Claude model: ${claudeModel}`)
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -164,35 +164,35 @@ async function callClaude(apiKey: string, model: string, systemPrompt: string, u
     body: JSON.stringify({
       model: claudeModel,
       messages: [
-        { role: 'user', content: `${systemPrompt}\n\n${userPrompt}` }
+        { role: 'user', content: `${systemPrompt}\n\n${userPrompt}` },
       ],
       max_tokens: 1500,
-      temperature: 0.5
+      temperature: 0.5,
     }),
-  });
+  })
 
   if (!response.ok) {
-    const errorData = await response.text();
-    log.error('Claude API error:', errorData);
-    throw new Error(`Claude API error: ${response.status}`);
+    const errorData = await response.text()
+    log.error('Claude API error:', errorData)
+    throw new Error(`Claude API error: ${response.status}`)
   }
 
-  const data = await response.json();
-  const content = data.content[0].text;
-  
+  const data = await response.json()
+  const content = data.content[0].text
+
   // Extract JSON from Claude's response
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  const jsonMatch = content.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
-    throw new Error('No valid JSON found in Claude response');
+    throw new Error('No valid JSON found in Claude response')
   }
-  
-  return JSON.parse(jsonMatch[0]);
+
+  return JSON.parse(jsonMatch[0])
 }
 
 async function callGemini(apiKey: string, model: string, systemPrompt: string, userPrompt: string) {
-  const geminiModel = model || 'gemini-1.5-pro';
-  log.info(`Using Gemini model: ${geminiModel}`);
-  
+  const geminiModel = model || 'gemini-1.5-pro'
+  log.info(`Using Gemini model: ${geminiModel}`)
+
   const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${geminiModel}:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
@@ -201,26 +201,26 @@ async function callGemini(apiKey: string, model: string, systemPrompt: string, u
     body: JSON.stringify({
       contents: [{
         parts: [{
-          text: `${systemPrompt}\n\n${userPrompt}`
-        }]
+          text: `${systemPrompt}\n\n${userPrompt}`,
+        }],
       }],
       generationConfig: {
         temperature: 0.5,
         maxOutputTokens: 1500,
-        responseMimeType: "application/json"
-      }
+        responseMimeType: 'application/json',
+      },
     }),
-  });
+  })
 
   if (!response.ok) {
-    const errorData = await response.text();
-    log.error('Gemini API error:', errorData);
-    throw new Error(`Gemini API error: ${response.status}`);
+    const errorData = await response.text()
+    log.error('Gemini API error:', errorData)
+    throw new Error(`Gemini API error: ${response.status}`)
   }
 
-  const data = await response.json();
-  const content = data.candidates[0].content.parts[0].text;
-  return JSON.parse(content);
+  const data = await response.json()
+  const content = data.candidates[0].content.parts[0].text
+  return JSON.parse(content)
 }
 
 // Fallback response for errors - Updated to have 5 items
@@ -341,137 +341,137 @@ const getFallbackResponse = (errorMessage: string) => ({
     metadata: {
       source: 'fallback',
       reason: errorMessage,
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   },
-});
+})
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    log.info('Edge function invoked at:', new Date().toISOString());
-    log.info('Request method:', req.method);
-    log.info('Request headers:', JSON.stringify(Object.fromEntries(req.headers.entries())));
-    
+    log.info('Edge function invoked at:', new Date().toISOString())
+    log.info('Request method:', req.method)
+    log.info('Request headers:', JSON.stringify(Object.fromEntries(req.headers.entries())))
+
     // Parse request body with better error handling
-    let requestData;
+    let requestData
     try {
-      const bodyText = await req.text();
-      log.info('Request body received, length:', bodyText.length);
-      
+      const bodyText = await req.text()
+      log.info('Request body received, length:', bodyText.length)
+
       if (!bodyText || bodyText.trim() === '') {
-        throw new Error('Empty request body');
+        throw new Error('Empty request body')
       }
-      
+
       // Log first 1000 chars of body for debugging
-      log.info('Body preview:', bodyText.substring(0, 1000));
-      
-      requestData = JSON.parse(bodyText);
-      log.info('Successfully parsed request data');
-      log.info('Request data keys:', Object.keys(requestData || {}));
-      
+      log.info('Body preview:', bodyText.substring(0, 1000))
+
+      requestData = JSON.parse(bodyText)
+      log.info('Successfully parsed request data')
+      log.info('Request data keys:', Object.keys(requestData || {}))
+
       // Check if businessData is nested properly
       if (requestData && !requestData.businessData && requestData.businessName) {
         // Handle legacy format where businessData fields are at root level
-        log.info('Converting legacy request format to new format');
+        log.info('Converting legacy request format to new format')
         requestData = {
           businessData: {
             businessName: requestData.businessName,
             businessType: requestData.businessType,
             reviews: requestData.reviews,
-            businessContext: requestData.businessContext
+            businessContext: requestData.businessContext,
           },
           provider: requestData.provider,
           apiKey: requestData.apiKey,
-          model: requestData.model
-        };
+          model: requestData.model,
+        }
       }
     } catch (parseErr) {
-      log.error('Failed to parse request:', parseErr);
-      log.error('Parse error details:', parseErr instanceof Error ? parseErr.message : 'Unknown parse error');
-      throw new Error('Invalid request format');
+      log.error('Failed to parse request:', parseErr)
+      log.error('Parse error details:', parseErr instanceof Error ? parseErr.message : 'Unknown parse error')
+      throw new Error('Invalid request format')
     }
-    
-    const { businessData, provider, apiKey, model } = requestData || {};
-    
-    log.info(`Processing request for business: ${businessData?.businessName}`);
-    log.info(`Using provider: ${provider}, model: ${model}`);
+
+    const { businessData, provider, apiKey, model } = requestData || {}
+
+    log.info(`Processing request for business: ${businessData?.businessName}`)
+    log.info(`Using provider: ${provider}, model: ${model}`)
 
     if (!apiKey) {
-      log.error('No API key provided');
-      throw new Error(`${provider || 'AI'} API key is required`);
+      log.error('No API key provided')
+      throw new Error(`${provider || 'AI'} API key is required`)
     }
 
     if (!businessData || !businessData.reviews || businessData.reviews.length === 0) {
-      log.error('Invalid business data. businessData:', !!businessData, 'reviews:', businessData?.reviews?.length || 0);
-      throw new Error('Business data with reviews is required');
+      log.error('Invalid business data. businessData:', !!businessData, 'reviews:', businessData?.reviews?.length || 0)
+      throw new Error('Business data with reviews is required')
     }
 
-    log.info(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`);
+    log.info(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`)
 
     // Prepare review data for AI - handle different review formats
     const reviewsSummary = businessData.reviews.map((review: Review) => {
       // Handle both text and textTranslated fields
-      const reviewText = review.text || review.textTranslated || 'No review text';
+      const reviewText = review.text || review.textTranslated || 'No review text'
       return {
         rating: review.stars || 0,
         text: reviewText.substring(0, 200),
-      };
-    });
+      }
+    })
 
     const businessInfo = {
       name: businessData.businessName || 'Business',
       type: businessData.businessType || 'business',
       totalReviews: businessData.reviews.length,
       averageRating: Math.round((businessData.reviews.reduce((sum: number, r: Review) => sum + (r.stars || 0), 0) / businessData.reviews.length) * 10) / 10,
-    };
+    }
 
     // Get unified prompt
-    const { systemPrompt, userPrompt } = getUnifiedPrompt(businessInfo, reviewsSummary);
+    const { systemPrompt, userPrompt } = getUnifiedPrompt(businessInfo, reviewsSummary)
 
-    log.info(`Calling ${provider} API with real review data...`);
-    const startTime = Date.now();
+    log.info(`Calling ${provider} API with real review data...`)
+    const startTime = Date.now()
 
-    let recommendations;
+    let recommendations
     try {
       switch (provider) {
         case 'openai':
-          recommendations = await callOpenAI(apiKey, model, systemPrompt, userPrompt);
-          break;
+          recommendations = await callOpenAI(apiKey, model, systemPrompt, userPrompt)
+          break
         case 'claude':
-          recommendations = await callClaude(apiKey, model, systemPrompt, userPrompt);
-          break;
+          recommendations = await callClaude(apiKey, model, systemPrompt, userPrompt)
+          break
         case 'gemini':
-          recommendations = await callGemini(apiKey, model, systemPrompt, userPrompt);
-          break;
+          recommendations = await callGemini(apiKey, model, systemPrompt, userPrompt)
+          break
         default:
-          throw new Error(`Unknown provider: ${provider}`);
+          throw new Error(`Unknown provider: ${provider}`)
       }
     } catch (error: unknown) {
-      log.error(`${provider} API call failed:`, error);
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+      log.error(`${provider} API call failed:`, error)
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
       if (errorMessage.includes('401')) {
-        throw new Error(`Invalid API key. Please check your ${provider} API key.`);
+        throw new Error(`Invalid API key. Please check your ${provider} API key.`)
       } else if (errorMessage.includes('429')) {
-        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.')
       } else {
-        throw new Error(`${provider} API error: ${errorMessage}`);
+        throw new Error(`${provider} API error: ${errorMessage}`)
       }
     }
 
-    const responseTime = Date.now() - startTime;
-    log.info(`${provider} API responded in ${responseTime}ms`);
+    const responseTime = Date.now() - startTime
+    log.info(`${provider} API responded in ${responseTime}ms`)
 
     // Validate the response structure
     if (!recommendations.urgentActions || !recommendations.growthStrategies) {
-      log.error('Invalid recommendations structure:', JSON.stringify(recommendations).substring(0, 500));
-      throw new Error('Invalid recommendations structure received from AI');
+      log.error('Invalid recommendations structure:', JSON.stringify(recommendations).substring(0, 500))
+      throw new Error('Invalid recommendations structure received from AI')
     }
 
     // Return successful response
@@ -479,14 +479,14 @@ serve(async (req) => {
       ...recommendations,
       metadata: {
         source: provider,
-        provider: provider,
+        provider,
         model: model || 'default',
         timestamp: new Date().toISOString(),
-        responseTime: responseTime,
+        responseTime,
         reviewsAnalyzed: businessData.reviews.length,
-        businessName: businessData.businessName
-      }
-    };
+        businessName: businessData.businessName,
+      },
+    }
 
     return new Response(
       JSON.stringify(successResponse),
@@ -497,13 +497,13 @@ serve(async (req) => {
         },
         status: 200,
       },
-    );
+    )
 
   } catch (error) {
-    log.error('Error in generate-recommendations function:', error);
-    log.error('Error details:', error instanceof Error ? error.stack : 'No stack trace');
+    log.error('Error in generate-recommendations function:', error)
+    log.error('Error details:', error instanceof Error ? error.stack : 'No stack trace')
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
 
     return new Response(
       JSON.stringify(getFallbackResponse(errorMessage)),
@@ -514,6 +514,6 @@ serve(async (req) => {
         },
         status: 200,
       },
-    );
+    )
   }
-});
+})

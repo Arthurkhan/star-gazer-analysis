@@ -1,54 +1,54 @@
-import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Cell, 
-  LineChart, 
-  Line, 
-  PieChart, 
+import React, { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  LineChart,
+  Line,
+  PieChart,
   Pie,
-  Legend
-} from "recharts";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Minus, 
-  Download, 
-  FileText, 
-  Table2, 
-  Calendar, 
-  Star, 
-  Users, 
-  MessageCircle, 
+  Legend,
+} from 'recharts'
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Download,
+  FileText,
+  Table2,
+  Calendar,
+  Star,
+  Users,
+  MessageCircle,
   Target,
   AlertCircle,
   CheckCircle,
-  Activity
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { MonthlyReportExporter } from "@/utils/monthlyReportExporter";
+  Activity,
+} from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { MonthlyReportExporter } from '@/utils/monthlyReportExporter'
 
 // Enhanced color palette for charts
-const RATING_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#84CC16', '#22C55E'];
-const TREND_COLORS = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B'];
+const RATING_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#84CC16', '#22C55E']
+const TREND_COLORS = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B']
 
 // Dark mode tooltip style
 const tooltipStyle = {
   backgroundColor: '#1f2937',
   border: '1px solid #374151',
   borderRadius: '6px',
-  color: '#f3f4f6'
-};
+  color: '#f3f4f6',
+}
 
 interface EnhancedSummaryCardsProps {
   summaryData: {
@@ -76,42 +76,42 @@ interface EnhancedSummaryCardsProps {
   businessName?: string;
 }
 
-export function EnhancedSummaryCards({ 
-  summaryData, 
-  selectedReviews, 
-  dateRange, 
-  businessName = "Business" 
+export function EnhancedSummaryCards({
+  summaryData,
+  selectedReviews,
+  dateRange,
+  businessName = 'Business',
 }: EnhancedSummaryCardsProps) {
-  const [isExporting, setIsExporting] = useState(false);
-  const { toast } = useToast();
+  const [isExporting, setIsExporting] = useState(false)
+  const { toast } = useToast()
 
   // Calculate enhanced business metrics
   const enhancedMetrics = React.useMemo(() => {
-    const fiveStarReviews = summaryData.ratingDistribution.find(r => r.name === "5 ★")?.value || 0;
+    const fiveStarReviews = summaryData.ratingDistribution.find(r => r.name === '5 ★')?.value || 0
     const fourPlusReviews = summaryData.ratingDistribution
-      .filter(r => r.name === "5 ★" || r.name === "4 ★")
-      .reduce((sum, r) => sum + r.value, 0);
-    
-    const satisfactionRate = summaryData.totalReviews > 0 
-      ? Math.round((fourPlusReviews / summaryData.totalReviews) * 100) 
-      : 0;
-    
-    const excellenceRate = summaryData.totalReviews > 0 
-      ? Math.round((fiveStarReviews / summaryData.totalReviews) * 100) 
-      : 0;
+      .filter(r => r.name === '5 ★' || r.name === '4 ★')
+      .reduce((sum, r) => sum + r.value, 0)
+
+    const satisfactionRate = summaryData.totalReviews > 0
+      ? Math.round((fourPlusReviews / summaryData.totalReviews) * 100)
+      : 0
+
+    const excellenceRate = summaryData.totalReviews > 0
+      ? Math.round((fiveStarReviews / summaryData.totalReviews) * 100)
+      : 0
 
     // Calculate response trend (simplified for demo)
-    const responseRate = selectedReviews.filter(r => r.responseFromOwnerText).length;
-    const responsePercentage = summaryData.totalReviews > 0 
-      ? Math.round((responseRate / summaryData.totalReviews) * 100) 
-      : 0;
+    const responseRate = selectedReviews.filter(r => r.responseFromOwnerText).length
+    const responsePercentage = summaryData.totalReviews > 0
+      ? Math.round((responseRate / summaryData.totalReviews) * 100)
+      : 0
 
     // Health score calculation
     const healthScore = Math.round(
-      (summaryData.averageRating / 5 * 40) + 
-      (satisfactionRate * 0.35) + 
-      (responsePercentage * 0.25)
-    );
+      (summaryData.averageRating / 5 * 40) +
+      (satisfactionRate * 0.35) +
+      (responsePercentage * 0.25),
+    )
 
     return {
       satisfactionRate,
@@ -119,103 +119,103 @@ export function EnhancedSummaryCards({
       responseRate,
       responsePercentage,
       healthScore,
-      totalResponses: responseRate
-    };
-  }, [summaryData, selectedReviews]);
+      totalResponses: responseRate,
+    }
+  }, [summaryData, selectedReviews])
 
   // Enhanced chart data for trends
   const sentimentTrendData = React.useMemo(() => [
-    { name: 'Excellent (5★)', value: summaryData.ratingDistribution.find(r => r.name === "5 ★")?.value || 0, color: RATING_COLORS[4] },
-    { name: 'Good (4★)', value: summaryData.ratingDistribution.find(r => r.name === "4 ★")?.value || 0, color: RATING_COLORS[3] },
-    { name: 'Average (3★)', value: summaryData.ratingDistribution.find(r => r.name === "3 ★")?.value || 0, color: RATING_COLORS[2] },
-    { name: 'Poor (2★)', value: summaryData.ratingDistribution.find(r => r.name === "2 ★")?.value || 0, color: RATING_COLORS[1] },
-    { name: 'Very Poor (1★)', value: summaryData.ratingDistribution.find(r => r.name === "1 ★")?.value || 0, color: RATING_COLORS[0] }
-  ].filter(item => item.value > 0), [summaryData.ratingDistribution]);
+    { name: 'Excellent (5★)', value: summaryData.ratingDistribution.find(r => r.name === '5 ★')?.value || 0, color: RATING_COLORS[4] },
+    { name: 'Good (4★)', value: summaryData.ratingDistribution.find(r => r.name === '4 ★')?.value || 0, color: RATING_COLORS[3] },
+    { name: 'Average (3★)', value: summaryData.ratingDistribution.find(r => r.name === '3 ★')?.value || 0, color: RATING_COLORS[2] },
+    { name: 'Poor (2★)', value: summaryData.ratingDistribution.find(r => r.name === '2 ★')?.value || 0, color: RATING_COLORS[1] },
+    { name: 'Very Poor (1★)', value: summaryData.ratingDistribution.find(r => r.name === '1 ★')?.value || 0, color: RATING_COLORS[0] },
+  ].filter(item => item.value > 0), [summaryData.ratingDistribution])
 
   // Export functions with actual implementation
   const exportToPDF = async () => {
-    setIsExporting(true);
+    setIsExporting(true)
     try {
       const exportData = {
         summaryData,
         selectedReviews,
         dateRange,
         businessName,
-        enhancedMetrics
-      };
-      
+        enhancedMetrics,
+      }
+
       await MonthlyReportExporter.exportToPDF(exportData, {
         includeCharts: true,
         includeReviews: true,
-        format: 'detailed'
-      });
-      
+        format: 'detailed',
+      })
+
       toast({
-        title: "Export Successful",
-        description: "Monthly report exported to PDF successfully."
-      });
+        title: 'Export Successful',
+        description: 'Monthly report exported to PDF successfully.',
+      })
     } catch (error) {
-      console.error('PDF Export Error:', error);
+      console.error('PDF Export Error:', error)
       toast({
-        title: "Export Failed",
-        description: "Failed to export PDF. Please ensure you have sufficient data and try again.",
-        variant: "destructive"
-      });
+        title: 'Export Failed',
+        description: 'Failed to export PDF. Please ensure you have sufficient data and try again.',
+        variant: 'destructive',
+      })
     } finally {
-      setIsExporting(false);
+      setIsExporting(false)
     }
-  };
+  }
 
   const exportToExcel = async () => {
-    setIsExporting(true);
+    setIsExporting(true)
     try {
       const exportData = {
         summaryData,
         selectedReviews,
         dateRange,
         businessName,
-        enhancedMetrics
-      };
-      
+        enhancedMetrics,
+      }
+
       await MonthlyReportExporter.exportToExcel(exportData, {
-        includeReviews: true
-      });
-      
+        includeReviews: true,
+      })
+
       toast({
-        title: "Export Successful", 
-        description: "Monthly report exported to Excel successfully."
-      });
+        title: 'Export Successful',
+        description: 'Monthly report exported to Excel successfully.',
+      })
     } catch (error) {
-      console.error('Excel Export Error:', error);
+      console.error('Excel Export Error:', error)
       toast({
-        title: "Export Failed",
-        description: "Failed to export Excel. Please ensure you have sufficient data and try again.",
-        variant: "destructive"
-      });
+        title: 'Export Failed',
+        description: 'Failed to export Excel. Please ensure you have sufficient data and try again.',
+        variant: 'destructive',
+      })
     } finally {
-      setIsExporting(false);
+      setIsExporting(false)
     }
-  };
+  }
 
   const formatDateRange = () => {
-    const from = dateRange.from.toLocaleDateString();
-    const to = dateRange.to?.toLocaleDateString() || "Present";
-    return `${from} - ${to}`;
-  };
+    const from = dateRange.from.toLocaleDateString()
+    const to = dateRange.to?.toLocaleDateString() || 'Present'
+    return `${from} - ${to}`
+  }
 
   const getHealthScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
-  };
+    if (score >= 80) return 'text-green-600'
+    if (score >= 60) return 'text-yellow-600'
+    return 'text-red-600'
+  }
 
   const getHealthScoreIcon = (score: number) => {
-    if (score >= 80) return CheckCircle;
-    if (score >= 60) return AlertCircle;
-    return AlertCircle;
-  };
+    if (score >= 80) return CheckCircle
+    if (score >= 60) return AlertCircle
+    return AlertCircle
+  }
 
-  const HealthIcon = getHealthScoreIcon(enhancedMetrics.healthScore);
+  const HealthIcon = getHealthScoreIcon(enhancedMetrics.healthScore)
 
   return (
     <div className="space-y-6">
@@ -228,18 +228,18 @@ export function EnhancedSummaryCards({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={exportToPDF}
             disabled={isExporting || summaryData.totalReviews === 0}
           >
             <FileText className="h-4 w-4 mr-2" />
             {isExporting ? 'Exporting...' : 'Export PDF'}
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={exportToExcel}
             disabled={isExporting || summaryData.totalReviews === 0}
           >
@@ -342,7 +342,7 @@ export function EnhancedSummaryCards({
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value) => [`${value} reviews`, 'Count']}
                     contentStyle={tooltipStyle}
                     labelStyle={{ color: '#f3f4f6' }}
@@ -367,20 +367,20 @@ export function EnhancedSummaryCards({
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Excellence Rate (5★)</span>
-              <Badge variant={enhancedMetrics.excellenceRate >= 50 ? "default" : "secondary"}>
+              <Badge variant={enhancedMetrics.excellenceRate >= 50 ? 'default' : 'secondary'}>
                 {enhancedMetrics.excellenceRate}%
               </Badge>
             </div>
             <Separator />
-            
+
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Owner Response Rate</span>
-              <Badge variant={enhancedMetrics.responsePercentage >= 50 ? "default" : "secondary"}>
+              <Badge variant={enhancedMetrics.responsePercentage >= 50 ? 'default' : 'secondary'}>
                 {enhancedMetrics.responsePercentage}%
               </Badge>
             </div>
             <Separator />
-            
+
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Total Responses</span>
               <span className="text-sm font-bold">{enhancedMetrics.totalResponses}</span>
@@ -475,5 +475,5 @@ export function EnhancedSummaryCards({
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

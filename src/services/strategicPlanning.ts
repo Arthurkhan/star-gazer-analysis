@@ -1,7 +1,7 @@
-import { BusinessType } from '@/types/businessTypes';
-import { Strategy, MarketingPlan, GrowthStrategy } from '@/types/recommendations';
-import { BusinessHealth } from './criticalThinking';
-import { Review } from '@/types/reviews';
+import { BusinessType } from '@/types/businessTypes'
+import type { Strategy, MarketingPlan, GrowthStrategy } from '@/types/recommendations'
+import type { BusinessHealth } from './criticalThinking'
+import type { Review } from '@/types/reviews'
 
 interface ReviewAnalysisData {
   reviews: Review[];
@@ -13,10 +13,10 @@ interface ReviewAnalysisData {
 export const generateLongTermStrategies = (
   data: ReviewAnalysisData,
   businessHealth: BusinessHealth,
-  _businessType: BusinessType
+  _businessType: BusinessType,
 ): Strategy[] => {
-  const strategies: Strategy[] = [];
-  
+  const strategies: Strategy[] = []
+
   // Brand positioning strategy
   if (businessHealth.strengths.length > 0) {
     strategies.push({
@@ -29,33 +29,33 @@ export const generateLongTermStrategies = (
         `Emphasize your key strengths: ${businessHealth.strengths.join(', ')}`,
         'Develop unique brand messaging around these differentiators',
         'Train staff to consistently communicate brand values',
-        'Create marketing campaigns highlighting unique aspects'
+        'Create marketing campaigns highlighting unique aspects',
       ],
       expectedOutcomes: [
         'Increased brand recognition',
         'Premium pricing opportunities',
         'Higher customer loyalty',
-        'Improved market share'
+        'Improved market share',
       ],
       resources: [
         'Marketing budget allocation',
         'Staff training time',
         'Brand consultant (optional)',
-        'Creative design resources'
+        'Creative design resources',
       ],
       risks: [
         'Message not resonating with target audience',
         'Competitors copying strategy',
-        'Implementation inconsistencies'
+        'Implementation inconsistencies',
       ],
       mitigations: [
         'Test messaging with focus groups',
         'Develop unique, hard-to-copy elements',
-        'Regular staff training and monitoring'
-      ]
-    });
+        'Regular staff training and monitoring',
+      ],
+    })
   }
-  
+
   // Customer base expansion
   if (businessHealth.metrics.monthlyReviews < 100) {
     strategies.push({
@@ -69,33 +69,33 @@ export const generateLongTermStrategies = (
         'Identify underserved market segments',
         'Develop targeted marketing campaigns',
         'Create segment-specific offers or services',
-        'Partner with complementary businesses'
+        'Partner with complementary businesses',
       ],
       expectedOutcomes: [
         'Increased customer diversity',
         'Higher monthly review volume',
         'Revenue growth from new segments',
-        'Reduced dependency on single customer type'
+        'Reduced dependency on single customer type',
       ],
       resources: [
         'Market research budget',
         'Marketing campaign funds',
         'Staff for new initiatives',
-        'Partnership development time'
+        'Partnership development time',
       ],
       risks: [
         'Alienating existing customers',
         'Diluting brand identity',
-        'Resource allocation challenges'
+        'Resource allocation challenges',
       ],
       mitigations: [
         'Maintain core value proposition',
         'Test new offerings gradually',
-        'Monitor existing customer satisfaction'
-      ]
-    });
+        'Monitor existing customer satisfaction',
+      ],
+    })
   }
-  
+
   // Digital transformation strategy
   strategies.push({
     id: 'digital-transformation',
@@ -109,32 +109,32 @@ export const generateLongTermStrategies = (
       'Develop content marketing strategy',
       'Enhance social media engagement',
       'Create email marketing campaigns',
-      'Implement online booking/ordering system'
+      'Implement online booking/ordering system',
     ],
     expectedOutcomes: [
       'Increased online visibility',
       'Better customer engagement',
       'More efficient operations',
-      'Higher conversion rates'
+      'Higher conversion rates',
     ],
     resources: [
       'Digital marketing budget',
       'Content creation resources',
       'Technology investments',
-      'Staff training'
+      'Staff training',
     ],
     risks: [
       'Technology adoption challenges',
       'ROI uncertainty',
-      'Staff resistance to change'
+      'Staff resistance to change',
     ],
     mitigations: [
       'Phased implementation approach',
       'Clear ROI metrics tracking',
-      'Comprehensive staff training'
-    ]
-  });
-  
+      'Comprehensive staff training',
+    ],
+  })
+
   // Innovation strategy based on customer feedback
   if (data.commonTerms && data.commonTerms.length > 0) {
     strategies.push({
@@ -148,33 +148,33 @@ export const generateLongTermStrategies = (
         'Prioritize feasible innovations',
         'Pilot test new offerings with select customers',
         'Gather feedback and iterate',
-        'Full rollout of successful innovations'
+        'Full rollout of successful innovations',
       ],
       expectedOutcomes: [
         'Increased customer satisfaction',
         'New revenue streams',
         'Competitive advantage',
-        'Enhanced reputation for innovation'
+        'Enhanced reputation for innovation',
       ],
       resources: [
         'R&D budget',
         'Staff time for development',
         'Testing and feedback systems',
-        'Marketing for new offerings'
+        'Marketing for new offerings',
       ],
       risks: [
         'Innovation failures',
         'Customer rejection',
-        'Resource drain'
+        'Resource drain',
       ],
       mitigations: [
         'Small-scale pilots first',
         'Continuous customer feedback',
-        'Quick failure recognition'
-      ]
-    });
+        'Quick failure recognition',
+      ],
+    })
   }
-  
+
   // Operational excellence strategy
   if (businessHealth.weaknesses.length > 0) {
     strategies.push({
@@ -188,56 +188,56 @@ export const generateLongTermStrategies = (
         'Implement quality control measures',
         'Develop standard operating procedures',
         'Create feedback loops for continuous improvement',
-        'Invest in staff training and development'
+        'Invest in staff training and development',
       ],
       expectedOutcomes: [
         'Reduced customer complaints',
         'Improved efficiency',
         'Better consistency',
-        'Higher staff morale'
+        'Higher staff morale',
       ],
       resources: [
         'Training budget',
         'Process improvement consultants',
         'Quality monitoring systems',
-        'Management time'
+        'Management time',
       ],
       risks: [
         'Implementation resistance',
         'Short-term disruptions',
-        'Cost overruns'
+        'Cost overruns',
       ],
       mitigations: [
         'Change management program',
         'Phased rollout',
-        'Clear budget controls'
-      ]
-    });
+        'Clear budget controls',
+      ],
+    })
   }
-  
-  return strategies;
-};
+
+  return strategies
+}
 
 export const createMarketingPlan = (
   businessHealth: BusinessHealth,
   businessType: BusinessType,
-  monthlyReviews: number
+  monthlyReviews: number,
 ): MarketingPlan => {
-  const needsGrowth = monthlyReviews < 100;
-  
+  const needsGrowth = monthlyReviews < 100
+
   const plan: MarketingPlan = {
     objectives: [
       needsGrowth ? 'Increase monthly reviews to 100+' : 'Maintain review momentum',
       'Attract diverse customer segments',
       'Build brand awareness and reputation',
-      'Increase customer lifetime value'
+      'Increase customer lifetime value',
     ],
     targetSegments: [],
     campaigns: [],
     contentStrategy: {
       themes: [],
       formats: ['Social media posts', 'Email newsletters', 'Blog articles', 'Video content'],
-      frequency: 'Daily social media, Weekly email, Bi-weekly blog'
+      frequency: 'Daily social media, Weekly email, Bi-weekly blog',
     },
     kpis: [
       'Monthly review count',
@@ -245,10 +245,10 @@ export const createMarketingPlan = (
       'Customer acquisition cost',
       'Customer lifetime value',
       'Social media engagement rate',
-      'Email open and click rates'
-    ]
-  };
-  
+      'Email open and click rates',
+    ],
+  }
+
   // Define target segments based on business type
   switch (businessType) {
     case BusinessType.CAFE:
@@ -257,43 +257,43 @@ export const createMarketingPlan = (
           segment: 'Remote Workers',
           characteristics: ['Need wifi', 'Long stays', 'Regular visits'],
           channels: ['Instagram', 'LinkedIn', 'Local forums'],
-          messaging: 'Your perfect work-from-cafe spot with reliable wifi and great coffee'
+          messaging: 'Your perfect work-from-cafe spot with reliable wifi and great coffee',
         },
         {
           segment: 'Social Groups',
           characteristics: ['Weekend visits', 'Group seating', 'Social atmosphere'],
           channels: ['Facebook', 'Instagram', 'Event platforms'],
-          messaging: 'The ideal meeting spot for friends and family'
-        }
-      ];
-      break;
+          messaging: 'The ideal meeting spot for friends and family',
+        },
+      ]
+      break
     case BusinessType.RESTAURANT:
       plan.targetSegments = [
         {
           segment: 'Food Enthusiasts',
           characteristics: ['Quality focused', 'Social media active', 'Try new things'],
           channels: ['Instagram', 'TikTok', 'Food blogs'],
-          messaging: 'Culinary experiences worth sharing'
+          messaging: 'Culinary experiences worth sharing',
         },
         {
           segment: 'Families',
           characteristics: ['Value conscious', 'Need variety', 'Kid-friendly'],
           channels: ['Facebook', 'Google Ads', 'Local newspapers'],
-          messaging: 'Where families create delicious memories'
-        }
-      ];
-      break;
+          messaging: 'Where families create delicious memories',
+        },
+      ]
+      break
     default:
       plan.targetSegments = [
         {
           segment: 'Local Community',
           characteristics: ['Regular visitors', 'Word of mouth', 'Value quality'],
           channels: ['Facebook', 'Instagram', 'Local events'],
-          messaging: 'Your neighborhood favorite'
-        }
-      ];
+          messaging: 'Your neighborhood favorite',
+        },
+      ]
   }
-  
+
   // Create campaigns based on objectives
   if (needsGrowth) {
     plan.campaigns.push({
@@ -301,36 +301,36 @@ export const createMarketingPlan = (
       objective: 'Increase monthly reviews to 100+',
       duration: '3 months',
       budget: '$2,000',
-      expectedResults: '200% increase in reviews'
-    });
+      expectedResults: '200% increase in reviews',
+    })
   }
-  
+
   plan.campaigns.push({
     name: 'Brand Awareness Push',
     objective: 'Increase local market awareness',
     duration: '6 months',
     budget: '$5,000',
-    expectedResults: '30% increase in new customers'
-  });
-  
+    expectedResults: '30% increase in new customers',
+  })
+
   // Content strategy themes based on strengths
   plan.contentStrategy.themes = [
     ...businessHealth.strengths.map(strength => `Highlight: ${strength}`),
     'Behind the scenes content',
     'Customer testimonials',
-    'Special offers and events'
-  ];
-  
-  return plan;
-};
+    'Special offers and events',
+  ]
+
+  return plan
+}
 
 export const generateGrowthStrategies = (
   businessHealth: BusinessHealth,
   marketingPlan: MarketingPlan,
-  _businessType: BusinessType
+  _businessType: BusinessType,
 ): GrowthStrategy[] => {
-  const strategies: GrowthStrategy[] = [];
-  
+  const strategies: GrowthStrategy[] = []
+
   // Review growth strategy
   if (businessHealth.metrics.monthlyReviews < 100) {
     strategies.push({
@@ -348,15 +348,15 @@ export const generateGrowthStrategies = (
         'Implement QR code system for easy review access',
         'Create email follow-up sequence',
         'Offer incentives for honest reviews',
-        'Monitor and respond to all reviews'
+        'Monitor and respond to all reviews',
       ],
       targetAudience: 'All satisfied customers',
       marketingChannels: ['Email', 'SMS', 'In-store signage', 'Receipt messages'],
       estimatedCost: '$500-1,000',
-      expectedROI: '300%+ through increased visibility'
-    });
+      expectedROI: '300%+ through increased visibility',
+    })
   }
-  
+
   // Customer acquisition strategy
   strategies.push({
     id: 'customer-acquisition',
@@ -373,14 +373,14 @@ export const generateGrowthStrategies = (
       'Partner with local businesses',
       'Host community events',
       'Implement referral program',
-      'Create first-time visitor offers'
+      'Create first-time visitor offers',
     ],
     targetAudience: marketingPlan.targetSegments[0]?.segment || 'New local customers',
     marketingChannels: ['Social media', 'Local partnerships', 'Events', 'Email'],
     estimatedCost: '$2,000-5,000',
-    expectedROI: '200%+ within 12 months'
-  });
-  
+    expectedROI: '200%+ within 12 months',
+  })
+
   // Retention and loyalty strategy
   strategies.push({
     id: 'customer-retention',
@@ -397,13 +397,13 @@ export const generateGrowthStrategies = (
       'Create VIP tiers with exclusive benefits',
       'Implement birthday and anniversary rewards',
       'Develop mobile app or digital card system',
-      'Regular communication with members'
+      'Regular communication with members',
     ],
     targetAudience: 'Existing customers',
     marketingChannels: ['Email', 'SMS', 'In-store', 'Mobile app'],
     estimatedCost: '$1,500-3,000',
-    expectedROI: '400%+ through increased lifetime value'
-  });
-  
-  return strategies;
-};
+    expectedROI: '400%+ through increased lifetime value',
+  })
+
+  return strategies
+}

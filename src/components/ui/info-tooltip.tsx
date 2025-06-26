@@ -1,13 +1,13 @@
-import React from 'react';
-import { Info } from 'lucide-react';
+import React from 'react'
+import { Info } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { getTooltip } from '@/utils/tooltipContent';
-import { cn } from '@/lib/utils';
+} from '@/components/ui/tooltip'
+import { getTooltip } from '@/utils/tooltipContent'
+import { cn } from '@/lib/utils'
 
 interface InfoTooltipProps {
   content: string;
@@ -19,10 +19,10 @@ interface InfoTooltipProps {
 
 /**
  * InfoTooltip Component
- * 
+ *
  * A reusable component that displays an info icon with a tooltip on hover.
  * Can use either direct content or fetch content from the centralized tooltip file.
- * 
+ *
  * @param content - Direct tooltip content or tooltip path if tooltipPath is not provided
  * @param tooltipPath - Path to tooltip content in the centralized file (e.g., "overview.averageRating")
  * @param className - Additional classes for the wrapper
@@ -34,30 +34,30 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
   tooltipPath,
   className,
   iconClassName,
-  side = 'top'
+  side = 'top',
 }) => {
   // Get tooltip content from centralized file if path is provided
-  const tooltipContent = tooltipPath ? getTooltip(tooltipPath) : content;
+  const tooltipContent = tooltipPath ? getTooltip(tooltipPath) : content
 
   return (
     <TooltipProvider delayDuration={0}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span 
+          <span
             className={cn(
-              "inline-flex items-center justify-center cursor-help",
-              className
+              'inline-flex items-center justify-center cursor-help',
+              className,
             )}
           >
-            <Info 
+            <Info
               className={cn(
-                "h-3.5 w-3.5 text-white/70 hover:text-white transition-colors",
-                iconClassName
-              )} 
+                'h-3.5 w-3.5 text-white/70 hover:text-white transition-colors',
+                iconClassName,
+              )}
             />
           </span>
         </TooltipTrigger>
-        <TooltipContent 
+        <TooltipContent
           side={side}
           className="max-w-xs z-50 bg-gray-900 text-white border-gray-700"
         >
@@ -65,15 +65,15 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-  );
-};
+  )
+}
 
 /**
  * TitleWithTooltip Component
- * 
+ *
  * A convenience component for titles/headers with an info tooltip.
  * The tooltip appears in the top-right corner of the title.
- * 
+ *
  * @param title - The title text
  * @param tooltipContent - Direct tooltip content
  * @param tooltipPath - Path to tooltip content in the centralized file
@@ -95,20 +95,20 @@ export const TitleWithTooltip: React.FC<TitleWithTooltipProps> = ({
   tooltipPath,
   titleClassName,
   className,
-  as: Component = 'h3'
+  as: Component = 'h3',
 }) => {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <Component className={cn("flex-1", titleClassName)}>
+    <div className={cn('flex items-center gap-2', className)}>
+      <Component className={cn('flex-1', titleClassName)}>
         {title}
       </Component>
       {(tooltipContent || tooltipPath) && (
-        <InfoTooltip 
-          content={tooltipContent || ''} 
+        <InfoTooltip
+          content={tooltipContent || ''}
           tooltipPath={tooltipPath}
           className="ml-1"
         />
       )}
     </div>
-  );
-};
+  )
+}

@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { AIProviderToggle } from "@/components/AIProviderToggle";
-import MobileNavigation from "@/components/MobileNavigation";
-import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { Sun, Moon, LogOut, Settings } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { AIProviderToggle } from '@/components/AIProviderToggle'
+import MobileNavigation from '@/components/MobileNavigation'
+import { useToast } from '@/hooks/use-toast'
+import { Badge } from '@/components/ui/badge'
+import { Sun, Moon, LogOut, Settings } from 'lucide-react'
+import { supabase } from '@/integrations/supabase/client'
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,61 +14,61 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children, onProviderChange }: DashboardLayoutProps) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
-  const [theme, setTheme] = useState<"light" | "dark">(
-    localStorage.getItem("theme") as "light" | "dark" || "light"
-  );
-  const [currentProvider, setCurrentProvider] = useState<string>("browser");
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { toast } = useToast()
+  const [theme, setTheme] = useState<'light' | 'dark'>(
+    localStorage.getItem('theme') as 'light' | 'dark' || 'light',
+  )
+  const [currentProvider, setCurrentProvider] = useState<string>('browser')
 
   useEffect(() => {
     // Apply theme to document
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
     } else {
-      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.remove('dark')
     }
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+    localStorage.setItem('theme', theme)
+  }, [theme])
 
   useEffect(() => {
     // Check which AI provider is configured
-    const savedProvider = localStorage.getItem('AI_PROVIDER');
-    const apiKey = savedProvider ? localStorage.getItem(`${savedProvider.toUpperCase()}_API_KEY`) : null;
-    
+    const savedProvider = localStorage.getItem('AI_PROVIDER')
+    const apiKey = savedProvider ? localStorage.getItem(`${savedProvider.toUpperCase()}_API_KEY`) : null
+
     if (savedProvider && apiKey) {
-      setCurrentProvider(savedProvider);
+      setCurrentProvider(savedProvider)
     } else {
-      setCurrentProvider("browser");
+      setCurrentProvider('browser')
     }
-  }, [location]);
+  }, [location])
 
   const toggleTheme = () => {
-    setTheme(theme === "light" ? "dark" : "light");
-  };
+    setTheme(theme === 'light' ? 'dark' : 'light')
+  }
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut()
       toast({
-        title: "Logged out",
+        title: 'Logged out',
         description: "You've been logged out successfully",
-      });
-      navigate("/auth");
+      })
+      navigate('/auth')
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error('Logout error:', error)
       toast({
-        title: "Error",
-        description: "There was a problem logging out",
-        variant: "destructive",
-      });
+        title: 'Error',
+        description: 'There was a problem logging out',
+        variant: 'destructive',
+      })
     }
-  };
+  }
 
   const navigateToSettings = () => {
-    navigate("/ai-settings");
-  };
+    navigate('/ai-settings')
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
@@ -77,7 +77,7 @@ const DashboardLayout = ({ children, onProviderChange }: DashboardLayoutProps) =
           <div className="flex justify-between items-center h-16">
             {/* Mobile Navigation */}
             <div className="flex items-center gap-3 md:hidden">
-              <MobileNavigation 
+              <MobileNavigation
                 theme={theme}
                 onThemeToggle={toggleTheme}
                 onLogout={handleLogout}
@@ -93,7 +93,7 @@ const DashboardLayout = ({ children, onProviderChange }: DashboardLayoutProps) =
               <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
                 Google Maps Review Analyzer
               </h1>
-              {currentProvider !== "browser" && (
+              {currentProvider !== 'browser' && (
                 <Badge variant="secondary" className="text-xs">
                   AI: {currentProvider.toUpperCase()}
                 </Badge>
@@ -118,11 +118,11 @@ const DashboardLayout = ({ children, onProviderChange }: DashboardLayoutProps) =
                 onClick={toggleTheme}
                 aria-label="Toggle theme"
               >
-                {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleLogout}
                 className="flex items-center gap-2"
               >
@@ -153,7 +153,7 @@ const DashboardLayout = ({ children, onProviderChange }: DashboardLayoutProps) =
         </div>
       </footer>
     </div>
-  );
-};
+  )
+}
 
-export default DashboardLayout;
+export default DashboardLayout

@@ -1,9 +1,9 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { type CompetitiveAnalysis } from "@/types/recommendations";
-import { TrendingUp, TrendingDown, Award, AlertTriangle, Zap, Minus } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { type CompetitiveAnalysis } from '@/types/recommendations'
+import { TrendingUp, TrendingDown, Award, AlertTriangle, Zap, Minus } from 'lucide-react'
 
 interface CompetitiveAnalysisViewProps {
   analysis: CompetitiveAnalysis;
@@ -12,39 +12,39 @@ interface CompetitiveAnalysisViewProps {
 export const CompetitiveAnalysisView = ({ analysis }: CompetitiveAnalysisViewProps) => {
   const getPositionColor = (position: string) => {
     switch (position) {
-      case 'above': return 'text-green-600';
-      case 'average': return 'text-yellow-600';
-      case 'below': return 'text-red-600';
-      default: return 'text-gray-600';
+      case 'above': return 'text-green-600'
+      case 'average': return 'text-yellow-600'
+      case 'below': return 'text-red-600'
+      default: return 'text-gray-600'
     }
-  };
+  }
 
   const getPositionBadge = (position: string) => {
     switch (position) {
-      case 'above': return <Badge className="bg-green-500 text-white">Above Average</Badge>;
-      case 'average': return <Badge className="bg-yellow-500 text-white">Average</Badge>;
-      case 'below': return <Badge className="bg-red-500 text-white">Below Average</Badge>;
-      default: return <Badge>Unknown</Badge>;
+      case 'above': return <Badge className="bg-green-500 text-white">Above Average</Badge>
+      case 'average': return <Badge className="bg-yellow-500 text-white">Average</Badge>
+      case 'below': return <Badge className="bg-red-500 text-white">Below Average</Badge>
+      default: return <Badge>Unknown</Badge>
     }
-  };
+  }
 
   const getMetricIcon = (metric: string) => {
     switch (metric) {
-      case 'rating': return <Award className="w-5 h-5" />;
-      case 'reviewVolume': return <TrendingUp className="w-5 h-5" />;
-      case 'sentiment': return <Zap className="w-5 h-5" />;
-      default: return <AlertTriangle className="w-5 h-5" />;
+      case 'rating': return <Award className="w-5 h-5" />
+      case 'reviewVolume': return <TrendingUp className="w-5 h-5" />
+      case 'sentiment': return <Zap className="w-5 h-5" />
+      default: return <AlertTriangle className="w-5 h-5" />
     }
-  };
+  }
 
   const formatMetricName = (metric: string) => {
     switch (metric) {
-      case 'rating': return 'Average Rating';
-      case 'reviewVolume': return 'Review Volume';
-      case 'sentiment': return 'Customer Sentiment';
-      default: return metric;
+      case 'rating': return 'Average Rating'
+      case 'reviewVolume': return 'Review Volume'
+      case 'sentiment': return 'Customer Sentiment'
+      default: return metric
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -161,5 +161,5 @@ export const CompetitiveAnalysisView = ({ analysis }: CompetitiveAnalysisViewPro
         </Card>
       </div>
     </div>
-  );
-};
+  )
+}

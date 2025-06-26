@@ -1,18 +1,18 @@
-import { useState } from "react";
+import { useState } from 'react'
 import {
   Card,
   CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { BusinessData } from "@/types/reviews";
-import { BusinessType } from "@/types/businessTypes";
-import { getBusinessTypeFromName } from "@/types/BusinessMappings";
-import { Settings, ChevronDown, Check } from "lucide-react";
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import type { BusinessData } from '@/types/reviews'
+import { BusinessType } from '@/types/businessTypes'
+import { getBusinessTypeFromName } from '@/types/BusinessMappings'
+import { Settings, ChevronDown, Check } from 'lucide-react'
 // Note: These will be migrated to appropriate features
-import { BusinessTypeBadge } from "@/components/BusinessTypeBadge";
-import { BusinessDetailsDialog } from "@/components/BusinessDetailsDialog";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { cn } from "@/lib/utils";
+import { BusinessTypeBadge } from '@/components/BusinessTypeBadge'
+import { BusinessDetailsDialog } from '@/components/BusinessDetailsDialog'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import { cn } from '@/lib/utils'
 
 interface BusinessSelectorProps {
   selectedBusiness: string;
@@ -25,31 +25,31 @@ const BusinessSelector = ({
   selectedBusiness,
   onBusinessChange,
   businessData,
-  className = "",
+  className = '',
 }: BusinessSelectorProps) => {
-  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [businessDropdownOpen, setBusinessDropdownOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
+  const [businessDropdownOpen, setBusinessDropdownOpen] = useState(false)
 
   // Generate business options dynamically from the businessData
   const businessOptions = [
-    { id: "all", name: "All Businesses" },
+    { id: 'all', name: 'All Businesses' },
     ...Object.entries(businessData.businesses).map(([id, data]) => ({
       id,
       name: data.name,
     })),
-  ];
+  ]
 
   // Automatically determine business type from business name
-  const businessType = selectedBusiness === "all" 
-    ? BusinessType.OTHER 
-    : getBusinessTypeFromName(selectedBusiness);
+  const businessType = selectedBusiness === 'all'
+    ? BusinessType.OTHER
+    : getBusinessTypeFromName(selectedBusiness)
 
   // Get the selected business name
   const getSelectedBusinessName = () => {
-    if (selectedBusiness === "all") return "All Businesses";
-    const found = businessOptions.find(opt => opt.id === selectedBusiness);
-    return found ? found.name : selectedBusiness;
-  };
+    if (selectedBusiness === 'all') return 'All Businesses'
+    const found = businessOptions.find(opt => opt.id === selectedBusiness)
+    return found ? found.name : selectedBusiness
+  }
 
   return (
     <Card className={`border-0 shadow-md dark:bg-gray-800 ${className}`}>
@@ -61,12 +61,12 @@ const BusinessSelector = ({
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                   Business Dashboard
                 </h2>
-                {selectedBusiness !== "all" && (
+                {selectedBusiness !== 'all' && (
                   <BusinessTypeBadge businessType={businessType} />
                 )}
               </div>
               <p className="text-gray-600 dark:text-gray-300 text-sm">
-                {selectedBusiness === "all"
+                {selectedBusiness === 'all'
                   ? `Viewing all businesses (${businessData.allBusinesses.count} reviews)`
                   : `Viewing ${selectedBusiness} (${
                       businessData.businesses[selectedBusiness]?.count || 0
@@ -77,13 +77,13 @@ const BusinessSelector = ({
           <div className="flex gap-4">
             <div className="flex-1">
               {/* Custom Business Dropdown */}
-              <DropdownMenu.Root 
-                open={businessDropdownOpen} 
+              <DropdownMenu.Root
+                open={businessDropdownOpen}
                 onOpenChange={setBusinessDropdownOpen}
               >
                 <DropdownMenu.Trigger asChild>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full justify-between"
                     role="combobox"
                     aria-expanded={businessDropdownOpen}
@@ -93,16 +93,16 @@ const BusinessSelector = ({
                   </Button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
-                  <DropdownMenu.Content 
+                  <DropdownMenu.Content
                     className="z-50 min-w-[200px] overflow-hidden rounded-md border border-gray-200 bg-white shadow-md animate-in data-[side=bottom]:slide-in-from-top-2 dark:border-gray-800 dark:bg-gray-950"
                     align="start"
                     sideOffset={5}
                   >
-                    <DropdownMenu.RadioGroup 
+                    <DropdownMenu.RadioGroup
                       value={selectedBusiness}
                       onValueChange={(value) => {
-                        onBusinessChange(value);
-                        setBusinessDropdownOpen(false);
+                        onBusinessChange(value)
+                        setBusinessDropdownOpen(false)
                       }}
                     >
                       {businessOptions.map((business) => (
@@ -110,8 +110,8 @@ const BusinessSelector = ({
                           key={business.id}
                           value={business.id}
                           className={cn(
-                            "relative flex cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-4 text-sm outline-none transition-colors hover:bg-gray-100 focus:bg-gray-100 dark:hover:bg-gray-800 dark:focus:bg-gray-800",
-                            selectedBusiness === business.id && "font-medium"
+                            'relative flex cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-4 text-sm outline-none transition-colors hover:bg-gray-100 focus:bg-gray-100 dark:hover:bg-gray-800 dark:focus:bg-gray-800',
+                            selectedBusiness === business.id && 'font-medium',
                           )}
                         >
                           <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
@@ -127,13 +127,13 @@ const BusinessSelector = ({
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
             </div>
-            {selectedBusiness !== "all" && (
+            {selectedBusiness !== 'all' && (
               <div className="flex items-center gap-2">
                 {/* Business type is now read-only and automatically determined */}
                 <div className="text-sm text-gray-600 dark:text-gray-300 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md">
                   Type: {businessType}
                 </div>
-                
+
                 {/* Add details button */}
                 <Button
                   variant="ghost"
@@ -148,7 +148,7 @@ const BusinessSelector = ({
             )}
           </div>
         </div>
-        
+
         {/* Business Details Dialog */}
         <BusinessDetailsDialog
           businessName={selectedBusiness}
@@ -158,7 +158,7 @@ const BusinessSelector = ({
         />
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
-export default BusinessSelector;
+export default BusinessSelector

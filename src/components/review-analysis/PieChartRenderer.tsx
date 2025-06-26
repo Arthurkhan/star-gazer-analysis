@@ -1,7 +1,7 @@
 
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, Sector } from 'recharts';
-import { CustomChartTooltip } from './CustomTooltips';
+import React from 'react'
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, Sector } from 'recharts'
+import { CustomChartTooltip } from './CustomTooltips'
 
 interface PieChartRendererProps {
   data: Array<{
@@ -27,14 +27,14 @@ export const renderActiveShape = (props: any) => {
     payload,
     percent,
     value,
-    _total
-  } = props;
+    _total,
+  } = props
 
   // Format the percentage with appropriate precision
-  const formattedPercent = (percent * 100).toFixed(1);
-  const percentage = formattedPercent.endsWith('.0') 
-    ? (percent * 100).toFixed(0) 
-    : formattedPercent;
+  const formattedPercent = (percent * 100).toFixed(1)
+  const percentage = formattedPercent.endsWith('.0')
+    ? (percent * 100).toFixed(0)
+    : formattedPercent
 
   return (
     <g>
@@ -59,8 +59,8 @@ export const renderActiveShape = (props: any) => {
         strokeWidth={2}
       />
     </g>
-  );
-};
+  )
+}
 
 export const PieChartRenderer: React.FC<PieChartRendererProps> = ({
   data,
@@ -77,9 +77,9 @@ export const PieChartRenderer: React.FC<PieChartRendererProps> = ({
     outerRadius,
     percent,
   }: any) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
-    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5
+    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180)
+    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180)
 
     return (
       <text
@@ -93,8 +93,8 @@ export const PieChartRenderer: React.FC<PieChartRendererProps> = ({
       >
         {`${(percent * 100).toFixed(0)}%`}
       </text>
-    );
-  };
+    )
+  }
 
   return (
     <div className={className || 'w-full h-64'}>
@@ -114,14 +114,14 @@ export const PieChartRenderer: React.FC<PieChartRendererProps> = ({
               <Cell key={`cell-${index}`} fill={entry.color || colors[index % colors.length]} />
             ))}
           </Pie>
-          <Tooltip 
+          <Tooltip
             content={<CustomChartTooltip />}
           />
           <Legend />
         </PieChart>
       </ResponsiveContainer>
     </div>
-  );
-};
+  )
+}
 
-export default PieChartRenderer;
+export default PieChartRenderer

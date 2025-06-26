@@ -1,9 +1,9 @@
-import { useMemo, useCallback } from "react";
-import { Review } from "@/types/reviews";
-import { EnhancedAnalysis } from "@/types/dataAnalysis";
-import { generateEnhancedAnalysis } from "@/utils/reviewDataUtils";
-import { performanceUtils } from "@/utils/performanceUtils";
-import { logger } from "@/utils/logger";
+import { useMemo, useCallback } from 'react'
+import type { Review } from '@/types/reviews'
+import type { EnhancedAnalysis } from '@/types/dataAnalysis'
+import { generateEnhancedAnalysis } from '@/utils/reviewDataUtils'
+import { performanceUtils } from '@/utils/performanceUtils'
+import { logger } from '@/utils/logger'
 
 interface UseFilteredDataConfig {
   enablePerformanceMonitoring?: boolean;
@@ -23,79 +23,79 @@ interface UseFilteredDataReturn {
 export function useFilteredData(
   allReviews: Review[],
   selectedBusiness: string,
-  config: UseFilteredDataConfig = {}
+  config: UseFilteredDataConfig = {},
 ): UseFilteredDataReturn {
-  const { enablePerformanceMonitoring = process.env.NODE_ENV === 'development' } = config;
+  const { enablePerformanceMonitoring = process.env.NODE_ENV === 'development' } = config
 
   /**
    * Memoized filtered reviews based on business selection
    */
   const filteredReviews = useMemo(() => {
-    const stopMeasurement = enablePerformanceMonitoring 
+    const stopMeasurement = enablePerformanceMonitoring
       ? performanceUtils.startMeasurement('filter-reviews')
-      : () => 0;
-    
-    let result: Review[];
-    
-    if (selectedBusiness === "all" || selectedBusiness === "All Businesses") {
-      result = allReviews;
+      : () => 0
+
+    let result: Review[]
+
+    if (selectedBusiness === 'all' || selectedBusiness === 'All Businesses') {
+      result = allReviews
     } else {
-      result = allReviews.filter(review => 
-        review.title === selectedBusiness || 
-        review.businesses?.name === selectedBusiness
-      );
+      result = allReviews.filter(review =>
+        review.title === selectedBusiness ||
+        review.businesses?.name === selectedBusiness,
+      )
     }
-    
+
     if (enablePerformanceMonitoring) {
-      const duration = stopMeasurement();
+      const duration = stopMeasurement()
       if (duration > 10) { // Log if filtering takes more than 10ms
-        logger.warn('filtering', `Slow filtering detected: ${duration.toFixed(2)}ms for ${allReviews.length} reviews`);
+        logger.warn('filtering', `Slow filtering detected: ${duration.toFixed(2)}ms for ${allReviews.length} reviews`)
       }
     }
-    
-    return result;
-  }, [allReviews, selectedBusiness, enablePerformanceMonitoring]);
+
+    return result
+  }, [allReviews, selectedBusiness, enablePerformanceMonitoring])
 
   /**
    * Memoized enhanced analysis for individual businesses
    */
   const enhancedAnalysis = useMemo(() => {
-    if (selectedBusiness === "all" || selectedBusiness === "All Businesses" || filteredReviews.length === 0) {
-      return null;
+    if (selectedBusiness === 'all' || selectedBusiness === 'All Businesses' || filteredReviews.length === 0) {
+      return null
     }
-    
-    const stopMeasurement = enablePerformanceMonitoring 
+
+    const stopMeasurement = enablePerformanceMonitoring
       ? performanceUtils.startMeasurement('enhanced-analysis')
-      : () => 0;
-    
+      : () => 0
+
     try {
-      const analysis = generateEnhancedAnalysis(filteredReviews, selectedBusiness);
-      
+      const analysis = generateEnhancedAnalysis(filteredReviews, selectedBusiness)
+
       if (enablePerformanceMonitoring) {
-        stopMeasurement();
+        stopMeasurement()
       }
-      
-      return analysis;
+
+      return analysis
     } catch (error) {
-      logger.error('analysis', 'Error generating enhanced analysis:', error);
-      
+      logger.error('analysis', 'Error generating enhanced analysis:', error)
+
       if (enablePerformanceMonitoring) {
-        stopMeasurement();
+        stopMeasurement()
       }
-      
-      return null;
+
+      return null
     }
-  }, [filteredReviews, selectedBusiness, enablePerformanceMonitoring]);
+  }, [filteredReviews, selectedBusiness, enablePerformanceMonitoring])
 
   /**
    * Get filtered reviews callback
    */
-  const getFilteredReviews = useCallback(() => filteredReviews, [filteredReviews]);
+  const getFilteredReviews = useCallback(() => filteredReviews, [filteredReviews])
 
   return {
     filteredReviews,
     enhancedAnalysis,
     getFilteredReviews,
     totalCount: filteredReviews.length,
-  };
+  }
 }

@@ -44,7 +44,7 @@ function logVital(metric: Metric) {
   console.log(
     `${statusEmoji} Web Vital: ${metric.name}`,
     `${metric.value} (${status})`,
-    vitalsData
+    vitalsData,
   )
 
   // In production, send to analytics service
@@ -138,7 +138,7 @@ export function createVitalsSummary(vitals: VitalsData[] = getStoredVitals()) {
     const entry = summary[metric.name]
     entry.count++
     entry.average = (entry.average * (entry.count - 1) + metric.value) / entry.count
-    
+
     const status = getVitalStatus(metric.name as VitalName, metric.value)
     entry.status[status]++
   })
@@ -147,9 +147,9 @@ export function createVitalsSummary(vitals: VitalsData[] = getStoredVitals()) {
 }
 
 // Performance monitoring hook
-export function usePerformanceMonitoring(options: { 
+export function usePerformanceMonitoring(options: {
   enabled?: boolean
-  reportInterval?: number 
+  reportInterval?: number
 } = {}) {
   const { enabled = true, reportInterval = 60000 } = options
 

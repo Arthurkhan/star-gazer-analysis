@@ -8,13 +8,13 @@ describe('safeUtils', () => {
         profile: {
           name: 'John',
           settings: {
-            theme: 'dark'
-          }
+            theme: 'dark',
+          },
         },
-        emails: ['john@test.com', 'john.doe@test.com']
+        emails: ['john@test.com', 'john.doe@test.com'],
       },
       count: 0,
-      active: false
+      active: false,
     }
 
     it('should safely access nested properties', () => {
@@ -116,7 +116,7 @@ describe('safeUtils', () => {
         vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
           throw new Error('Storage error')
         })
-        
+
         expect(safeStorage.getItem('test-key')).toBeNull()
       })
     })
@@ -133,7 +133,7 @@ describe('safeUtils', () => {
         vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
           throw new Error('Storage error')
         })
-        
+
         const result = safeStorage.setItem('test-key', 'test-value')
         expect(result).toBe(false)
       })
@@ -152,7 +152,7 @@ describe('safeUtils', () => {
         vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
           throw new Error('Storage error')
         })
-        
+
         const result = safeStorage.removeItem('test-key')
         expect(result).toBe(false)
       })
@@ -162,7 +162,7 @@ describe('safeUtils', () => {
       it('should clear all items successfully', () => {
         localStorage.setItem('key1', 'value1')
         localStorage.setItem('key2', 'value2')
-        
+
         const result = safeStorage.clear()
         expect(result).toBe(true)
         expect(localStorage.length).toBe(0)
@@ -173,7 +173,7 @@ describe('safeUtils', () => {
         vi.spyOn(Storage.prototype, 'clear').mockImplementation(() => {
           throw new Error('Storage error')
         })
-        
+
         const result = safeStorage.clear()
         expect(result).toBe(false)
       })
@@ -184,7 +184,7 @@ describe('safeUtils', () => {
     it('should execute function successfully and return result', async () => {
       const successFn = vi.fn().mockResolvedValue('success')
       const result = await safeExecute(successFn)
-      
+
       expect(result.success).toBe(true)
       expect(result.data).toBe('success')
       expect(result.error).toBeUndefined()
@@ -193,7 +193,7 @@ describe('safeUtils', () => {
     it('should handle synchronous functions', async () => {
       const syncFn = vi.fn().mockReturnValue('sync-result')
       const result = await safeExecute(syncFn)
-      
+
       expect(result.success).toBe(true)
       expect(result.data).toBe('sync-result')
       expect(result.error).toBeUndefined()
@@ -202,7 +202,7 @@ describe('safeUtils', () => {
     it('should catch and handle errors', async () => {
       const errorFn = vi.fn().mockRejectedValue(new Error('Test error'))
       const result = await safeExecute(errorFn)
-      
+
       expect(result.success).toBe(false)
       expect(result.data).toBeUndefined()
       expect(result.error).toBeInstanceOf(Error)
@@ -214,7 +214,7 @@ describe('safeUtils', () => {
         throw new Error('Sync error')
       })
       const result = await safeExecute(syncErrorFn)
-      
+
       expect(result.success).toBe(false)
       expect(result.data).toBeUndefined()
       expect(result.error).toBeInstanceOf(Error)
@@ -224,7 +224,7 @@ describe('safeUtils', () => {
     it('should pass arguments to the function', async () => {
       const fn = vi.fn().mockResolvedValue('result')
       await safeExecute(fn, 'arg1', 42, { key: 'value' })
-      
+
       expect(fn).toHaveBeenCalledWith('arg1', 42, { key: 'value' })
     })
   })

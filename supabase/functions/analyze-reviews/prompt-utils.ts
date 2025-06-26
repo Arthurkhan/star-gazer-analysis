@@ -39,80 +39,80 @@ interface Analysis {
 
 // Generate the prompt for AI
 export function generatePrompt(
-  reviews: Review[], 
-  fullAnalysis: boolean, 
+  reviews: Review[],
+  fullAnalysis: boolean,
   reportType: string,
   dateRange: DateRange | undefined,
   customPrompt: string | undefined,
-  comparisonData: ComparisonData | null = null
+  comparisonData: ComparisonData | null = null,
 ): string {
   // Use custom prompt if available, otherwise use default prompt
-  const analysisPrompt = customPrompt || getDefaultPrompt();
-  
+  const analysisPrompt = customPrompt || getDefaultPrompt()
+
   // Prepare reviews for insertion into prompt
-  const reviewText = reviews.map(r => `Rating: ${r.rating}, Text: ${r.text}`).join('\n');
-  
+  const reviewText = reviews.map(r => `Rating: ${r.rating}, Text: ${r.text}`).join('\n')
+
   // Replace placeholders in the prompt with actual data
-  let prompt = analysisPrompt.replace(/\[REVIEWS\]/g, reviewText);
-  prompt = prompt.replace(/\[count\]/g, reviews.length.toString());
-  
+  let prompt = analysisPrompt.replace(/\[REVIEWS\]/g, reviewText)
+  prompt = prompt.replace(/\[count\]/g, reviews.length.toString())
+
   // Calculate average rating
-  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-  const averageRating = reviews.length > 0 ? (totalRating / reviews.length).toFixed(1) : 'N/A';
-  prompt = prompt.replace(/\[calculate\]/g, averageRating);
-  
+  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0)
+  const averageRating = reviews.length > 0 ? (totalRating / reviews.length).toFixed(1) : 'N/A'
+  prompt = prompt.replace(/\[calculate\]/g, averageRating)
+
   // Add date range information
   if (dateRange) {
-    prompt = prompt.replace(/\[start date\]/g, new Date(dateRange.startDate).toLocaleDateString());
-    prompt = prompt.replace(/\[end date\]/g, new Date(dateRange.endDate).toLocaleDateString());
+    prompt = prompt.replace(/\[start date\]/g, new Date(dateRange.startDate).toLocaleDateString())
+    prompt = prompt.replace(/\[end date\]/g, new Date(dateRange.endDate).toLocaleDateString())
   } else {
-    prompt = prompt.replace(/\[start date\]/g, 'N/A');
-    prompt = prompt.replace(/\[end date\]/g, 'N/A');
+    prompt = prompt.replace(/\[start date\]/g, 'N/A')
+    prompt = prompt.replace(/\[end date\]/g, 'N/A')
   }
-  
+
   // Calculate reviews per month
-  let reviewsPerMonth = 'N/A';
+  let reviewsPerMonth = 'N/A'
   if (dateRange && dateRange.startDate && dateRange.endDate) {
-    const startDate = new Date(dateRange.startDate);
-    const endDate = new Date(dateRange.endDate);
-    const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
-    reviewsPerMonth = (reviews.length / months).toFixed(1);
+    const startDate = new Date(dateRange.startDate)
+    const endDate = new Date(dateRange.endDate)
+    const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1
+    reviewsPerMonth = (reviews.length / months).toFixed(1)
   }
-  prompt = prompt.replace(/\[reviews per month\]/g, reviewsPerMonth);
-  
+  prompt = prompt.replace(/\[reviews per month\]/g, reviewsPerMonth)
+
   // Add trend analysis information
   if (comparisonData) {
-    prompt = prompt.replace(/\[X reviews\]/g, comparisonData.current.count.toString());
-    prompt = prompt.replace(/\[Y reviews\]/g, comparisonData.previous.count > 0 ? comparisonData.previous.count.toString() : "No data available");
-    prompt = prompt.replace(/\[\+\/- percentage\]/g, comparisonData.change.percentage !== "N/A" ? `${parseFloat(comparisonData.change.percentage).toFixed(1)}%` : "New period");
-    prompt = prompt.replace(/\[Increasing\/Decreasing\/Stable\/New\]/g, comparisonData.change.description);
+    prompt = prompt.replace(/\[X reviews\]/g, comparisonData.current.count.toString())
+    prompt = prompt.replace(/\[Y reviews\]/g, comparisonData.previous.count > 0 ? comparisonData.previous.count.toString() : 'No data available')
+    prompt = prompt.replace(/\[\+\/- percentage\]/g, comparisonData.change.percentage !== 'N/A' ? `${parseFloat(comparisonData.change.percentage).toFixed(1)}%` : 'New period')
+    prompt = prompt.replace(/\[Increasing\/Decreasing\/Stable\/New\]/g, comparisonData.change.description)
   } else {
-    prompt = prompt.replace(/\[X reviews\]/g, reviews.length.toString());
-    prompt = prompt.replace(/\[Y reviews\]/g, "No data available");
-    prompt = prompt.replace(/\[\+\/- percentage\]/g, "New period");
-    prompt = prompt.replace(/\[Increasing\/Decreasing\/Stable\/New\]/g, "New");
+    prompt = prompt.replace(/\[X reviews\]/g, reviews.length.toString())
+    prompt = prompt.replace(/\[Y reviews\]/g, 'No data available')
+    prompt = prompt.replace(/\[\+\/- percentage\]/g, 'New period')
+    prompt = prompt.replace(/\[Increasing\/Decreasing\/Stable\/New\]/g, 'New')
   }
-  
-  return prompt;
+
+  return prompt
 }
 
 // Get the system message for AI
 export function getSystemMessage(fullAnalysis: boolean, reportType: string): string {
-  let systemMessage = `You are an AI assistant that analyzes customer reviews and provides insights.`;
-  
+  let systemMessage = 'You are an AI assistant that analyzes customer reviews and provides insights.'
+
   if (fullAnalysis) {
-    systemMessage += ` Your analysis should be comprehensive, covering sentiment, common themes, and staff mentions.`;
+    systemMessage += ' Your analysis should be comprehensive, covering sentiment, common themes, and staff mentions.'
   } else {
-    systemMessage += ` Focus on overall sentiment and key topics.`;
+    systemMessage += ' Focus on overall sentiment and key topics.'
   }
-  
+
   if (reportType === 'comprehensive') {
-    systemMessage += ` The report should be detailed and include trend analysis.`;
+    systemMessage += ' The report should be detailed and include trend analysis.'
   } else {
-    systemMessage += ` Keep the report concise and to the point.`;
+    systemMessage += ' Keep the report concise and to the point.'
   }
-  
-  return systemMessage;
+
+  return systemMessage
 }
 
 // Parse the AI response
@@ -123,16 +123,16 @@ export function parseAIResponse(data: AIResponse, _provider: string): Analysis {
       sentimentAnalysis: [],
       staffMentions: [],
       commonTerms: [],
-      overallAnalysis: "No analysis could be generated.",
-    };
+      overallAnalysis: 'No analysis could be generated.',
+    }
   }
-  
-  const response = data.choices[0].message?.content || data.choices[0].text;
-  
+
+  const response = data.choices[0].message?.content || data.choices[0].text
+
   try {
     // Attempt to parse the AI's response as JSON
-    const parsedResponse = JSON.parse(response || '{}');
-    return parsedResponse;
+    const parsedResponse = JSON.parse(response || '{}')
+    return parsedResponse
   } catch (error) {
     // If it's not JSON, treat the entire response as the overall analysis
     // AI response is not JSON, treating as overall analysis
@@ -141,7 +141,7 @@ export function parseAIResponse(data: AIResponse, _provider: string): Analysis {
       staffMentions: [],
       commonTerms: [],
       overallAnalysis: response || '',
-    };
+    }
   }
 }
 
@@ -151,18 +151,18 @@ export function createCompleteAnalysis(analysis: Analysis, fullAnalysis: boolean
     sentimentAnalysis: [],
     staffMentions: [],
     commonTerms: [],
-    overallAnalysis: analysis.overallAnalysis || "No overall analysis available.",
-  };
-  
+    overallAnalysis: analysis.overallAnalysis || 'No overall analysis available.',
+  }
+
   if (fullAnalysis) {
     return {
       sentimentAnalysis: analysis.sentimentAnalysis || [],
       staffMentions: analysis.staffMentions || [],
       commonTerms: analysis.commonTerms || [],
-      overallAnalysis: analysis.overallAnalysis || "No overall analysis available.",
-    };
+      overallAnalysis: analysis.overallAnalysis || 'No overall analysis available.',
+    }
   } else {
-    return defaultAnalysis;
+    return defaultAnalysis
   }
 }
 
@@ -172,20 +172,20 @@ export function extractIndividualReviewAnalysis(reviews: Review[]): unknown[] {
     reviewId: review.id,
     sentiment: review.sentiment,
     keyPhrases: review.keyPhrases,
-  }));
+  }))
 }
 
 // Format the overall analysis with better readability
 export function formatOverallAnalysis(text: string): string {
   // Add emojis to section headers if not already present
-  text = text.replace(/^PERFORMANCE SNAPSHOT/gm, '📊 PERFORMANCE SNAPSHOT');
-  text = text.replace(/^TREND ANALYSIS/gm, '📈 TREND ANALYSIS');
-  text = text.replace(/^CUSTOMER HIGHLIGHTS/gm, '🗣️ CUSTOMER HIGHLIGHTS');
-  text = text.replace(/^SAMPLE REVIEWS/gm, '💬 SAMPLE REVIEWS');
-  text = text.replace(/^AUDIENCE INSIGHTS/gm, '🌍 AUDIENCE INSIGHTS');
-  text = text.replace(/^RECOMMENDATIONS/gm, '🎯 RECOMMENDATIONS');
-  
-  return text;
+  text = text.replace(/^PERFORMANCE SNAPSHOT/gm, '📊 PERFORMANCE SNAPSHOT')
+  text = text.replace(/^TREND ANALYSIS/gm, '📈 TREND ANALYSIS')
+  text = text.replace(/^CUSTOMER HIGHLIGHTS/gm, '🗣️ CUSTOMER HIGHLIGHTS')
+  text = text.replace(/^SAMPLE REVIEWS/gm, '💬 SAMPLE REVIEWS')
+  text = text.replace(/^AUDIENCE INSIGHTS/gm, '🌍 AUDIENCE INSIGHTS')
+  text = text.replace(/^RECOMMENDATIONS/gm, '🎯 RECOMMENDATIONS')
+
+  return text
 }
 
 // Generate the default prompt template
@@ -231,5 +231,5 @@ Staff Impact: [Analyze staffMentioned data]
 
 🎯 RECOMMENDATIONS
 [Generate 3-5 specific recommendations based on the analysis]
-`;
+`
 }

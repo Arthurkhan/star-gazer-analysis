@@ -1,44 +1,44 @@
-import React, { memo } from "react";
-import { Review } from "@/types/reviews";
-import ReviewsTable from "@/components/ReviewsTable";
-import AnalysisSummary from "@/components/analysis/AnalysisSummary";
-import ReviewsChart from "@/components/ReviewsChart";
-import CumulativeReviewsChart from "@/components/CumulativeReviewsChart";
-import { groupReviewsByMonth } from "@/utils/dataUtils";
-import { useDashboardContext } from "@/contexts/DashboardContext";
-import { Separator } from "@/components/ui/separator";
+import React, { memo } from 'react'
+import type { Review } from '@/types/reviews'
+import ReviewsTable from '@/components/ReviewsTable'
+import AnalysisSummary from '@/components/analysis/AnalysisSummary'
+import ReviewsChart from '@/components/ReviewsChart'
+import CumulativeReviewsChart from '@/components/CumulativeReviewsChart'
+import { groupReviewsByMonth } from '@/utils/dataUtils'
+import { useDashboardContext } from '@/contexts/DashboardContext'
+import { Separator } from '@/components/ui/separator'
 
 // AllReviewsContent component with enhanced props for loading all reviews
 const AllReviewsContent: React.FC<{
-  reviews: Review[]; 
+  reviews: Review[];
   chartData: any[];
   totalReviewCount?: number;
   loadingMore?: boolean;
   onLoadMore?: () => void;
   hasMoreData?: boolean;
   selectedBusiness?: string; // Add selected business prop
-}> = ({ 
-  reviews, 
-  chartData, 
+}> = ({
+  reviews,
+  chartData,
   totalReviewCount,
   loadingMore,
   onLoadMore,
   hasMoreData,
-  selectedBusiness = "all" // Default to "all" if not provided
+  selectedBusiness = 'all', // Default to "all" if not provided
 }) => {
   // Try to get the total review count from context if not provided directly
-  let dashboardTotalReviewCount = totalReviewCount;
+  let dashboardTotalReviewCount = totalReviewCount
   try {
     // Attempt to use the context to get the total count if available
-    const dashboardContext = useDashboardContext();
+    const dashboardContext = useDashboardContext()
     if (!dashboardTotalReviewCount && dashboardContext?.totalReviewCount) {
-      dashboardTotalReviewCount = dashboardContext.totalReviewCount;
+      dashboardTotalReviewCount = dashboardContext.totalReviewCount
     }
   } catch (e) {
     // Context not available, will use the reviews.length as fallback
-    console.warn("Dashboard context not available, using loaded reviews count");
+    console.warn('Dashboard context not available, using loaded reviews count')
   }
-  
+
   // Empty reviews check to prevent rendering issues
   if (!reviews || reviews.length === 0) {
     return (
@@ -48,16 +48,16 @@ const AllReviewsContent: React.FC<{
           Select a business with reviews or refresh the data to view the analysis.
         </p>
       </div>
-    );
+    )
   }
 
   // Get monthly data for charts - used by both charts
-  const monthlyData = groupReviewsByMonth(reviews);
-  
+  const monthlyData = groupReviewsByMonth(reviews)
+
   // Determine the actual business name to display
-  const displayBusinessName = selectedBusiness === "all" || selectedBusiness === "All Businesses" 
-    ? "All Businesses" 
-    : selectedBusiness;
+  const displayBusinessName = selectedBusiness === 'all' || selectedBusiness === 'All Businesses'
+    ? 'All Businesses'
+    : selectedBusiness
 
   return (
     <div className="space-y-8">
@@ -71,18 +71,18 @@ const AllReviewsContent: React.FC<{
             </p>
           </div>
         </div>
-        
+
         <div className="space-y-6">
           {/* Reviews Timeline Chart - Pass monthlyData instead of reviews */}
           <ReviewsChart data={monthlyData} />
-          
+
           {/* Cumulative Reviews Growth Chart */}
           <CumulativeReviewsChart data={monthlyData} />
         </div>
       </section>
 
       <Separator className="my-8" />
-      
+
       {/* Detailed Analysis */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
@@ -93,17 +93,17 @@ const AllReviewsContent: React.FC<{
             </p>
           </div>
         </div>
-        
-        <AnalysisSummary 
+
+        <AnalysisSummary
           reviews={reviews}
           businessName={displayBusinessName} // Pass the actual selected business name
           loading={false}
           config={{
-            timePeriod: "all",
+            timePeriod: 'all',
             includeStaffAnalysis: true,
             includeThematicAnalysis: true,
             includeActionItems: true,
-            comparisonPeriod: "previous"
+            comparisonPeriod: 'previous',
           }}
           customizable={true}
           exportable={true}
@@ -111,7 +111,7 @@ const AllReviewsContent: React.FC<{
       </section>
 
       <Separator className="my-8" />
-      
+
       {/* Reviews Table */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
@@ -122,12 +122,12 @@ const AllReviewsContent: React.FC<{
             </p>
           </div>
         </div>
-        
+
         <ReviewsTable reviews={reviews} />
       </section>
     </div>
-  );
-};
+  )
+}
 
 // Use memo to prevent unnecessary re-renders
-export default memo(AllReviewsContent);
+export default memo(AllReviewsContent)

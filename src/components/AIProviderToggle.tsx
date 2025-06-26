@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Cloud } from "lucide-react";
-import { useState, useEffect } from "react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from '@/components/ui/button'
+import { Cloud } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export type AIProvider = 'browser' | 'api';
 
@@ -10,15 +10,15 @@ interface AIProviderToggleProps {
 }
 
 export const AIProviderToggle = ({ onProviderChange }: AIProviderToggleProps) => {
-  const [provider, setProvider] = useState<AIProvider>(() => {
+  const [provider] = useState<AIProvider>(() => {
     // Always default to 'api' since we're removing browser option
-    return 'api';
-  });
+    return 'api'
+  })
 
   useEffect(() => {
-    localStorage.setItem('RECOMMENDATION_AI_PROVIDER', provider);
-    onProviderChange?.(provider);
-  }, [provider, onProviderChange]);
+    localStorage.setItem('RECOMMENDATION_AI_PROVIDER', provider)
+    onProviderChange?.(provider)
+  }, [provider, onProviderChange])
 
   return (
     <div className="flex items-center">
@@ -41,5 +41,5 @@ export const AIProviderToggle = ({ onProviderChange }: AIProviderToggleProps) =>
         </Tooltip>
       </TooltipProvider>
     </div>
-  );
-};
+  )
+}

@@ -1,11 +1,11 @@
 /**
  * Simplified Analysis Summary Types - Phase 1 Consolidation
- * 
+ *
  * Reduces 17 interfaces to 4 essential ones, using TypeScript inference
  * where possible and avoiding over-typing
  */
 
-import { Review } from "./reviews";
+import type { Review } from './reviews'
 
 // Core business metrics (consolidates health score, performance, ratings, sentiment)
 export interface BusinessMetrics {
@@ -14,14 +14,14 @@ export interface BusinessMetrics {
   averageRating: number;
   totalReviews: number;
   responseRate: number; // 0-100 percentage
-  
+
   // Trends (simple direction indicators)
   trends: {
     rating: 'up' | 'down' | 'stable';
     volume: 'growing' | 'declining' | 'stable';
     sentiment: 'improving' | 'declining' | 'stable';
   };
-  
+
   // Distributions (flexible data structure)
   distributions: {
     ratings: Record<number, number>; // star rating -> count
@@ -39,7 +39,7 @@ export interface AnalysisInsights {
     sentiment: 'positive' | 'negative' | 'neutral';
     rating?: number; // average rating for this theme
   }>;
-  
+
   // Staff mentions (simplified)
   staff: Array<{
     name: string;
@@ -47,14 +47,14 @@ export interface AnalysisInsights {
     sentiment: 'positive' | 'negative' | 'neutral';
     examples: string[]; // up to 3 example review snippets
   }>;
-  
+
   // Action items (simplified priority system)
   actions: {
     urgent: string[]; // Critical issues requiring immediate attention
     improvements: string[]; // Suggested improvements
     strengths: string[]; // Things to leverage
   };
-  
+
   // Operational patterns (simplified)
   patterns: {
     peakPeriods: string[]; // When reviews are most frequent
@@ -67,7 +67,7 @@ export interface AnalysisInsights {
 export interface AnalysisSummaryData {
   metrics: BusinessMetrics;
   insights: AnalysisInsights;
-  
+
   // Meta information
   generatedAt: Date;
   businessName: string;
@@ -76,7 +76,7 @@ export interface AnalysisSummaryData {
     end: Date;
     totalReviews: number;
   };
-  
+
   // Optional comparison data (if comparing periods)
   comparison?: {
     previousMetrics: Partial<BusinessMetrics>;
@@ -89,12 +89,12 @@ export interface AnalysisConfig {
   // Time period
   period: 'last30days' | 'last90days' | 'last6months' | 'last12months' | 'all' | 'custom';
   customRange?: { start: Date; end: Date };
-  
+
   // Features to include (defaults to all true)
   includeStaffAnalysis?: boolean;
   includeThemes?: boolean;
   includeComparison?: boolean;
-  
+
   // Comparison type
   comparisonPeriod?: 'previous' | 'yearOverYear' | 'none';
 }
@@ -105,7 +105,7 @@ export type TrendDirection = 'up' | 'down' | 'stable';
 export type SentimentType = 'positive' | 'negative' | 'neutral';
 
 // Re-export for convenience
-export type { Review };
+export type { Review }
 
 // Default config
 export const defaultAnalysisConfig: AnalysisConfig = {
@@ -113,5 +113,5 @@ export const defaultAnalysisConfig: AnalysisConfig = {
   includeStaffAnalysis: true,
   includeThemes: true,
   includeComparison: false,
-  comparisonPeriod: 'none'
-};
+  comparisonPeriod: 'none',
+}

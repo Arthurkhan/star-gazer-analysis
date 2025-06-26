@@ -1,14 +1,6 @@
-import React, { useMemo, useState, useCallback, Suspense, useEffect } from 'react'
+import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContentLarge,
-  DialogHeader,
-  DialogTitle,
-  DialogScrollArea,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -16,35 +8,20 @@ import {
   AlertTriangle,
   CheckCircle,
   RefreshCw,
-  Download,
-  Settings,
   EyeOff,
   Maximize,
   Grid,
   BarChart3,
-  Shield,
-  Filter,
-  GitCompare,
 } from 'lucide-react'
 import type { Review } from '@/types/reviews'
 import type { BusinessType } from '@/types/businessTypes'
 import type { AnalysisSummaryData, AnalysisConfig } from '@/types/analysisSummary'
 import { generateAnalysisSummary } from '@/utils/analysisUtils'
 import { PerformanceMonitor, debounce } from '@/utils/performanceOptimizations'
-import { errorLogger, AppError, ErrorType, ErrorSeverity, safeExecute } from '@/utils/errorHandling'
-import { SectionErrorBoundary, ComponentErrorBoundary } from '@/components/ErrorBoundary'
-import {
-  LazyInteractiveCharts,
-  LazyExportManager,
-  LazyDashboardCustomizer,
-  LazyAlertSystem,
-  LazyComparativeAnalysis,
-  LazyAdvancedFilters,
-  LoadingFallback,
-} from '@/utils/lazyLoading'
-
-// Import InfoTooltip component
+import { errorLogger, AppError, ErrorType, ErrorSeverity } from '@/utils/errorHandling'
+import { ComponentErrorBoundary, SectionErrorBoundary } from '@/components/ErrorBoundary'
 import { InfoTooltip } from '@/components/ui/info-tooltip'
+
 
 // Core analysis components (always loaded)
 import { ExecutiveSummaryCard } from './ExecutiveSummaryCard'
@@ -55,18 +32,6 @@ import { StaffInsightsSection } from './StaffInsightsSection'
 import { OperationalInsightsSection } from './OperationalInsightsSection'
 import { ActionItemsSection } from './ActionItemsSection'
 
-// Phase 5: Advanced filters type import
-interface FilterCriteria {
-  dateRange?: { start: Date; end: Date };
-  ratingRange?: { min: number; max: number };
-  sentiment?: string[];
-  textSearch?: string;
-  themes?: string[];
-  staffMentions?: string[];
-  hasOwnerResponse?: boolean;
-  languages?: string[];
-  reviewLength?: { min: number; max: number };
-}
 
 interface AnalysisSummaryProps {
   reviews: Review[];
@@ -77,8 +42,6 @@ interface AnalysisSummaryProps {
   className?: string;
   onRefresh?: () => void;
   autoRefresh?: boolean;
-  customizable?: boolean;
-  exportable?: boolean;
 }
 
 interface ViewConfig {
@@ -100,7 +63,7 @@ const DEFAULT_VIEW_CONFIG: ViewConfig = {
 export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
   reviews,
   businessName = 'Current Business',
-  businessType = 'CAFE',
+  _businessType = 'CAFE',
   loading = false,
   config = {
     timePeriod: 'all',
@@ -111,20 +74,10 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
   },
   className = '',
   onRefresh,
-  autoRefresh = false,
-  customizable = false,
-  exportable = false,
+  _autoRefresh = false,
 }) => {
-  // Phase 5: Enhanced state management with performance monitoring
+  // Enhanced state management with performance monitoring
   const [viewConfig, setViewConfig] = useState<ViewConfig>(DEFAULT_VIEW_CONFIG)
-  const [showCustomizer, setShowCustomizer] = useState(false)
-  const [showExportManager, setShowExportManager] = useState(false)
-  const [showInteractiveCharts, setShowInteractiveCharts] = useState(false)
-  const [showAlertSystem, setShowAlertSystem] = useState(false)
-  const [showComparativeAnalysis, setShowComparativeAnalysis] = useState(false)
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
-  const [filteredReviews, setFilteredReviews] = useState<Review[]>(reviews)
-  const [activeFilters, setActiveFilters] = useState<FilterCriteria | null>(null)
   const [fullscreenSection, setFullscreenSection] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
@@ -140,26 +93,19 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
     }
   }, [])
 
-  // Reset filtered reviews when business changes or reviews update
+  // Track business name changes
   useEffect(() => {
     if (businessName !== prevBusinessName) {
-      // Business changed, resetting filters
-      setFilteredReviews(reviews)
-      setActiveFilters(null)
       setPrevBusinessName(businessName)
-    } else {
-      // Update filtered reviews if the source reviews changed
-      setFilteredReviews(reviews)
     }
-  }, [businessName, prevBusinessName, reviews])
+  }, [businessName, prevBusinessName])
 
-  // Use filtered reviews for analysis with performance optimization
+  // Use reviews directly for analysis with performance optimization
   const reviewsForAnalysis = useMemo(() => {
-    const stopMeasurement = PerformanceMonitor.startMeasurement('reviews-filtering')
-    const result = filteredReviews.length > 0 ? filteredReviews : reviews
+    const stopMeasurement = PerformanceMonitor.startMeasurement('reviews-analysis')
     stopMeasurement()
-    return result
-  }, [filteredReviews, reviews])
+    return reviews
+  }, [reviews])
 
   // FIXED: Remove aggressive memoization and rely on React's useMemo
   // This ensures the analysis updates when businessName or reviews change
@@ -214,15 +160,7 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
     [onRefresh],
   )
 
-  // Phase 5: Safe export handler
-  const _handleExport = useCallback(safeExecute((_format: string) => {
-    if (analysisData) {
-      setShowExportManager(true)
-      PerformanceMonitor.startMeasurement('export-manager-open')
-    }
-  }, { action: 'export', format: 'unknown' }), [analysisData])
-
-  // Phase 5: Optimized view configuration changes
+  // Optimized view configuration changes
   const handleViewConfigChange = useCallback((key: keyof ViewConfig, value: any) => {
     setViewConfig(prev => ({ ...prev, [key]: value }))
     PerformanceMonitor.startMeasurement('view-config-change')
@@ -249,14 +187,8 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
   React.useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        // Close any open modals in order of priority
-        if (showAdvancedFilters) setShowAdvancedFilters(false)
-        else if (showComparativeAnalysis) setShowComparativeAnalysis(false)
-        else if (showAlertSystem) setShowAlertSystem(false)
-        else if (showInteractiveCharts) setShowInteractiveCharts(false)
-        else if (showExportManager) setShowExportManager(false)
-        else if (showCustomizer) setShowCustomizer(false)
-        else if (fullscreenSection) setFullscreenSection(null)
+        // Close fullscreen section
+        if (fullscreenSection) setFullscreenSection(null)
       }
     }
 
@@ -266,15 +198,8 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
       document.body.style.overflow = ''
       document.removeEventListener('keydown', handleEscape)
     }
-  }, [showAdvancedFilters, showComparativeAnalysis, showAlertSystem, showInteractiveCharts, showExportManager, showCustomizer, fullscreenSection])
+  }, [fullscreenSection])
 
-  // Phase 5: Optimized filter change handler
-  const handleFiltersChange = useCallback((filtered: Review[], criteria: FilterCriteria) => {
-    const stopMeasurement = PerformanceMonitor.startMeasurement('filters-apply')
-    setFilteredReviews(filtered)
-    setActiveFilters(criteria)
-    stopMeasurement()
-  }, [])
 
   // Phase 5: Memoized layout styles - Updated to always use single column for main grid
   const getLayoutStyles = useMemo(() => {
@@ -294,62 +219,10 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
     }
   }, [viewConfig])
 
-  // Phase 5: Enhanced loading state with performance info
-  if (loading) {
-    return (
-      <ComponentErrorBoundary>
-        <Card className={`w-full ${className}`}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Generating Analysis Summary...
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </ComponentErrorBoundary>
-    )
-  }
-
-  // Phase 5: Enhanced error state
-  if (!analysisData) {
-    return (
-      <Alert className={`w-full ${className}`} variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          Unable to generate analysis summary. Please ensure you have review data available.
-          {process.env.NODE_ENV === 'development' && (
-            <details className="mt-2 text-xs">
-              <summary>Debug Info</summary>
-              <pre>{JSON.stringify({
-                reviewCount: reviews.length,
-                filteredCount: filteredReviews.length,
-                config,
-                businessName,
-              }, null, 2)}</pre>
-            </details>
-          )}
-        </AlertDescription>
-      </Alert>
-    )
-  }
-
-  // Success state with health score indicator
-  const healthScore = analysisData.businessHealthScore.overall
-  const healthColor = healthScore >= 80 ? 'text-green-600' :
-                     healthScore >= 60 ? 'text-yellow-600' : 'text-red-600'
-  const healthIcon = healthScore >= 80 ? CheckCircle :
-                    healthScore >= 60 ? AlertTriangle : AlertTriangle
-  const HealthIcon = healthIcon
-
   // Phase 5: Optimized main content rendering - UPDATED SECTION ORDER
   const renderMainContent = useCallback(() => {
+    if (!analysisData) return null
+
     const sections = [
       {
         id: 'executive-summary',
@@ -513,6 +386,60 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
     )
   }, [analysisData, config, viewConfig, fullscreenSection, getLayoutStyles, toggleFullscreen])
 
+  // Phase 5: Enhanced loading state with performance info
+  if (loading) {
+    return (
+      <ComponentErrorBoundary>
+        <Card className={`w-full ${className}`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Generating Analysis Summary...
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </ComponentErrorBoundary>
+    )
+  }
+
+  // Phase 5: Enhanced error state
+  if (!analysisData) {
+    return (
+      <Alert className={`w-full ${className}`} variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          Unable to generate analysis summary. Please ensure you have review data available.
+          {process.env.NODE_ENV === 'development' && (
+            <details className="mt-2 text-xs">
+              <summary>Debug Info</summary>
+              <pre>{JSON.stringify({
+                reviewCount: reviews.length,
+                config,
+                businessName,
+              }, null, 2)}</pre>
+            </details>
+          )}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  // Success state with health score indicator
+  const healthScore = analysisData.businessHealthScore.overall
+  const healthColor = healthScore >= 80 ? 'text-green-600' :
+                     healthScore >= 60 ? 'text-yellow-600' : 'text-red-600'
+  const healthIcon = healthScore >= 80 ? CheckCircle :
+                    healthScore >= 60 ? AlertTriangle : AlertTriangle
+  const HealthIcon = healthIcon
+
+
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header with controls */}
@@ -528,26 +455,6 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
               <span className="text-sm text-muted-foreground">
                 ({analysisData.dataSource.totalReviews} reviews analyzed)
               </span>
-              {activeFilters && (
-                <Badge variant="secondary" className="ml-2">
-                  <Filter className="h-3 w-3 mr-1" />
-                  Filtered
-                  <InfoTooltip
-                    content="Results are filtered. Click 'Filters' to modify or clear filters"
-                    className="ml-1"
-                  />
-                </Badge>
-              )}
-              {autoRefresh && (
-                <Badge variant="secondary" className="ml-2">
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Auto-refresh
-                  <InfoTooltip
-                    content="Analysis automatically updates when new reviews are received"
-                    className="ml-1"
-                  />
-                </Badge>
-              )}
             </div>
             <div className={`flex items-center gap-2 ${healthColor}`}>
               <HealthIcon className="w-5 h-5" />
@@ -571,70 +478,6 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
-              </Button>
-            )}
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAdvancedFilters(true)}
-              title="Filter reviews by date, rating, sentiment, and more"
-            >
-              <Filter className="h-4 w-4 mr-1" />
-              Filters
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowComparativeAnalysis(true)}
-              title="Compare performance across different time periods"
-            >
-              <GitCompare className="h-4 w-4 mr-1" />
-              Compare
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAlertSystem(true)}
-              title="Set up automated alerts for performance changes"
-            >
-              <Shield className="h-4 w-4 mr-1" />
-              Alerts
-            </Button>
-
-            {exportable && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowExportManager(true)}
-                title="Export analysis data in various formats"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Export
-              </Button>
-            )}
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowInteractiveCharts(true)}
-              title="View detailed interactive charts and visualizations"
-            >
-              <BarChart3 className="h-4 w-4 mr-1" />
-              Charts
-            </Button>
-
-            {customizable && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCustomizer(true)}
-                title="Customize dashboard layout and appearance"
-              >
-                <Settings className="h-4 w-4 mr-1" />
-                Customize
               </Button>
             )}
 
@@ -674,152 +517,6 @@ export const AnalysisSummary: React.FC<AnalysisSummaryProps> = React.memo(({
         </CardContent>
       </Card>
 
-      {/* Phase 5: Lazy-loaded modal components with error boundaries */}
-      <Dialog open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
-        <DialogContentLarge>
-          <DialogHeader>
-            <DialogTitle>Advanced Filters</DialogTitle>
-          </DialogHeader>
-          <DialogScrollArea>
-            <Suspense fallback={<LoadingFallback size="large" message="Loading filters..." />}>
-              <SectionErrorBoundary>
-                <LazyAdvancedFilters
-                  reviews={reviews}
-                  onFiltersChange={handleFiltersChange}
-                  showResultCount={true}
-                  enablePresets={true}
-                />
-              </SectionErrorBoundary>
-            </Suspense>
-          </DialogScrollArea>
-        </DialogContentLarge>
-      </Dialog>
-
-      <Dialog open={showComparativeAnalysis} onOpenChange={setShowComparativeAnalysis}>
-        <DialogContentLarge>
-          <DialogHeader>
-            <DialogTitle>
-              Comparative Analysis
-              <InfoTooltip
-                tooltipPath="comparison.periodSelector"
-                className="ml-2"
-              />
-            </DialogTitle>
-          </DialogHeader>
-          <DialogScrollArea>
-            <Suspense fallback={<LoadingFallback size="large" message="Loading comparison..." />}>
-              <SectionErrorBoundary>
-                <LazyComparativeAnalysis
-                  reviews={reviewsForAnalysis}
-                  businessName={businessName}
-                  businessType={businessType}
-                />
-              </SectionErrorBoundary>
-            </Suspense>
-          </DialogScrollArea>
-        </DialogContentLarge>
-      </Dialog>
-
-      <Dialog open={showAlertSystem} onOpenChange={setShowAlertSystem}>
-        <DialogContentLarge>
-          <DialogHeader>
-            <DialogTitle>
-              Performance Alert System
-              <InfoTooltip
-                tooltipPath="notifications.alertThreshold"
-                className="ml-2"
-              />
-            </DialogTitle>
-          </DialogHeader>
-          <DialogScrollArea>
-            <Suspense fallback={<LoadingFallback size="large" message="Loading alerts..." />}>
-              <SectionErrorBoundary>
-                <LazyAlertSystem
-                  reviews={reviewsForAnalysis}
-                  businessName={businessName}
-                  businessType={businessType}
-                />
-              </SectionErrorBoundary>
-            </Suspense>
-          </DialogScrollArea>
-        </DialogContentLarge>
-      </Dialog>
-
-      <Dialog open={showInteractiveCharts} onOpenChange={setShowInteractiveCharts}>
-        <DialogContentLarge>
-          <DialogHeader>
-            <DialogTitle>Interactive Charts</DialogTitle>
-          </DialogHeader>
-          <DialogScrollArea>
-            <Suspense fallback={<LoadingFallback size="large" message="Loading charts..." />}>
-              <SectionErrorBoundary>
-                <LazyInteractiveCharts
-                  reviews={reviewsForAnalysis}
-                  analysisData={analysisData}
-                  refreshData={onRefresh}
-                  autoRefresh={autoRefresh}
-                />
-              </SectionErrorBoundary>
-            </Suspense>
-          </DialogScrollArea>
-        </DialogContentLarge>
-      </Dialog>
-
-      <Dialog open={showExportManager && exportable} onOpenChange={setShowExportManager}>
-        <DialogContentLarge>
-          <DialogHeader>
-            <DialogTitle>
-              Export Manager
-              <InfoTooltip
-                tooltipPath="export.exportButton"
-                className="ml-2"
-              />
-            </DialogTitle>
-          </DialogHeader>
-          <DialogScrollArea>
-            <Suspense fallback={<LoadingFallback size="large" message="Loading export manager..." />}>
-              <SectionErrorBoundary>
-                <LazyExportManager
-                  reviews={reviewsForAnalysis}
-                  businessName={businessName}
-                  businessType={businessType}
-                />
-              </SectionErrorBoundary>
-            </Suspense>
-          </DialogScrollArea>
-        </DialogContentLarge>
-      </Dialog>
-
-      <Dialog open={showCustomizer && customizable} onOpenChange={setShowCustomizer}>
-        <DialogContentLarge>
-          <DialogHeader>
-            <DialogTitle>Dashboard Customizer</DialogTitle>
-          </DialogHeader>
-          <DialogScrollArea>
-            <Suspense fallback={<LoadingFallback size="large" message="Loading customizer..." />}>
-              <SectionErrorBoundary>
-                <LazyDashboardCustomizer
-                  currentLayout={{
-                    id: 'current',
-                    name: 'Current Layout',
-                    description: 'Current dashboard configuration',
-                    widgets: [],
-                    columns: viewConfig.columns,
-                    spacing: 16,
-                    theme: 'light',
-                  }}
-                  onLayoutChange={(layout) => {
-                    handleViewConfigChange('columns', layout.columns)
-                  }}
-                  onSaveTemplate={() => {}}
-                  onLoadTemplate={() => {}}
-                  availableTemplates={[]}
-                />
-              </SectionErrorBoundary>
-            </Suspense>
-          </DialogScrollArea>
-        </DialogContentLarge>
-      </Dialog>
     </div>
   )
 })

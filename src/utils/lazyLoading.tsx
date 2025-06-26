@@ -5,8 +5,8 @@
  * error handling, and intelligent preloading strategies.
  */
 
-import type { ComponentType } from 'react'
 import React, { Suspense, lazy } from 'react'
+import type { ComponentType } from 'react'
 import { PerformanceMonitor } from './performanceOptimizations'
 import { AppError, ErrorType, ErrorSeverity, errorLogger } from './errorHandling'
 import { Card, CardContent } from '@/components/ui/card'
@@ -46,7 +46,7 @@ export const LoadingFallback: React.FC<LoadingFallbackProps> = ({
 }
 
 // Error fallback for lazy loading failures
-const LazyLoadErrorFallback: React.FC<{ error: Error; retry: () => void }> = ({ error, retry }) => (
+const LazyLoadErrorFallback: React.FC<{ error: Error; retry: () => void }> = ({ retry }) => (
   <Card className="w-full h-40 flex items-center justify-center border-destructive">
     <CardContent className="flex flex-col items-center gap-2 p-6 text-center">
       <AlertTriangle className="h-8 w-8 text-destructive" />
@@ -385,60 +385,6 @@ export function useLazyComponent<T extends ComponentType<any>>(
   return [LazyComponent, isLoading]
 }
 
-// Lazy loading for analysis components
-export const LazyInteractiveCharts = createLazyComponent(
-  () => import('@/components/analysis/InteractiveCharts'),
-  {
-    size: 'large',
-    loadingMessage: 'Loading interactive charts...',
-    preload: false,
-  },
-)
-
-export const LazyExportManager = createLazyComponent(
-  () => import('@/components/analysis/ExportManager'),
-  {
-    size: 'medium',
-    loadingMessage: 'Loading export manager...',
-    preload: false,
-  },
-)
-
-export const LazyDashboardCustomizer = createLazyComponent(
-  () => import('@/components/analysis/DashboardCustomizer'),
-  {
-    size: 'large',
-    loadingMessage: 'Loading dashboard customizer...',
-    preload: false,
-  },
-)
-
-export const LazyAlertSystem = createLazyComponent(
-  () => import('@/components/analysis/AlertSystem'),
-  {
-    size: 'medium',
-    loadingMessage: 'Loading alert system...',
-    preload: false,
-  },
-)
-
-export const LazyComparativeAnalysis = createLazyComponent(
-  () => import('@/components/analysis/ComparativeAnalysis'),
-  {
-    size: 'large',
-    loadingMessage: 'Loading comparative analysis...',
-    preload: false,
-  },
-)
-
-export const LazyAdvancedFilters = createLazyComponent(
-  () => import('@/components/analysis/AdvancedFilters'),
-  {
-    size: 'medium',
-    loadingMessage: 'Loading advanced filters...',
-    preload: false,
-  },
-)
 
 // Default export for compatibility
 export default {
@@ -448,10 +394,4 @@ export default {
   ComponentPreloader,
   useLazyComponent,
   LoadingFallback,
-  LazyInteractiveCharts,
-  LazyExportManager,
-  LazyDashboardCustomizer,
-  LazyAlertSystem,
-  LazyComparativeAnalysis,
-  LazyAdvancedFilters,
 }

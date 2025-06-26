@@ -15,12 +15,6 @@ export {
   ComponentPreloader,
   useLazyComponent,
   LoadingFallback,
-  LazyInteractiveCharts,
-  LazyExportManager,
-  LazyDashboardCustomizer,
-  LazyAlertSystem,
-  LazyComparativeAnalysis,
-  LazyAdvancedFilters,
 } from './lazyLoading.tsx'
 
 // Enhanced lazy loading options (non-JSX types)

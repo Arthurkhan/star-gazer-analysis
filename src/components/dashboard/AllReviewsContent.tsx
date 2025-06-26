@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator'
 // AllReviewsContent component with enhanced props for loading all reviews
 const AllReviewsContent: React.FC<{
   reviews: Review[];
-  chartData: any[];
+  chartData: unknown[];
   totalReviewCount?: number;
   loadingMore?: boolean;
   onLoadMore?: () => void;
@@ -19,11 +19,11 @@ const AllReviewsContent: React.FC<{
   selectedBusiness?: string; // Add selected business prop
 }> = ({
   reviews,
-  chartData,
+  _chartData,
   totalReviewCount,
-  loadingMore,
-  onLoadMore,
-  hasMoreData,
+  _loadingMore,
+  _onLoadMore,
+  _hasMoreData,
   selectedBusiness = 'all', // Default to "all" if not provided
 }) => {
   // Try to get the total review count from context if not provided directly
@@ -96,7 +96,7 @@ const AllReviewsContent: React.FC<{
 
         <AnalysisSummary
           reviews={reviews}
-          businessName={displayBusinessName} // Pass the actual selected business name
+          businessName={displayBusinessName}
           loading={false}
           config={{
             timePeriod: 'all',

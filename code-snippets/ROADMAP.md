@@ -16,11 +16,12 @@ This roadmap tracks the progress of extracting reusable code snippets from the S
    - Date: 2025-01-28
    - Description: Business health overview with key metrics and AI insights
 
-### 📋 Detailed Analysis Section
 3. **Performance Metrics** (`detailed-analysis-performance-metrics.tsx`)
-   - Status: ⏳ PENDING
+   - Status: ✅ COMPLETED
+   - Date: 2025-06-27
    - Description: Rating trends, review volume, and response metrics
 
+### 📋 Detailed Analysis Section
 4. **Staff Performance Insights** (`detailed-analysis-staff-performance.tsx`)
    - Status: ⏳ PENDING
    - Description: Staff member analysis with sentiment and mention tracking
@@ -81,7 +82,7 @@ This roadmap tracks the progress of extracting reusable code snippets from the S
     - Description: Cumulative growth visualization
 
 ## Next Steps
-- Continue with **Performance Metrics** component
+- Continue with **Staff Performance Insights** component
 - Extract each component following the established pattern
 - Update this roadmap after each extraction
 - Ensure all dependencies and types are included

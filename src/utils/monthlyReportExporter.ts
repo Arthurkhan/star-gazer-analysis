@@ -44,6 +44,28 @@ interface ExportOptions {
 }
 
 /**
+ * Generate temporal analysis data from reviews
+ */
+const generateTemporalAnalysis = (reviews: Review[]) => {
+  const dayOfWeek = Array(7).fill(0)
+  const timeOfDay = Array(24).fill(0)
+
+  reviews.forEach(review => {
+    try {
+      const publishedDate = Temporal.Instant.from(
+        review.publishedAtDate,
+      ).toZonedDateTimeISO(Temporal.Now.timeZone())
+      dayOfWeek[publishedDate.dayOfWeek - 1]++
+      timeOfDay[publishedDate.hour]++
+    } catch (e) {
+      console.warn('Invalid date for review:', review.publishedAtDate, e)
+    }
+  })
+
+  return { dayOfWeek, timeOfDay }
+}
+
+/**
  * Enhanced export utility for Monthly Reports
  * Supports PDF and Excel export with business intelligence
  */
@@ -61,8 +83,16 @@ export class MonthlyReportExporter {
         '@/services/exportService'
       )
 
-      const { summaryData, dateRange, businessName, enhancedMetrics } = data
+      const {
+        summaryData,
+        selectedReviews,
+        dateRange,
+        businessName,
+        enhancedMetrics,
+      } = data
       const { includeCharts = true } = options
+
+      const temporalAnalysis = generateTemporalAnalysis(selectedReviews)
 
       // Transform real review data for PDF system
       const exportData = {
@@ -88,25 +118,12 @@ export class MonthlyReportExporter {
             keywords: [],
           }
         }),
-        temporalPatterns: {
-          dayOfWeek: [], // Could be extracted from selectedReviews if needed
-          timeOfDay: [],
-        },
+        temporalPatterns: temporalAnalysis,
         seasonalAnalysis: [],
-        insights: [
-          `Analyzed ${summaryData.totalReviews.toLocaleString()} customer reviews for ${businessName}`,
-          `Achieved ${summaryData.averageRating.toFixed(1)}-star average rating across all review platforms`,
-          summaryData.comparison.previousPeriod.change !== 0
-            ? `Review volume ${summaryData.comparison.previousPeriod.change >= 0 ? 'increased' : 'decreased'} by ${Math.abs(summaryData.comparison.previousPeriod.change)} reviews vs previous period`
-            : 'Review volume remained stable compared to previous period',
-          ...(enhancedMetrics
-            ? [
-                `Customer satisfaction rate: ${enhancedMetrics.satisfactionRate}% (4+ star reviews)`,
-                `Response rate to reviews: ${enhancedMetrics.responsePercentage}%`,
-                `Overall business health score: ${enhancedMetrics.healthScore}/100`,
-              ]
-            : []),
-        ],
+        insights: this.generateRecommendations(
+          summaryData,
+          enhancedMetrics,
+        ).map(rec => rec.title),
         // Add calculated rating distribution for PDF
         ratingDistribution: summaryData.ratingDistribution.map(
           (rating, index) => ({
@@ -123,6 +140,10 @@ export class MonthlyReportExporter {
         ),
         totalReviews: summaryData.totalReviews,
         avgRating: summaryData.averageRating,
+        recommendations: this.generateRecommendations(
+          summaryData,
+          enhancedMetrics,
+        ),
       }
 
       const pdfOptions: PDFExportOptions = {

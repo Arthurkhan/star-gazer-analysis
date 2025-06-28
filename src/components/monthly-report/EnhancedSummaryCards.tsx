@@ -34,18 +34,11 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { MonthlyReportExporter } from '@/utils/monthlyReportExporter'
-import { reviewFieldAccessor } from '@/types/reviews'
+import { reviewFieldAccessor, type Review } from '@/types/reviews'
+import { getTooltipStyles } from '@/utils/themeUtils'
 
 // Enhanced color palette for charts
 const RATING_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#84CC16', '#22C55E']
-
-// Dark mode tooltip style
-const tooltipStyle = {
-  backgroundColor: '#1f2937',
-  border: '1px solid #374151',
-  borderRadius: '6px',
-  color: '#f3f4f6',
-}
 
 interface EnhancedSummaryCardsProps {
   summaryData: {
@@ -353,7 +346,7 @@ export function EnhancedSummaryCards({
                   <YAxis />
                   <Tooltip
                     formatter={value => [`${value} reviews`, 'Count']}
-                    contentStyle={tooltipStyle}
+                    contentStyle={getTooltipStyles()}
                     labelStyle={{ color: '#f3f4f6' }}
                   />
                   <Bar dataKey='value' name='Count'>

@@ -21,11 +21,12 @@ This roadmap tracks the progress of extracting reusable code snippets from the S
    - Date: 2025-06-27
    - Description: Rating trends, review volume, and response metrics
 
-### 📋 Detailed Analysis Section
 4. **Staff Performance Insights** (`detailed-analysis-staff-performance.tsx`)
-   - Status: ⏳ PENDING
+   - Status: ✅ COMPLETED
+   - Date: 2025-06-28
    - Description: Staff member analysis with sentiment and mention tracking
 
+### 📋 Detailed Analysis Section
 5. **Customer Sentiment Analysis** (`detailed-analysis-customer-sentiment.tsx`)
    - Status: ⏳ PENDING
    - Description: Sentiment distribution and emotional analysis
@@ -82,7 +83,7 @@ This roadmap tracks the progress of extracting reusable code snippets from the S
     - Description: Cumulative growth visualization
 
 ## Next Steps
-- Continue with **Staff Performance Insights** component
+- Continue with **Customer Sentiment Analysis** component
 - Extract each component following the established pattern
 - Update this roadmap after each extraction
 - Ensure all dependencies and types are included

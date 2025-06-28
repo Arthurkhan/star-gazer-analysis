@@ -1,6 +1,10 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { corsHeaders, callOpenAI, callAnthropic, callGemini } from './handlers.ts'
+import {
+  corsHeaders,
+  callOpenAI,
+  callAnthropic,
+  callGemini,
+} from './handlers.ts'
 import {
   generatePrompt,
   getSystemMessage,
@@ -18,30 +22,30 @@ const CACHE_TTL = 1000 * 60 * 60 // 1 hour cache TTL
 let customPrompt = ''
 
 interface Review {
-  rating?: number;
-  stars?: number;
-  date?: string;
-  reviewUrl?: string;
-  language?: string;
-  originalLanguage?: string;
+  rating?: number
+  stars?: number
+  date?: string
+  reviewUrl?: string
+  language?: string
+  originalLanguage?: string
 }
 
 interface RequestData {
-  action?: string;
-  provider?: string;
-  prompt?: string;
-  apiKey?: string;
-  reviews?: Review[];
-  fullAnalysis?: boolean;
+  action?: string
+  provider?: string
+  prompt?: string
+  apiKey?: string
+  reviews?: Review[]
+  fullAnalysis?: boolean
   dateRange?: {
-    startDate: string;
-    endDate: string;
-  };
-  reportType?: string;
-  comparisonData?: unknown;
+    startDate: string
+    endDate: string
+  }
+  reportType?: string
+  comparisonData?: unknown
 }
 
-serve(async (req) => {
+serve(async req => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -54,7 +58,9 @@ serve(async (req) => {
     // Handle custom prompt operations
     if (action === 'get-prompt') {
       return new Response(
-        JSON.stringify({ prompt: customPrompt || Deno.env.get('OPENAI_CUSTOM_PROMPT') || '' }),
+        JSON.stringify({
+          prompt: customPrompt || Deno.env.get('OPENAI_CUSTOM_PROMPT') || '',
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
@@ -67,10 +73,9 @@ serve(async (req) => {
         Deno.env.set('OPENAI_CUSTOM_PROMPT', customPrompt)
       }
 
-      return new Response(
-        JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Test mode - just check if API key exists/is valid
@@ -78,15 +83,19 @@ serve(async (req) => {
       // Testing API key...
 
       try {
-        await testApiKey(provider!, requestData.apiKey!)
+        if (!provider || !requestData.apiKey) {
+          throw new Error('Provider and API key are required for testing')
+        }
+        await testApiKey(provider, requestData.apiKey)
 
-        return new Response(
-          JSON.stringify({ success: true }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        )
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
       } catch (error) {
         // Error validating API key
-        throw new Error(`Error validating ${provider} API key: ${error.message}`)
+        throw new Error(
+          `Error validating ${provider} API key: ${error.message}`,
+        )
       }
     }
 
@@ -102,7 +111,10 @@ serve(async (req) => {
     } = requestData
 
     // Get the appropriate API key and model - PASS REQUEST API KEY
-    const { apiKey, model } = getApiKeyAndModel(analysisProvider!, requestApiKey)
+    if (!analysisProvider) {
+      throw new Error('Analysis provider is required')
+    }
+    const { apiKey, model } = getApiKeyAndModel(analysisProvider, requestApiKey)
 
     // Filter reviews by date range if provided
     let filteredReviews = reviews
@@ -111,7 +123,8 @@ serve(async (req) => {
       const endDate = new Date(dateRange.endDate)
 
       filteredReviews = reviews.filter((review: Review) => {
-        const reviewDate = new Date(review.date!)
+        if (!review.date) return false
+        const reviewDate = new Date(review.date)
         return reviewDate >= startDate && reviewDate <= endDate
       })
 
@@ -120,7 +133,9 @@ serve(async (req) => {
 
     // Create a cache key based on the request parameters
     const cacheKey = JSON.stringify({
-      reviewIds: filteredReviews.map((r: Review) => r.date || r.reviewUrl).sort(),
+      reviewIds: filteredReviews
+        .map((r: Review) => r.date || r.reviewUrl)
+        .sort(),
       provider: analysisProvider,
       model,
       fullAnalysis,
@@ -133,19 +148,26 @@ serve(async (req) => {
     const cachedResult = analysisCache.get(cacheKey)
     if (cachedResult && cachedResult.timestamp > Date.now() - CACHE_TTL) {
       // Returning cached analysis result
-      return new Response(
-        JSON.stringify(cachedResult.data),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
+      return new Response(JSON.stringify(cachedResult.data), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Analyzing reviews with AI
 
     // Get custom prompt if available - first from memory, then from env var
-    const currentCustomPrompt = customPrompt || Deno.env.get('OPENAI_CUSTOM_PROMPT')
+    const currentCustomPrompt =
+      customPrompt || Deno.env.get('OPENAI_CUSTOM_PROMPT')
 
     // Create the prompt for AI with the review data
-    const prompt = generatePrompt(filteredReviews, fullAnalysis, reportType, dateRange, currentCustomPrompt, comparisonData)
+    const prompt = generatePrompt(
+      filteredReviews,
+      fullAnalysis,
+      reportType,
+      dateRange,
+      currentCustomPrompt,
+      comparisonData,
+    )
 
     // Get system message
     const systemMessage = getSystemMessage(fullAnalysis, reportType)
@@ -172,7 +194,7 @@ serve(async (req) => {
     const data = await analysisPromise
 
     // Parse the response accordingly
-    const analysis = parseAIResponse(data, analysisProvider!)
+    const analysis = parseAIResponse(data, analysisProvider)
 
     // Format the overall analysis for better readability
     if (analysis.overallAnalysis) {
@@ -184,8 +206,14 @@ serve(async (req) => {
     const completeAnalysis = createCompleteAnalysis(analysis, fullAnalysis)
 
     // Calculate rating breakdown and language distribution
-    const ratingBreakdown = filteredReviews.length > 0 ? calculateRatingBreakdown(filteredReviews) : []
-    const languageDistribution = filteredReviews.length > 0 ? calculateLanguageDistribution(filteredReviews) : []
+    const ratingBreakdown =
+      filteredReviews.length > 0
+        ? calculateRatingBreakdown(filteredReviews)
+        : []
+    const languageDistribution =
+      filteredReviews.length > 0
+        ? calculateLanguageDistribution(filteredReviews)
+        : []
 
     // Create the final response object
     const responseObject = {
@@ -238,11 +266,31 @@ function calculateRatingBreakdown(reviews: Review[]) {
   }
 
   return [
-    { rating: 5, count: counts[5], percentage: totalReviews ? (counts[5] / totalReviews) * 100 : 0 },
-    { rating: 4, count: counts[4], percentage: totalReviews ? (counts[4] / totalReviews) * 100 : 0 },
-    { rating: 3, count: counts[3], percentage: totalReviews ? (counts[3] / totalReviews) * 100 : 0 },
-    { rating: 2, count: counts[2], percentage: totalReviews ? (counts[2] / totalReviews) * 100 : 0 },
-    { rating: 1, count: counts[1], percentage: totalReviews ? (counts[1] / totalReviews) * 100 : 0 },
+    {
+      rating: 5,
+      count: counts[5],
+      percentage: totalReviews ? (counts[5] / totalReviews) * 100 : 0,
+    },
+    {
+      rating: 4,
+      count: counts[4],
+      percentage: totalReviews ? (counts[4] / totalReviews) * 100 : 0,
+    },
+    {
+      rating: 3,
+      count: counts[3],
+      percentage: totalReviews ? (counts[3] / totalReviews) * 100 : 0,
+    },
+    {
+      rating: 2,
+      count: counts[2],
+      percentage: totalReviews ? (counts[2] / totalReviews) * 100 : 0,
+    },
+    {
+      rating: 1,
+      count: counts[1],
+      percentage: totalReviews ? (counts[1] / totalReviews) * 100 : 0,
+    },
   ]
 }
 
@@ -258,9 +306,11 @@ function calculateLanguageDistribution(reviews: Review[]) {
   })
 
   // Convert to array and calculate percentages
-  return Object.entries(languages).map(([language, count]) => ({
-    language,
-    count,
-    percentage: totalReviews ? (count / totalReviews) * 100 : 0,
-  })).sort((a, b) => b.count - a.count)
+  return Object.entries(languages)
+    .map(([language, count]) => ({
+      language,
+      count,
+      percentage: totalReviews ? (count / totalReviews) * 100 : 0,
+    }))
+    .sort((a, b) => b.count - a.count)
 }

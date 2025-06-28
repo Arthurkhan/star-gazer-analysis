@@ -5,45 +5,46 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
 }
 
 interface Review {
-  stars: number;
-  text?: string;
-  textTranslated?: string;
-  publishedAtDate?: string;
-  publishedatdate?: string;
-  name?: string;
-  [key: string]: unknown;
+  stars: number
+  text?: string
+  textTranslated?: string
+  publishedAtDate?: string
+  publishedatdate?: string
+  name?: string
+  [key: string]: unknown
 }
 
 interface BusinessContext {
   location?: {
-    city: string;
-    country: string;
-    neighborhood?: string;
-  };
-  operatingDays?: string[];
-  peakHours?: string;
-  averageTransaction?: string;
-  seatingCapacity?: number;
-  priceRange?: string;
-  specialties?: string[];
-  customerTypes?: string[];
-  mainCompetitors?: string[];
-  uniqueSellingPoints?: string[];
-  onlinePresence?: Record<string, boolean | string[]>;
-  currentChallenges?: string[];
-  businessGoals?: string;
-  additionalContext?: string;
+    city: string
+    country: string
+    neighborhood?: string
+  }
+  operatingDays?: string[]
+  peakHours?: string
+  averageTransaction?: string
+  seatingCapacity?: number
+  priceRange?: string
+  specialties?: string[]
+  customerTypes?: string[]
+  mainCompetitors?: string[]
+  uniqueSellingPoints?: string[]
+  onlinePresence?: Record<string, boolean | string[]>
+  currentChallenges?: string[]
+  businessGoals?: string
+  additionalContext?: string
 }
 
-interface _BusinessData {
-  businessName?: string;
-  businessType?: string;
-  businessContext?: BusinessContext;
-  reviews: Review[];
+interface BusinessData {
+  businessName?: string
+  businessType?: string
+  businessContext?: BusinessContext
+  reviews: Review[]
 }
 
 // Always enable logging for debugging
@@ -60,7 +61,10 @@ const log = {
 }
 
 // Unified prompt for all providers - Updated to request 5 recommendations instead of 3
-const getUnifiedPrompt = (businessInfo: any, reviewsSummary: any[]) => {
+const getUnifiedPrompt = (
+  businessInfo: BusinessData,
+  reviewsSummary: Review[],
+) => {
   const systemPrompt = `You are a business consultant analyzing real customer reviews. Generate actionable recommendations based on the reviews provided.
 
 CRITICAL: Return ONLY valid JSON, no text before or after. The response must start with { and end with }
@@ -109,7 +113,10 @@ Average rating: ${businessInfo.averageRating}/5
 Total reviews: ${businessInfo.totalReviews}
 
 Recent customer reviews to analyze:
-${reviewsSummary.slice(0, 20).map(r => `- ${r.rating}★: ${r.text}`).join('\n')}
+${reviewsSummary
+  .slice(0, 20)
+  .map(r => `- ${r.rating}★: ${r.text}`)
+  .join('\n')}
 
 Analyze these actual customer reviews and generate specific recommendations based on what customers are saying. Address both positive feedback (to amplify) and negative feedback (to fix). Be specific and reference actual review content in your recommendations.`
 
@@ -117,14 +124,19 @@ Analyze these actual customer reviews and generate specific recommendations base
 }
 
 // AI Provider implementations
-async function callOpenAI(apiKey: string, model: string, systemPrompt: string, userPrompt: string) {
+async function callOpenAI(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+) {
   const openaiModel = model || 'gpt-4o'
   log.info(`Using OpenAI model: ${openaiModel}`)
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -146,11 +158,16 @@ async function callOpenAI(apiKey: string, model: string, systemPrompt: string, u
   }
 
   const data = await response.json()
-  const {content} = data.choices[0].message
+  const { content } = data.choices[0].message
   return JSON.parse(content)
 }
 
-async function callClaude(apiKey: string, model: string, systemPrompt: string, userPrompt: string) {
+async function callClaude(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+) {
   const claudeModel = model || 'claude-3-opus-20240229'
   log.info(`Using Claude model: ${claudeModel}`)
 
@@ -163,9 +180,7 @@ async function callClaude(apiKey: string, model: string, systemPrompt: string, u
     },
     body: JSON.stringify({
       model: claudeModel,
-      messages: [
-        { role: 'user', content: `${systemPrompt}\n\n${userPrompt}` },
-      ],
+      messages: [{ role: 'user', content: `${systemPrompt}\n\n${userPrompt}` }],
       max_tokens: 1500,
       temperature: 0.5,
     }),
@@ -189,28 +204,40 @@ async function callClaude(apiKey: string, model: string, systemPrompt: string, u
   return JSON.parse(jsonMatch[0])
 }
 
-async function callGemini(apiKey: string, model: string, systemPrompt: string, userPrompt: string) {
+async function callGemini(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+) {
   const geminiModel = model || 'gemini-1.5-pro'
   log.info(`Using Gemini model: ${geminiModel}`)
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${geminiModel}:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: `${systemPrompt}\n\n${userPrompt}`,
-        }],
-      }],
-      generationConfig: {
-        temperature: 0.5,
-        maxOutputTokens: 1500,
-        responseMimeType: 'application/json',
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1/models/${geminiModel}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-    }),
-  })
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: `${systemPrompt}\n\n${userPrompt}`,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.5,
+          maxOutputTokens: 1500,
+          responseMimeType: 'application/json',
+        },
+      }),
+    },
+  )
 
   if (!response.ok) {
     const errorData = await response.text()
@@ -231,31 +258,36 @@ const getFallbackResponse = (errorMessage: string) => ({
     urgentActions: [
       {
         title: 'Improve Response Time',
-        description: 'Respond to all customer reviews within 24 hours to show you value feedback.',
+        description:
+          'Respond to all customer reviews within 24 hours to show you value feedback.',
         impact: 'High',
         effort: 'Low',
       },
       {
         title: 'Address Common Complaints',
-        description: 'Analyze negative reviews for patterns and create action plans to fix recurring issues.',
+        description:
+          'Analyze negative reviews for patterns and create action plans to fix recurring issues.',
         impact: 'High',
         effort: 'Medium',
       },
       {
         title: 'Highlight Positive Mentions',
-        description: 'Use positive review quotes in your marketing to attract similar customers.',
+        description:
+          'Use positive review quotes in your marketing to attract similar customers.',
         impact: 'Medium',
         effort: 'Low',
       },
       {
         title: 'Staff Training Enhancement',
-        description: 'Implement regular training based on customer feedback to improve service quality.',
+        description:
+          'Implement regular training based on customer feedback to improve service quality.',
         impact: 'High',
         effort: 'Medium',
       },
       {
         title: 'Follow-up System',
-        description: 'Create a system to follow up with dissatisfied customers to resolve issues.',
+        description:
+          'Create a system to follow up with dissatisfied customers to resolve issues.',
         impact: 'Medium',
         effort: 'Medium',
       },
@@ -263,31 +295,36 @@ const getFallbackResponse = (errorMessage: string) => ({
     growthStrategies: [
       {
         title: 'Implement Customer Suggestions',
-        description: 'Review customer suggestions and implement the most requested features or services.',
+        description:
+          'Review customer suggestions and implement the most requested features or services.',
         impact: 'High',
         effort: 'Medium',
       },
       {
         title: 'Create Loyalty Program',
-        description: 'Reward repeat customers mentioned in reviews with special perks.',
+        description:
+          'Reward repeat customers mentioned in reviews with special perks.',
         impact: 'High',
         effort: 'Medium',
       },
       {
         title: 'Staff Recognition',
-        description: 'Publicly recognize staff members who receive positive mentions in reviews.',
+        description:
+          'Publicly recognize staff members who receive positive mentions in reviews.',
         impact: 'Medium',
         effort: 'Low',
       },
       {
         title: 'Service Expansion',
-        description: 'Add new services based on customer requests and market trends.',
+        description:
+          'Add new services based on customer requests and market trends.',
         impact: 'High',
         effort: 'High',
       },
       {
         title: 'Digital Presence Enhancement',
-        description: 'Strengthen online presence based on where customers say they found you.',
+        description:
+          'Strengthen online presence based on where customers say they found you.',
         impact: 'Medium',
         effort: 'Low',
       },
@@ -346,7 +383,7 @@ const getFallbackResponse = (errorMessage: string) => ({
   },
 })
 
-serve(async (req) => {
+serve(async req => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -355,7 +392,10 @@ serve(async (req) => {
   try {
     log.info('Edge function invoked at:', new Date().toISOString())
     log.info('Request method:', req.method)
-    log.info('Request headers:', JSON.stringify(Object.fromEntries(req.headers.entries())))
+    log.info(
+      'Request headers:',
+      JSON.stringify(Object.fromEntries(req.headers.entries())),
+    )
 
     // Parse request body with better error handling
     let requestData
@@ -375,7 +415,11 @@ serve(async (req) => {
       log.info('Request data keys:', Object.keys(requestData || {}))
 
       // Check if businessData is nested properly
-      if (requestData && !requestData.businessData && requestData.businessName) {
+      if (
+        requestData &&
+        !requestData.businessData &&
+        requestData.businessName
+      ) {
         // Handle legacy format where businessData fields are at root level
         log.info('Converting legacy request format to new format')
         requestData = {
@@ -392,7 +436,10 @@ serve(async (req) => {
       }
     } catch (parseErr) {
       log.error('Failed to parse request:', parseErr)
-      log.error('Parse error details:', parseErr instanceof Error ? parseErr.message : 'Unknown parse error')
+      log.error(
+        'Parse error details:',
+        parseErr instanceof Error ? parseErr.message : 'Unknown parse error',
+      )
       throw new Error('Invalid request format')
     }
 
@@ -406,17 +453,29 @@ serve(async (req) => {
       throw new Error(`${provider || 'AI'} API key is required`)
     }
 
-    if (!businessData || !businessData.reviews || businessData.reviews.length === 0) {
-      log.error('Invalid business data. businessData:', !!businessData, 'reviews:', businessData?.reviews?.length || 0)
+    if (
+      !businessData ||
+      !businessData.reviews ||
+      businessData.reviews.length === 0
+    ) {
+      log.error(
+        'Invalid business data. businessData:',
+        !!businessData,
+        'reviews:',
+        businessData?.reviews?.length || 0,
+      )
       throw new Error('Business data with reviews is required')
     }
 
-    log.info(`Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`)
+    log.info(
+      `Processing ${businessData.reviews.length} reviews for ${businessData.businessName}`,
+    )
 
     // Prepare review data for AI - handle different review formats
     const reviewsSummary = businessData.reviews.map((review: Review) => {
       // Handle both text and textTranslated fields
-      const reviewText = review.text || review.textTranslated || 'No review text'
+      const reviewText =
+        review.text || review.textTranslated || 'No review text'
       return {
         rating: review.stars || 0,
         text: reviewText.substring(0, 200),
@@ -427,11 +486,22 @@ serve(async (req) => {
       name: businessData.businessName || 'Business',
       type: businessData.businessType || 'business',
       totalReviews: businessData.reviews.length,
-      averageRating: Math.round((businessData.reviews.reduce((sum: number, r: Review) => sum + (r.stars || 0), 0) / businessData.reviews.length) * 10) / 10,
+      averageRating:
+        Math.round(
+          (businessData.reviews.reduce(
+            (sum: number, r: Review) => sum + (r.stars || 0),
+            0,
+          ) /
+            businessData.reviews.length) *
+            10,
+        ) / 10,
     }
 
     // Get unified prompt
-    const { systemPrompt, userPrompt } = getUnifiedPrompt(businessInfo, reviewsSummary)
+    const { systemPrompt, userPrompt } = getUnifiedPrompt(
+      businessInfo,
+      reviewsSummary,
+    )
 
     log.info(`Calling ${provider} API with real review data...`)
     const startTime = Date.now()
@@ -440,13 +510,28 @@ serve(async (req) => {
     try {
       switch (provider) {
         case 'openai':
-          recommendations = await callOpenAI(apiKey, model, systemPrompt, userPrompt)
+          recommendations = await callOpenAI(
+            apiKey,
+            model,
+            systemPrompt,
+            userPrompt,
+          )
           break
         case 'claude':
-          recommendations = await callClaude(apiKey, model, systemPrompt, userPrompt)
+          recommendations = await callClaude(
+            apiKey,
+            model,
+            systemPrompt,
+            userPrompt,
+          )
           break
         case 'gemini':
-          recommendations = await callGemini(apiKey, model, systemPrompt, userPrompt)
+          recommendations = await callGemini(
+            apiKey,
+            model,
+            systemPrompt,
+            userPrompt,
+          )
           break
         default:
           throw new Error(`Unknown provider: ${provider}`)
@@ -454,12 +539,17 @@ serve(async (req) => {
     } catch (error: unknown) {
       log.error(`${provider} API call failed:`, error)
 
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
 
       if (errorMessage.includes('401')) {
-        throw new Error(`Invalid API key. Please check your ${provider} API key.`)
+        throw new Error(
+          `Invalid API key. Please check your ${provider} API key.`,
+        )
       } else if (errorMessage.includes('429')) {
-        throw new Error('Rate limit exceeded. Please wait a moment and try again.')
+        throw new Error(
+          'Rate limit exceeded. Please wait a moment and try again.',
+        )
       } else {
         throw new Error(`${provider} API error: ${errorMessage}`)
       }
@@ -470,7 +560,10 @@ serve(async (req) => {
 
     // Validate the response structure
     if (!recommendations.urgentActions || !recommendations.growthStrategies) {
-      log.error('Invalid recommendations structure:', JSON.stringify(recommendations).substring(0, 500))
+      log.error(
+        'Invalid recommendations structure:',
+        JSON.stringify(recommendations).substring(0, 500),
+      )
       throw new Error('Invalid recommendations structure received from AI')
     }
 
@@ -488,32 +581,29 @@ serve(async (req) => {
       },
     }
 
-    return new Response(
-      JSON.stringify(successResponse),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 200,
+    return new Response(JSON.stringify(successResponse), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
       },
-    )
-
+      status: 200,
+    })
   } catch (error) {
     log.error('Error in generate-recommendations function:', error)
-    log.error('Error details:', error instanceof Error ? error.stack : 'No stack trace')
-
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-    return new Response(
-      JSON.stringify(getFallbackResponse(errorMessage)),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 200,
-      },
+    log.error(
+      'Error details:',
+      error instanceof Error ? error.stack : 'No stack trace',
     )
+
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+
+    return new Response(JSON.stringify(getFallbackResponse(errorMessage)), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+      status: 200,
+    })
   }
 })

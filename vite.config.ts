@@ -1,26 +1,27 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
-import { visualizer } from 'rollup-plugin-visualizer';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    host: '::',
     port: 8080,
   },
   plugins: [
     react(),
-    mode === 'analyze' && visualizer({
-      filename: 'dist/stats.html',
-      open: true,
-      gzipSize: true,
-      brotliSize: true,
-    }),
+    mode === 'analyze' &&
+      visualizer({
+        filename: 'dist/stats.html',
+        open: true,
+        gzipSize: true,
+        brotliSize: true,
+      }),
   ].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
@@ -49,7 +50,7 @@ export default defineConfig(({ mode }) => ({
           'supabase-vendor': ['@supabase/supabase-js'],
           'utils-vendor': ['date-fns', 'date-fns-tz', 'clsx', 'tailwind-merge'],
           'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          'pdf-vendor': ['jspdf', 'jspdf-autotable'],
+          'pdf-vendor': ['@react-pdf/renderer'],
         },
       },
     },
@@ -78,6 +79,6 @@ export default defineConfig(({ mode }) => ({
       'clsx',
       'tailwind-merge',
     ],
-    exclude: ['jspdf', 'jspdf-autotable'], // Large PDFs should be loaded on demand
+    exclude: [], // No large libraries to exclude on demand
   },
-}));
+}))

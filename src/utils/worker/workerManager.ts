@@ -4,20 +4,20 @@
 import { handleError, ErrorSeverity } from '@/utils/errorHandling'
 
 // Define types for messages between main thread and worker
-export interface WorkerMessage<T = any> {
-  id: string;
-  type: string;
-  payload: T;
+export interface WorkerMessage<T = unknown> {
+  id: string
+  type: string
+  payload: T
 }
 
-export interface WorkerResponse<T = any> {
-  id: string;
-  type: 'success' | 'error';
-  payload: T;
+export interface WorkerResponse<T = unknown> {
+  id: string
+  type: 'success' | 'error'
+  payload: T
 }
 
 // Worker task function type
-export type WorkerTaskFunction<T, R> = (data: T) => Promise<R> | R;
+export type WorkerTaskFunction<T, R> = (data: T) => Promise<R> | R
 
 /**
  * Manages a worker pool for distributing CPU-intensive tasks
@@ -25,11 +25,14 @@ export type WorkerTaskFunction<T, R> = (data: T) => Promise<R> | R;
 export class WorkerManager {
   private static instance: WorkerManager | null = null
   private workers: Worker[] = []
-  private taskCallbacks: Map<string, {
-    resolve: (value: any) => void;
-    reject: (reason: any) => void;
-    timeout: number | null;
-  }> = new Map()
+  private taskCallbacks: Map<
+    string,
+    {
+      resolve: (value: unknown) => void
+      reject: (reason: unknown) => void
+      timeout: number | null
+    }
+  > = new Map()
   private maxWorkers: number
   private workerScript: string
   private taskTimeout: number
@@ -37,9 +40,9 @@ export class WorkerManager {
   private workerErrorCount: Map<Worker, number> = new Map()
 
   private constructor(options: {
-    maxWorkers?: number;
-    workerScript: string;
-    taskTimeout?: number;
+    maxWorkers?: number
+    workerScript: string
+    taskTimeout?: number
   }) {
     this.maxWorkers = options.maxWorkers || navigator.hardwareConcurrency || 2
     this.workerScript = options.workerScript
@@ -50,9 +53,9 @@ export class WorkerManager {
    * Get the singleton instance of WorkerManager
    */
   public static getInstance(options?: {
-    maxWorkers?: number;
-    workerScript: string;
-    taskTimeout?: number;
+    maxWorkers?: number
+    workerScript: string
+    taskTimeout?: number
   }): WorkerManager {
     if (!WorkerManager.instance) {
       if (!options) {
@@ -79,10 +82,14 @@ export class WorkerManager {
 
       this.initialized = true
     } catch (error) {
-      handleError(error, {
-        module: 'WorkerManager',
-        operation: 'initialize',
-      }, ErrorSeverity.ERROR)
+      handleError(
+        error,
+        {
+          module: 'WorkerManager',
+          operation: 'initialize',
+        },
+        ErrorSeverity.ERROR,
+      )
       throw error
     }
   }
@@ -99,7 +106,7 @@ export class WorkerManager {
         this.workerErrorCount.set(worker, 0)
 
         // Set up message handling
-        worker.onmessage = (event) => {
+        worker.onmessage = event => {
           const response = event.data as WorkerResponse
           const task = this.taskCallbacks.get(response.id)
 
@@ -122,22 +129,27 @@ export class WorkerManager {
         }
 
         // Handle worker errors
-        worker.onerror = (error) => {
+        worker.onerror = error => {
           // Increment error count for this worker
           const errorCount = (this.workerErrorCount.get(worker) || 0) + 1
           this.workerErrorCount.set(worker, errorCount)
 
           // Log the error
-          handleError(error, {
-            module: 'WorkerManager',
-            operation: 'worker.onerror',
-            data: {
-              errorCount,
-              message: error.message,
-              filename: error.filename,
-              lineno: error.lineno,
+          handleError(
+            error,
+            {
+              module: 'WorkerManager',
+              operation: 'worker.onerror',
+              data: {
+                errorCount,
+                message: error.message,
+                filename: error.filename,
+                lineno: error.lineno,
+              },
             },
-          }, ErrorSeverity.ERROR, false)
+            ErrorSeverity.ERROR,
+            false,
+          )
 
           // If worker has too many errors, terminate and replace it
           if (errorCount >= 3) {
@@ -173,10 +185,14 @@ export class WorkerManager {
       // Clean up
       this.workerErrorCount.delete(worker)
     } catch (error) {
-      handleError(error, {
-        module: 'WorkerManager',
-        operation: 'replaceWorker',
-      }, ErrorSeverity.ERROR)
+      handleError(
+        error,
+        {
+          module: 'WorkerManager',
+          operation: 'replaceWorker',
+        },
+        ErrorSeverity.ERROR,
+      )
     }
   }
 
@@ -187,17 +203,24 @@ export class WorkerManager {
     // If we have fewer workers than maxWorkers, create a new one
     if (this.workers.length < this.maxWorkers) {
       this.createWorker().catch(error => {
-        handleError(error, {
-          module: 'WorkerManager',
-          operation: 'createWorker',
-        }, ErrorSeverity.ERROR)
+        handleError(
+          error,
+          {
+            module: 'WorkerManager',
+            operation: 'createWorker',
+          },
+          ErrorSeverity.ERROR,
+        )
       })
     }
 
     // For now, use a simple round-robin approach
-    const worker = this.workers[0]
-    this.workers.push(this.workers.shift()!)
-    return worker
+    const firstWorker = this.workers.shift()
+    if (firstWorker) {
+      this.workers.push(firstWorker)
+      return firstWorker
+    }
+    return this.workers[0] || this.workers[0]
   }
 
   /**
@@ -217,7 +240,9 @@ export class WorkerManager {
         const timeoutId = setTimeout(() => {
           const task = this.taskCallbacks.get(taskId)
           if (task) {
-            const timeoutError = new Error(`Worker task timed out after ${this.taskTimeout}ms: ${type}`)
+            const timeoutError = new Error(
+              `Worker task timed out after ${this.taskTimeout}ms: ${type}`,
+            )
             task.reject(timeoutError)
             this.taskCallbacks.delete(taskId)
 
@@ -261,7 +286,9 @@ export class WorkerManager {
 /**
  * Create a worker script dynamically from a set of task functions
  */
-export function createWorkerScript(taskFunctions: Record<string, WorkerTaskFunction<any, any>>): string {
+export function createWorkerScript(
+  taskFunctions: Record<string, WorkerTaskFunction<unknown, unknown>>,
+): string {
   // Convert the task functions to a string that can be executed in a worker
   const taskFunctionStrings = Object.entries(taskFunctions)
     .map(([name, fn]) => `"${name}": ${fn.toString()}`)

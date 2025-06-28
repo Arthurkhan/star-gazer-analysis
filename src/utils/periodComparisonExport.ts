@@ -1,256 +1,132 @@
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
 import { format } from 'date-fns'
 import type { Review } from '@/types/reviews'
+import {
+  generateAndDownloadPDF,
+  type ExportOptions,
+} from '@/services/exportService'
 
 interface ExportPeriodComparisonOptions {
-  businessName: string;
+  businessName: string
   currentPeriod: {
-    from: Date;
-    to: Date;
-    reviews: Review[];
-  };
+    from: Date
+    to: Date
+    reviews: Review[]
+  }
   previousPeriod: {
-    from: Date;
-    to: Date;
-    reviews: Review[];
-  };
-  comparisonResult: any;
+    from: Date
+    to: Date
+    reviews: Review[]
+  }
+  comparisonResult: any
 }
 
-export function exportPeriodComparisonReport({
+/**
+ * Export period comparison report using new React-PDF system
+ */
+export async function exportPeriodComparisonReport({
   businessName,
   currentPeriod,
   previousPeriod,
   comparisonResult,
-}: ExportPeriodComparisonOptions) {
-  const doc = new jsPDF()
-
-  // Title
-  doc.setFontSize(20)
-  doc.text('Period Comparison Report', 20, 20)
-
-  // Business Name
-  doc.setFontSize(16)
-  doc.text(businessName, 20, 35)
-
-  // Date ranges
-  doc.setFontSize(10)
-  doc.text(`Current Period: ${format(currentPeriod.from, 'MMM dd, yyyy')} - ${format(currentPeriod.to, 'MMM dd, yyyy')}`, 20, 50)
-  doc.text(`Previous Period: ${format(previousPeriod.from, 'MMM dd, yyyy')} - ${format(previousPeriod.to, 'MMM dd, yyyy')}`, 20, 57)
-
-  // Summary metrics
-  doc.setFontSize(14)
-  doc.text('Key Metrics', 20, 75);
-
-  (doc as any).autoTable({
-    startY: 80,
-    head: [['Metric', 'Previous Period', 'Current Period', 'Change']],
-    body: [
-      [
-        'Average Rating',
-        previousPeriod.reviews.length > 0
-          ? (previousPeriod.reviews.reduce((sum, r) => sum + (r.stars || 0), 0) / previousPeriod.reviews.filter(r => r.stars).length).toFixed(2)
-          : 'N/A',
-        currentPeriod.reviews.length > 0
-          ? (currentPeriod.reviews.reduce((sum, r) => sum + (r.stars || 0), 0) / currentPeriod.reviews.filter(r => r.stars).length).toFixed(2)
-          : 'N/A',
-        `${comparisonResult.ratingChange > 0 ? '+' : ''}${comparisonResult.ratingChange.toFixed(2)}`,
-      ],
-      [
-        'Review Count',
-        previousPeriod.reviews.length.toString(),
-        currentPeriod.reviews.length.toString(),
-        `${comparisonResult.reviewCountChange > 0 ? '+' : ''}${comparisonResult.reviewCountChange} (${comparisonResult.reviewCountChangePercent.toFixed(1)}%)`,
-      ],
-      [
-        'Sentiment Score',
-        comparisonResult.previousSentimentScore?.toFixed(2) || 'N/A',
-        comparisonResult.currentSentimentScore?.toFixed(2) || 'N/A',
-        `${comparisonResult.sentimentChange > 0 ? '+' : ''}${comparisonResult.sentimentChange.toFixed(2)}`,
-      ],
-    ],
-  })
-
-  // Theme Analysis
-  const currentY = (doc as any).autoTable.previous.finalY + 20
-  doc.setFontSize(14)
-  doc.text('Theme Analysis', 20, currentY)
-
-  if (comparisonResult.improvingThemes.length > 0 || comparisonResult.decliningThemes.length > 0) {
-    const themeData = []
-
-    if (comparisonResult.improvingThemes.length > 0) {
-      themeData.push(['Improving Themes', comparisonResult.improvingThemes.join(', ')])
-    }
-
-    if (comparisonResult.decliningThemes.length > 0) {
-      themeData.push(['Declining Themes', comparisonResult.decliningThemes.join(', ')])
-    }
-
-    if (comparisonResult.newThemes.length > 0) {
-      themeData.push(['New Themes', comparisonResult.newThemes.join(', ')])
-    }
-
-    if (comparisonResult.removedThemes.length > 0) {
-      themeData.push(['Removed Themes', comparisonResult.removedThemes.join(', ')])
-    }
-
-    (doc as any).autoTable({
-      startY: currentY + 5,
-      head: [['Category', 'Themes']],
-      body: themeData,
-      columnStyles: {
-        1: { cellWidth: 140 },
+}: ExportPeriodComparisonOptions): Promise<void> {
+  // Transform data for PDF export
+  const exportData = {
+    historicalTrends: [
+      {
+        period: format(currentPeriod.from, 'MMM yyyy'),
+        avgRating: comparisonResult.currentMetrics?.averageRating || 0,
+        reviewCount: currentPeriod.reviews.length,
       },
-    })
+      {
+        period: format(previousPeriod.from, 'MMM yyyy'),
+        avgRating: comparisonResult.previousMetrics?.averageRating || 0,
+        reviewCount: previousPeriod.reviews.length,
+      },
+    ],
+    reviewClusters: [],
+    temporalPatterns: {
+      dayOfWeek: [],
+      timeOfDay: [],
+    },
+    seasonalAnalysis: [],
+    insights: [
+      `Period comparison: ${format(currentPeriod.from, 'MMM dd, yyyy')} - ${format(currentPeriod.to, 'MMM dd, yyyy')}`,
+      `Previous period: ${format(previousPeriod.from, 'MMM dd, yyyy')} - ${format(previousPeriod.to, 'MMM dd, yyyy')}`,
+      `Review volume change: ${comparisonResult.reviewVolumeChange || 0}%`,
+      `Rating change: ${comparisonResult.ratingChange || 0}`,
+      `Sentiment trend: ${comparisonResult.sentimentTrend || 'No change'}`,
+    ],
   }
 
-  // Staff Performance (if applicable)
-  if (Object.keys(comparisonResult.staffPerformanceChanges).length > 0) {
-    const staffY = (doc as any).autoTable.previous.finalY + 20
-    doc.setFontSize(14)
-    doc.text('Staff Performance Changes', 20, staffY)
-
-    const staffData = Object.entries(comparisonResult.staffPerformanceChanges)
-      .sort(([_, a], [__, b]) => b - a)
-      .map(([name, change]) => [
-        name,
-        change > 0 ? `+${change.toFixed(2)}` : change.toFixed(2),
-        change > 0.05 ? 'Improved' : change < -0.05 ? 'Declined' : 'Stable',
-      ]);
-
-    (doc as any).autoTable({
-      startY: staffY + 5,
-      head: [['Staff Member', 'Sentiment Change', 'Status']],
-      body: staffData,
-    })
+  const exportOptions: ExportOptions = {
+    businessName,
+    businessType: 'CAFE', // Default, should be passed as parameter in real implementation
+    includeCharts: true,
+    includeTables: true,
+    includeRecommendations: true,
+    dateRange: {
+      start: currentPeriod.from,
+      end: currentPeriod.to,
+    },
+    customTitle: `${businessName} - Period Comparison Report`,
+    brandingColor: '#3B82F6',
   }
 
-  // Insights
-  const insightsY = (doc as any).autoTable.previous ? (doc as any).autoTable.previous.finalY + 20 : currentY + 100
-  doc.setFontSize(14)
-  doc.text('Key Insights', 20, insightsY)
-
-  doc.setFontSize(10)
-  let textY = insightsY + 10
-
-  // Overall performance
-  const performanceText = comparisonResult.ratingChange > 0
-    ? `Ratings improved by ${comparisonResult.ratingChange.toFixed(2)} stars`
-    : comparisonResult.ratingChange < 0
-    ? `Ratings declined by ${Math.abs(comparisonResult.ratingChange).toFixed(2)} stars`
-    : 'Ratings remained stable'
-
-  const volumeText = comparisonResult.reviewCountChange > 0
-    ? `with ${comparisonResult.reviewCountChangePercent.toFixed(1)}% more reviews`
-    : comparisonResult.reviewCountChange < 0
-    ? `with ${Math.abs(comparisonResult.reviewCountChangePercent).toFixed(1)}% fewer reviews`
-    : 'with the same number of reviews'
-
-  doc.text(`• ${performanceText} ${volumeText}.`, 20, textY)
-  textY += 7
-
-  if (comparisonResult.improvingThemes.length > 0) {
-    const text = `• Customers are particularly happy with: ${comparisonResult.improvingThemes.slice(0, 3).join(', ')}.`
-    const lines = doc.splitTextToSize(text, 170)
-    doc.text(lines, 20, textY)
-    textY += lines.length * 7
+  try {
+    await generateAndDownloadPDF(exportData, exportOptions)
+  } catch (error) {
+    console.error('Error exporting period comparison report:', error)
+    throw new Error('Failed to export period comparison report')
   }
-
-  if (comparisonResult.decliningThemes.length > 0) {
-    const text = `• Consider addressing: ${comparisonResult.decliningThemes.slice(0, 3).join(', ')}.`
-    const lines = doc.splitTextToSize(text, 170)
-    doc.text(lines, 20, textY)
-    textY += lines.length * 7
-  }
-
-  if (comparisonResult.newThemes.length > 0) {
-    const text = `• New themes in customer feedback: ${comparisonResult.newThemes.slice(0, 3).join(', ')}.`
-    const lines = doc.splitTextToSize(text, 170)
-    doc.text(lines, 20, textY)
-  }
-
-  // Footer
-  doc.setFontSize(8)
-  doc.text(`Generated on ${format(new Date(), 'MMM dd, yyyy HH:mm')}`, 20, 280)
-
-  // Save the PDF
-  doc.save(`${businessName}_Period_Comparison_${format(new Date(), 'yyyy-MM-dd')}.pdf`)
 }
 
-// Export comparison data as CSV
+/**
+ * Export to CSV format for period comparison
+ */
 export function exportPeriodComparisonCSV({
   businessName,
   currentPeriod,
   previousPeriod,
   comparisonResult,
-}: ExportPeriodComparisonOptions) {
-  const csvRows = []
+}: ExportPeriodComparisonOptions): string {
+  let csvContent = ''
 
-  // Headers
-  csvRows.push(['Period Comparison Report'])
-  csvRows.push([businessName])
-  csvRows.push([])
-  csvRows.push(['Period', 'From', 'To', 'Reviews', 'Avg Rating', 'Sentiment Score'])
+  // Header
+  csvContent += `# ${businessName} - Period Comparison Report\n`
+  csvContent += `# Generated: ${new Date().toLocaleDateString()}\n\n`
 
-  // Period data
-  const prevAvgRating = previousPeriod.reviews.length > 0
-    ? (previousPeriod.reviews.reduce((sum, r) => sum + (r.stars || 0), 0) / previousPeriod.reviews.filter(r => r.stars).length).toFixed(2)
-    : 'N/A'
+  // Period information
+  csvContent += '## PERIOD COMPARISON\n'
+  csvContent += 'Metric,Current Period,Previous Period,Change\n'
+  csvContent += `"Period",${format(currentPeriod.from, 'MMM dd, yyyy')} - ${format(currentPeriod.to, 'MMM dd, yyyy')},${format(previousPeriod.from, 'MMM dd, yyyy')} - ${format(previousPeriod.to, 'MMM dd, yyyy')},\n`
+  csvContent += `"Review Count",${currentPeriod.reviews.length},${previousPeriod.reviews.length},"${comparisonResult.reviewVolumeChange || 0}%"\n`
+  csvContent += `"Average Rating","${comparisonResult.currentMetrics?.averageRating || 0}","${comparisonResult.previousMetrics?.averageRating || 0}","${comparisonResult.ratingChange || 0}"\n`
+  csvContent += `"Sentiment Trend","${comparisonResult.currentMetrics?.sentimentScore || 0}","${comparisonResult.previousMetrics?.sentimentScore || 0}","${comparisonResult.sentimentTrend || 'No change'}"\n`
 
-  const currAvgRating = currentPeriod.reviews.length > 0
-    ? (currentPeriod.reviews.reduce((sum, r) => sum + (r.stars || 0), 0) / currentPeriod.reviews.filter(r => r.stars).length).toFixed(2)
-    : 'N/A'
+  return csvContent
+}
 
-  csvRows.push([
-    'Previous',
-    format(previousPeriod.from, 'yyyy-MM-dd'),
-    format(previousPeriod.to, 'yyyy-MM-dd'),
-    previousPeriod.reviews.length.toString(),
-    prevAvgRating,
-    comparisonResult.previousSentimentScore?.toFixed(2) || 'N/A',
-  ])
+/**
+ * Download CSV file for period comparison
+ */
+export function downloadPeriodComparisonCSV(
+  options: ExportPeriodComparisonOptions,
+): void {
+  try {
+    const csvContent = exportPeriodComparisonCSV(options)
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const filename = `${options.businessName.replace(/\s+/g, '-')}-period-comparison-${new Date().toISOString().split('T')[0]}.csv`
 
-  csvRows.push([
-    'Current',
-    format(currentPeriod.from, 'yyyy-MM-dd'),
-    format(currentPeriod.to, 'yyyy-MM-dd'),
-    currentPeriod.reviews.length.toString(),
-    currAvgRating,
-    comparisonResult.currentSentimentScore?.toFixed(2) || 'N/A',
-  ])
-
-  csvRows.push([])
-  csvRows.push(['Changes'])
-  csvRows.push(['Metric', 'Value'])
-  csvRows.push(['Rating Change', comparisonResult.ratingChange.toFixed(2)])
-  csvRows.push(['Review Count Change', comparisonResult.reviewCountChange.toString()])
-  csvRows.push(['Review Count Change %', `${comparisonResult.reviewCountChangePercent.toFixed(1)}%`])
-  csvRows.push(['Sentiment Change', comparisonResult.sentimentChange.toFixed(2)])
-
-  // Theme changes
-  if (comparisonResult.improvingThemes.length > 0) {
-    csvRows.push([])
-    csvRows.push(['Improving Themes'])
-    comparisonResult.improvingThemes.forEach(theme => csvRows.push([theme]))
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error downloading period comparison CSV:', error)
+    throw new Error('Failed to download period comparison CSV')
   }
-
-  if (comparisonResult.decliningThemes.length > 0) {
-    csvRows.push([])
-    csvRows.push(['Declining Themes'])
-    comparisonResult.decliningThemes.forEach(theme => csvRows.push([theme]))
-  }
-
-  // Convert to CSV string
-  const csvContent = csvRows
-    .map(row => row.map(cell => `"${cell}"`).join(','))
-    .join('\n')
-
-  // Download
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = `${businessName}_Period_Comparison_${format(new Date(), 'yyyy-MM-dd')}.csv`
-  link.click()
 }

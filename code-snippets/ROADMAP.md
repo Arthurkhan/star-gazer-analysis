@@ -31,11 +31,12 @@ This roadmap tracks the progress of extracting reusable code snippets from the S
    - Date: 2025-06-28
    - Description: Sentiment distribution and emotional analysis
 
-### 📋 Detailed Analysis Section
 6. **Thematic Analysis** (`detailed-analysis-thematic.tsx`)
-   - Status: ⏳ PENDING
+   - Status: ✅ COMPLETED
+   - Date: 2025-06-28
    - Description: Common themes and topics from reviews
 
+### 📋 Detailed Analysis Section
 7. **Operational Insights** (`detailed-analysis-operational-insights.tsx`)
    - Status: ⏳ PENDING
    - Description: Business operations feedback and improvements
@@ -84,7 +85,7 @@ This roadmap tracks the progress of extracting reusable code snippets from the S
     - Description: Cumulative growth visualization
 
 ## Next Steps
-- Continue with **Thematic Analysis** component
+- Continue with **Operational Insights** component
 - Extract each component following the established pattern
 - Update this roadmap after each extraction
 - Ensure all dependencies and types are included

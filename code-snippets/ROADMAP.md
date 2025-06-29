@@ -36,10 +36,10 @@ This roadmap tracks the progress of extracting reusable code snippets from the S
    - Date: 2025-06-28
    - Description: Common themes and topics from reviews
 
-### 📋 Detailed Analysis Section
 7. **Operational Insights** (`detailed-analysis-operational-insights.tsx`)
-   - Status: ⏳ PENDING
-   - Description: Business operations feedback and improvements
+   - Status: ✅ COMPLETED
+   - Date: 2025-06-29
+   - Description: Language diversity and review patterns analysis
 
 ### 📋 Review Details Section
 8. **Reviews Display** (`reviews-display.tsx`)
@@ -85,7 +85,7 @@ This roadmap tracks the progress of extracting reusable code snippets from the S
     - Description: Cumulative growth visualization
 
 ## Next Steps
-- Continue with **Operational Insights** component
+- Continue with **Reviews Display** component
 - Extract each component following the established pattern
 - Update this roadmap after each extraction
 - Ensure all dependencies and types are included
